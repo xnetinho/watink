@@ -11,7 +11,7 @@ engine-go/tmp
 docs
 e2e
 images
-.env
-.env.*
-!.env.example
-!.env.production.example
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.production.example
