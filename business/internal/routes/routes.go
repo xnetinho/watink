@@ -215,6 +215,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		// Tickets
 		protected.GET("/tickets", ticketController.ListTickets)
 		protected.GET("/tickets/", ticketController.ListTickets)
+		protected.POST("/tickets", auth.RequirePermission("tickets", "create"), ticketController.CreateTicket)
 		protected.GET("/tickets/:ticketId", ticketController.ShowTicket)
 		protected.PUT("/tickets/:ticketId", auth.RequirePermission("tickets", "update"), ticketController.UpdateTicket)
 		protected.DELETE("/tickets/:ticketId", auth.RequirePermission("tickets", "delete"), ticketController.DeleteTicket)

@@ -6203,6 +6203,67 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Abre um ticket para um contato. Se já existir ticket aberto/pendente do contato na mesma conexão, devolve o existente (200). Sem whatsappId, usa a conexão do usuário ou a única conectada; com 2+ conectadas responde 409 code=CONNECTION_REQUIRED listando as opções.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Iniciar conversa (criar ticket)",
+                "parameters": [
+                    {
+                        "description": "contactId obrigatório",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.createTicketRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/tickets/{ticketId}": {
@@ -7204,6 +7265,26 @@ const docTemplate = `{
                     "$ref": "#/definitions/controllers.ActivitySLAConfig"
                 },
                 "staleThresholdMinutes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "controllers.createTicketRequest": {
+            "type": "object",
+            "required": [
+                "contactId"
+            ],
+            "properties": {
+                "contactId": {
+                    "type": "integer"
+                },
+                "queueId": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "whatsappId": {
                     "type": "integer"
                 }
             }

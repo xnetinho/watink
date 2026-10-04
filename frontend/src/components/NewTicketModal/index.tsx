@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Contact } from "../../pages/Contacts/contactsTypes";
-import { useNavigate } from "react-router";
 import { Loader2 } from "lucide-react";
 
 import {
@@ -17,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
-import { AuthContext } from "../../context/Auth/AuthContext";
+import { useStartChat } from "../../hooks/useStartChat";
 import ContactModal from "../ContactModal";
 
 interface NewTicketModalProps {
@@ -26,15 +25,13 @@ interface NewTicketModalProps {
 }
 
 const NewTicketModal = ({ modalOpen, onClose }: NewTicketModalProps) => {
-  const navigate = useNavigate();
   const [options, setOptions] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [searchParam, setSearchParam] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [newContact, setNewContact] = useState<{ name?: string }>({});
   const [contactModalOpen, setContactModalOpen] = useState(false);
 
-  const { user } = useContext(AuthContext);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -46,14 +43,14 @@ const NewTicketModal = ({ modalOpen, onClose }: NewTicketModalProps) => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
 
     searchTimeoutRef.current = setTimeout(async () => {
-      setLoading(true);
+      setSearching(true);
       try {
         const { data } = await api.get("contacts", { params: { searchParam } });
         setOptions(data.contacts);
       } catch (err) {
         toastError(err);
       } finally {
-        setLoading(false);
+        setSearching(false);
       }
     }, 500);
 
@@ -69,22 +66,10 @@ const NewTicketModal = ({ modalOpen, onClose }: NewTicketModalProps) => {
     setOptions([]);
   };
 
-  const handleSaveTicket = async (contactId: number | string) => {
-    if (!contactId) return;
-    setLoading(true);
-    try {
-      const { data: ticket } = await api.post("/tickets", {
-        contactId: contactId,
-        userId: user.id,
-        status: "open",
-      });
-      navigate(`/tickets/${ticket.id}`);
-      handleClose();
-    } catch (err) {
-      toastError(err);
-      setLoading(false);
-    }
-  };
+  const { startChat, startingChat, connectionDialog } = useStartChat(handleClose);
+  const loading = searching || startingChat;
+
+  const handleSaveTicket = (contactId: number | string) => startChat(contactId);
 
   const handleAddNewContactTicket = (contact: { id?: number | string; name: string; number: string; email: string }) => {
     if (contact.id !== undefined) handleSaveTicket(contact.id);
@@ -176,6 +161,7 @@ const NewTicketModal = ({ modalOpen, onClose }: NewTicketModalProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {connectionDialog}
     </>
   );
 };
