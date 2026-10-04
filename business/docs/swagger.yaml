@@ -147,6 +147,19 @@ definitions:
       staleThresholdMinutes:
         type: integer
     type: object
+  controllers.createTicketRequest:
+    properties:
+      contactId:
+        type: integer
+      queueId:
+        type: integer
+      status:
+        type: string
+      whatsappId:
+        type: integer
+    required:
+    - contactId
+    type: object
   controllers.finalizeActivityRequest:
     properties:
       clientSignature:
@@ -4908,6 +4921,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Listar tickets
+      tags:
+      - tickets
+    post:
+      consumes:
+      - application/json
+      description: Abre um ticket para um contato. Se já existir ticket aberto/pendente
+        do contato na mesma conexão, devolve o existente (200). Sem whatsappId, usa
+        a conexão do usuário ou a única conectada; com 2+ conectadas responde 409
+        code=CONNECTION_REQUIRED listando as opções.
+      parameters:
+      - description: contactId obrigatório
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.createTicketRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Iniciar conversa (criar ticket)
       tags:
       - tickets
   /tickets/{ticketId}:

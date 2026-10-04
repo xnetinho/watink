@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useReducer, useContext } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect, useReducer } from "react";
 import { toast } from "react-toastify";
 
 import api from "../../../services/api";
 import { subscribeToSocket } from "../../../services/sse-client";
 import { i18n } from "../../../translate/i18n";
 import toastError from "../../../errors/toastError";
-import { AuthContext } from "../../../context/Auth/AuthContext";
+import { useStartChat } from "../../../hooks/useStartChat";
 import { useLocalStorage } from "../../../hooks/useLocalStorage";
 import { Contact, ContactsView, UseContactsReturn } from "../contactsTypes";
 import { contactsReducer } from "./contactsReducer";
@@ -14,8 +13,6 @@ import { contactsReducer } from "./contactsReducer";
 export type { UseContactsReturn };
 
 export function useContacts(): UseContactsReturn {
-  const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
 
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
@@ -111,22 +108,8 @@ export function useContacts(): UseContactsReturn {
     setConfirmOpen(true);
   };
 
-  const handleSaveTicket = async (contactId: number) => {
-    if (!contactId) return;
-    setLoading(true);
-    try {
-      const { data: ticket } = await api.post("/tickets", {
-        contactId,
-        userId: user?.id,
-        status: "open",
-      });
-      navigate(`/tickets/${ticket.id}`);
-    } catch (err) {
-      toastError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { startChat, connectionDialog } = useStartChat();
+  const handleSaveTicket = (contactId: number) => startChat(contactId);
 
   const handleDeleteContact = async (contactId: number) => {
     if (!contactId) return;
@@ -226,6 +209,7 @@ export function useContacts(): UseContactsReturn {
     handleCloseClientModal,
     handleEditContact,
     handleSaveTicket,
+    connectionDialog,
     handleDeleteContact,
     handleImportContacts,
     handleRequestDelete,
