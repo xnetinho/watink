@@ -210,7 +210,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 
 		// Settings
 		protected.GET("/settings", settingController.ListSettings)
-		protected.PUT("/settings/:key", settingController.UpdateSetting)
+		protected.PUT("/settings/:key", auth.RequirePermission("settings", "update"), settingController.UpdateSetting)
 
 		// Tickets
 		protected.GET("/tickets", ticketController.ListTickets)

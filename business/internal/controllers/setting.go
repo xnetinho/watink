@@ -23,6 +23,7 @@ func NewSettingController(settingRepo domain.SettingRepository, broadcast domain
 }
 
 // @Summary      Listar configurações
+// @Description  Devolve as configurações do tenant. Valores secretos (chaves de API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais recebem um placeholder.
 // @Tags         settings
 // @Produce      json
 // @Success      200  {array}   map[string]interface{}
@@ -38,6 +39,10 @@ func (sc *SettingController) ListSettings(c *gin.Context) {
 	if err := db.Where("\"tenantId\" = ?", tenantID).Find(&settings).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "ListSettings")
 		return
+	}
+
+	if !auth.HasPermission(c, "settings", "update") {
+		settings = maskSecretSettings(settings)
 	}
 
 	c.JSON(http.StatusOK, settings)
@@ -116,9 +121,14 @@ func (sc *SettingController) UpdateSetting(c *gin.Context) {
 		return
 	}
 
-	sc.broadcast.EmitToNamespace("/", "settings", map[string]interface{}{
+	// O evento vai a TODOS do tenant, inclusive quem só lê: nunca leva o segredo.
+	broadcastSetting := setting
+	if isSecretSettingKey(setting.Key) && setting.Value != "" {
+		broadcastSetting.Value = maskedSecretPlaceholder
+	}
+	sc.broadcast.EmitToTenantRoom(tenantUUID.String(), "settings", map[string]interface{}{
 		"action":  "update",
-		"setting": setting,
+		"setting": broadcastSetting,
 	})
 
 	c.JSON(http.StatusOK, setting)

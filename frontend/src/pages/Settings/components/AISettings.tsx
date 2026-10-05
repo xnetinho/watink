@@ -20,6 +20,7 @@ import {
 } from "../../../components/ui/select";
 import { Input } from "../../../components/ui/input";
 import { Textarea } from "../../../components/ui/textarea";
+import { shouldSaveSecret } from "../utils/secretSettings";
 import {
   listAiGateways,
   listAiGatewayModels,
@@ -364,7 +365,10 @@ const AISettings: React.FC<AISettingsProps> = ({
               type="password"
               placeholder="sk-..."
               defaultValue={getSettingValue("aiApiKey")}
-              onBlur={(e) => handleUpdateSetting("aiApiKey", e.target.value)}
+              onBlur={(e) =>
+                shouldSaveSecret(e.target.value, getSettingValue("aiApiKey")) &&
+                handleUpdateSetting("aiApiKey", e.target.value)
+              }
             />
           </div>
 
@@ -434,6 +438,7 @@ const AISettings: React.FC<AISettingsProps> = ({
                   placeholder="vazio = reusa a chave do chat (Ollama não exige)"
                   defaultValue={getSettingValue("aiEmbeddingApiKey")}
                   onBlur={(e) =>
+                    shouldSaveSecret(e.target.value, getSettingValue("aiEmbeddingApiKey")) &&
                     handleUpdateSetting("aiEmbeddingApiKey", e.target.value)
                   }
                 />

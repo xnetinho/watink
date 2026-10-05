@@ -38,53 +38,59 @@ import (
 // silent pass-through.
 func RequirePermission(resource, action string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		alcance, _ := c.Get("alcance")
-		alcanceStr, _ := alcance.(string)
-
-		if alcanceStr == "tenant" || alcanceStr == "plataforma" {
+		if HasPermission(c, resource, action) {
 			c.Next()
 			return
 		}
-
-		db := GetDB(c)
-
-		userID, okUser := userIDFromContext(c)
-		tenantID, errTenant := TenantUUIDFromContext(c)
-		if !okUser || errTenant != nil {
-			denyPermission(c, resource, action)
-			return
-		}
-
-		var user models.User
-		if err := db.
-			Where(`id = ? AND "tenantId" = ?`, userID, tenantID).
-			First(&user).Error; err != nil {
-			denyPermission(c, resource, action)
-			return
-		}
-
-		hasViaCargo, err := cargoHasPermission(db, user.CargoID, tenantID, resource, action)
-		if err != nil {
-			denyPermission(c, resource, action)
-			return
-		}
-		if hasViaCargo {
-			c.Next()
-			return
-		}
-
-		hasViaGestor, err := gestorPackageHasPermission(db, user.ID, tenantID, resource, action)
-		if err != nil {
-			denyPermission(c, resource, action)
-			return
-		}
-		if hasViaGestor {
-			c.Next()
-			return
-		}
-
 		denyPermission(c, resource, action)
 	}
+}
+
+// HasPermission reports whether the authenticated user holds resource:action,
+// using the same rules as RequirePermission (alcance tenant/plataforma bypass,
+// Cargo base + pacote Gestor) but WITHOUT aborting the request. Use it inside a
+// handler that must serve different content depending on the permission (ex.:
+// mascarar segredos para quem só pode ler). Fail-closed: qualquer erro de
+// contexto/consulta resulta em false.
+func HasPermission(c *gin.Context, resource, action string) bool {
+	alcance, _ := c.Get("alcance")
+	alcanceStr, _ := alcance.(string)
+	if alcanceStr == "tenant" || alcanceStr == "plataforma" {
+		return true
+	}
+
+	// Sessão nova por consulta: o db do contexto pode já vir escopado por quem
+	// chama (ex.: auth.GetScoped acrescenta WHERE tenantId), e reusá-lo acumularia
+	// condições e faria cada consulta abaixo casar 0 linhas — negando a permissão
+	// a quem a tem.
+	fresh := func() *gorm.DB { return GetDB(c).Session(&gorm.Session{NewDB: true}) }
+
+	userID, okUser := userIDFromContext(c)
+	tenantID, errTenant := TenantUUIDFromContext(c)
+	if !okUser || errTenant != nil {
+		return false
+	}
+
+	var user models.User
+	if err := fresh().
+		Where(`id = ? AND "tenantId" = ?`, userID, tenantID).
+		First(&user).Error; err != nil {
+		return false
+	}
+
+	hasViaCargo, err := cargoHasPermission(fresh(), user.CargoID, tenantID, resource, action)
+	if err != nil {
+		return false
+	}
+	if hasViaCargo {
+		return true
+	}
+
+	hasViaGestor, err := gestorPackageHasPermission(fresh(), user.ID, tenantID, resource, action)
+	if err != nil {
+		return false
+	}
+	return hasViaGestor
 }
 
 func denyPermission(c *gin.Context, resource, action string) {
