@@ -2,7 +2,10 @@
  * ThemeContext — orchestrator for CSS design tokens
  *
  * - applyThemeTokens() sets CSS variables on :root consumed by var(--token) in components
- * - System preference detection on init (prefers-color-scheme: dark)
+ * - Claro/escuro é PESSOAL: preferência do usuário (`light`|`dark`), guardada em
+ *   Users.configs.theme e espelhada no localStorage (primeiro paint sem piscar).
+ *   Sem preferência, segue o navegador (prefers-color-scheme) e reage a mudanças.
+ * - A paleta (apple/google/whatsapp/saas) continua sendo do tenant (white-label)
  * - brand overrides enable white-labeling per tenant
  */
 
@@ -16,6 +19,9 @@ import React, {
   ReactNode,
 } from "react";
 import { applyThemeTokens } from "../../theme/loader";
+import { DB_THEME_MAP, DEFAULT_DB_THEME } from "../../theme/dbTheme";
+import { AuthContext } from "../Auth/AuthContext";
+import api from "../../services/api";
 
 interface BrandOverrides {
   primary?: string;
@@ -23,21 +29,44 @@ interface BrandOverrides {
   [key: string]: string | undefined;
 }
 
+type ThemePreference = "light" | "dark";
+
 interface ThemeContextValue {
   darkMode: boolean;
+  /** Alterna claro/escuro e grava como preferência pessoal do usuário. */
   toggleTheme: () => void;
-  setDarkMode: (v: boolean) => void;
   appTheme: string;
   setAppTheme: (v: string) => void;
   setBrand: (b: BrandOverrides) => void;
+  /** Aplica a PALETA da setting `theme` do tenant (claro/escuro não é do tenant). */
+  applyDbTheme: (dbValue: string) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const getInitialDarkMode = (): boolean => {
-  const stored = localStorage.getItem("darkMode");
-  if (stored !== null) return stored === "true";
-  return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false;
+const SYSTEM_DARK_QUERY = "(prefers-color-scheme: dark)";
+const PREF_KEY = "themePreference";
+
+const systemPrefersDark = (): boolean =>
+  window.matchMedia?.(SYSTEM_DARK_QUERY)?.matches ?? false;
+
+const asPreference = (v: unknown): ThemePreference | null =>
+  v === "light" || v === "dark" ? v : null;
+
+const readStoredPreference = (): ThemePreference | null =>
+  asPreference(localStorage.getItem(PREF_KEY));
+
+// `configs` chega como string JSON em /auth/refresh_token e /me, mas já como
+// objeto em outros pontos (ex.: dashboard) — aceita os dois.
+const preferenceFromUser = (user: { configs?: unknown } | undefined): ThemePreference | null => {
+  const raw = user?.configs;
+  if (!raw) return null;
+  try {
+    const cfg = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return asPreference((cfg as { theme?: unknown }).theme);
+  } catch {
+    return null;
+  }
 };
 
 const VALID_THEMES = ["apple", "google", "whatsapp", "saas"];
@@ -55,21 +84,41 @@ const getInitialAppTheme = (): string => {
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [darkMode, setDarkMode] = useState<boolean>(getInitialDarkMode);
+  const { user } = useContext(AuthContext);
+  const [preference, setPreference] = useState<ThemePreference | null>(readStoredPreference);
+  const [systemDark, setSystemDark] = useState<boolean>(systemPrefersDark);
+  const darkMode = preference ? preference === "dark" : systemDark;
   const [appTheme, setAppThemeState] = useState<string>(getInitialAppTheme);
   const [brand, setBrand] = useState<BrandOverrides>({});
 
-  const toggleTheme = useCallback(() => {
-    setDarkMode((prev) => {
-      const next = !prev;
-      localStorage.setItem("darkMode", String(next));
-      return next;
-    });
+  // Segue o navegador enquanto o usuário não escolheu.
+  useEffect(() => {
+    const mql = window.matchMedia?.(SYSTEM_DARK_QUERY);
+    if (!mql) return;
+    setSystemDark(mql.matches);
+    const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  const setDarkModeValue = useCallback((v: boolean) => {
-    setDarkMode(v);
-    localStorage.setItem("darkMode", String(v));
+  // Preferência salva no servidor vale em qualquer dispositivo/navegador.
+  const serverPreference = preferenceFromUser(user as { configs?: unknown } | undefined);
+  useEffect(() => {
+    if (!serverPreference) return;
+    setPreference(serverPreference);
+    localStorage.setItem(PREF_KEY, serverPreference);
+  }, [serverPreference]);
+
+  const toggleTheme = useCallback(() => {
+    const next: ThemePreference = darkMode ? "light" : "dark";
+    setPreference(next);
+    localStorage.setItem(PREF_KEY, next);
+    // Falha de rede não desfaz a troca local — vale neste navegador e é regravada no próximo clique.
+    api.put("/me/theme", { theme: next }).catch(() => undefined);
+  }, [darkMode]);
+
+  const applyDbTheme = useCallback((dbValue: string) => {
+    setAppThemeState((DB_THEME_MAP[dbValue] ?? DEFAULT_DB_THEME).appTheme);
   }, []);
 
   const setAppTheme = useCallback((v: string) => {
@@ -89,12 +138,12 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
     () => ({
       darkMode,
       toggleTheme,
-      setDarkMode: setDarkModeValue,
       appTheme,
       setAppTheme,
       setBrand,
+      applyDbTheme,
     }),
-    [darkMode, toggleTheme, setDarkModeValue, appTheme, setAppTheme, setBrand]
+    [darkMode, toggleTheme, appTheme, setAppTheme, setBrand, applyDbTheme]
   );
 
   return (

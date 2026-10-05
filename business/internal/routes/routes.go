@@ -390,6 +390,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		// (alcance/cargoId/setores) — ver user_me.go.
 		protected.GET("/me", userController.GetMe)
 		protected.PUT("/me", userController.UpdateMe)
+		protected.PUT("/me/theme", userController.UpdateMyTheme)
 
 		// Users
 		protected.GET("/users", auth.RequirePermission("users", "read"), userController.ListUsers)

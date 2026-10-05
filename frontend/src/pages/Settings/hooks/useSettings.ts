@@ -7,12 +7,6 @@ import { i18n } from "../../../translate/i18n";
 import toastError from "../../../errors/toastError";
 import { subscribeToSocket } from "../../../services/sse-client";
 
-const DB_THEME_MAP: Record<string, { appTheme: string; darkMode?: boolean }> = {
-  whaticket: { appTheme: "google" },
-  whatsapp:  { appTheme: "whatsapp" },
-  dark:      { appTheme: "apple", darkMode: true },
-};
-
 export interface Setting {
   key: string;
   value: string;
@@ -42,7 +36,7 @@ export interface UseSettingsReturn {
 }
 
 export const useSettings = (): UseSettingsReturn => {
-  const { setAppTheme, setDarkMode } = useThemeContext();
+  const { applyDbTheme } = useThemeContext();
 
   const [settings, setSettings] = useState<Setting[]>([]);
   const [activePlugins, setActivePlugins] = useState<string[]>([]);
@@ -119,9 +113,7 @@ export const useSettings = (): UseSettingsReturn => {
         return updated;
       });
       if (key === "theme") {
-        const mapped = DB_THEME_MAP[value] ?? { appTheme: "google" };
-        setAppTheme(mapped.appTheme);
-        setDarkMode(mapped.darkMode ?? false);
+        applyDbTheme(value);
       }
       toast.success("Configuração atualizada!");
     } catch (err) {
