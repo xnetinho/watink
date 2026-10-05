@@ -194,6 +194,16 @@ func TestCreateTicket_ReturnsExistingOpenTicket(t *testing.T) {
 	if decode(t, first)["id"] != decode(t, second)["id"] {
 		t.Fatal("2ª chamada deveria devolver o mesmo ticket")
 	}
+	// Mesma forma de resposta nos dois caminhos (201 e 200): contato e usuário carregados.
+	for _, res := range []*httptest.ResponseRecorder{first, second} {
+		out := decode(t, res)
+		if ct, _ := out["contact"].(map[string]interface{}); ct == nil || ct["name"] != "Cliente" {
+			t.Fatalf("resposta deveria trazer o contato carregado: %v", out["contact"])
+		}
+		if us, _ := out["user"].(map[string]interface{}); us == nil || us["name"] != "Ana" {
+			t.Fatalf("resposta deveria trazer o usuário carregado: %v", out["user"])
+		}
+	}
 	var n int64
 	db.Model(&models.Ticket{}).Where(`"tenantId" = ?`, tenantID).Count(&n)
 	if n != 1 {

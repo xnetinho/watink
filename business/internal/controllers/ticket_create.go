@@ -111,6 +111,10 @@ func (tc *TicketController) CreateTicket(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Este contato já está em atendimento por outro atendente", "code": "TICKET_OWNED_BY_OTHER"})
 			return
 		}
+		if err := q().Preload("Contact").Preload("User").First(&existing, existing.ID).Error; err != nil {
+			utils.RespondWithInternalError(c, err, "CreateTicket")
+			return
+		}
 		c.JSON(http.StatusOK, existing)
 		return
 	}
