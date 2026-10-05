@@ -4,11 +4,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ComingSoonItemProps } from "../mainSidebarTypes";
 
-const ComingSoonItem: React.FC<ComingSoonItemProps> = ({ icon, label, collapsed, isLightSidebar }) => {
+const ComingSoonItem: React.FC<ComingSoonItemProps> = ({ icon, label, collapsed }) => {
   const itemClass = cn(
     "flex items-center gap-3 px-3 py-2 rounded-lg opacity-40 cursor-not-allowed select-none",
     collapsed ? "justify-center px-2" : "",
-    isLightSidebar ? "text-[var(--text-muted)]" : "text-[var(--slate-400)]"
+    "text-[hsl(var(--text-sidebar)/0.65)]"
   );
 
   const content = (

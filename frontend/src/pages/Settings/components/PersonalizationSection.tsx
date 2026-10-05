@@ -177,15 +177,17 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
             </div>
 
             <div className="space-y-4">
-              <Label>Tema Visual</Label>
-              <Select value={getDisplayValue("theme") || "whaticket"} onValueChange={(v) => handleLocalChange("theme", v)}>
+              <Label>Paleta de cores</Label>
+              <p className="text-sm text-muted-foreground">
+                Identidade visual da empresa. O modo claro/escuro é escolhido por cada usuário no ícone do topo da tela.
+              </p>
+              <Select value={["whaticket", "whatsapp"].includes(getDisplayValue("theme")) ? getDisplayValue("theme") : "whaticket"} onValueChange={(v) => handleLocalChange("theme", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Tema principal" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="whaticket">Padrão Whajet / Whaticket</SelectItem>
                   <SelectItem value="whatsapp">Branding WhatsApp (Green)</SelectItem>
-                  <SelectItem value="dark">Escuro Noturno (Dark)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -330,13 +332,11 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
 
             {localChanges.theme && (
               <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                <Label className="text-xs font-semibold">Tema Visual</Label>
+                <Label className="text-xs font-semibold">Paleta de cores</Label>
                 <p className="text-sm">
-                  {localChanges.theme === "whaticket"
-                    ? "Padrão Whajet / Whaticket"
-                    : localChanges.theme === "whatsapp"
-                      ? "Branding WhatsApp (Green)"
-                      : "Escuro Noturno (Dark)"}
+                  {localChanges.theme === "whatsapp"
+                    ? "Branding WhatsApp (Green)"
+                    : "Padrão Whajet / Whaticket"}
                 </p>
               </div>
             )}
