@@ -1,4 +1,5 @@
 import { getBackendUrl } from "../config";
+import api from "./api";
 
 // ---------------------------------------------------------------------------
 // SSEClient — singleton that replaces the former Socket.IO client.
@@ -71,6 +72,45 @@ function getToken(): string {
   }
 }
 
+// Margem para não abrir o stream com um token que expira no meio do handshake.
+const TOKEN_EXPIRY_SKEW_MS = 30_000;
+
+// true só quando o JWT traz `exp` e ele já passou (ou está na margem). Token
+// sem `exp` ou ilegível é deixado para o servidor julgar.
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return false;
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    const exp = (JSON.parse(json) as { exp?: number }).exp;
+    return typeof exp === "number" && exp * 1000 - TOKEN_EXPIRY_SKEW_MS <= Date.now();
+  } catch {
+    return false;
+  }
+}
+
+// EventSource não passa pelos interceptors do axios, então um 401 no stream
+// nunca renovava o token. Uma chamada axios comum passa: o interceptor de
+// useAuth renova (deduplicado) e, se o refresh falhar, limpa a sessão — sem
+// token, connectToSSE() para de reconectar.
+let renewingToken = false;
+function renewTokenThenConnect(): void {
+  if (renewingToken) return;
+  renewingToken = true;
+  api
+    .get("/me")
+    .catch(() => {})
+    .finally(() => {
+      renewingToken = false;
+      const token = getToken();
+      if (token && isTokenExpired(token)) {
+        scheduleReconnect(true);
+      } else {
+        connectToSSE();
+      }
+    });
+}
+
 function buildSSEUrl(): string {
   const token = getToken();
   const rooms = Array.from(roomRegistry).join(",");
@@ -104,6 +144,15 @@ function dispatch(eventName: string, payload: unknown): void {
 function connectToSSE(): void {
   const token = getToken();
   if (!token) return;
+
+  if (isTokenExpired(token)) {
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+    renewTokenThenConnect();
+    return;
+  }
 
   const url = buildSSEUrl();
 
