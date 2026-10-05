@@ -19,17 +19,15 @@ import {
   Users,
   ListChecks,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { AuthContext } from "../../../context/Auth/AuthContext";
 import { Can } from "../../../components/Can";
 import { i18n } from "../../../translate/i18n";
 import SidebarItem from "../../SidebarItem";
 import type { SidebarNavProps } from "../mainSidebarTypes";
 
-const getDividerClass = (isLight: boolean): string =>
-  cn("my-4 border-t mx-2", isLight ? "border-[var(--border-sidebar)]" : "border-border/50");
+const DIVIDER_CLASS = "my-4 border-t mx-2 border-[hsl(var(--border-sidebar))]";
 
-const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed, isLightSidebar, activePlugins }) => {
+const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed, activePlugins }) => {
   const { user } = useContext(AuthContext);
 
   return (
@@ -216,7 +214,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed, isLightSidebar, acti
         />
       )}
 
-      <div className={getDividerClass(isLightSidebar)} />
+      <div className={DIVIDER_CLASS} />
 
       <Can
         user={user}

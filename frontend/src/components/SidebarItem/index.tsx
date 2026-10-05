@@ -7,7 +7,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "../../components/ui/tooltip";
-import { useThemeContext } from "../../context/DarkMode";
 
 interface SidebarItemProps {
   to: string;
@@ -18,29 +17,23 @@ interface SidebarItemProps {
 }
 
 // Pré-computa classes fora do JSX para evitar ambiguidade do parser TSX com hsl(var(--...))
-const getLinkClass = (isLightSidebar: boolean, isActive: boolean, collapsed: boolean): string => {
+// Cores vêm dos tokens da paleta/modo (--text-sidebar, --action-primary*), então o
+// item acompanha o tema claro/escuro do usuário em qualquer paleta.
+const getLinkClass = (isActive: boolean, collapsed: boolean): string => {
   const base = "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative select-none";
-  const hover = isLightSidebar
-    ? "hover:bg-black/5 hover:text-[var(--text-primary)]"
-    : "hover:bg-white/5 hover:text-white";
+  const hover = "hover:bg-[hsl(var(--text-sidebar)/0.08)]";
   const state = isActive
-    ? isLightSidebar
-      ? "bg-[var(--action-primary-bg)] text-[var(--action-primary)] font-semibold"
-      : "bg-primary/20 text-white font-semibold"
-    : isLightSidebar
-      ? "text-[var(--text-secondary)]"
-      : "text-[var(--slate-300)]";
+    ? "bg-[hsl(var(--action-primary-bg))] text-[hsl(var(--action-primary))] font-semibold"
+    : "text-[hsl(var(--text-sidebar))]";
   const layout = collapsed ? "justify-center px-2" : "";
   return cn(base, hover, state, layout);
 };
 
-const getIconClass = (isLightSidebar: boolean, isActive: boolean): string => {
+const getIconClass = (isActive: boolean): string => {
   const base = "flex shrink-0 items-center justify-center transition-transform group-hover:scale-110";
   const color = isActive
-    ? isLightSidebar ? "text-[var(--action-primary)]" : "text-white"
-    : isLightSidebar
-      ? "text-[var(--text-muted)] group-hover:text-[var(--text-primary)]"
-      : "text-[var(--slate-400)] group-hover:text-white";
+    ? "text-[hsl(var(--action-primary))]"
+    : "text-[hsl(var(--text-sidebar)/0.65)] group-hover:text-[hsl(var(--text-sidebar))]";
   return cn(base, color);
 };
 
@@ -52,12 +45,10 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   activeColor = "var(--primary)",
 }) => {
   const location = useLocation();
-  const { appTheme } = useThemeContext();
-  const isLightSidebar = appTheme === "whatsapp";
   const isActive = to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
 
-  const linkClass = getLinkClass(isLightSidebar, isActive, collapsed);
-  const iconClass = getIconClass(isLightSidebar, isActive);
+  const linkClass = getLinkClass(isActive, collapsed);
+  const iconClass = getIconClass(isActive);
 
   const content = (
     <NavLink to={to} className={linkClass}>
