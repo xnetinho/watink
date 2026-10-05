@@ -5681,6 +5681,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Devolve as configurações do tenant. Valores secretos (chaves de API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais recebem um placeholder.",
                 "produces": [
                     "application/json"
                 ],
