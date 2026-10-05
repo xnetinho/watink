@@ -293,3 +293,24 @@ func TestGORMContactRepo_FindOrCreate_NeverErasesProfilePicUrlWithEmpty(t *testi
 	require.NoError(t, err)
 	assert.Equal(t, "https://cdn.example.com/pic.jpg", updated.ProfilePicUrl)
 }
+
+// POST /contacts devolvia "id": 0: Create converte domain->model por valor e
+// descartava o ID/timestamps gerados no INSERT. O frontend usa esse id logo em
+// seguida (iniciar conversa com o contato recém-criado), então ficava com 0.
+func TestGORMContactRepo_Create_FillsGeneratedFields(t *testing.T) {
+	db := setupContactTestDB(t)
+	tenantID := uuid.New()
+	repo := NewGORMContactRepo(db)
+
+	c := &domain.Contact{Name: "Novo", Number: "5511988887777", TenantID: tenantID}
+	require.NoError(t, repo.Create(context.Background(), c))
+
+	assert.NotZero(t, c.ID, "o ID gerado pelo banco precisa voltar no objeto de domínio")
+	assert.False(t, c.CreatedAt.IsZero(), "createdAt gerado precisa voltar")
+	assert.False(t, c.UpdatedAt.IsZero(), "updatedAt gerado precisa voltar")
+
+	got, err := repo.FindByID(context.Background(), c.ID, tenantID)
+	require.NoError(t, err)
+	require.NotNil(t, got, "o ID devolvido deve apontar para a linha criada")
+	assert.Equal(t, "Novo", got.Name)
+}
