@@ -1,9 +1,8 @@
 /* @jsxImportSource react */
-import React, { useEffect, useState, useContext } from "react";
-import { useNavigate } from "react-router";
+import React, { useEffect, useState } from "react";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
-import { AuthContext } from "../../context/Auth/AuthContext";
+import { useStartChat } from "../../hooks/useStartChat";
 import { Button } from "../ui/button";
 import { Avatar } from "../ui/avatar";
 import { Separator } from "../ui/separator";
@@ -22,8 +21,7 @@ interface SelectedContact {
 }
 
 const VcardPreview: React.FC<VcardPreviewProps> = ({ contact, numbers }) => {
-  const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { startChat, connectionDialog } = useStartChat();
 
   const [selectedContact, setContact] = useState<SelectedContact>({
     name: "",
@@ -51,17 +49,8 @@ const VcardPreview: React.FC<VcardPreviewProps> = ({ contact, numbers }) => {
     return () => clearTimeout(delayDebounceFn);
   }, [contact, numbers]);
 
-  const handleNewChat = async () => {
-    try {
-      const { data: ticket } = await api.post("/tickets", {
-        contactId: selectedContact.id,
-        userId: user.id,
-        status: "open",
-      });
-      navigate(`/tickets/${ticket.id}`);
-    } catch (err) {
-      toastError(err);
-    }
+  const handleNewChat = () => {
+    if (selectedContact.id !== undefined) startChat(selectedContact.id);
   };
 
   return (
@@ -82,6 +71,7 @@ const VcardPreview: React.FC<VcardPreviewProps> = ({ contact, numbers }) => {
         <MessageCircle className="h-4 w-4" />
         Conversar
       </Button>
+      {connectionDialog}
     </div>
   );
 };

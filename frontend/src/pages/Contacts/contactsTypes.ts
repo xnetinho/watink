@@ -45,6 +45,7 @@ export interface UseContactsReturn {
   handleCloseClientModal: () => void;
   handleEditContact: (contactId: number) => void;
   handleSaveTicket: (contactId: number) => Promise<void>;
+  connectionDialog: React.ReactNode;
   handleDeleteContact: (contactId: number) => Promise<void>;
   handleImportContacts: () => Promise<void>;
   handleRequestDelete: (contactId: number) => void;
