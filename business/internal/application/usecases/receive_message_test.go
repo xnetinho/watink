@@ -35,7 +35,7 @@ func (m *mockRcvContactRepo) BulkDelete(_ context.Context, _ []int, _ uuid.UUID)
 	return 0, nil
 }
 func (m *mockRcvContactRepo) DeleteAll(_ context.Context, _ uuid.UUID) (int64, error) { return 0, nil }
-func (m *mockRcvContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _ string, _ string, _ string, _ bool, _ bool, _ string) (*domain.Contact, error) {
+func (m *mockRcvContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _ string, _ string, _ string, _ bool, _ bool, _ string, _ string) (*domain.Contact, error) {
 	return m.contact, m.findOrCreateErr
 }
 
@@ -426,7 +426,7 @@ type capturingContactRepo struct {
 	capturedProfilePicURL string
 }
 
-func (m *capturingContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, profilePicURL string, _ bool, _ bool, _ string) (*domain.Contact, error) {
+func (m *capturingContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, profilePicURL string, _ bool, _ bool, _ string, _ string) (*domain.Contact, error) {
 	m.capturedProfilePicURL = profilePicURL
 	return m.contact, m.findOrCreateErr
 }

@@ -212,6 +212,7 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 		SenderPicURL:  p.SenderPicUrl,
 		IsLID:         p.IsLid,
 		Participant:   p.Participant,
+		ChatPN:        p.ChatPn,
 		IsGroup:       p.IsGroup,
 		IsCommunity:   p.IsCommunity,
 		IsSubGroup:    p.IsSubGroup,

@@ -62,7 +62,11 @@ type ContactRepository interface {
 	Delete(ctx context.Context, id int, tenantID uuid.UUID) error
 	BulkDelete(ctx context.Context, ids []int, tenantID uuid.UUID) (int64, error)
 	DeleteAll(ctx context.Context, tenantID uuid.UUID) (int64, error)
-	FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLID bool, from string) (*Contact, error)
+	// FindOrCreate acha ou cria o contato de uma conversa. Para conversas 1:1 que
+	// o WhatsApp entregou como LID, `knownNumber` é o telefone resolvido (vazio se
+	// desconhecido): se já existe um contato com esse número (ex.: cadastrado pela
+	// agenda), o LID é gravado NELE em vez de criar um segundo contato.
+	FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLID bool, from string, knownNumber string) (*Contact, error)
 }
 
 type UserRepository interface {

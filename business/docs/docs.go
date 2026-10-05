@@ -7783,6 +7783,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "number": {
+                    "description": "number e lid são únicos POR TENANT (idx_contacts_tenant_number e\nidx_contacts_tenant_lid, criados em database.addCustomIndexes). O unique\nglobal antigo (uni_Contacts_number/uni_Contacts_lid) impedia dois tenants\nde terem o mesmo contato e transformava a duplicata em erro 500.",
                     "type": "string"
                 },
                 "profilePicUrl": {

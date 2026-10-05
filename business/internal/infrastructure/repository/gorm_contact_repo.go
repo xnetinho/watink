@@ -58,7 +58,16 @@ func (r *GORMContactRepository) FindByLID(ctx context.Context, tenantID uuid.UUI
 
 // FindOrCreate creates a contact if it doesn't exist, or returns the existing one.
 // This method encapsulates the complex find-or-create logic from processMessage.
-func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLid bool, lid string) (*domain.Contact, error) {
+//
+// Identidade 1:1: o WhatsApp entrega a mesma pessoa ora pelo telefone, ora por um
+// LID opaco ("...@lid"). Quando a mensagem chega por LID, `lid` é o endereço do
+// chat e `knownNumber` é o telefone que o engine resolveu (vazio se não souber).
+// A busca segue esta ordem, sempre dentro do tenant:
+//  1. por LID (contato já visto por esse endereço);
+//  2. por telefone (contato cadastrado pela agenda), gravando o LID nele;
+//  3. senão, cria. Com telefone conhecido o number é o telefone; sem ele, o LID
+//     (comportamento anterior, único jeito de identificar quem não expõe número).
+func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLid bool, lid string, knownNumber string) (*domain.Contact, error) {
 	var m models.Contact
 	query := r.db.WithContext(ctx).Where("\"tenantId\" = ? AND \"isGroup\" = ?", tenantID, isGroup)
 	if isLid {
@@ -67,20 +76,40 @@ func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.
 		query = query.Where("number = ?", number)
 	}
 
-	if err := query.First(&m).Error; err != nil {
+	err := query.First(&m).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) && isLid && !isGroup && knownNumber != "" {
+		// Sessão nova por consulta: query acima já acumulou condições.
+		err = r.db.WithContext(ctx).
+			Where("\"tenantId\" = ? AND \"isGroup\" = ? AND number = ?", tenantID, false, knownNumber).
+			First(&m).Error
+		if err == nil && m.Lid == nil {
+			if upErr := r.db.WithContext(ctx).Model(&models.Contact{}).
+				Where("id = ? AND \"tenantId\" = ?", m.ID, tenantID).
+				Update("lid", lid).Error; upErr != nil {
+				return nil, upErr
+			}
+			m.Lid = &lid
+		}
+	}
+
+	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		// Create new contact
+		storedNumber := number
+		if isLid && !isGroup && knownNumber != "" {
+			storedNumber = knownNumber
+		}
 		m = models.Contact{
 			Name:          pushName,
-			Number:        number,
+			Number:        storedNumber,
 			TenantID:      tenantID,
 			IsGroup:       isGroup,
 			ProfilePicUrl: profilePicUrl,
 		}
 		if m.Name == "" {
-			m.Name = number
+			m.Name = storedNumber
 		}
 		if isLid {
 			m.Lid = &lid

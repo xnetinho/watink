@@ -28,6 +28,7 @@ type ReceiveMessageInput struct {
 	SenderPicURL  string
 	IsLID         bool
 	Participant   string
+	ChatPN        string // telefone do chat 1:1 quando entregue como LID (ver ContactRepository.FindOrCreate)
 	IsGroup       bool
 	IsCommunity   bool
 	IsSubGroup    bool
@@ -115,6 +116,7 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		input.IsGroup,
 		input.IsLID,
 		input.From,
+		jidNumber(input.ChatPN),
 	)
 	if err != nil {
 		return nil, err

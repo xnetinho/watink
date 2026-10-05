@@ -107,7 +107,7 @@ func (m *MockContactRepo) FindByNumber(ctx context.Context, tenantID uuid.UUID, 
 func (m *MockContactRepo) FindByLID(ctx context.Context, tenantID uuid.UUID, lid string, isGroup bool) (*domain.Contact, error) {
 	return nil, nil
 }
-func (m *MockContactRepo) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number, pushName, profilePicUrl string, isGroup, isLid bool, lid string) (*domain.Contact, error) {
+func (m *MockContactRepo) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number, pushName, profilePicUrl string, isGroup, isLid bool, lid, _ string) (*domain.Contact, error) {
 	return nil, nil
 }
 func (m *MockContactRepo) Create(ctx context.Context, contact *domain.Contact) error { return nil }
