@@ -56,25 +56,34 @@ describe("TicketsManager", () => {
     expect(screen.getByText("Não lidas")).toBeTruthy();
   });
 
-  it("chip Grupos começa inativo", () => {
+  it("aba Grupos começa inativa e Todos começa ativa", () => {
     render(<TicketsManager />);
-    const chip = screen.getByText("Grupos").closest("button")!;
-    expect(chip.className).not.toContain("border-primary");
+    expect(screen.getByText("Grupos").closest("button")!.className).not.toContain("bg-primary");
+    expect(screen.getByText("Todos").closest("button")!.className).toContain("bg-primary");
   });
 
-  it("clicar em Grupos ativa o chip", () => {
+  it("clicar em Grupos ativa a aba", () => {
     render(<TicketsManager />);
     const chip = screen.getByText("Grupos").closest("button")!;
     fireEvent.click(chip);
-    expect(chip.className).toContain("border-primary");
+    expect(chip.className).toContain("bg-primary");
   });
 
-  it("clicar em Grupos duas vezes desativa o chip (toggle)", () => {
+  it("clicar em Grupos duas vezes mantém a aba ativa (sem toggle, #403)", () => {
     render(<TicketsManager />);
     const chip = screen.getByText("Grupos").closest("button")!;
     fireEvent.click(chip);
     fireEvent.click(chip);
-    expect(chip.className).not.toContain("border-primary");
+    expect(chip.className).toContain("bg-primary");
+    expect(screen.getByTestId("tickets-list").getAttribute("data-is-group")).toBe("true");
+  });
+
+  it("voltar para Todos após Grupos desativa Grupos", () => {
+    render(<TicketsManager />);
+    fireEvent.click(screen.getByText("Grupos"));
+    fireEvent.click(screen.getByText("Todos"));
+    expect(screen.getByText("Grupos").closest("button")!.className).not.toContain("bg-primary");
+    expect(screen.getByTestId("tickets-list").getAttribute("data-is-group")).toBe("false");
   });
 
   it("clicar em Não lidas ativa o chip", () => {
@@ -84,10 +93,16 @@ describe("TicketsManager", () => {
     expect(chip.className).toContain("border-primary");
   });
 
-  it("TicketsList recebe isGroup=undefined por padrão (mostra todos)", () => {
+  it("TicketsList recebe isGroup=false por padrão (só conversas individuais)", () => {
     render(<TicketsManager />);
     const list = screen.getByTestId("tickets-list");
-    expect(list.getAttribute("data-is-group")).toBe("undefined");
+    expect(list.getAttribute("data-is-group")).toBe("false");
+  });
+
+  it("TicketsList recebe isGroup=true ao selecionar Grupos", () => {
+    render(<TicketsManager />);
+    fireEvent.click(screen.getByText("Grupos"));
+    expect(screen.getByTestId("tickets-list").getAttribute("data-is-group")).toBe("true");
   });
 
   it("mantém as abas Todos/Abertos/Aguardando/Fechados visíveis mesmo com Grupos selecionada", () => {
