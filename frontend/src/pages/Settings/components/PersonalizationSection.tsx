@@ -183,6 +183,7 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
                   <SelectValue placeholder="Tema principal" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="auto">Automático (seguir o navegador)</SelectItem>
                   <SelectItem value="whaticket">Padrão Whajet / Whaticket</SelectItem>
                   <SelectItem value="whatsapp">Branding WhatsApp (Green)</SelectItem>
                   <SelectItem value="dark">Escuro Noturno (Dark)</SelectItem>
@@ -332,11 +333,13 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
               <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
                 <Label className="text-xs font-semibold">Tema Visual</Label>
                 <p className="text-sm">
-                  {localChanges.theme === "whaticket"
-                    ? "Padrão Whajet / Whaticket"
-                    : localChanges.theme === "whatsapp"
-                      ? "Branding WhatsApp (Green)"
-                      : "Escuro Noturno (Dark)"}
+                  {localChanges.theme === "auto"
+                    ? "Automático (seguir o navegador)"
+                    : localChanges.theme === "whaticket"
+                      ? "Padrão Whajet / Whaticket"
+                      : localChanges.theme === "whatsapp"
+                        ? "Branding WhatsApp (Green)"
+                        : "Escuro Noturno (Dark)"}
                 </p>
               </div>
             )}

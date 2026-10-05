@@ -16,6 +16,7 @@ import React, {
   ReactNode,
 } from "react";
 import { applyThemeTokens } from "../../theme/loader";
+import { DB_THEME_MAP, DEFAULT_DB_THEME } from "../../theme/dbTheme";
 
 interface BrandOverrides {
   primary?: string;
@@ -30,14 +31,27 @@ interface ThemeContextValue {
   appTheme: string;
   setAppTheme: (v: string) => void;
   setBrand: (b: BrandOverrides) => void;
+  /** Aplica o valor da setting `theme` do tenant (paleta + modo, inclusive "auto"). */
+  applyDbTheme: (dbValue: string) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+const SYSTEM_DARK_QUERY = "(prefers-color-scheme: dark)";
+
+const systemPrefersDark = (): boolean =>
+  window.matchMedia?.(SYSTEM_DARK_QUERY)?.matches ?? false;
+
+// "auto" = o modo segue o navegador. Persistido à parte de `darkMode` para que
+// o primeiro paint (antes da setting do tenant chegar) já respeite o modo.
+const getInitialFollowSystem = (): boolean =>
+  localStorage.getItem("themeFollowSystem") === "true";
+
 const getInitialDarkMode = (): boolean => {
+  if (getInitialFollowSystem()) return systemPrefersDark();
   const stored = localStorage.getItem("darkMode");
   if (stored !== null) return stored === "true";
-  return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false;
+  return systemPrefersDark();
 };
 
 const VALID_THEMES = ["apple", "google", "whatsapp", "saas"];
@@ -56,10 +70,13 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [darkMode, setDarkMode] = useState<boolean>(getInitialDarkMode);
+  const [followSystem, setFollowSystem] = useState<boolean>(getInitialFollowSystem);
   const [appTheme, setAppThemeState] = useState<string>(getInitialAppTheme);
   const [brand, setBrand] = useState<BrandOverrides>({});
 
   const toggleTheme = useCallback(() => {
+    setFollowSystem(false);
+    localStorage.setItem("themeFollowSystem", "false");
     setDarkMode((prev) => {
       const next = !prev;
       localStorage.setItem("darkMode", String(next));
@@ -67,7 +84,10 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
     });
   }, []);
 
+  // Escolha explícita de claro/escuro encerra o modo automático.
   const setDarkModeValue = useCallback((v: boolean) => {
+    setFollowSystem(false);
+    localStorage.setItem("themeFollowSystem", "false");
     setDarkMode(v);
     localStorage.setItem("darkMode", String(v));
   }, []);
@@ -76,6 +96,32 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
     setAppThemeState(v);
     localStorage.setItem("appTheme", v);
   }, []);
+
+  const applyDbTheme = useCallback(
+    (dbValue: string) => {
+      const mapped = DB_THEME_MAP[dbValue] ?? DEFAULT_DB_THEME;
+      setAppTheme(mapped.appTheme);
+      if (mapped.follow === "system") {
+        setFollowSystem(true);
+        localStorage.setItem("themeFollowSystem", "true");
+        setDarkMode(systemPrefersDark());
+      } else {
+        setDarkModeValue(mapped.darkMode ?? false);
+      }
+    },
+    [setAppTheme, setDarkModeValue]
+  );
+
+  // Modo automático: reage à mudança do tema do sistema com a aba aberta.
+  useEffect(() => {
+    if (!followSystem) return;
+    const mql = window.matchMedia?.(SYSTEM_DARK_QUERY);
+    if (!mql) return;
+    setDarkMode(mql.matches);
+    const onChange = (e: MediaQueryListEvent) => setDarkMode(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [followSystem]);
 
   useEffect(() => {
     applyThemeTokens({
@@ -93,8 +139,9 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
       appTheme,
       setAppTheme,
       setBrand,
+      applyDbTheme,
     }),
-    [darkMode, toggleTheme, setDarkModeValue, appTheme, setAppTheme, setBrand]
+    [darkMode, toggleTheme, setDarkModeValue, appTheme, setAppTheme, setBrand, applyDbTheme]
   );
 
   return (
