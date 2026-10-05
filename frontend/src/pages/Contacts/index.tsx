@@ -38,6 +38,7 @@ const Contacts: React.FC = () => {
     handleCloseClientModal,
     handleEditContact,
     handleSaveTicket,
+    connectionDialog,
     handleDeleteContact,
     handleImportContacts,
     handleRequestDelete,
@@ -201,6 +202,7 @@ const Contacts: React.FC = () => {
           />
         )}
       </PageContent>
+      {connectionDialog}
     </PageContainer>
   );
 };

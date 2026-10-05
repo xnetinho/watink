@@ -217,3 +217,49 @@ func TestGetDashboardData_CrossTenantIsolation(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, int64(3), body.Tickets.Open, "deve ver apenas os tickets do próprio tenant")
 }
+
+func TestFetchTicketsByHour_CountsTodayPerHourAndIgnoresOtherTenantAndOtherDays(t *testing.T) {
+	db := setupDashboardTestDB(t)
+	tenantA, tenantB := uuid.New(), uuid.New()
+	loc := time.UTC
+	now := time.Date(2026, 10, 5, 15, 30, 0, 0, loc)
+
+	ins := func(tid uuid.UUID, at time.Time) {
+		require.NoError(t, db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?)`, "open", tid, at, at).Error)
+	}
+	ins(tenantA, time.Date(2026, 10, 5, 9, 5, 0, 0, loc))
+	ins(tenantA, time.Date(2026, 10, 5, 9, 50, 0, 0, loc))
+	ins(tenantA, time.Date(2026, 10, 5, 14, 0, 0, 0, loc))
+	ins(tenantA, time.Date(2026, 10, 4, 9, 0, 0, 0, loc))
+	ins(tenantB, time.Date(2026, 10, 5, 9, 0, 0, 0, loc))
+
+	got, err := fetchTicketsByHour(db, tenantA, now)
+	require.NoError(t, err)
+
+	assert.Equal(t, 2, got["09:00"], "dois tickets de hoje às 9h")
+	assert.Equal(t, 1, got["14:00"])
+	assert.Equal(t, 0, got["10:00"], "hora sem ticket não aparece")
+	assert.Len(t, got, 2, "ontem e outro tenant ficam de fora")
+}
+
+func TestGetDashboardData_IncludesTicketsByHour(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := setupDashboardTestDB(t)
+	tenantID := uuid.New()
+	now := time.Now()
+	require.NoError(t, db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?)`, "open", tenantID, now, now).Error)
+
+	c, w := setupDashboardContext(t, db, tenantID)
+	GetDashboardData(c)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body struct {
+		TicketsByHour map[string]int `json:"ticketsByHour"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	total := 0
+	for _, n := range body.TicketsByHour {
+		total += n
+	}
+	assert.Equal(t, 1, total, "o ticket criado agora entra em alguma hora de hoje")
+}

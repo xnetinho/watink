@@ -125,3 +125,32 @@
     font-family: var(--font-primary);
   }
 }
+
+/* ── Fundo da conversa ──────────────────────────────────────────────
+ * Aplicado no wrapper que NÃO rola (o ::before dentro do container de
+ * rolagem subiria junto com as mensagens). Cor lisa do tema (--bg-default) + padrão de ícones como máscara com
+ * transparência: preta no claro, branca no escuro. Só o alpha varia, então
+ * a cor do fundo é sempre a do tema. A opacidade é por modo — o padrão
+ * claro fica mais visível que o escuro, que precisa ser mais sutil. */
+.chat-wallpaper {
+  --chat-pattern-opacity: 0.1;
+  position: relative;
+  isolation: isolate;
+  background-color: hsl(var(--bg-default));
+}
+.chat-wallpaper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--chat-pattern-light);
+  background-size: 540px auto;
+  opacity: var(--chat-pattern-opacity);
+}
+.dark .chat-wallpaper {
+  --chat-pattern-opacity: 0.06;
+}
+.dark .chat-wallpaper::before {
+  background-image: var(--chat-pattern-dark);
+}

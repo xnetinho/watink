@@ -3,7 +3,8 @@ import React from "react";
 import { Loader2 } from "lucide-react";
 
 import MessageOptionsMenu from "../MessageOptionsMenu";
-import whatsBackground from "../../assets/wa-background.png";
+import chatPatternLight from "../../assets/chat-pattern-light.webp";
+import chatPatternDark from "../../assets/chat-pattern-dark.webp";
 
 import { useThemeContext } from "../../context/DarkMode";
 
@@ -41,7 +42,15 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup }) => {
   } = useMessagesList(ticketId, isGroup);
 
   return (
-    <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden">
+    <div
+      className="chat-wallpaper relative flex flex-col flex-1 min-h-0 overflow-hidden"
+      style={
+        {
+          "--chat-pattern-light": `url(${chatPatternLight})`,
+          "--chat-pattern-dark": `url(${chatPatternDark})`,
+        } as React.CSSProperties
+      }
+    >
       <MessageOptionsMenu
         message={selectedMessage}
         anchorEl={anchorEl}
@@ -61,7 +70,6 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup }) => {
       <div
         id="messagesList"
         className="flex flex-col flex-1 min-h-0 p-5 overflow-y-auto sm:pb-5 pb-[90px]"
-        style={{ backgroundImage: `url(${whatsBackground})` }}
         onScroll={handleScroll}
         ref={messagesListRef}
       >

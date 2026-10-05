@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
@@ -18,8 +20,11 @@ type DashboardData struct {
 		Pending int64 `json:"pending"`
 		Closed  int64 `json:"closed"`
 	} `json:"tickets"`
-	Queues  []QueueCount `json:"queues"`
-	Metrics struct {
+	Queues []QueueCount `json:"queues"`
+	// TicketsByHour: tickets criados hoje por hora cheia ("09:00" -> n). Só
+	// horas com ticket aparecem; o gráfico do frontend preenche as demais com 0.
+	TicketsByHour map[string]int `json:"ticketsByHour"`
+	Metrics       struct {
 		AvgResponseTime float64 `json:"avgResponseTime"` // in minutes
 		AvgWaitTime     float64 `json:"avgWaitTime"`     // in minutes
 	} `json:"metrics"`
@@ -58,6 +63,14 @@ func GetDashboardData(c *gin.Context) {
 		return
 	}
 
+	// 2b. Atendimentos por hora (hoje)
+	byHour, err := fetchTicketsByHour(db, tenantID, time.Now())
+	if err != nil {
+		utils.RespondWithInternalError(c, err, "dashboard tickets by hour")
+		return
+	}
+	data.TicketsByHour = byHour
+
 	// 3. Metrics (TMR / TME)
 	data.Metrics.AvgResponseTime = calculateTMR(tenantID, db)
 	data.Metrics.AvgWaitTime = calculateTME(tenantID, db)
@@ -95,6 +108,32 @@ func fetchTicketStatusCounts(db *gorm.DB, tenantID uuid.UUID, target *struct {
 		}
 	}
 	return nil
+}
+
+// fetchTicketsByHour conta os tickets criados no dia de `now` (no fuso de `now`)
+// agrupados por hora cheia. Escopo de tenant explícito, como as demais consultas.
+func fetchTicketsByHour(db *gorm.DB, tenantID uuid.UUID, now time.Time) (map[string]int, error) {
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	end := start.Add(24 * time.Hour)
+
+	var rows []struct {
+		Hour  int
+		Count int
+	}
+	if err := db.Raw(`
+		SELECT EXTRACT(HOUR FROM "createdAt")::int AS hour, count(*) AS count
+		FROM "Tickets"
+		WHERE "tenantId" = ? AND "createdAt" >= ? AND "createdAt" < ?
+		GROUP BY 1
+	`, tenantID, start, end).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	out := make(map[string]int, len(rows))
+	for _, r := range rows {
+		out[fmt.Sprintf("%02d:00", r.Hour)] = r.Count
+	}
+	return out, nil
 }
 
 // fetchQueueCounts retrieves queue ticket counts with a raw JOIN query.

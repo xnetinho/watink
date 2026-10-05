@@ -1,5 +1,4 @@
-import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,9 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
-import api from "../../services/api";
-import toastError from "../../errors/toastError";
-import { AuthContext } from "../../context/Auth/AuthContext";
+import { useStartChat } from "../../hooks/useStartChat";
 import { i18n } from "../../translate/i18n";
 
 interface NewTicketModalProps {
@@ -21,27 +18,8 @@ interface NewTicketModalProps {
 }
 
 export const NewTicketModal: React.FC<NewTicketModalProps> = ({ modalOpen, onClose }) => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [searchParam, setSearchParam] = useState("");
-  const { user } = useContext(AuthContext);
-
-  const _handleSaveTicket = async (contactId: number) => {
-    setLoading(true);
-    try {
-      const { data: ticket } = await api.post("/tickets", {
-        contactId,
-        userId: user?.id,
-        status: "open",
-      });
-      navigate(`/tickets/${ticket.id}`);
-      onClose();
-    } catch (err) {
-      toastError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { startingChat: loading, connectionDialog } = useStartChat(onClose);
 
   return (
     <Dialog open={modalOpen} onOpenChange={onClose}>
@@ -66,6 +44,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ modalOpen, onClo
           </Button>
         </DialogFooter>
       </DialogContent>
+      {connectionDialog}
     </Dialog>
   );
 };

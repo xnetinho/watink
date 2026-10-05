@@ -228,7 +228,13 @@ func (r *GORMContactRepository) deleteAffectedCount(ctx context.Context, tenantI
 // Create inserts a new contact record from the domain struct.
 func (r *GORMContactRepository) Create(ctx context.Context, contact *domain.Contact) error {
 	m := contactDomainToModel(contact)
-	return r.db.WithContext(ctx).Create(m).Error
+	if err := r.db.WithContext(ctx).Create(m).Error; err != nil {
+		return err
+	}
+	contact.ID = m.ID
+	contact.CreatedAt = m.CreatedAt
+	contact.UpdatedAt = m.UpdatedAt
+	return nil
 }
 
 // Update applies a partial update on the contact identified by contact.ID + contact.TenantID.
