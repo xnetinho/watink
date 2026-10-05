@@ -6,11 +6,8 @@ import TicketsList from "../index";
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 vi.mock("../../../services/sse-client", () => ({
-  default: () => ({
-    on: vi.fn(),
-    emit: vi.fn(),
-    disconnect: vi.fn(),
-  }),
+  subscribeToSocket: () => () => {},
+  default: () => ({ emit: vi.fn() }),
 }));
 
 vi.mock("@tanstack/react-query", () => ({
