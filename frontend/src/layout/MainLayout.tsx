@@ -17,13 +17,6 @@ import PageTransition from "../components/PageTransition";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { useThemeContext } from "../context/DarkMode";
 
-// Mapeamento dos valores DB → ThemeContext (espelhado de Settings/index.tsx)
-const DB_THEME_MAP: Record<string, { appTheme: string; darkMode?: boolean }> = {
-  whaticket: { appTheme: "google" },
-  whatsapp:  { appTheme: "whatsapp" },
-  dark:      { appTheme: "apple", darkMode: true },
-};
-
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -39,7 +32,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [frontendVersion, setFrontendVersion] = useState("");
 
   const { user, handleLogout, loading } = useContext(AuthContext);
-  const { setAppTheme, setDarkMode } = useThemeContext();
+  const { applyDbTheme } = useThemeContext();
 
   // Fecha a barra lateral ao mudar de rota em telas pequenas (mobile/tablet)
   useEffect(() => {
@@ -82,11 +75,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         // Aplicar tema do tenant ao ThemeContext
         const themeSetting = settings.find((s) => s.key === "theme");
         if (themeSetting?.value) {
-          const mapped = DB_THEME_MAP[themeSetting.value];
-          if (mapped) {
-            setAppTheme(mapped.appTheme);
-            setDarkMode(mapped.darkMode ?? false);
-          }
+          applyDbTheme(themeSetting.value);
         }
         if (favicon?.value) {
           let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
@@ -102,7 +91,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       }
     };
     fetchSettings();
-    // setAppTheme/setDarkMode come from context — stable refs, intentionally omitted to run once
+    // applyDbTheme vem do contexto — ref estável, intencionalmente omitida para rodar uma vez
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -182,11 +171,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
         if (data.setting.key === "systemLogoEnabled") setLogoEnabled(data.setting.value === "true");
         if (data.setting.key === "theme") {
-          const mapped = DB_THEME_MAP[data.setting.value];
-          if (mapped) {
-            setAppTheme(mapped.appTheme);
-            setDarkMode(mapped.darkMode ?? false);
-          }
+          applyDbTheme(data.setting.value);
         }
         if (data.setting.key === "systemFavicon") {
           let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
@@ -201,7 +186,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     };
 
     return subscribeToSocket({ settings: handleSettings });
-    // setAppTheme/setDarkMode are stable context refs; socket listener is intentionally mount-only
+    // applyDbTheme é ref estável do contexto; listener do socket é intencionalmente mount-only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

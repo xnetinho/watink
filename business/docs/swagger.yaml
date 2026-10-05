@@ -3189,6 +3189,39 @@ paths:
       summary: Atualizar meu perfil
       tags:
       - users
+  /me/theme:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 'theme: light|dark'
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Salvar meu tema (claro/escuro)
+      tags:
+      - users
   /media/{messageId}/download:
     post:
       parameters:
