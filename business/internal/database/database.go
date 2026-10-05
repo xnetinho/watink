@@ -334,7 +334,23 @@ func addCustomIndexes() error {
 		}
 	}
 
+	// Migração multi-tenant: Contacts.number/lid eram unique GLOBAL
+	// (uni_Contacts_number/uni_Contacts_lid), então dois tenants não podiam ter o
+	// mesmo contato e a duplicata virava erro 500. Passam a ser únicos por tenant.
+	// Contatos de grupo e individuais compartilham a coluna number, mas o par
+	// (tenant, number) continua identificando um contato só.
+	for _, ddl := range []string{
+		`ALTER TABLE "Contacts" DROP CONSTRAINT IF EXISTS "uni_Contacts_number"`,
+		`ALTER TABLE "Contacts" DROP CONSTRAINT IF EXISTS "uni_Contacts_lid"`,
+	} {
+		if err := DB.Exec(ddl).Error; err != nil {
+			log.Printf("addCustomIndexes (drop legacy Contact uniques): %q: %v", ddl, err)
+		}
+	}
+
 	indexes := []string{
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_status ON "Tickets" ("tenantId", "status")`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_queue_status ON "Tickets" ("tenantId", "queueId", "status")`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_tenant_ticket_fromme ON "Messages" ("tenantId", "ticketId", "fromMe")`,
