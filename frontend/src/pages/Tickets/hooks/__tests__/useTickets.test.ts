@@ -85,12 +85,12 @@ describe("useTickets", () => {
     expect(result.current.detailLoading).toBe(false);
   });
 
-  it("showDetails inicia como true e pode ser alterado", () => {
+  it("showDetails inicia como false (painel de detalhes fechado) e pode ser alterado", () => {
     const { result } = renderHook(() => useTickets(undefined));
-    expect(result.current.showDetails).toBe(true);
-    act(() => {
-      result.current.setShowDetails(false);
-    });
     expect(result.current.showDetails).toBe(false);
+    act(() => {
+      result.current.setShowDetails(true);
+    });
+    expect(result.current.showDetails).toBe(true);
   });
 });
