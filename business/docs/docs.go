@@ -8602,6 +8602,14 @@ const docTemplate = `{
                 "participant": {
                     "type": "string"
                 },
+                "quotedMsg": {
+                    "description": "QuotedMsg é a mensagem citada, preenchida só na listagem (GET /messages/:ticketId) para o\nbalão mostrar \"respondendo a…\". Não é coluna.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Message"
+                        }
+                    ]
+                },
                 "quotedMsgId": {
                     "type": "string"
                 },

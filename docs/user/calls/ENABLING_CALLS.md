@@ -87,6 +87,28 @@ qualquer outro modo. As chamadas em si funcionam normalmente. O S3 é configurad
 `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY` e `S3_SECRET_KEY` (as mesmas já usadas pela Base de
 Conhecimento e pelas Atividades).
 
+Qualquer serviço compatível com S3 serve (MinIO, AWS S3, Cloudflare R2, **Backblaze B2**). Exemplo
+com o Backblaze B2, nas variáveis do **business**:
+
+```
+S3_ENDPOINT=s3.us-west-004.backblazeb2.com
+S3_REGION=us-west-004
+S3_BUCKET=meu-bucket
+S3_ACCESS_KEY=<keyID>
+S3_SECRET_KEY=<applicationKey>
+S3_USE_SSL=true
+```
+
+- **Crie o bucket antes**, como **privado**. Ao iniciar, o business confere o bucket e tenta criá-lo
+  se não existir; uma chave restrita a um bucket não pode criar outros, e o business falharia na
+  inicialização se o nome estivesse errado.
+- Gere uma **chave de aplicação restrita a esse bucket**, com leitura e escrita. A `keyID` é o
+  `S3_ACCESS_KEY` e a `applicationKey` (mostrada **uma única vez**) é o `S3_SECRET_KEY`.
+- `S3_ENDPOINT` é **só o host**, sem `https://`. `S3_REGION` precisa **casar com o endpoint**
+  (`us-west-004` com `s3.us-west-004...`); com a região errada a assinatura é recusada.
+- O Watink só usa upload, download e link temporário de leitura. Não usa ACL, tags nem upload por
+  formulário no navegador, que são os recursos que o B2 não suporta.
+
 ### Rede do servidor (UDP)
 
 O áudio da chamada passa pelo servidor do Watink até os servidores do WhatsApp por **UDP**. O

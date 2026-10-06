@@ -37,7 +37,8 @@ Navegador ──WSS PCM──► business ──WS interno──► engine ─�
 - Eventos idempotentes por `(tenantId, callId)`; a mensagem do ticket tem id `call:<callId>`.
 - Uma chamada ativa por conexão e por operador; nenhum teto por empresa.
 - Conexão com proxy (`proxyMode`, `proxyId` **ou** `proxyGroupId`) → sem chamada, **fail-closed**.
-- Prazos: 3 s (`call.ready`), 45 s de toque, 25 s para a mídia conectar, 10 s sem o canal do navegador.
+- Prazos: 3 s (`call.ready`), 45 s de toque, 25 s para a mídia conectar, 10 s sem o canal do navegador. O toque de 45 s é cancelado ao atender (`trackMedia`), nos dois sentidos.
+- `answeredAt`: gravado em `Accept` (entrada) ou no primeiro `call.state active` (saída); separa `ended` de `missed` em `statusForEnd`. `<reject>` do contato encerra como `declined`, `<terminate>` como `user_ended`.
 
 **Áudio e gravação**
 - Formato fixo: PCM 16 kHz mono Int16 LE, quadros de **640 B**. Filas **limitadas** com descarte do mais antigo.

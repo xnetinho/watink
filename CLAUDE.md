@@ -510,7 +510,8 @@ era uma condição de exibição de menu, nunca uma dependência arquitetural re
 - `?rooms=` do SSE só aceita `chat:<ticket visível>`, `tickets:<status>`, `helpdesk-kanban`, `notification`; `tenant:*`/`user:*` nunca vêm do query (a sala pessoal é inscrita pelo servidor). **Telemetria só vai ao operador que assumiu a chamada.**
 - Canal de áudio do engine: **sem autenticação própria** (decisão do dono: rede interna, como o RabbitMQ), só `expose`, **nunca `ports:`** — quem alcança a porta alcança o áudio. Filas de áudio limitadas com descarte do quadro mais antigo.
 - Gravação no **business**: mixador por relógio de 20 ms; `shine-mp3` (LGPL v2) vendorizado só com o bitrate como parâmetro; o encoder consome **blocos de 576 amostras** (320 corrompe o MP3 — coberto por teste). Banco guarda só a **chave**; URL assinada de 5 min a cada leitura. `callRecordingMode` ausente = `off`; sair de `off` exige `ack=true` (grava usuário e horário); as chaves **não** mudam pelo `PUT /settings/:key`. Sem S3 só `off`. Escuta e exclusão auditadas antes do ato.
-- Prazos: `call.ready` 3 s, toque 45 s, mídia conectar 25 s (`media_timeout`), canal do navegador 10 s.
+- Prazos: `call.ready` 3 s, toque 45 s, mídia conectar 25 s (`media_timeout`), canal do navegador 10 s. O toque de 45 s é **cancelado ao atender** (`connecting`/`active`), nos dois sentidos — na saída ele derrubava a conversa aos 45 s com `timeout`.
+- `answeredAt` é gravado em `Accept` (entrada) ou no primeiro `call.state active` (saída); é ele que separa `ended` de `missed`. `<reject>` do contato = `declined`; `<terminate>` = `user_ended`.
 
 **O que NÃO fazer:**
 - Não enviar `reject` pelo engine nem pôr regra de negócio nele.

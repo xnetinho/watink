@@ -87,13 +87,16 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	}
 
 	ct := c.ContentType()
-	var body, mediaType, mediaURL, mimeType string
+	var body, mediaType, mediaURL, mimeType, quotedID string
 
 	if ct == "application/json" || ct == "" {
 		var input struct {
 			Body      string `json:"body"`
 			MediaType string `json:"mediaType"`
 			MediaUrl  string `json:"mediaUrl"`
+			QuotedMsg *struct {
+				ID string `json:"id"`
+			} `json:"quotedMsg"`
 		}
 		if err := c.ShouldBindJSON(&input); err != nil {
 			utils.RespondWithBindError(c, err)
@@ -114,9 +117,13 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		body = input.Body
 		mediaType = input.MediaType
 		mediaURL = input.MediaUrl
+		if input.QuotedMsg != nil {
+			quotedID = input.QuotedMsg.ID
+		}
 	} else {
 		// multipart/form-data: arquivo(s) de mídia
 		body = c.PostForm("body")
+		quotedID = c.PostForm("quotedMsgId")
 		file, header, err := c.Request.FormFile("medias")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "medias file required for multipart"})
@@ -140,6 +147,23 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	messageID := newWAMessageID()
 	to := contactJID(contact)
 
+	// Só cita uma mensagem que existe NESTE ticket e tenant: o id vem do cliente e o engine
+	// o usaria como StanzaID. quotedParticipant é quem escreveu a original (obrigatório em
+	// grupo; em chat 1:1 é o próprio contato, ou nós mesmos se citamos algo que enviamos).
+	var quotedParticipant string
+	if quotedID != "" {
+		var q models.Message
+		if err := db.Session(&gorm.Session{NewDB: true}).
+			Where(`id = ? AND "ticketId" = ? AND "tenantId" = ?`, quotedID, ticketID, tenantID).First(&q).Error; err != nil {
+			quotedID = ""
+		} else if !q.FromMe {
+			quotedParticipant = q.Participant
+			if quotedParticipant == "" {
+				quotedParticipant = to
+			}
+		}
+	}
+
 	var whatsapp models.Whatsapp
 	if err := db.Session(&gorm.Session{NewDB: true}).
 		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
@@ -159,6 +183,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			utils.RespondWithInternalError(c, err, "SendMessage")
 			return
 		}
+		// (izapia: a API não expõe citação; a resposta sai como mensagem comum.)
 		if mediaURL != "" {
 			_, err = engine.SendMedia(c.Request.Context(), whatsapp, to, messageID, mediaType, mediaURL, mimeType)
 		} else {
@@ -186,6 +211,13 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 				"mediaUrl":  mediaURL,
 				"mimeType":  mimeType,
 			},
+		}
+		if quotedID != "" {
+			cmdPayload := command["payload"].(map[string]interface{})
+			cmdPayload["quotedMsgId"] = quotedID
+			if quotedParticipant != "" {
+				cmdPayload["quotedJid"] = quotedParticipant
+			}
 		}
 
 		// The engine dispatches by routing-key segment (wbot.<tenant>.<session>.<cmd>),
@@ -221,6 +253,9 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		DataJson:  "{}",
 		CreatedAt: now,
 		UpdatedAt: now,
+	}
+	if quotedID != "" {
+		outgoing.QuotedMsgID = &quotedID
 	}
 	if err := writeDB.Create(&outgoing).Error; err != nil {
 		log.Printf("[SendMessage] persist outgoing message failed (ticket %d): %v", ticketID, err)
