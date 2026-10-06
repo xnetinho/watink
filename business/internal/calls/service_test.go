@@ -117,10 +117,16 @@ func (r *rig) grant(t *testing.T, name, action string) {
 		require.NoError(t, r.db.Exec(`INSERT INTO "Permissions" (resource, action, description, "isSystem") VALUES ('calls', ?, ?, true)`, action, action).Error)
 		require.NoError(t, r.db.Raw(`SELECT id FROM "Permissions" WHERE resource = 'calls' AND action = ?`, action).Scan(&permID).Error)
 	}
+	// Um cargo por usuário, reaproveitado entre chamadas de grant: não há índice único em
+	// (name, tenantId), então um INSERT ... ON CONFLICT não protege de criar um segundo
+	// cargo (e o usuário migraria para ele, perdendo as permissões anteriores).
 	cargoName := "cargo-" + name
-	require.NoError(t, r.db.Exec(`INSERT INTO "Cargos" (name, description, "tenantId") VALUES (?, '', ?) ON CONFLICT DO NOTHING`, cargoName, u.TenantID).Error)
 	var cargoID int
-	require.NoError(t, r.db.Raw(`SELECT id FROM "Cargos" WHERE name = ? AND "tenantId" = ?`, cargoName, u.TenantID).Scan(&cargoID).Error)
+	require.NoError(t, r.db.Raw(`SELECT id FROM "Cargos" WHERE name = ? AND "tenantId" = ? LIMIT 1`, cargoName, u.TenantID).Scan(&cargoID).Error)
+	if cargoID == 0 {
+		require.NoError(t, r.db.Exec(`INSERT INTO "Cargos" (name, description, "tenantId") VALUES (?, '', ?)`, cargoName, u.TenantID).Error)
+		require.NoError(t, r.db.Raw(`SELECT id FROM "Cargos" WHERE name = ? AND "tenantId" = ? LIMIT 1`, cargoName, u.TenantID).Scan(&cargoID).Error)
+	}
 	require.NoError(t, r.db.Exec(`INSERT INTO cargo_permissoes ("cargoId", "permissionId") VALUES (?, ?) ON CONFLICT DO NOTHING`, cargoID, permID).Error)
 	require.NoError(t, r.db.Model(&models.User{}).Where("id = ?", u.ID).Update(`"cargoId"`, cargoID).Error)
 }

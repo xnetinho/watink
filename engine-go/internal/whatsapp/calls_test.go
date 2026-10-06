@@ -43,3 +43,42 @@ func TestCallPayload_Contract(t *testing.T) {
 		t.Fatalf("%+v", p)
 	}
 }
+
+// Contrato business → engine: o JSON que o business publica (calls.Service.command e
+// calls.Service.Place) tem que ser lido pelo engine sem perda. Os dois lados são testados em
+// pacotes separados, então um erro de nome de campo passaria em ambos: este teste fixa o
+// formato EXATO que o business emite (copiado de business/internal/calls/events.go e place.go).
+func TestCallCommandContract_BusinessEnvelopeIsReadByEngine(t *testing.T) {
+	cases := []struct {
+		name, body, wantCall, wantTo string
+	}{
+		{
+			"ready/accept/reject/end: só o callId",
+			`{"id":"u","timestamp":1,"tenantId":"t","type":"call.ready","payload":{"callId":"ABC123"}}`,
+			"ABC123", "",
+		},
+		{
+			"start: callId e destino",
+			`{"id":"u","timestamp":1,"tenantId":"t","type":"call.start","payload":{"callId":"DEF456","to":"5511999990001@s.whatsapp.net"}}`,
+			"DEF456", "5511999990001@s.whatsapp.net",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var env struct {
+				Type    string          `json:"type"`
+				Payload json.RawMessage `json:"payload"`
+			}
+			if err := json.Unmarshal([]byte(c.body), &env); err != nil {
+				t.Fatal(err)
+			}
+			var p CallPayload
+			if err := json.Unmarshal(env.Payload, &p); err != nil {
+				t.Fatal(err)
+			}
+			if p.CallID != c.wantCall || p.To != c.wantTo {
+				t.Fatalf("o engine leu %+v, esperava callId=%q to=%q", p, c.wantCall, c.wantTo)
+			}
+		})
+	}
+}
