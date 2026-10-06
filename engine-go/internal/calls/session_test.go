@@ -101,6 +101,11 @@ func (h *fakeHandle) HandleRelayLatency(*waBinary.Node)   { h.rec("latency") }
 func (h *fakeHandle) SendPreaccept(context.Context) error { h.rec("preaccept"); return nil }
 func (h *fakeHandle) Accept(context.Context, string) error {
 	h.rec("accept")
+	// O CallManager real, ao atender, vai a "connecting" e emite o estado (callmanager.go:
+	// TransitionLocalAccepted + emitState). O fake reproduz esse contrato.
+	if h.hooks.OnState != nil {
+		h.hooks.OnState(State{State: "connecting", Direction: "incoming"})
+	}
 	return nil
 }
 func (h *fakeHandle) Reject(context.Context, string) error {
@@ -683,5 +688,65 @@ func TestEventContract(t *testing.T) {
 	}
 	if got := r.evs("call.missed")[0]["reason"]; got != ReasonBusy {
 		t.Errorf("reason=%v", got)
+	}
+}
+
+// 9.5: se a saída UDP do servidor estiver bloqueada, o relay nunca conecta. A chamada
+// não pode ficar presa em "Conectando…" para sempre: ao fim do prazo é encerrada como
+// falha de mídia, com um motivo que o operador entende, e o slot da conexão é liberado.
+func TestAccepted_MediaNeverConnects_EndsAsMediaTimeout(t *testing.T) {
+	r := newRig(t, false, nil)
+	r.s.OnOffer(context.Background(), offer(callA, pn("5511999990001")))
+	_ = r.s.Ready(context.Background(), callA)
+	_ = r.s.Accept(context.Background(), callA)
+	eventually(t, "accept", func() bool { return r.handle(0).has("accept") })
+
+	if r.clk.fire(mediaConnectTimeout) != 1 {
+		t.Fatal("o prazo de conexão da mídia não foi armado ao atender")
+	}
+	eventually(t, "call.ended", func() bool { return len(r.evs("call.ended")) == 1 })
+	e := r.evs("call.ended")[0]
+	if e["endReason"] != ReasonMediaTimeout {
+		t.Fatalf("endReason=%v, esperava %s", e["endReason"], ReasonMediaTimeout)
+	}
+	if !r.handle(0).has("end:" + ReasonMediaTimeout) {
+		t.Fatalf("o contato precisa ser desconectado (terminate): %v", r.handle(0).calls())
+	}
+	if r.s.get(callA) != nil {
+		t.Fatal("o slot da conexão não foi liberado")
+	}
+}
+
+func TestAccepted_MediaConnects_CancelsTheMediaTimer(t *testing.T) {
+	r := newRig(t, false, nil)
+	r.s.OnOffer(context.Background(), offer(callA, pn("5511999990001")))
+	_ = r.s.Ready(context.Background(), callA)
+	_ = r.s.Accept(context.Background(), callA)
+	eventually(t, "accept", func() bool { return r.handle(0).has("accept") })
+
+	r.handle(0).hooks.OnState(State{State: "active", Direction: "incoming"})
+	if n := r.clk.fire(mediaConnectTimeout); n != 0 {
+		t.Fatalf("a mídia conectou: o prazo não pode mais disparar (disparou %d)", n)
+	}
+	time.Sleep(30 * time.Millisecond)
+	if len(r.evs("call.ended")) != 0 {
+		t.Fatal("chamada ativa não pode ser encerrada pelo prazo de mídia")
+	}
+}
+
+func TestStart_MediaNeverConnectsAfterContactAnswers_EndsAsMediaTimeout(t *testing.T) {
+	r := newRig(t, false, nil)
+	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net"); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "start", func() bool { return r.handle(0) != nil && r.handle(0).has("start") })
+	// o contato atendeu: sai de "chamando" e entra em "conectando"
+	r.handle(0).hooks.OnState(State{State: "connecting", Direction: "outgoing"})
+	if r.clk.fire(mediaConnectTimeout) != 1 {
+		t.Fatal("ao entrar em 'conectando' o prazo de mídia deve ser armado também na chamada originada")
+	}
+	eventually(t, "call.ended", func() bool { return len(r.evs("call.ended")) == 1 })
+	if got := r.evs("call.ended")[0]["endReason"]; got != ReasonMediaTimeout {
+		t.Fatalf("endReason=%v", got)
 	}
 }

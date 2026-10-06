@@ -54,6 +54,7 @@ type activeCall struct {
 	txMeter    meter
 	pipe       *AudioPipe
 	grace      stopper
+	mediaTimer stopper
 	relayWasUp bool
 	relayDrops int
 }
@@ -139,6 +140,7 @@ func (s *Session) hooks(ac *activeCall) Hooks {
 			s.mu.Lock()
 			ac.state = st.State
 			s.mu.Unlock()
+			s.trackMedia(ac, st.State)
 			s.emit("call.state", map[string]interface{}{
 				"callId": ac.id, "peer": ac.peer, "callerPn": ac.callerPn,
 				"state": st.State, "direction": st.Direction,
@@ -164,6 +166,10 @@ func (s *Session) finish(ac *activeCall, st State) {
 	if ac.grace != nil {
 		ac.grace.Stop()
 		ac.grace = nil
+	}
+	if ac.mediaTimer != nil {
+		ac.mediaTimer.Stop()
+		ac.mediaTimer = nil
 	}
 	if s.active == ac {
 		s.active = nil
@@ -214,4 +220,35 @@ func hasChild(n *waBinary.Node, tag string) bool {
 		}
 	}
 	return false
+}
+
+// trackMedia arma o prazo de conexão da mídia quando a chamada entra em "connecting"
+// (atendida, áudio ainda não conectado) e o cancela quando ela fica "active".
+func (s *Session) trackMedia(ac *activeCall, state string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if ac.ended {
+		return
+	}
+	switch state {
+	case string(core.CallStateConnecting):
+		if ac.mediaTimer == nil {
+			ac.mediaTimer = s.clock.AfterFunc(mediaConnectTimeout, func() { s.onMediaTimeout(ac) })
+		}
+	case string(core.CallStateActive):
+		if ac.mediaTimer != nil {
+			ac.mediaTimer.Stop()
+			ac.mediaTimer = nil
+		}
+	}
+}
+
+func (s *Session) onMediaTimeout(ac *activeCall) {
+	s.mu.Lock()
+	skip := ac.ended || ac.state == string(core.CallStateActive)
+	s.mu.Unlock()
+	if skip {
+		return
+	}
+	s.run(ac, func() { _ = ac.h.End(context.Background(), ReasonMediaTimeout) })
 }

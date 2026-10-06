@@ -117,6 +117,7 @@ const messages = {
           proxy_blocked: "Conexión con proxy",
           unsupported_type: "Tipo no admitido",
           accepted_elsewhere: "Atendida en otro dispositivo",
+          media_timeout: "Sin audio: la conexión de medios no se abrió (verifique la salida UDP del servidor)",
           interrupted: "Interrumpida",
         },
         alreadyAnswered: "Esta llamada ya fue atendida por otra persona.",

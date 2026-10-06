@@ -35,7 +35,7 @@ describe("traduções de chamadas", () => {
   });
 
   it("os motivos de fim e as situações cobrem todos os valores que o backend envia", () => {
-    const reasons = ["user_ended", "declined", "timeout", "busy", "cancelled", "failed", "no_operator", "proxy_blocked", "unsupported_type", "accepted_elsewhere", "interrupted"];
+    const reasons = ["user_ended", "declined", "timeout", "busy", "cancelled", "failed", "no_operator", "proxy_blocked", "unsupported_type", "accepted_elsewhere", "interrupted", "media_timeout"];
     const statuses = ["ringing", "active", "ended", "missed", "rejected", "failed", "interrupted"];
     for (const l of ["pt", "en", "es"] as const) {
       const c = calls(l) as unknown as { endReason: Tree; status: Tree };

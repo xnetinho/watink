@@ -292,3 +292,18 @@ func TestSystemMessage_MissedCallHasNoOperator(t *testing.T) {
 	assert.NotContains(t, d, "handledByName", "ninguém atendeu")
 	assert.Equal(t, "missed", d["status"])
 }
+
+// O áudio nunca conectou (saída UDP do servidor bloqueada): a chamada foi atendida mas
+// termina como FALHA, com o motivo preservado para o operador e o administrador.
+func TestHandleEnded_MediaTimeoutIsAFailureWithItsReason(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "MED-1")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "MED-1")
+	require.NoError(t, err)
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("MED-1", "media_timeout", 0)))
+
+	l := r.log(t, "MED-1")
+	assert.Equal(t, StatusFailed, l.Status)
+	assert.Equal(t, "media_timeout", l.EndReason, "o motivo chega ao histórico")
+	assert.Equal(t, "Chamada de voz interrompida", callBody(&l))
+}

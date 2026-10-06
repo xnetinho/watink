@@ -13,7 +13,7 @@ func statusForEnd(l *models.CallLog, reason string) string {
 	switch reason {
 	case "interrupted":
 		return StatusInterrupted
-	case "failed":
+	case "failed", "media_timeout":
 		return StatusFailed
 	case "declined":
 		return StatusRejected

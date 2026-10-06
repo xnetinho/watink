@@ -15,6 +15,11 @@ const (
 	readyTimeout = 3 * time.Second
 	// ringTimeout: toque máximo, para chamadas recebidas e originadas.
 	ringTimeout = 45 * time.Second
+	// mediaConnectTimeout: depois de atendida, a mídia (relay UDP) precisa conectar
+	// neste prazo. Sem ele, uma saída UDP bloqueada deixaria a chamada em
+	// "Conectando…" para sempre, ocupando a conexão. O relay já desiste sozinho aos
+	// 20 s; este prazo é o que encerra a CHAMADA.
+	mediaConnectTimeout = 25 * time.Second
 )
 
 // Motivos de chamada não atendida/encerrada que o engine publica.
@@ -28,6 +33,9 @@ const (
 	ReasonAcceptedElse    = "accepted_elsewhere"
 	ReasonInterrupted     = "interrupted"
 	ReasonFailed          = "failed"
+	// ReasonMediaTimeout: a chamada foi atendida mas o áudio nunca conectou
+	// (tipicamente saída UDP do servidor bloqueada).
+	ReasonMediaTimeout = "media_timeout"
 )
 
 // PublishFunc entrega um evento ao broker (wbot.<tenant>.<session>.<type>).

@@ -117,6 +117,7 @@ const messages = {
           proxy_blocked: "Connection with proxy",
           unsupported_type: "Unsupported type",
           accepted_elsewhere: "Answered on another device",
+          media_timeout: "No audio: the media connection did not open (check the server's UDP egress)",
           interrupted: "Interrupted",
         },
         alreadyAnswered: "This call was already answered by someone else.",
