@@ -231,7 +231,16 @@ func (r *GORMContactRepository) deleteAffectedCount(ctx context.Context, tenantI
 		if err := tx.Exec(`DELETE FROM "Messages" WHERE "ticketId" IN (SELECT id FROM "Tickets" WHERE "contactId" IN ? AND "tenantId" = ?)`, ids, tenantID).Error; err != nil {
 			return err
 		}
+		if err := tx.Exec(`DELETE FROM "TicketLogs" WHERE "ticketId" IN (SELECT id FROM "Tickets" WHERE "contactId" IN ? AND "tenantId" = ?)`, ids, tenantID).Error; err != nil {
+			return err
+		}
 		if err := tx.Exec(`DELETE FROM "ConversationEmbeddings" WHERE "contactId" IN ? AND "tenantId" = ?`, ids, tenantID).Error; err != nil {
+			return err
+		}
+		if err := tx.Exec(`DELETE FROM "AssistantGroups" WHERE "contactId" IN ? AND "tenantId" = ?`, ids, tenantID).Error; err != nil {
+			return err
+		}
+		if err := tx.Exec(`DELETE FROM "Activities" WHERE "protocolId" IN (SELECT id FROM "Protocols" WHERE "contactId" IN ? AND "tenantId" = ?) AND "tenantId" = ?`, ids, tenantID, tenantID).Error; err != nil {
 			return err
 		}
 		if err := tx.Exec(`DELETE FROM "Protocols" WHERE "contactId" IN ? AND "tenantId" = ?`, ids, tenantID).Error; err != nil {

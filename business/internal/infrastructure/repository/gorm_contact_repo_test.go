@@ -277,6 +277,49 @@ func TestGORMContactRepo_Delete_CascadesTicketsAndMessages(t *testing.T) {
 	assert.Zero(t, msgCount, "mensagem vinculada deveria ter sido removida em cascata")
 }
 
+// Em produção as tabelas dependentes têm chave estrangeira real (NO ACTION); o helper de testes
+// as desliga. Sem recriá-las, o teste de cascata passa mesmo quando a exclusão falha no deploy
+// ("DELETE /contacts/all" devolvia 500 por violar fk_TicketLogs_ticket).
+func TestGORMContactRepo_DeleteAll_CascadesEveryDependentTable(t *testing.T) {
+	db := setupContactTestDB(t)
+	tenantID, _, contactA, _ := seedTwoTenantsContacts(t, db)
+	repo := NewGORMContactRepo(db)
+	ctx := context.Background()
+
+	for _, fk := range []string{
+		`ALTER TABLE "TicketLogs" ADD CONSTRAINT zz_fk_ticketlogs FOREIGN KEY ("ticketId") REFERENCES "Tickets"(id)`,
+		`ALTER TABLE "AssistantGroups" ADD CONSTRAINT zz_fk_assistantgroups FOREIGN KEY ("contactId") REFERENCES "Contacts"(id)`,
+		`ALTER TABLE "Activities" ADD CONSTRAINT zz_fk_activities FOREIGN KEY ("protocolId") REFERENCES "Protocols"(id)`,
+		`ALTER TABLE "Protocols" ADD CONSTRAINT zz_fk_protocols FOREIGN KEY ("contactId") REFERENCES "Contacts"(id)`,
+		`ALTER TABLE "Deals" ADD CONSTRAINT zz_fk_deals FOREIGN KEY ("contactId") REFERENCES "Contacts"(id)`,
+		`ALTER TABLE "Tickets" ADD CONSTRAINT zz_fk_tickets FOREIGN KEY ("contactId") REFERENCES "Contacts"(id)`,
+		`ALTER TABLE "Messages" ADD CONSTRAINT zz_fk_messages FOREIGN KEY ("ticketId") REFERENCES "Tickets"(id)`,
+	} {
+		require.NoError(t, db.Exec(fk).Error, fk)
+	}
+
+	wa := models.Whatsapp{Name: "wa-1", TenantID: tenantID}
+	require.NoError(t, db.Create(&wa).Error)
+	ticket := models.Ticket{ContactID: contactA.ID, WhatsappID: wa.ID, TenantID: tenantID}
+	require.NoError(t, db.Create(&ticket).Error)
+	require.NoError(t, db.Create(&models.Message{ID: "m-all-1", Body: "oi", TicketID: ticket.ID, TenantID: tenantID}).Error)
+	require.NoError(t, db.Exec(`INSERT INTO "TicketLogs"("ticketId","tenantId",type,"createdAt") VALUES (?,?,'create',now())`, ticket.ID, tenantID).Error)
+	require.NoError(t, db.Exec(`INSERT INTO "Deals"(name,"contactId","tenantId","createdAt","updatedAt") VALUES ('d',?,?,now(),now())`, contactA.ID, tenantID).Error)
+	var protocolID int
+	require.NoError(t, db.Raw(`INSERT INTO "Protocols"("contactId","tenantId","protocolNumber",subject,token,"createdAt","updatedAt") VALUES (?,?,'P1','s','tok1',now(),now()) RETURNING id`, contactA.ID, tenantID).Scan(&protocolID).Error)
+	require.NoError(t, db.Exec(`INSERT INTO "Activities"("tenantId",title,"protocolId","lastActivityAt","createdAt","updatedAt") VALUES (?,'os',?,now(),now(),now())`, tenantID, protocolID).Error)
+
+	n, err := repo.DeleteAll(ctx, tenantID)
+	require.NoError(t, err, "DeleteAll não pode violar chave estrangeira de tabela dependente")
+	assert.EqualValues(t, 1, n)
+
+	for _, tbl := range []string{"Contacts", "Tickets", "Messages", "TicketLogs", "Deals", "Protocols", "Activities"} {
+		var c int64
+		require.NoError(t, db.Raw(`SELECT count(*) FROM "`+tbl+`" WHERE "tenantId" = ?`, tenantID).Scan(&c).Error)
+		assert.Zerof(t, c, "%s deveria estar vazia depois de DeleteAll", tbl)
+	}
+}
+
 func TestGORMContactRepo_FindOrCreate_NeverErasesProfilePicUrlWithEmpty(t *testing.T) {
 	db := setupContactTestDB(t)
 	tenantA, _, _, _ := seedTwoTenantsContacts(t, db)
