@@ -280,3 +280,32 @@ func TestServeAudio_AutoModeWithoutS3RecordsNothingAndCallContinues(t *testing.T
 	assert.Nil(t, r.log(t, "AUTO-3").EndedAt, "a chamada NÃO é encerrada por não poder gravar")
 	assert.Empty(t, r.pub.cmds("call.end"), "e o engine não é mandado desligar")
 }
+
+// Gravações não expiram: nenhum caminho de código remove uma gravação por idade. Só a
+// exclusão manual (DeleteRecording) a apaga. Este teste cria uma gravação "muito antiga" e
+// garante que nada do ciclo normal (encerrar, reset, novas chamadas) a toca.
+func TestRecording_NeverExpiresByAge(t *testing.T) {
+	r := newRig(t)
+	store := newMemStore()
+	r.withRecording(t, store)
+
+	old := time.Now().AddDate(-5, 0, 0)
+	key := recording.ObjectKey(r.tenant, "OLD-1")
+	store.objects[key] = []byte("mp3 de 5 anos atrás")
+	require.NoError(t, r.db.Create(&models.CallLog{
+		TenantID: r.tenant, CallID: "OLD-1", WhatsappID: r.waA.ID, Direction: "incoming", Status: StatusEnded,
+		StartedAt: old, RecordingKey: key, RecordingStatus: recording.StatusReady,
+	}).Error)
+
+	// o resto do sistema segue funcionando em volta: novas chamadas, encerramentos, reset
+	ringing(t, r, "NEW-1")
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("NEW-1", "timeout", 0)))
+	raw := []byte(`{"sessionId":"` + itoa(r.waA.ID) + `"}`)
+	require.NoError(t, r.svc.HandleReset(ctx, r.tenant, raw))
+
+	l := r.log(t, "OLD-1")
+	assert.Equal(t, recording.StatusReady, l.RecordingStatus, "a gravação antiga continua pronta")
+	assert.Equal(t, key, l.RecordingKey)
+	assert.True(t, store.has(key), "o arquivo continua no armazenamento")
+	assert.Empty(t, store.deleted, "nada foi apagado automaticamente")
+}
