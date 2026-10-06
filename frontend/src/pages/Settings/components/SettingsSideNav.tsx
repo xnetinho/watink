@@ -1,16 +1,19 @@
 import React from "react";
 import { useNavigate } from "react-router";
-import { SettingsIcon, Palette, Headphones, Brain, Library, HardDrive, Network, MapPin, Info, Zap, Sparkles, ClipboardList, Building2, Cloud } from "lucide-react";
+import { SettingsIcon, Palette, Headphones, Brain, Library, HardDrive, Network, MapPin, Info, Zap, Sparkles, ClipboardList, Building2, Cloud, Phone } from "lucide-react";
 import { Button } from "../../../components/ui/button";
+import { t } from "@/lib/calls/t";
 
 interface SettingsSideNavProps {
   activeSection: string;
   activePlugins: string[];
   onSelect: (section: string) => void;
   isSuperAdmin?: boolean;
+  /** Usuário tem calls:manage: só ele vê a seção Chamadas. */
+  canManageCalls?: boolean;
 }
 
-const SettingsSideNav: React.FC<SettingsSideNavProps> = ({ activeSection, activePlugins, onSelect, isSuperAdmin }) => {
+const SettingsSideNav: React.FC<SettingsSideNavProps> = ({ activeSection, activePlugins, onSelect, isSuperAdmin, canManageCalls }) => {
   const navigate = useNavigate();
 
   const item = (section: string, Icon: React.ElementType, label: string, condition = true) =>
@@ -33,6 +36,7 @@ const SettingsSideNav: React.FC<SettingsSideNavProps> = ({ activeSection, active
       {item("personalization", Palette, "Personalização")}
       {item("helpdesk", Headphones, "Helpdesk Atendimento", activePlugins.includes("helpdesk"))}
       {item("activities", ClipboardList, "Atividades")}
+      {item("calls", Phone, t("calls.settings.title"), !!canManageCalls)}
       {item("ai", Brain, "Agente de IA")}
       {item("ai-gateways", Sparkles, "Agentes de IA (Assistentes)", activePlugins.includes("assistant"))}
       {item("address", MapPin, "Endereço (CEP)")}
