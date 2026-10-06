@@ -508,7 +508,7 @@ era uma condição de exibição de menu, nunca uma dependência arquitetural re
 - Elegível = enxerga a conexão (**paridade** com `GetScopedDB("Tickets")`; `User.WhatsappID` **não** dá visibilidade) + `calls:receive` + online + não pausado. Atribuição atômica (`UPDATE ... WHERE status='ringing' AND handledByUserId IS NULL` + `RowsAffected`).
 - Eventos idempotentes por `(tenantId, callId)`; `WHERE "tenantId"` manual em tudo (RLS inerte); quem não pode ver uma gravação/ticket recebe **404**, não 403.
 - `?rooms=` do SSE só aceita `chat:<ticket visível>`, `tickets:<status>`, `helpdesk-kanban`, `notification`; `tenant:*`/`user:*` nunca vêm do query (a sala pessoal é inscrita pelo servidor). **Telemetria só vai ao operador que assumiu a chamada.**
-- Canal de áudio do engine: `X-Internal-Token` em tempo constante, só `expose`, **não sobe sem `CALLS_AUDIO_TOKEN`**. Filas de áudio limitadas com descarte do quadro mais antigo.
+- Canal de áudio do engine: **sem autenticação própria** (decisão do dono: rede interna, como o RabbitMQ), só `expose`, **nunca `ports:`** — quem alcança a porta alcança o áudio. Filas de áudio limitadas com descarte do quadro mais antigo.
 - Gravação no **business**: mixador por relógio de 20 ms; `shine-mp3` (LGPL v2) vendorizado só com o bitrate como parâmetro; o encoder consome **blocos de 576 amostras** (320 corrompe o MP3 — coberto por teste). Banco guarda só a **chave**; URL assinada de 5 min a cada leitura. `callRecordingMode` ausente = `off`; sair de `off` exige `ack=true` (grava usuário e horário); as chaves **não** mudam pelo `PUT /settings/:key`. Sem S3 só `off`. Escuta e exclusão auditadas antes do ato.
 - Prazos: `call.ready` 3 s, toque 45 s, mídia conectar 25 s (`media_timeout`), canal do navegador 10 s.
 
@@ -516,7 +516,7 @@ era uma condição de exibição de menu, nunca uma dependência arquitetural re
 - Não enviar `reject` pelo engine nem pôr regra de negócio nele.
 - Não usar `User.WhatsappID` como visibilidade; não aceitar sala de SSE do query sem `allowedExtraRooms`.
 - Não alimentar o `shine-mp3` com blocos que não sejam múltiplos de 576 amostras; não gravar URL assinada no banco.
-- Não expor o canal de áudio do engine em `ports:`; não logar `CALLS_AUDIO_TOKEN`.
+- Não expor o canal de áudio do engine em `ports:`; não confundir a porta 8085 com uma API autenticada.
 - Não tratar `media_timeout` como erro do usuário (costuma ser saída UDP bloqueada); não criar uma segunda sessão do WhatsApp para chamadas.
 - Não confundir com `Campaign`/`CampaignRecipient` do FlowBuilder.
 

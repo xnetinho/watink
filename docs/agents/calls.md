@@ -25,7 +25,7 @@ Navegador ──WSS PCM──► business ──WS interno──► engine ─�
 - Telemetria (`call.quality`) vai **só** ao operador que assumiu a chamada, nunca à sala da empresa.
 - WebSocket do navegador: token na query (como o SSE), `calls:receive` **ou** `calls:place`, chamada
   da própria empresa e **operador que a assumiu**; um canal por chamada; `Origin` restrito.
-- Canal de áudio do engine: `X-Internal-Token` em tempo constante, **só `expose`**, não sobe sem `CALLS_AUDIO_TOKEN`.
+- Canal de áudio do engine: **sem autenticação própria** (decisão do dono: rede interna, como o RabbitMQ), **só `expose`**, nunca `ports:` — quem alcança a porta alcança o áudio.
 
 **Regras de chamada**
 - O engine **nunca** envia `reject`/`terminate` por conta própria; só por comando de operador.
@@ -53,7 +53,7 @@ Navegador ──WSS PCM──► business ──WS interno──► engine ─�
 - Não usar `User.WhatsappID` como visibilidade de conexão.
 - Não alimentar o `shine-mp3` com blocos que não sejam múltiplos de 576 amostras.
 - Não aceitar sala de SSE vinda do query sem passar por `allowedExtraRooms`.
-- Não expor o canal do engine em `ports:`. Não logar `CALLS_AUDIO_TOKEN`.
+- Não expor o canal do engine em `ports:`. Não confundir a porta 8085 com uma API autenticada.
 - Não tratar `media_timeout` como erro do usuário: costuma ser saída UDP bloqueada.
 - Não criar uma segunda sessão do WhatsApp para chamadas (o aparelho vinculado é um só).
 - Não confundir com `Campaign`/`CampaignRecipient` (FlowBuilder) nem com plugin: não há `PluginInstallations` aqui.
@@ -71,7 +71,7 @@ Navegador ──WSS PCM──► business ──WS interno──► engine ─�
 `GET|DELETE /calls/:id/recording` (`read` / `delete`) · `GET|PUT /calls/recording-config` (`manage`).
 
 ## Variáveis de ambiente
-`CALLS_AUDIO_TOKEN` (engine **e** business, obrigatória para o áudio) · `CALLS_AUDIO_URL` (business) ·
+`ENGINE_HOST` (business: de onde saem `/health`, grupos e o áudio; `ENGINE_HEALTH_URL`/`GROUPS_API_URL`/`CALLS_AUDIO_URL` ainda sobrepõem) ·
 `CALLS_AUDIO_PORT` (engine, padrão 8085) · `CALLS_AUDIO_ORIGINS` (business, opcional) ·
 `S3_*` (para gravar).
 

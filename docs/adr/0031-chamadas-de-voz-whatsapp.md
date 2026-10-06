@@ -35,8 +35,8 @@ do servidor) e ADR 0016 (risco estrutural de ban, sem remover o sinal de rede).
    goroutine por comando, e `api.events.calls.go` no business. Mensagens de uma empresa com muito
    tráfego não atrasam "Atender"/"Encerrar" de outra. `engine.go.commands` deixa de ligar `call.*`.
 6. **Áudio por WebSocket PCM** navegador ↔ business ↔ engine: 16 kHz mono Int16, quadros de 20 ms
-   (640 B). Um único endpoint interno no engine (`GET /calls/{id}/audio`, `X-Internal-Token` em tempo
-   constante, só `expose`, **não sobe sem `CALLS_AUDIO_TOKEN`**). Fila limitada de 50 quadros por
+   (640 B). Um único endpoint interno no engine (`GET /calls/{id}/audio`, só `expose`; a autenticação por
+   `X-Internal-Token` original foi removida na revisão abaixo). Fila limitada de 50 quadros por
    sentido com descarte do **mais antigo**: um destino lento nunca trava quem produz. Jitter buffer de
    ~60 ms no navegador, descarte acima de ~200 ms.
 7. **Gravação no business**, não no engine: o PCM já atravessa o business e ele já fala com o S3.
@@ -89,6 +89,24 @@ Registradas porque o teste mostrou que o plano estava errado ou incompleto:
 - O risco de ban é o do ADR 0016 (fingerprint estrutural do `whatsmeow`); chamadas somam sinal novo
   que não foi medido.
 - Rotear a mídia por proxy (SOCKS5 UDP ASSOCIATE) é trabalho futuro e exige validação com um proxy real.
+
+## Revisão (2026-10-06, após o primeiro deploy)
+
+- **O canal de áudio do engine não tem mais token.** O `X-Internal-Token`/`CALLS_AUDIO_TOKEN` foi
+  removido por decisão do dono do produto: a comunicação business↔engine é interna, como o RabbitMQ
+  das mensagens. Consequência aceita: **quem alcança a porta 8085 ouve e injeta áudio** de chamadas em
+  andamento (precisa conhecer o `callId`). A defesa é só de rede: `expose`, nunca `ports:`, e nenhum
+  outro serviço na rede do engine. O `GROUPS_API_TOKEN` (porta 8084) continua exigido.
+- **Um único endereço do engine no business:** `ENGINE_HOST` (só o nome, sem esquema nem porta). Daí
+  saem `/health` (8083), grupos (8084) e o áudio (`ws://…:8085`); as variáveis antigas
+  (`ENGINE_HEALTH_URL`, `GROUPS_API_URL`, `CALLS_AUDIO_URL`) sobrepõem cada uma, para não quebrar
+  instalações existentes. Implementado em `business/pkg/engineaddr`.
+- **Sem `ENGINE_HOST` a falha deixou de ser silenciosa:** o business registra o erro da discagem ao
+  engine e o painel mostra "canal de áudio indisponível" (antes a chamada era encerrada sem aviso e
+  parecia "perdida").
+- **O painel diz quem encerrou** (contato desligou, recusou, não atendeu, ocupado, atendida em outro
+  aparelho, ou "você encerrou"); a queda do WebSocket que acompanha o fim da chamada não é mais
+  mostrada como falha.
 
 ## Referências
 

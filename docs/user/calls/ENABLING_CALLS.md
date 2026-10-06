@@ -108,17 +108,20 @@ são ignoradas (o celular continua tocando) e registradas com o motivo.
 
 ### Variáveis de ambiente
 
-Estas variáveis ligam o áudio entre o servidor da aplicação e o engine. **Sem elas as chamadas
-tocam mas não têm áudio.**
+Estas variáveis ligam o áudio entre o servidor da aplicação e o engine. **Sem o endereço do engine
+as chamadas tocam mas não têm áudio** (e o painel avisa que o canal está indisponível).
 
 | Variável | Onde | Para quê |
 |---|---|---|
-| `CALLS_AUDIO_TOKEN` | **engine** e **business** (o mesmo valor) | Autentica o canal interno de áudio. **Obrigatória**: o engine **não sobe o canal** sem ela. Use um valor longo e aleatório. |
-| `CALLS_AUDIO_URL` | **business** | Endereço interno do canal de áudio do engine, por exemplo `ws://watink-engine:8085`. |
-| `CALLS_AUDIO_PORT` | **engine** | Porta do canal de áudio (padrão `8085`). |
+| `ENGINE_HOST` | **business** | Nome (ou IP) do engine na rede interna, por exemplo `watink-engine`. Daí o business monta sozinho o endereço do `/health` (porta 8083), de grupos (8084) e do áudio das chamadas (`ws://…:8085`). |
+| `CALLS_AUDIO_PORT` | **engine** (opcional) | Porta do canal de áudio (padrão `8085`). |
 | `CALLS_AUDIO_ORIGINS` | **business** (opcional) | Origens extras aceitas no WebSocket do navegador (lista separada por vírgula). |
 
-O canal do engine é **só interno**: nunca o publique em `ports:`, use apenas `expose:`.
+Instalações antigas continuam funcionando: `ENGINE_HEALTH_URL`, `GROUPS_API_URL` e `CALLS_AUDIO_URL`
+ainda valem e **sobrepõem** o endereço montado a partir do `ENGINE_HOST`. O `CALLS_AUDIO_TOKEN`
+deixou de existir e pode ser removido do compose.
+
+O canal do engine é **só interno** e **não tem senha**: quem alcança a porta alcança o áudio das chamadas em andamento. **Nunca o publique em `ports:`**, use apenas `expose:`, e não coloque outros serviços na mesma rede do engine.
 
 ## 5. Conferindo
 

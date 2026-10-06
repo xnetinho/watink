@@ -12,7 +12,7 @@ a medição de RTT. Tudo o mais já tem teste automatizado (ver "O que já está
 | Item | Como conferir |
 |---|---|
 | Imagens `:test` do engine e do business publicadas e **o serviço redeployado à força** | `docker service ps` mostra a imagem nova e `CREATED` recente |
-| `CALLS_AUDIO_TOKEN` igual nos dois serviços, `CALLS_AUDIO_URL=ws://watink-engine:8085` no business | `docker exec <business> printenv CALLS_AUDIO_URL`; token sem imprimir o valor: comparar o hash `printenv CALLS_AUDIO_TOKEN \| sha256sum` nos dois |
+| `ENGINE_HOST=<nome-do-engine>` no business (de onde saem `/health`, grupos e áudio) | `docker exec <business> printenv ENGINE_HOST` |
 | Saída **UDP** liberada do host do engine | do host: `nc -u -z -v <ip-de-um-relay> 3478` não é conclusivo; o teste real é o passo 3 |
 | **Número A** = a conexão do Watink (WhatsApp A conectado no sistema) | menu Conexões mostra **Conectado** |
 | **Número B** = um celular comum, que vai ligar e receber | WhatsApp B instalado e com o contato A salvo |
@@ -146,4 +146,4 @@ telemetria só ao operador, fluxo completo com RabbitMQ real (`e2e_flow_test.go`
 - **Aprovado** se todos os passos têm resultado, os critérios de aceite passam, e as respostas
   da seção 10 não exigem mudança de desenho.
 - Falha em qualquer passo **bloqueia o merge**. Registre o que falhou e o log relevante
-  (`docker service logs` do engine e do business, **sem** `CALLS_AUDIO_TOKEN` nem `proxyUrl`).
+  (`docker service logs` do engine e do business, **sem** `proxyUrl`).
