@@ -334,9 +334,15 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		// Chamadas de voz (ADR de chamadas). Cada ação tem a sua permissão; o
 		// alcance de empresa passa pelo RequirePermission como no resto do sistema.
 		protected.PUT("/calls/pause", auth.RequirePermission("calls", "receive"), callController.Pause)
+		protected.GET("/calls/recording-config", auth.RequirePermission("calls", "manage"), callController.GetRecordingConfig)
+		protected.PUT("/calls/recording-config", auth.RequirePermission("calls", "manage"), callController.PutRecordingConfig)
 		protected.POST("/calls", auth.RequirePermission("calls", "place"), callController.Place)
 		protected.GET("/calls", auth.RequirePermission("calls", "read"), callController.List)
 		protected.GET("/calls/:id", auth.RequirePermission("calls", "read"), callController.Show)
+		protected.POST("/calls/:id/recording/start", auth.RequireAnyPermission([2]string{"calls", "receive"}, [2]string{"calls", "place"}), callController.StartRecording)
+		protected.POST("/calls/:id/recording/stop", auth.RequireAnyPermission([2]string{"calls", "receive"}, [2]string{"calls", "place"}), callController.StopRecording)
+		protected.GET("/calls/:id/recording", auth.RequirePermission("calls", "read"), callController.ListenRecording)
+		protected.DELETE("/calls/:id/recording", auth.RequirePermission("calls", "delete"), callController.DeleteRecording)
 		protected.POST("/calls/:id/accept", auth.RequirePermission("calls", "receive"), callController.Accept)
 		protected.POST("/calls/:id/reject", auth.RequirePermission("calls", "receive"), callController.Reject)
 		protected.POST("/calls/:id/end", auth.RequireAnyPermission([2]string{"calls", "receive"}, [2]string{"calls", "place"}), callController.End)

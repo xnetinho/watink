@@ -939,6 +939,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/calls/recording-config": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Configuração de gravação de chamadas",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/calls.RecordingConfig"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sair de \"off\" exige ack=true (aceite do termo); o aceite grava usuário e horário.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Alterar o modo de gravação de chamadas",
+                "parameters": [
+                    {
+                        "description": "Modo e aceite",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.recordingConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/calls.RecordingConfig"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/calls/{id}": {
             "get": {
                 "security": [
@@ -1102,6 +1170,155 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": true
                         }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/recording": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devolve uma URL assinada e temporária e registra quem ouviu. Fora do alcance do usuário responde 404.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Ouvir a gravação",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Excluir a gravação",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/recording/start": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Iniciar gravação da chamada (modo opcional)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/recording/stop": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Parar a gravação da chamada (modo opcional)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
                     }
                 }
             }
@@ -7492,6 +7709,24 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "calls.RecordingConfig": {
+            "type": "object",
+            "properties": {
+                "ackAt": {
+                    "type": "string"
+                },
+                "ackBy": {
+                    "type": "integer"
+                },
+                "available": {
+                    "description": "Available é falso quando a instalação não tem armazenamento de objetos: as\nopções de gravação não são oferecidas.",
+                    "type": "boolean"
+                },
+                "mode": {
+                    "type": "string"
+                }
+            }
+        },
         "controllers.ActivitySLAConfig": {
             "type": "object",
             "properties": {
@@ -7746,6 +7981,21 @@ const docTemplate = `{
             "properties": {
                 "ticketId": {
                     "type": "integer"
+                }
+            }
+        },
+        "controllers.recordingConfigRequest": {
+            "type": "object",
+            "required": [
+                "mode"
+            ],
+            "properties": {
+                "ack": {
+                    "description": "Ack confirma que o administrador leu e aceitou o termo de responsabilidade.",
+                    "type": "boolean"
+                },
+                "mode": {
+                    "type": "string"
                 }
             }
         },

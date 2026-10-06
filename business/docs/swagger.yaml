@@ -1,5 +1,19 @@
 basePath: /api/v1
 definitions:
+  calls.RecordingConfig:
+    properties:
+      ackAt:
+        type: string
+      ackBy:
+        type: integer
+      available:
+        description: |-
+          Available é falso quando a instalação não tem armazenamento de objetos: as
+          opções de gravação não são oferecidas.
+        type: boolean
+      mode:
+        type: string
+    type: object
   controllers.ActivitySLAConfig:
     properties:
       high:
@@ -185,6 +199,16 @@ definitions:
         type: integer
     required:
     - ticketId
+    type: object
+  controllers.recordingConfigRequest:
+    properties:
+      ack:
+        description: Ack confirma que o administrador leu e aceitou o termo de responsabilidade.
+        type: boolean
+      mode:
+        type: string
+    required:
+    - mode
     type: object
   controllers.updateActivityAssigneesRequest:
     properties:
@@ -1792,6 +1816,101 @@ paths:
       summary: Encerrar chamada
       tags:
       - calls
+  /calls/{id}/recording:
+    delete:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Excluir a gravação
+      tags:
+      - calls
+    get:
+      description: Devolve uma URL assinada e temporária e registra quem ouviu. Fora
+        do alcance do usuário responde 404.
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ouvir a gravação
+      tags:
+      - calls
+  /calls/{id}/recording/start:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Iniciar gravação da chamada (modo opcional)
+      tags:
+      - calls
+  /calls/{id}/recording/stop:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Parar a gravação da chamada (modo opcional)
+      tags:
+      - calls
   /calls/{id}/reject:
     post:
       parameters:
@@ -1837,6 +1956,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Pausar ou retomar o recebimento de chamadas
+      tags:
+      - calls
+  /calls/recording-config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/calls.RecordingConfig'
+      security:
+      - BearerAuth: []
+      summary: Configuração de gravação de chamadas
+      tags:
+      - calls
+    put:
+      consumes:
+      - application/json
+      description: Sair de "off" exige ack=true (aceite do termo); o aceite grava
+        usuário e horário.
+      parameters:
+      - description: Modo e aceite
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.recordingConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/calls.RecordingConfig'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Alterar o modo de gravação de chamadas
       tags:
       - calls
   /cargos:
