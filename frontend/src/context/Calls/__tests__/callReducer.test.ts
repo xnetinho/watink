@@ -138,6 +138,35 @@ describe("callsReducer", () => {
     expect(s.active?.endedByMe).toBe(true);
   });
 
+  // Chamada RECEBIDA: o operador clica em Atender, o POST /accept demora, e o engine conecta a mídia
+  // e emite call.state "active" ANTES de a resposta do POST virar "accepted". Nesse intervalo a
+  // chamada ainda está só em "ringing" (active = null) e o evento era descartado: a fase ficava em
+  // "connecting" para sempre e o cronômetro nunca ligava.
+  it("call.state active que chega ANTES de accepted não se perde (cronômetro liga)", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming() });
+    s = callsReducer(s, { type: "state", callId: "C1", state: "active" });
+    s = callsReducer(s, { type: "accepted", payload: incoming() });
+    expect(s.active?.phase).toBe("active");
+    expect(s.active?.connectedAt).not.toBeNull();
+  });
+
+  it("call.state active de outra chamada que não é a minha não vira active", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming("OUTRA") });
+    s = callsReducer(s, { type: "state", callId: "OUTRA", state: "active" });
+    s = callsReducer(s, { type: "accepted", payload: incoming("C1") });
+    expect(s.active?.phase).toBe("connecting");
+    expect(s.active?.connectedAt).toBeNull();
+  });
+
+  it("sem o evento antecipado, accepted segue em connecting até o active chegar", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming() });
+    s = callsReducer(s, { type: "accepted", payload: incoming() });
+    expect(s.active?.phase).toBe("connecting");
+    s = callsReducer(s, { type: "state", callId: "C1", state: "active" });
+    expect(s.active?.phase).toBe("active");
+    expect(s.active?.connectedAt).not.toBeNull();
+  });
+
   it("pausado: toques que chegam não aparecem e os que estavam na tela somem", () => {
     let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming("A") });
     s = callsReducer(s, { type: "pause", paused: true });

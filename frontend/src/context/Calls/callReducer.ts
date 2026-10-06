@@ -70,15 +70,29 @@ export function callsReducer(state: CallsState, action: CallsAction): CallsState
       const id = action.payload.callId;
       const { [id]: _gone, ...rest } = state.ringing;
       const base = state.ringing[id] ?? fromPayload(action.payload, "connecting");
-      return { ...state, ringing: rest, active: { ...base, phase: "connecting", contact: action.payload.contact ?? base.contact } };
+      const alreadyConnected = base.connectedAt != null;
+      return {
+        ...state,
+        ringing: rest,
+        active: { ...base, phase: alreadyConnected ? "active" : "connecting", contact: action.payload.contact ?? base.contact },
+      };
     }
 
     case "originate":
       return { ...state, active: fromPayload(action.payload, "calling") };
 
     case "state": {
+      if (action.state !== "active") return state;
+      // Chamada recebida: o engine pode conectar a mídia e o SSE entregar o "active" ANTES de o
+      // POST /accept responder (que é quando a chamada vira "active" no estado). Ela ainda está só
+      // em "ringing": guarda o instante nela, e "accepted" o aproveita em vez de ficar em
+      // "connecting" para sempre com o cronômetro desligado.
+      const early = state.ringing[action.callId];
+      if (early && !state.active) {
+        return { ...state, ringing: { ...state.ringing, [action.callId]: { ...early, connectedAt: early.connectedAt ?? Date.now() } } };
+      }
       if (!state.active || state.active.callId !== action.callId) return state;
-      if (action.state !== "active" || state.active.phase === "active") return state;
+      if (state.active.phase === "active") return state;
       return { ...state, active: { ...state.active, phase: "active", connectedAt: Date.now() } };
     }
 
