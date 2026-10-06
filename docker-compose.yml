@@ -80,6 +80,10 @@ services:
       - AMQP_URL=amqp://${RABBITMQ_USER:-watink}:${RABBITMQ_PASS:?defina RABBITMQ_PASS no .env}@rabbitmq:5672
       - REDIS_URL=redis://redis:6379
       - ENGINE_HEALTH_URL=http://watink-engine:8083/health
+      # Áudio das chamadas de voz (ADR 0031): WebSocket interno do engine, só na rede do
+      # stack. Token OBRIGATÓRIO e igual nos dois serviços (sem ele o stack não sobe).
+      - CALLS_AUDIO_URL=ws://watink-engine:8085
+      - CALLS_AUDIO_TOKEN=${CALLS_AUDIO_TOKEN:?defina CALLS_AUDIO_TOKEN no .env (openssl rand -hex 32)}
       - JWT_SECRET=${JWT_SECRET:?defina JWT_SECRET no .env}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?defina JWT_REFRESH_SECRET no .env}
       # Chave de criptografia-at-rest das senhas de proxy (AES-GCM via SHA-256).
@@ -121,6 +125,10 @@ services:
       - DB_PASS=${DB_PASS:?defina DB_PASS no .env}
       - DB_NAME=watink
       - HEALTH_PORT=8083
+      # Canal de áudio das chamadas (ADR 0031): só a rede interna (porta não publicada).
+      # Precisa de saída UDP para os relays do WhatsApp.
+      - CALLS_AUDIO_PORT=8085
+      - CALLS_AUDIO_TOKEN=${CALLS_AUDIO_TOKEN:?defina CALLS_AUDIO_TOKEN no .env (openssl rand -hex 32)}
     depends_on:
       postgres:
         condition: service_healthy

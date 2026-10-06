@@ -85,6 +85,11 @@ services:
       # do watink-engine, nunca exposta fora da rede (ver watink-engine.expose acima).
       - GROUPS_API_URL=http://watink-engine:8084
       - GROUPS_API_TOKEN=${GROUPS_API_TOKEN:-}
+      # Áudio das chamadas de voz (ADR 0031): WebSocket interno do engine, mesmo
+      # host docker-interno, nunca exposto fora da rede. Sem CALLS_AUDIO_TOKEN as
+      # chamadas tocam mas ficam sem áudio (o engine não abre o canal).
+      - CALLS_AUDIO_URL=ws://watink-engine:8085
+      - CALLS_AUDIO_TOKEN=${CALLS_AUDIO_TOKEN:-}
       - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_in_prod}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev_jwt_refresh_secret_change_in_prod}
       # Chave de criptografia-at-rest das senhas de proxy (AES-GCM via SHA-256).
@@ -149,8 +154,10 @@ services:
       - "8083:8083"
     # API interna de grupos/comunidades (T1.1) — NUNCA "ports:", só "expose:"
     # (invariant 2 do plano "Grupos e Comunidades"): nunca sai da rede docker.
+    # Canal de áudio das chamadas (ADR 0031) — idem: NUNCA "ports:", só "expose:".
     expose:
       - "8084"
+      - "8085"
     environment:
       - AMQP_URL=amqp://guest:guest@rabbitmq:5672
       - DB_HOST=postgres
@@ -161,6 +168,8 @@ services:
       - HEALTH_PORT=8083
       - GROUPS_API_PORT=8084
       - GROUPS_API_TOKEN=${GROUPS_API_TOKEN:-}
+      - CALLS_AUDIO_PORT=8085
+      - CALLS_AUDIO_TOKEN=${CALLS_AUDIO_TOKEN:-}
     depends_on:
       rabbitmq:
         condition: service_healthy
