@@ -76,6 +76,17 @@ func (s *Session) OnOffer(ctx context.Context, evt *events.CallOffer) {
 	})
 }
 
+// OnOfferNotice trata o aviso de oferta que o WhatsApp manda para chamadas em
+// grupo (e vídeo anunciado por aviso). Nunca se atende nem se recusa: só se
+// registra "tipo não suportado" e o celular segue tocando.
+func (s *Session) OnOfferNotice(ctx context.Context, evt *events.CallOfferNotice) {
+	if evt.CallID == "" {
+		return
+	}
+	creator := creatorOf(evt.BasicCallMeta)
+	s.missed(evt.CallID, creator.String(), s.callerPN(ctx, evt.CallCreator, evt.CallCreatorAlt), ReasonUnsupportedType)
+}
+
 func (s *Session) onReadyTimeout(ac *activeCall) {
 	s.mu.Lock()
 	skip := ac.ended || ac.ready

@@ -32,7 +32,7 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 		s.dropCalls(id)
 		s.emitStatus(id, tenantID, "DISCONNECTED")
 	case *events.CallOffer, *events.CallAccept, *events.CallTransport, *events.CallRelayLatency,
-		*events.CallTerminate, *events.CallReject:
+		*events.CallTerminate, *events.CallReject, *events.CallOfferNotice, *events.UnknownCallEvent:
 		s.handleCallEvent(id, evt)
 	case *events.LoggedOut:
 		log.Printf("Session %d logged out (onConnect: %v, reason: %v)", id, v.OnConnect, v.Reason)

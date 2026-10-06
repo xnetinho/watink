@@ -76,6 +76,10 @@ func (s *WhatsAppService) handleCallEvent(id int, evt interface{}) {
 		sess.OnTerminate(v)
 	case *events.CallReject:
 		sess.OnReject(v)
+	case *events.CallOfferNotice:
+		sess.OnOfferNotice(ctx, v)
+	case *events.UnknownCallEvent:
+		log.Printf("Session %d: evento de chamada desconhecido ignorado", id)
 	}
 }
 

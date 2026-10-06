@@ -605,3 +605,18 @@ func TestAnnounceReset_PublishesCallReset(t *testing.T) {
 		t.Fatalf("call.reset: %v", e)
 	}
 }
+
+func TestOfferNotice_GroupCallIsRegisteredAsUnsupportedAndNotAnswered(t *testing.T) {
+	r := newRig(t, false, nil)
+	r.s.OnOfferNotice(context.Background(), &events.CallOfferNotice{
+		BasicCallMeta: types.BasicCallMeta{From: pn("5511999990001"), CallCreator: pn("5511999990001"), CallID: callA, GroupJID: types.NewJID("123", types.GroupServer)},
+		Type:          "group", Media: "audio",
+	})
+	m := r.evs("call.missed")
+	if len(m) != 1 || m[0]["reason"] != ReasonUnsupportedType || m[0]["callId"] != callA {
+		t.Fatalf("call.missed: %v", m)
+	}
+	if r.nHandles() != 0 || len(r.evs("call.incoming")) != 0 {
+		t.Fatal("aviso de grupo não pode abrir gerenciador nem tocar")
+	}
+}
