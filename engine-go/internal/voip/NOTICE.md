@@ -13,7 +13,11 @@ Este diretório é um porte da pilha de voz do WhatsApp do projeto **WaCalls**.
 
 - Apenas o caminho de import interno (`wacalls/internal/voip/...` para
   `github.com/alltomatos/watinkdev/engine-go/internal/voip/...`).
-- Nenhuma mudança de comportamento. Os testes originais foram mantidos.
+- Comportamento original preservado por padrão. Os testes originais foram mantidos.
+- Adições do Watink, todas desligadas por padrão: o campo `CallManager.DeferPreaccept`
+  (uma condicional em `HandleCallOffer`) e o arquivo `call/callmanager_watink.go`
+  (`SendPreaccept` e `AbandonCall`). O engine do Watink nunca envia `reject`, e só
+  envia `preaccept` depois que o business confirma operador elegível.
 
 ## Atualizar
 

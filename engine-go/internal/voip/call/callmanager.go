@@ -42,6 +42,11 @@ type CallManager struct {
 	lastCaptureAt time.Time
 	keepaliveStop chan struct{}
 
+	// DeferPreaccept (alteração Watink): em vez de enviar `preaccept` ao receber
+	// a oferta, espera SendPreaccept. O engine só sinaliza "estou atendendo" ao
+	// chamador depois que o business confirma que há operador elegível.
+	DeferPreaccept bool
+
 	OnStateChange func(*CallInfo)
 	OnIncoming    func(*CallInfo)
 	OnEnded       func(*CallInfo)
