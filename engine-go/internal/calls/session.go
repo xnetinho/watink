@@ -231,6 +231,15 @@ func (s *Session) trackMedia(ac *activeCall, state string) {
 		return
 	}
 	switch state {
+	case string(core.CallStateConnecting), string(core.CallStateActive):
+		// Atendida: o contato respondeu, o toque de 45 s acabou. Sem isto o timer
+		// derrubava com "timeout" uma chamada de saída já em conversa.
+		if ac.timer != nil {
+			ac.timer.Stop()
+			ac.timer = nil
+		}
+	}
+	switch state {
 	case string(core.CallStateConnecting):
 		if ac.mediaTimer == nil {
 			ac.mediaTimer = s.clock.AfterFunc(mediaConnectTimeout, func() { s.onMediaTimeout(ac) })

@@ -124,9 +124,17 @@ func (s *Service) HandleState(ctx context.Context, tenantID uuid.UUID, raw json.
 	if ev.State != "active" {
 		return nil
 	}
+	// answeredAt: a chamada recebida o grava em Accept; a de SAÍDA só fica atendida quando o contato
+	// responde e a mídia conecta (este evento). Sem isso toda chamada de saída virava "perdida".
+	upd := map[string]interface{}{"status": StatusActive}
 	res := s.fresh().Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "callId" = ? AND status = ? AND "endedAt" IS NULL`, tenantID, ev.CallID, StatusRinging).
-		Updates(map[string]interface{}{"status": StatusActive})
+		Updates(upd)
+	if res.Error == nil {
+		s.fresh().Model(&models.CallLog{}).
+			Where(`"tenantId" = ? AND "callId" = ? AND "answeredAt" IS NULL`, tenantID, ev.CallID).
+			Update("answeredAt", s.now())
+	}
 	if res.Error != nil {
 		return res.Error
 	}

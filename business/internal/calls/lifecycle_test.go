@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -306,4 +307,59 @@ func TestHandleEnded_MediaTimeoutIsAFailureWithItsReason(t *testing.T) {
 	assert.Equal(t, StatusFailed, l.Status)
 	assert.Equal(t, "media_timeout", l.EndReason, "o motivo chega ao histórico")
 	assert.Equal(t, "Chamada de voz interrompida", callBody(&l))
+}
+
+// Bug real: na chamada de SAÍDA o answeredAt nunca era gravado (só Accept, que é de chamada
+// recebida, o grava). Atendida e encerrada direito, ela aparecia como "perdida" no histórico.
+func placeOutgoing(t *testing.T, r *rig, callID string) {
+	t.Helper()
+	r.grant(t, "da_fila_A", "place")
+	contact := models.Contact{Name: "Diomedes", Number: "5511999990020", TenantID: r.tenant}
+	require.NoError(t, r.db.Create(&contact).Error)
+	uid := r.users["da_fila_A"].ID
+	require.NoError(t, r.db.Create(&models.CallLog{
+		TenantID: r.tenant, CallID: callID, WhatsappID: r.waA.ID, ContactID: &contact.ID, Direction: "outgoing",
+		Status: StatusRinging, PeerJid: "5511999990020@s.whatsapp.net", CallerPn: "5511999990020", StartedAt: time.Now(),
+		HandledByUserID: &uid,
+	}).Error)
+}
+
+func stateEvent(callID, state string) json.RawMessage {
+	b, _ := json.Marshal(map[string]interface{}{"callId": callID, "state": state, "direction": "outgoing"})
+	return b
+}
+
+func TestOutgoingCall_AnsweredIsEndedWithDuration_NotMissed(t *testing.T) {
+	r := newRig(t)
+	placeOutgoing(t, r, "OUT-1")
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("OUT-1", "active")))
+	l := r.log(t, "OUT-1")
+	assert.Equal(t, StatusActive, l.Status)
+	require.NotNil(t, l.AnsweredAt, "o contato atendeu: o instante tem de ficar gravado")
+
+	raw, _ := json.Marshal(map[string]interface{}{"callId": "OUT-1", "endReason": "user_ended", "durationSecs": 41, "direction": "outgoing"})
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, raw))
+	l = r.log(t, "OUT-1")
+	assert.Equal(t, StatusEnded, l.Status, "atendida e encerrada não é perdida")
+	assert.Equal(t, 41, l.DurationSec)
+}
+
+func TestOutgoingCall_NeverAnsweredStaysMissed(t *testing.T) {
+	r := newRig(t)
+	placeOutgoing(t, r, "OUT-2")
+	raw, _ := json.Marshal(map[string]interface{}{"callId": "OUT-2", "endReason": "timeout", "durationSecs": 0, "direction": "outgoing"})
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, raw))
+	assert.Equal(t, StatusMissed, r.log(t, "OUT-2").Status)
+}
+
+// answeredAt vale do PRIMEIRO active: um segundo call.state active (reentrega) não o move.
+func TestHandleState_AnsweredAtIsSetOnce(t *testing.T) {
+	r := newRig(t)
+	placeOutgoing(t, r, "OUT-3")
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("OUT-3", "active")))
+	old := time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
+	require.NoError(t, r.db.Model(&models.CallLog{}).Where(`"callId" = ?`, "OUT-3").Update("answeredAt", old).Error)
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("OUT-3", "active")))
+	got := *r.log(t, "OUT-3").AnsweredAt
+	assert.True(t, old.Equal(got.UTC()), "a reentrega moveu o instante: %s -> %s", old, got)
 }

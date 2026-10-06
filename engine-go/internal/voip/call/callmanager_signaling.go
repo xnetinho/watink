@@ -270,6 +270,10 @@ func (m *CallManager) HandleCallTerminate(node *waBinary.Node) {
 	info := signaling.ExtractNodeInfo(node)
 	reason := core.EndCallReasonUserEnded
 	if info != nil {
+		// <reject> é o contato recusando o toque; <terminate> é alguém desligando.
+		if info.Tag == "reject" {
+			reason = core.EndCallReasonDeclined
+		}
 		if r := wanode.AttrString(info.InnerNode.Attrs, "reason"); r != "" {
 			reason = core.EndCallReason(r)
 		}

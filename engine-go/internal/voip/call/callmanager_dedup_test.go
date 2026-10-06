@@ -2,12 +2,15 @@ package call
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"sync/atomic"
 	"testing"
 
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/media"
+	waBinary "go.mau.fi/whatsmeow/binary"
+	"go.mau.fi/whatsmeow/types"
 )
 
 type countingCodec struct{ decodes atomic.Int32 }
@@ -69,5 +72,39 @@ func TestRelayCopiesAreDeliveredOnce(t *testing.T) {
 	}
 	if got := delivered.Load(); got != 50 {
 		t.Fatalf("quadros entregues ao operador: %d, esperado 50", got)
+	}
+}
+
+func peerNode(tag string, attrs waBinary.Attrs) *waBinary.Node {
+	attrs["call-id"] = "CALL1"
+	return &waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"from": "5511999990000@s.whatsapp.net"},
+		Content: []waBinary.Node{{Tag: tag, Attrs: attrs}}}
+}
+
+// O celular recusou: o WhatsApp manda <reject>, não <terminate>. O motivo precisa ser "declined"
+// (o painel diz "o contato recusou"); antes virava "user_ended" ("o contato desligou").
+func TestPeerReject_EndsAsDeclined(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		node *waBinary.Node
+		want core.EndCallReason
+	}{
+		{"reject sem motivo", peerNode("reject", waBinary.Attrs{"count": "0"}), core.EndCallReasonDeclined},
+		{"terminate sem motivo", peerNode("terminate", waBinary.Attrs{}), core.EndCallReasonUserEnded},
+		{"terminate com motivo", peerNode("terminate", waBinary.Attrs{"reason": "busy"}), core.EndCallReasonBusy},
+		{"reject com motivo", peerNode("reject", waBinary.Attrs{"reason": "busy"}), core.EndCallReasonBusy},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			peer := types.NewJID("5511999990000", types.DefaultUserServer)
+			m := NewCallManager(&fakeSock{}, slog.Default())
+			m.DeferPreaccept = true
+			m.HandleCallOffer(context.Background(), offerNode("CALL1", peer.String()), peer)
+			var got core.EndCallReason
+			m.OnEnded = func(c *CallInfo) { got = c.StateData.EndReason }
+			m.HandleCallTerminate(tc.node)
+			if got != tc.want {
+				t.Fatalf("motivo %q, esperado %q", got, tc.want)
+			}
+		})
 	}
 }

@@ -458,6 +458,24 @@ func TestAccept_StopsRingTimer(t *testing.T) {
 	}
 }
 
+// Bug real do primeiro teste com duas pessoas: na chamada de SAÍDA o contato atende, a mídia
+// conecta, e 45 s depois do início o timer de toque ainda dispara e derruba a chamada ativa
+// ("timeout" aos 41 s de conversa). Atendida, ela não pode mais expirar por toque.
+func TestStart_AnsweredCallNeverExpiresByRingTimer(t *testing.T) {
+	r := newRig(t, false, nil)
+	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net"); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "start", func() bool { return r.handle(0) != nil && r.handle(0).has("start") })
+	r.handle(0).hooks.OnState(State{State: "active", Direction: "outgoing"})
+	if r.clk.fire(ringTimeout) != 0 {
+		t.Fatal("chamada de saída já ativa: o timer de toque tem de ter sido cancelado")
+	}
+	if r.handle(0).has("end:timeout") || len(r.evs("call.ended")) != 0 {
+		t.Fatalf("a chamada ativa não pode ser encerrada por timeout: %v", r.handle(0).calls())
+	}
+}
+
 func TestStart_OriginatesAndTimesOut(t *testing.T) {
 	r := newRig(t, false, nil)
 	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net"); err != nil {
