@@ -21,7 +21,7 @@ type Presence interface {
 // ContactResolver acha ou cria o contato do chamador (mesma regra das mensagens,
 // inclusive a unificação LID × telefone).
 type ContactResolver interface {
-	FindOrCreate(ctx context.Context, tenantID uuid.UUID, number, pushName, profilePicURL string, isGroup, isLID bool, from string) (*domain.Contact, error)
+	FindOrCreate(ctx context.Context, tenantID uuid.UUID, number, pushName, profilePicURL string, isGroup, isLID bool, from, knownNumber string) (*domain.Contact, error)
 }
 
 // Service reúne as regras de negócio das chamadas. Dependências por construtor.
