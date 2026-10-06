@@ -6,23 +6,50 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type SSEController struct {
 	hub      *services.SSEHub
 	redisSvc domain.RedisService
+	db       *gorm.DB
 }
 
-func NewSSEController(hub *services.SSEHub, redisSvc domain.RedisService) *SSEController {
-	return &SSEController{hub: hub, redisSvc: redisSvc}
+// NewSSEController recebe o *gorm.DB para validar, no `?rooms=`, que o usuário
+// pode ver o ticket de uma sala `chat:<id>`. db pode ser nil (testes): nesse
+// caso nenhuma sala de chat extra é aceita (fail-closed).
+func NewSSEController(hub *services.SSEHub, redisSvc domain.RedisService, db *gorm.DB) *SSEController {
+	return &SSEController{hub: hub, redisSvc: redisSvc, db: db}
+}
+
+// canSeeTicket diz se o usuário pode assinar o chat de um ticket. Alcance de
+// empresa vê todos os da própria empresa; os demais seguem a mesma regra de
+// visibilidade de GetScopedDB("Tickets") (atribuído a ele, fila dele, ou
+// conexão ligada a uma fila dele).
+func (sc *SSEController) canSeeTicket(tenantID uuid.UUID, userID int, alcance string) func(int) bool {
+	return func(ticketID int) bool {
+		if sc.db == nil || userID <= 0 {
+			return false
+		}
+		q := sc.db.Session(&gorm.Session{NewDB: true}).Model(&models.Ticket{}).
+			Where(`id = ? AND "tenantId" = ?`, ticketID, tenantID)
+		if alcance != "tenant" && alcance != "plataforma" {
+			q = q.Where(`("userId" = ? `+
+				`OR "queueId" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) `+
+				`OR "whatsappId" IN (SELECT wq.whatsapp_id FROM whatsapp_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?)))`,
+				userID, userID, userID)
+		}
+		var n int64
+		return q.Count(&n).Error == nil && n > 0
+	}
 }
 
 // Stream godoc
@@ -31,7 +58,7 @@ func NewSSEController(hub *services.SSEHub, redisSvc domain.RedisService) *SSECo
 // @Tags         realtime
 // @Produce      text/event-stream
 // @Param        token  query  string  true  "JWT token"
-// @Param        rooms  query  string  false "Extra rooms (csv): chat:{id}, tickets:{status}, notification, helpdesk-kanban"
+// @Param        rooms  query  string  false "Extra rooms (csv), filtradas por lista permitida: chat:{id} (ticket visível ao usuário), tickets:{open|pending|closed}, notification, helpdesk-kanban"
 // @Router       /events [get]
 func (sc *SSEController) Stream(c *gin.Context) {
 	tokenStr := c.Query("token")
@@ -69,18 +96,21 @@ func (sc *SSEController) Stream(c *gin.Context) {
 	case string:
 		userID, _ = strconv.Atoi(v)
 	}
-	_ = userID
-
-	// Build room list: always include tenant room; add extras from query.
-	rooms := []string{"tenant:" + tenantID, "notification"}
-	if extra := c.Query("rooms"); extra != "" {
-		for _, r := range strings.Split(extra, ",") {
-			r = strings.TrimSpace(r)
-			if r != "" {
-				rooms = append(rooms, r)
-			}
-		}
+	alcance, _ := claims["alcance"].(string)
+	tenantUUID, tenantErr := uuid.Parse(tenantID)
+	if tenantErr != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
+
+	// Salas fixas: a da própria empresa, "notification" e a sala PESSOAL do usuário
+	// (derivada do token, nunca do query). Extras passam por lista permitida: sem
+	// isso, `?rooms=tenant:<outra empresa>` entregava os eventos dela.
+	rooms := []string{"tenant:" + tenantID, "notification"}
+	if userID > 0 {
+		rooms = append(rooms, userRoom(tenantUUID, userID))
+	}
+	rooms = append(rooms, allowedExtraRooms(c.Query("rooms"), tenantUUID, userID, sc.canSeeTicket(tenantUUID, userID, alcance))...)
 
 	log.Printf("[SSE] connect connID rooms=%d", len(rooms)) // logs only count, not room names — no user-controlled string in format
 	connID := uuid.New().String()

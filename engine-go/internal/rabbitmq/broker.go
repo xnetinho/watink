@@ -7,6 +7,7 @@ import "github.com/streadway/amqp"
 type MessageBroker interface {
 	Connect() error
 	ConsumeCommands(queueName string, routingKeys []string, handler func(amqp.Delivery)) error
+	ConsumeCommandsConcurrent(queueName string, routingKeys []string, handler func(amqp.Delivery)) error
 	PublishEvent(routingKey string, payload interface{}) error
 	Close() error
 }

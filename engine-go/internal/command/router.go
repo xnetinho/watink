@@ -24,7 +24,8 @@ func ParseRoutingKey(routingKey string) (tenantID string, sessionID string, cmd 
 		"message.react",
 		"message.markAsRead", "media.download",
 		"contact.sync", "contact.import", "history.sync", "history.recover",
-		"chat.presence":
+		"chat.presence",
+		"call.ready", "call.accept", "call.reject", "call.end", "call.start":
 		return tenantID, sessionID, cmd, nil
 	default:
 		return "", "", "", fmt.Errorf("unknown command type: %s", cmd)

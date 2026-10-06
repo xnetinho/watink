@@ -111,6 +111,8 @@ func Migrate() {
 		&models.Warehouse{},
 		&models.WarehouseBalance{},
 		&models.InventoryMovement{},
+		&models.CallLog{},
+		&models.CallRecordingAccess{},
 	)
 
 	if err != nil {
@@ -234,6 +236,13 @@ func Seed() {
 		{Resource: "whatsappGroups", Action: "read", Description: "Visualizar grupos e comunidades do WhatsApp"},
 		{Resource: "whatsappGroups", Action: "manage", Description: "Criar/configurar grupos e comunidades, vincular/desvincular subgrupos"},
 		{Resource: "whatsappGroups", Action: "admin", Description: "Gerenciar participantes (adicionar/remover/promover/rebaixar), aprovar solicitações de entrada, sair de grupos"},
+		// calls (chamadas de voz do WhatsApp). Nenhuma é anexada a cargo do seed:
+		// só o alcance de empresa (Administrador/Gerente Geral) passa sozinho.
+		{Resource: "calls", Action: "receive", Description: "Atender e recusar chamadas de voz do WhatsApp"},
+		{Resource: "calls", Action: "place", Description: "Efetuar chamadas de voz pelo WhatsApp"},
+		{Resource: "calls", Action: "read", Description: "Consultar o histórico de chamadas e ouvir gravações"},
+		{Resource: "calls", Action: "delete", Description: "Excluir gravações de chamadas"},
+		{Resource: "calls", Action: "manage", Description: "Configurar a gravação de chamadas"},
 		// swagger
 		{Resource: "swagger", Action: "view", Description: "Visualizar documentação Swagger"},
 	}

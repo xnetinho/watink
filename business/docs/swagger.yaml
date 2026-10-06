@@ -1,5 +1,19 @@
 basePath: /api/v1
 definitions:
+  calls.RecordingConfig:
+    properties:
+      ackAt:
+        type: string
+      ackBy:
+        type: integer
+      available:
+        description: |-
+          Available é falso quando a instalação não tem armazenamento de objetos: as
+          opções de gravação não são oferecidas.
+        type: boolean
+      mode:
+        type: string
+    type: object
   controllers.ActivitySLAConfig:
     properties:
       high:
@@ -174,6 +188,28 @@ definitions:
       hasApiKey:
         type: boolean
     type: object
+  controllers.pauseRequest:
+    properties:
+      paused:
+        type: boolean
+    type: object
+  controllers.placeCallRequest:
+    properties:
+      ticketId:
+        type: integer
+    required:
+    - ticketId
+    type: object
+  controllers.recordingConfigRequest:
+    properties:
+      ack:
+        description: Ack confirma que o administrador leu e aceitou o termo de responsabilidade.
+        type: boolean
+      mode:
+        type: string
+    required:
+    - mode
+    type: object
   controllers.updateActivityAssigneesRequest:
     properties:
       userIds:
@@ -347,6 +383,72 @@ definitions:
         type: integer
       type:
         type: string
+    type: object
+  models.CallLog:
+    properties:
+      answeredAt:
+        type: string
+      callId:
+        type: string
+      callerPn:
+        type: string
+      contactId:
+        type: integer
+      createdAt:
+        type: string
+      direction:
+        description: 'Direction: incoming | outgoing.'
+        type: string
+      durationSec:
+        type: integer
+      endReason:
+        description: |-
+          EndReason: user_ended | declined | timeout | busy | cancelled | failed |
+          no_operator | proxy_blocked | unsupported_type | accepted_elsewhere | interrupted.
+        type: string
+      endedAt:
+        type: string
+      handledByUserId:
+        type: integer
+      id:
+        type: integer
+      jitterAvg:
+        type: number
+      jitterMax:
+        type: number
+      lossAvg:
+        type: number
+      lossMax:
+        type: number
+      mosEstimated:
+        type: number
+      peerJid:
+        description: PeerJid/CallerPn identificam o chamador mesmo quando ainda não
+          há contato.
+        type: string
+      recordingDurationSec:
+        type: integer
+      recordingStatus:
+        type: string
+      rttAvg:
+        description: |-
+          Resumo agregado de qualidade (não guarda a série temporal). O índice é uma
+          ESTIMATIVA (modelo E simplificado) e a perda só cobre contato→operador.
+        type: number
+      rttMax:
+        type: number
+      startedAt:
+        type: string
+      status:
+        description: 'Status: ringing | active | ended | missed | rejected | failed
+          | interrupted.'
+        type: string
+      ticketId:
+        type: integer
+      updatedAt:
+        type: string
+      whatsappId:
+        type: integer
     type: object
   models.Cargo:
     properties:
@@ -1528,6 +1630,382 @@ paths:
       summary: Refresh token
       tags:
       - auth
+  /calls:
+    get:
+      description: Lista as chamadas da empresa (ou só as de tickets visíveis ao usuário,
+        sem alcance de empresa).
+      parameters:
+      - description: ringing|active|ended|missed|rejected|failed|interrupted
+        in: query
+        name: status
+        type: string
+      - description: incoming|outgoing
+        in: query
+        name: direction
+        type: string
+      - description: Filtrar por ticket
+        in: query
+        name: ticketId
+        type: integer
+      - description: Página
+        in: query
+        name: page
+        type: integer
+      - description: Itens por página (máx. 100)
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Histórico de chamadas
+      tags:
+      - calls
+    post:
+      consumes:
+      - application/json
+      description: Inicia uma chamada de voz 1:1 para o contato de um ticket individual,
+        pela conexão do ticket.
+      parameters:
+      - description: Ticket
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.placeCallRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Efetuar chamada de voz
+      tags:
+      - calls
+  /calls/{id}:
+    get:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CallLog'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Detalhe de uma chamada
+      tags:
+      - calls
+  /calls/{id}/accept:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CallLog'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Atender chamada
+      tags:
+      - calls
+  /calls/{id}/audio:
+    get:
+      description: Abre o canal de áudio PCM 16 kHz mono Int16 (quadros de 640 bytes)
+        do operador que assumiu a chamada. Auth por token na query, como o SSE.
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: JWT
+        in: query
+        name: token
+        required: true
+        type: string
+      responses:
+        "101":
+          description: Switching Protocols
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+      summary: Áudio da chamada (WebSocket)
+      tags:
+      - calls
+  /calls/{id}/end:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Encerrar chamada
+      tags:
+      - calls
+  /calls/{id}/recording:
+    delete:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Excluir a gravação
+      tags:
+      - calls
+    get:
+      description: Devolve uma URL assinada e temporária e registra quem ouviu. Fora
+        do alcance do usuário responde 404.
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ouvir a gravação
+      tags:
+      - calls
+  /calls/{id}/recording/start:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Iniciar gravação da chamada (modo opcional)
+      tags:
+      - calls
+  /calls/{id}/recording/stop:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Parar a gravação da chamada (modo opcional)
+      tags:
+      - calls
+  /calls/{id}/reject:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Recusar chamada
+      tags:
+      - calls
+  /calls/pause:
+    put:
+      consumes:
+      - application/json
+      description: Avisa o servidor que este operador pausou o toque, para ele não
+        contar como elegível.
+      parameters:
+      - description: Estado
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.pauseRequest'
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Pausar ou retomar o recebimento de chamadas
+      tags:
+      - calls
+  /calls/recording-config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/calls.RecordingConfig'
+      security:
+      - BearerAuth: []
+      summary: Configuração de gravação de chamadas
+      tags:
+      - calls
+    put:
+      consumes:
+      - application/json
+      description: Sair de "off" exige ack=true (aceite do termo); o aceite grava
+        usuário e horário.
+      parameters:
+      - description: Modo e aceite
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.recordingConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/calls.RecordingConfig'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Alterar o modo de gravação de chamadas
+      tags:
+      - calls
   /cargos:
     get:
       produces:
@@ -2387,7 +2865,8 @@ paths:
         name: token
         required: true
         type: string
-      - description: 'Extra rooms (csv): chat:{id}, tickets:{status}, notification,
+      - description: 'Extra rooms (csv), filtradas por lista permitida: chat:{id}
+          (ticket visível ao usuário), tickets:{open|pending|closed}, notification,
           helpdesk-kanban'
         in: query
         name: rooms

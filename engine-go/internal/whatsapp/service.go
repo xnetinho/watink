@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alltomatos/watinkdev/engine-go/internal/calls"
 	"github.com/alltomatos/watinkdev/engine-go/internal/rabbitmq"
 	_ "github.com/lib/pq"
 	"go.mau.fi/whatsmeow"
@@ -33,6 +34,9 @@ type WhatsAppService struct {
 
 	picMu    sync.Mutex
 	picCache map[string]string // JID string → profile picture URL
+
+	callMu       sync.Mutex
+	callSessions map[int]*calls.Session
 
 	// publishEvent routes an event envelope to the messaging broker.
 	// Settable in tests to capture emitted events without a real broker.
@@ -64,6 +68,7 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService, sessionLoader SessionL
 		groupNames:      make(map[string]string),
 		groupMetaMap:    make(map[string]groupMeta),
 		picCache:        make(map[string]string),
+		callSessions:    make(map[int]*calls.Session),
 	}
 	svc.publishEvent = svc.defaultPublishEvent
 	return svc

@@ -29,7 +29,11 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 		// fica presa em "Sem número / QR Code" até um Connect() manual.
 		s.emitConnected(client, id, tenantID)
 	case *events.Disconnected:
+		s.dropCalls(id)
 		s.emitStatus(id, tenantID, "DISCONNECTED")
+	case *events.CallOffer, *events.CallAccept, *events.CallTransport, *events.CallRelayLatency,
+		*events.CallTerminate, *events.CallReject, *events.CallOfferNotice, *events.UnknownCallEvent:
+		s.handleCallEvent(id, evt)
 	case *events.LoggedOut:
 		log.Printf("Session %d logged out (onConnect: %v, reason: %v)", id, v.OnConnect, v.Reason)
 		// ConnectFailureUnknownLogout (406) é o que o WhatsApp Web chama de BANNED.

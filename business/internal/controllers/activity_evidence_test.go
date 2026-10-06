@@ -48,6 +48,11 @@ func (f *fakeActivityObjectStore) PresignedGetURL(_ context.Context, key string,
 	return "https://fake-store.local/watink-activities/" + key + "?ttl=" + ttl.String(), nil
 }
 
+func (f *fakeActivityObjectStore) Delete(_ context.Context, key string) error {
+	delete(f.objects, key)
+	return nil
+}
+
 func (f *fakeActivityObjectStore) Describe() map[string]any {
 	return map[string]any{"bucket": "watink-activities"}
 }

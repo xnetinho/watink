@@ -31,6 +31,7 @@ import (
 
 	_ "github.com/alltomatos/watinkdev/business/docs"
 	"github.com/alltomatos/watinkdev/business/internal/application"
+	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/database"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -149,8 +150,15 @@ func main() {
 	eventListener := services.NewEventListener(container.ChannelSessionRepo, container.MessageRepo, container.ContactRepo, container.TicketRepo, container.ReceiveMessage, broadcast, database.DB, channelRegistry, redisSvc, rabbitMQ, mediaWaiter)
 	eventListener.ConfigureKnowledge(ragRetriever, ragResponder)
 
+	// Chamadas de voz: serviço de regras (elegibilidade, registro, atribuição) com
+	// fila de eventos PRÓPRIA. A presença vem do mesmo SSEHub do stream de eventos.
+	callService := container.Calls.WithRecording(calls.NewRecording(s3Store, os.TempDir()))
+
 	if err := rabbitMQ.Connect(); err == nil {
 		services.StartEventListener(rabbitMQ, eventListener)
+		if err := callService.Start(rabbitMQ); err != nil {
+			log.Printf("[calls] event consumer: %v", err)
+		}
 
 		// Ingestion worker (fetch→parse→chunk→embed→store) + stuck-source
 		// reconciler.
@@ -177,8 +185,16 @@ func main() {
 
 	// SSE stream — registrado SEM gin.Logger para evitar que o token JWT
 	// presente na query string (?token=...) apareça no access-log.
-	sseController := controllers.NewSSEController(container.SSEHub, redisSvc)
+	sseController := controllers.NewSSEController(container.SSEHub, redisSvc, database.DB)
 	r.GET("/api/v1/events", sseController.Stream)
+
+	// Áudio das chamadas (WebSocket do navegador). Também FORA do grupo com
+	// IsAuth: o navegador não manda Authorization num WebSocket; o controller
+	// valida o token da query, a permissão e a posse da chamada. Sem
+	// CALLS_AUDIO_URL/CALLS_AUDIO_TOKEN o discador falha e nenhuma chamada tem áudio.
+	callAudioController := controllers.NewCallAudioController(container.Calls, calls.NewAudio(),
+		calls.NewEngineDialer(os.Getenv("CALLS_AUDIO_URL"), os.Getenv("CALLS_AUDIO_TOKEN")), database.DB)
+	r.GET("/api/v1/calls/:id/audio", callAudioController.Stream)
 
 	// izapia webhook — public route (no JWT), authenticated per-session by
 	// HMAC signature (X-izapia-Signature). See izapia.Provider.ensureSession

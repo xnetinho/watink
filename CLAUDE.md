@@ -66,6 +66,7 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
 | Plugins — Grupos e Comunidades (slug `groups`, `pro`): API interna de grupos no engine-go, providers `enginego`/`izapia`, plugin embarcado, frontend, catálogo do Hub (plano em `docs/agents/plugin-grupos-comunidades.md`) | ✅ Concluída (código+testes; issues #515-#524) — catálogo do Hub em `status: draft`, preço pendente de definição pelo dono antes de publicar |
 | Plugins — Campanhas de Grupo (4ª aba do plugin Grupos, ADR 0030): modelos+scheduler+drain+captura de resposta no backend, editor+relatório completos no frontend | ✅ Concluída (código+testes contra Postgres real; issues #590-#602) — texto do aviso de risco na UI marcado como pendente de aval do dono do produto (issue #600); tipos Botões/Lista ainda não validados manualmente em grupo real |
 | Atividades (Ordens de Serviço) — entidade core (ADR 0029): model+migration+RBAC+backfill, SLA real (não placeholder como o Helpdesk), CRUD+execução+evidência S3+KPIs, listagem redesenhada + tela de gestão (lista/criar/editar/atribuir/checklist) | ✅ Fase 0 concluída (código+testes contra Postgres real+verificação manual no browser; issues #527-#537) — ✅ Fase 1 concluída (`sdk.WatinkCoreActivities` + Helpdesk cria Activity ao abrir Protocol; issues #538/#541/#542/#543) — Fase 2 (Pipeline/Deal) não iniciada |
+| Chamadas de voz do WhatsApp no navegador (ADR 0031): porte do WaCalls no engine, fila dedicada, WebSocket PCM, gravação MP3 no business, telemetria, permissões `calls:*` | 🔧 Implementado e testado (engine `-race`, business contra Postgres/RabbitMQ reais, frontend vitest) — **pendente validação com dois números reais** (roteiro em `openspec/changes/add-whatsapp-voice-calls/tasks.md` 10.4) e deploy `:test` |
 
 ## Services & Ports
 
@@ -495,6 +496,34 @@ era uma condição de exibição de menu, nunca uma dependência arquitetural re
 **Referência:** [`docs/agents/activities.md`](docs/agents/activities.md) · ADR 0029 ·
 [`docs/frontend/activities/OVERVIEW.md`](docs/frontend/activities/OVERVIEW.md)
 
+## Módulo: Chamadas de voz (WhatsApp)
+
+**Responsabilidade:** Receber e fazer chamadas de voz **1:1** pelo navegador, com qualidade ao vivo, registro como mensagem no ticket, gravação opcional em MP3 e auditoria. **Recurso nativo do core** (sem plugin, sem Marketplace, sem botão Ativar): acesso só por permissão de cargo `calls:receive|place|read|delete|manage`, não anexadas a nenhum cargo existente (alcance de empresa passa pelo `RequirePermission`).
+
+**Arquitetura:** engine (`engine-go/internal/{voip,calls,callsapi}`) faz sinalização, mídia e **medição** — adaptador burro; business (`internal/{calls,recording}` + `controllers/call*.go`) decide elegibilidade, atribuição, registro, qualidade, gravação e S3. Áudio por WebSocket PCM 16 kHz mono Int16 (quadros de 640 B) navegador ↔ business ↔ engine. Fila dedicada `engine.go.calls` (comandos) e `api.events.calls.go` (eventos).
+
+**Invariants:**
+- O engine **nunca** envia `reject`/`terminate` por conta própria (`reject` derruba o toque nos outros aparelhos da conta): oferta ocupada, com proxy, de vídeo/grupo ou sem operador elegível é **ignorada** e vira `call.missed`. `preaccept` só após `call.ready` do business.
+- **Conexão com proxy não faz nem recebe chamada** (fail-closed; vale `proxyMode`, `proxyId` **ou** `proxyGroupId`) — a mídia sai por UDP direto do host e usar o IP do servidor anularia o ADR 0021.
+- Elegível = enxerga a conexão (**paridade** com `GetScopedDB("Tickets")`; `User.WhatsappID` **não** dá visibilidade) + `calls:receive` + online + não pausado. Atribuição atômica (`UPDATE ... WHERE status='ringing' AND handledByUserId IS NULL` + `RowsAffected`).
+- Eventos idempotentes por `(tenantId, callId)`; `WHERE "tenantId"` manual em tudo (RLS inerte); quem não pode ver uma gravação/ticket recebe **404**, não 403.
+- `?rooms=` do SSE só aceita `chat:<ticket visível>`, `tickets:<status>`, `helpdesk-kanban`, `notification`; `tenant:*`/`user:*` nunca vêm do query (a sala pessoal é inscrita pelo servidor). **Telemetria só vai ao operador que assumiu a chamada.**
+- Canal de áudio do engine: `X-Internal-Token` em tempo constante, só `expose`, **não sobe sem `CALLS_AUDIO_TOKEN`**. Filas de áudio limitadas com descarte do quadro mais antigo.
+- Gravação no **business**: mixador por relógio de 20 ms; `shine-mp3` (LGPL v2) vendorizado só com o bitrate como parâmetro; o encoder consome **blocos de 576 amostras** (320 corrompe o MP3 — coberto por teste). Banco guarda só a **chave**; URL assinada de 5 min a cada leitura. `callRecordingMode` ausente = `off`; sair de `off` exige `ack=true` (grava usuário e horário); as chaves **não** mudam pelo `PUT /settings/:key`. Sem S3 só `off`. Escuta e exclusão auditadas antes do ato.
+- Prazos: `call.ready` 3 s, toque 45 s, mídia conectar 25 s (`media_timeout`), canal do navegador 10 s.
+
+**O que NÃO fazer:**
+- Não enviar `reject` pelo engine nem pôr regra de negócio nele.
+- Não usar `User.WhatsappID` como visibilidade; não aceitar sala de SSE do query sem `allowedExtraRooms`.
+- Não alimentar o `shine-mp3` com blocos que não sejam múltiplos de 576 amostras; não gravar URL assinada no banco.
+- Não expor o canal de áudio do engine em `ports:`; não logar `CALLS_AUDIO_TOKEN`.
+- Não tratar `media_timeout` como erro do usuário (costuma ser saída UDP bloqueada); não criar uma segunda sessão do WhatsApp para chamadas.
+- Não confundir com `Campaign`/`CampaignRecipient` do FlowBuilder.
+
+**Pendente:** nunca houve chamada real — sinalização WhatsApp, relay UDP, codec MLow ponta a ponta, `c2r_rtt` e a qualidade do áudio dependem do teste manual com dois números.
+
+**Referência:** [`docs/agents/calls.md`](docs/agents/calls.md) · ADR 0031 · [`docs/user/calls/`](docs/user/calls/)
+
 ## Módulo: Inventário (WMS)
 
 **Responsabilidade:** Motor de estoque core (`Product`/`ProductSKU`/`Warehouse`/
@@ -664,7 +693,7 @@ grupo — divergências do ADR 0016) · Issues #514-#524, #589-#602
 ## Domain Docs
 
 - **Glossário**: [`CONTEXT.md`](CONTEXT.md)
-- **ADRs**: [`docs/adr/`](docs/adr/) — ver **ADR 0009** para stage upsert, **ADR 0008** para política anti-MUI, **ADR 0007** para decomposição de componentes. **FlowBuilder/Automação**: **0011** FlowRun unificado · **0012** trigger polimórfico · **0013** contrato versionado FlowGraph · **0014** channel adapters · **0015** pgvector RAG · **0016** campanhas anti-ban (risco estrutural + opt-in + roadmap BSP) · **0017** scheduler multi-node. **Base de Conhecimento/RAG**: **0028** RAG nativo em Go (supera **0018**, microsserviço descomissionado) · **0015** (atualizado) pgvector RAG · **0018** microsserviço watink-knowledge + trust boundary (histórico, superado e removido) · **0019** S3 Storage Driver · **0020** (atualizado) Agent Runtime. **Acessos/RBAC**: **0022** modelo Cargo/Setor/Alcance + enforcement real (supera **0005**, ABAC via RolePermission.Scope/Conditions nunca implementado). **Clientes/CRM**: **0023** Client como entidade core (sai do plugin "pro"), transitividade Contact→Client, documento cifrado at-rest. **Plugins/Licenciamento**: **0024** redesenho do sistema de plugins (Watink Hub como autoridade, token assinado Ed25519, trilho duplo, licença por instância+teto, fronteira core/plugin = ativação; supera **0003** no ponto da flag) · **0025** marketplace de terceiros (publishers, artefatos assinados, runtime out-of-process em fases; plano executável em `docs/agents/marketplace-terceiros.md`; ADR irmão: Hub 0004). **Atividades/Ordens de Serviço**: **0029** Activity como entidade core (análogo ao 0023 de Clientes), SLA lido de verdade desde a Fase 0 (ao contrário do placeholder do Helpdesk), presign de evidência em S3. **Grupos/Campanhas de Grupo**: **0030** divergências do ADR 0016 pra disparo em grupo (sem opt-in por destinatário, sem rotação de chip, sem caminho oficial via BSP — supera o 0016 só nesses pontos, não o edita).
+- **ADRs**: [`docs/adr/`](docs/adr/) — ver **ADR 0009** para stage upsert, **ADR 0008** para política anti-MUI, **ADR 0007** para decomposição de componentes. **FlowBuilder/Automação**: **0011** FlowRun unificado · **0012** trigger polimórfico · **0013** contrato versionado FlowGraph · **0014** channel adapters · **0015** pgvector RAG · **0016** campanhas anti-ban (risco estrutural + opt-in + roadmap BSP) · **0017** scheduler multi-node. **Base de Conhecimento/RAG**: **0028** RAG nativo em Go (supera **0018**, microsserviço descomissionado) · **0015** (atualizado) pgvector RAG · **0018** microsserviço watink-knowledge + trust boundary (histórico, superado e removido) · **0019** S3 Storage Driver · **0020** (atualizado) Agent Runtime. **Acessos/RBAC**: **0022** modelo Cargo/Setor/Alcance + enforcement real (supera **0005**, ABAC via RolePermission.Scope/Conditions nunca implementado). **Clientes/CRM**: **0023** Client como entidade core (sai do plugin "pro"), transitividade Contact→Client, documento cifrado at-rest. **Plugins/Licenciamento**: **0024** redesenho do sistema de plugins (Watink Hub como autoridade, token assinado Ed25519, trilho duplo, licença por instância+teto, fronteira core/plugin = ativação; supera **0003** no ponto da flag) · **0025** marketplace de terceiros (publishers, artefatos assinados, runtime out-of-process em fases; plano executável em `docs/agents/marketplace-terceiros.md`; ADR irmão: Hub 0004). **Atividades/Ordens de Serviço**: **0029** Activity como entidade core (análogo ao 0023 de Clientes), SLA lido de verdade desde a Fase 0 (ao contrário do placeholder do Helpdesk), presign de evidência em S3. **Grupos/Campanhas de Grupo**: **0030** divergências do ADR 0016 pra disparo em grupo (sem opt-in por destinatário, sem rotação de chip, sem caminho oficial via BSP — supera o 0016 só nesses pontos, não o edita). **Chamadas de voz**: **0031** recurso nativo com permissões `calls:*`, porte do WaCalls no engine, fila dedicada, WebSocket PCM, gravação no business, bloqueio com proxy e correção do SSE (divergências do plano registradas).
 - **Arquitetura**: [`docs/dev/architecture.md`](docs/dev/architecture.md)
 - **Frontend DS**: [`docs/frontend/design-system.md`](docs/frontend/design-system.md)
 - **Git Workflow**: [`docs/dev/git_workflow_policy.md`](docs/dev/git_workflow_policy.md)

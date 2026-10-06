@@ -44,6 +44,11 @@ func (sc *SettingController) ListSettings(c *gin.Context) {
 	if !auth.HasPermission(c, "settings", "update") {
 		settings = maskSecretSettings(settings)
 	}
+	// Quem não gerencia as chamadas não vê o modo de gravação nem quem aceitou o
+	// termo de responsabilidade e quando: vira "não configurado".
+	if !auth.HasPermission(c, "calls", "manage") {
+		settings = hideCallRecordingSettings(settings)
+	}
 
 	c.JSON(http.StatusOK, settings)
 }
@@ -85,6 +90,13 @@ func (sc *SettingController) UpdateSetting(c *gin.Context) {
 	key := c.Param("key")
 	if _, err := utils.ValidateStringField(key, "key", 100); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// A gravação de chamadas exige o aceite de responsabilidade e calls:manage, que
+	// este PUT genérico (settings:update) não cobre: tem rota própria.
+	if isCallRecordingKey(key) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "a gravação de chamadas é configurada em Configurações > Chamadas, com o aceite de responsabilidade"})
 		return
 	}
 

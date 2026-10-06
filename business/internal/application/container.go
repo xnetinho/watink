@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/alltomatos/watinkdev/business/internal/application/usecases"
+	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/infrastructure/izapia"
 	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
@@ -35,6 +36,9 @@ type Container struct {
 	DistributeTicket   *usecases.DistributeTicketUseCase
 	UpdateTicket       *usecases.UpdateTicketUseCase
 	LogTicketAction    *usecases.LogTicketActionUseCase
+	// Calls é o serviço de chamadas de voz. Construído por NewContainer (que já
+	// tem o publisher e o SSEHub); o consumidor AMQP dele é ligado em main.go.
+	Calls *calls.Service
 }
 
 func NewContainer(db *gorm.DB, redisSvc domain.RedisService, broadcast domain.Broadcaster, publisher domain.CommandPublisher, hub ...*services.SSEHub) *Container {
@@ -72,7 +76,9 @@ func NewContainer(db *gorm.DB, redisSvc domain.RedisService, broadcast domain.Br
 	} else {
 		sseHub = services.NewSSEHub()
 	}
+	callService := calls.NewService(db, contactRepo, ticketRepo, queueRepo, publisher, broadcast, sseHub)
 	return &Container{
+		Calls:              callService,
 		DB:                 db,
 		TicketRepo:         ticketRepo,
 		MessageRepo:        messageRepo,

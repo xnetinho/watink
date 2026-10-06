@@ -125,6 +125,11 @@ services:
       # groupsAPIConfig e engine-go/internal/groupsapi/server.go).
       - GROUPS_API_URL=http://watink-engine:8084
       - GROUPS_API_TOKEN=${GROUPS_API_TOKEN}
+      # Áudio das chamadas de voz (ADR 0031): WebSocket interno do engine. O token é
+      # OBRIGATÓRIO (o mesmo valor nos dois serviços): sem ele o stack nem sobe, em vez
+      # de subir com chamadas mudas.
+      - CALLS_AUDIO_URL=ws://watink-engine:8085
+      - CALLS_AUDIO_TOKEN=${CALLS_AUDIO_TOKEN:?defina CALLS_AUDIO_TOKEN no .env (openssl rand -hex 32)}
     depends_on:
       postgres:
         condition: service_healthy
@@ -173,6 +178,10 @@ services:
       # ela, nunca a internet).
       - GROUPS_API_PORT=8084
       - GROUPS_API_TOKEN=${GROUPS_API_TOKEN}
+      # Canal de áudio das chamadas (ADR 0031): só a rede interna do stack fala com ele
+      # (a porta NÃO é publicada). Precisa de saída UDP para os relays do WhatsApp.
+      - CALLS_AUDIO_PORT=8085
+      - CALLS_AUDIO_TOKEN=${CALLS_AUDIO_TOKEN:?defina CALLS_AUDIO_TOKEN no .env (openssl rand -hex 32)}
     depends_on:
       postgres:
         condition: service_healthy

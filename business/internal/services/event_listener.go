@@ -81,6 +81,8 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 		"wbot.*.*.session.jid_registered",
 		"wbot.*.*.message.poll_vote",
 	}
+	// Eventos call.* NÃO entram aqui: têm fila e consumidor próprios em
+	// internal/calls (Service.Start), para não esperarem atrás das mensagens.
 
 	err := rabbitMQ.ConsumeEvents("api.events.process.go", routingKeys, func(d amqp.Delivery) error {
 		var env EventEnvelope

@@ -14,6 +14,7 @@ import { Avatar } from "../../components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import NotificationsPopOver from "../NotificationsPopOver";
 import ThemeToggle from "../ThemeToggle";
+import PauseCallsButton from "../Calls/PauseCallsButton";
 import NotificationPermissionBanner from "../NotificationPermissionBanner";
 import { getBackendUrl } from "../../helpers/urlUtils";
 import { User as UserDomain } from "../../types/domain";
@@ -53,6 +54,7 @@ const MainTopBar: React.FC<MainTopBarProps> = ({
           </TooltipContent>
         </Tooltip>
 
+        <PauseCallsButton />
         <ThemeToggle />
         {user?.id && <NotificationsPopOver />}
         {user?.id && <NotificationPermissionBanner />}
