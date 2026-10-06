@@ -31,7 +31,6 @@ import (
 
 	_ "github.com/alltomatos/watinkdev/business/docs"
 	"github.com/alltomatos/watinkdev/business/internal/application"
-	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/database"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -152,8 +151,7 @@ func main() {
 
 	// Chamadas de voz: serviço de regras (elegibilidade, registro, atribuição) com
 	// fila de eventos PRÓPRIA. A presença vem do mesmo SSEHub do stream de eventos.
-	callService := calls.NewService(database.DB, container.ContactRepo, container.TicketRepo,
-		container.QueueRepo, rabbitMQ, broadcast, container.SSEHub)
+	callService := container.Calls
 
 	if err := rabbitMQ.Connect(); err == nil {
 		services.StartEventListener(rabbitMQ, eventListener)

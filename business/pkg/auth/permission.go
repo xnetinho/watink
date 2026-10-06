@@ -115,6 +115,28 @@ func userHasPermissionViaCargo(db *gorm.DB, userID int, tenantID uuid.UUID, reso
 	return hasViaGestor
 }
 
+// RequireAnyPermission aceita o usuário que tiver QUALQUER uma das permissões
+// recurso:ação listadas (mesmas regras de RequirePermission por permissão). Serve
+// a rotas cujo ato vale para mais de um papel, ex.: encerrar uma chamada, que tanto
+// quem atendeu (calls:receive) quanto quem ligou (calls:place) precisa poder fazer.
+// Fail-closed: lista vazia nega.
+func RequireAnyPermission(pairs ...[2]string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		for _, p := range pairs {
+			if HasPermission(c, p[0], p[1]) {
+				c.Next()
+				return
+			}
+		}
+		if len(pairs) == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "permissão negada"})
+			c.Abort()
+			return
+		}
+		denyPermission(c, pairs[0][0], pairs[0][1])
+	}
+}
+
 func denyPermission(c *gin.Context, resource, action string) {
 	c.JSON(http.StatusForbidden, gin.H{"error": "permissão negada: requer " + resource + ":" + action})
 	c.Abort()

@@ -782,6 +782,332 @@ const docTemplate = `{
                 }
             }
         },
+        "/calls": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista as chamadas da empresa (ou só as de tickets visíveis ao usuário, sem alcance de empresa).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Histórico de chamadas",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ringing|active|ended|missed|rejected|failed|interrupted",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "incoming|outgoing",
+                        "name": "direction",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filtrar por ticket",
+                        "name": "ticketId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Página",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Itens por página (máx. 100)",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Inicia uma chamada de voz 1:1 para o contato de um ticket individual, pela conexão do ticket.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Efetuar chamada de voz",
+                "parameters": [
+                    {
+                        "description": "Ticket",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.placeCallRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/pause": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Avisa o servidor que este operador pausou o toque, para ele não contar como elegível.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Pausar ou retomar o recebimento de chamadas",
+                "parameters": [
+                    {
+                        "description": "Estado",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.pauseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/calls/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Detalhe de uma chamada",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.CallLog"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/accept": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Atender chamada",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.CallLog"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/end": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Encerrar chamada",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Recusar chamada",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/cargos": {
             "get": {
                 "security": [
@@ -2162,7 +2488,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Extra rooms (csv): chat:{id}, tickets:{status}, notification, helpdesk-kanban",
+                        "description": "Extra rooms (csv), filtradas por lista permitida: chat:{id} (ticket visível ao usuário), tickets:{open|pending|closed}, notification, helpdesk-kanban",
                         "name": "rooms",
                         "in": "query"
                     }
@@ -7365,6 +7691,25 @@ const docTemplate = `{
                 }
             }
         },
+        "controllers.pauseRequest": {
+            "type": "object",
+            "properties": {
+                "paused": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "controllers.placeCallRequest": {
+            "type": "object",
+            "required": [
+                "ticketId"
+            ],
+            "properties": {
+                "ticketId": {
+                    "type": "integer"
+                }
+            }
+        },
         "controllers.updateActivityAssigneesRequest": {
             "type": "object",
             "properties": {
@@ -7607,6 +7952,94 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "models.CallLog": {
+            "type": "object",
+            "properties": {
+                "answeredAt": {
+                    "type": "string"
+                },
+                "callId": {
+                    "type": "string"
+                },
+                "callerPn": {
+                    "type": "string"
+                },
+                "contactId": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "direction": {
+                    "description": "Direction: incoming | outgoing.",
+                    "type": "string"
+                },
+                "durationSec": {
+                    "type": "integer"
+                },
+                "endReason": {
+                    "description": "EndReason: user_ended | declined | timeout | busy | cancelled | failed |\nno_operator | proxy_blocked | unsupported_type | accepted_elsewhere | interrupted.",
+                    "type": "string"
+                },
+                "endedAt": {
+                    "type": "string"
+                },
+                "handledByUserId": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "jitterAvg": {
+                    "type": "number"
+                },
+                "jitterMax": {
+                    "type": "number"
+                },
+                "lossAvg": {
+                    "type": "number"
+                },
+                "lossMax": {
+                    "type": "number"
+                },
+                "mosEstimated": {
+                    "type": "number"
+                },
+                "peerJid": {
+                    "description": "PeerJid/CallerPn identificam o chamador mesmo quando ainda não há contato.",
+                    "type": "string"
+                },
+                "recordingDurationSec": {
+                    "type": "integer"
+                },
+                "recordingStatus": {
+                    "type": "string"
+                },
+                "rttAvg": {
+                    "description": "Resumo agregado de qualidade (não guarda a série temporal). O índice é uma\nESTIMATIVA (modelo E simplificado) e a perda só cobre contato→operador.",
+                    "type": "number"
+                },
+                "rttMax": {
+                    "type": "number"
+                },
+                "startedAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Status: ringing | active | ended | missed | rejected | failed | interrupted.",
+                    "type": "string"
+                },
+                "ticketId": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "whatsappId": {
+                    "type": "integer"
                 }
             }
         },

@@ -15,6 +15,7 @@ var (
 	ErrNotFound        = errors.New("chamada não encontrada")
 	ErrNotActive       = errors.New("a chamada não está em andamento")
 	ErrUserBusy        = errors.New("o operador já está em outra chamada")
+	ErrConnectionBusy  = errors.New("a conexão já tem uma chamada em andamento")
 )
 
 func (s *Service) load(tenantID uuid.UUID, callID string) (*models.CallLog, error) {
