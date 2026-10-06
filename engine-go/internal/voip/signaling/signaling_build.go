@@ -10,10 +10,22 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
+// Blobs de capability, iguais aos da meowcaller (purpshell/meowcaller, signaling/stanza.go), que os
+// tira de capturas reais do WhatsApp. Os preaccept reais dos celulares chegam com a mesma família
+// "…e0…". Antes usávamos "…e4…" no offer e um "ff" no preaccept, que nenhuma referência tem.
 var (
-	capabilityOffer     = []byte{0x01, 0x05, 0xf7, 0x09, 0xe4, 0xbb, 0x07}
-	capabilityPreaccept = []byte{0x01, 0x05, 0xff, 0x09, 0xe4, 0xbb, 0x07}
+	capabilityOffer      = []byte{0x01, 0x05, 0xf7, 0x09, 0xe0, 0xbb, 0x13}
+	capabilityVideoOffer = []byte{0x01, 0x05, 0xf7, 0x09, 0xe0, 0xfa, 0x13}
+	capabilityPreaccept  = []byte{0x01, 0x05, 0xf7, 0x09, 0xe0, 0xbb, 0x07}
 )
+
+// offerCapability escolhe o blob do offer: o de vídeo só quando a oferta leva vídeo.
+func offerCapability(isVideo bool) []byte {
+	if isVideo {
+		return capabilityVideoOffer
+	}
+	return capabilityOffer
+}
 
 func BuildOfferStanza(ctx context.Context, sock core.VoipSocket, callID string, callKey []byte, peerJid types.JID, isVideo bool) (waBinary.Node, error) {
 	creator := sock.OwnLID()
@@ -52,7 +64,7 @@ func BuildOfferStanza(ctx context.Context, sock core.VoipSocket, callID string, 
 	}
 	offerContent = append(offerContent,
 		waBinary.Node{Tag: "net", Attrs: waBinary.Attrs{"medium": "3"}},
-		waBinary.Node{Tag: "capability", Attrs: waBinary.Attrs{"ver": "1"}, Content: capabilityOffer},
+		waBinary.Node{Tag: "capability", Attrs: waBinary.Attrs{"ver": "1"}, Content: offerCapability(isVideo)},
 		waBinary.Node{Tag: "destination", Content: destinations},
 		waBinary.Node{Tag: "encopt", Attrs: waBinary.Attrs{"keygen": "2"}},
 	)
