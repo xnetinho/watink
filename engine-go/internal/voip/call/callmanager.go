@@ -11,6 +11,7 @@ import (
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/transport"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/wanode"
 
+	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/types"
 )
 
@@ -198,6 +199,18 @@ func (m *CallManager) setupIncomingMedia(call *CallInfo, relayData *core.RelayDa
 	m.initSrtpKeysLocked()
 }
 
+const signalingSendTimeout = 10 * time.Second
+
+// sendSignaling envia reject/terminate sem depender do contexto de quem pediu: esse contexto
+// costuma ser cancelado assim que o comando retorna, e a goroutine abandonaria o envio.
+func (m *CallManager) sendSignaling(ctx context.Context, node waBinary.Node) {
+	go func() {
+		sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), signalingSendTimeout)
+		defer cancel()
+		_, _ = m.sock.Query(sctx, node)
+	}()
+}
+
 func (m *CallManager) RejectCall(ctx context.Context, callID string, reason core.EndCallReason) error {
 	m.mu.Lock()
 	call := m.currentCall
@@ -205,12 +218,15 @@ func (m *CallManager) RejectCall(ctx context.Context, callID string, reason core
 		m.mu.Unlock()
 		return &CallError{"no call with id " + callID}
 	}
-	_ = call.ApplyTransition(Transition{Type: TransitionLocalRejected, Reason: reason})
+	if err := call.ApplyTransition(Transition{Type: TransitionLocalRejected, Reason: reason}); err != nil {
+		m.mu.Unlock()
+		return err
+	}
 	node := signaling.BuildRejectStanza(wanode.MustJID(call.PeerJid), call.CallID, wanode.MustJID(call.CallCreator))
 	m.emitState()
 	m.mu.Unlock()
 
-	go func() { _, _ = m.sock.Query(ctx, node) }()
+	m.sendSignaling(ctx, node)
 	m.cleanupMedia()
 	return nil
 }
@@ -223,12 +239,16 @@ func (m *CallManager) EndCall(ctx context.Context, reason core.EndCallReason) er
 		return nil
 	}
 	_ = call.ApplyTransition(Transition{Type: TransitionTerminated, Reason: reason})
-	node := signaling.BuildTerminateStanza(wanode.MustJID(call.PeerJid), call.CallID, wanode.MustJID(call.CallCreator))
+	termDest := call.PeerJid
+	if m.acceptedByJid != "" {
+		termDest = m.acceptedByJid
+	}
+	node := signaling.BuildTerminateStanza(wanode.MustJID(termDest), call.CallID, wanode.MustJID(call.CallCreator))
 	ended := call
 	m.emitState()
 	m.mu.Unlock()
 
-	go func() { _, _ = m.sock.Query(ctx, node) }()
+	m.sendSignaling(ctx, node)
 	if m.OnEnded != nil {
 		m.OnEnded(ended)
 	}
