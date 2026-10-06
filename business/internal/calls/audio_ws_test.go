@@ -22,21 +22,16 @@ type fakeEngine struct {
 	mu       sync.Mutex
 	gotAudio [][]byte
 	conn     chan *websocket.Conn
-	token    string
 	hits     int
 }
 
-func newFakeEngine(t *testing.T, token string) *fakeEngine {
+func newFakeEngine(t *testing.T) *fakeEngine {
 	t.Helper()
-	f := &fakeEngine{conn: make(chan *websocket.Conn, 4), token: token}
+	f := &fakeEngine{conn: make(chan *websocket.Conn, 4)}
 	f.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		f.hits++
 		f.mu.Unlock()
-		if r.Header.Get("X-Internal-Token") != f.token {
-			http.Error(w, "no", http.StatusUnauthorized)
-			return
-		}
 		c, err := websocket.Accept(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true})
 		if err != nil {
 			return
@@ -100,10 +95,10 @@ func answeredCall(t *testing.T, r *rig, callID string) int {
 func TestServeAudio_BytesArriveIntactBothWays(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "AU-1")
-	eng := newFakeEngine(t, "tok")
+	eng := newFakeEngine(t)
 	a := NewAudio()
 
-	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base(), "tok"), uid, "AU-1")
+	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-1")
 	require.NoError(t, err)
 	defer browser.CloseNow()
 	engConn := <-eng.conn
@@ -129,9 +124,9 @@ func TestServeAudio_BytesArriveIntactBothWays(t *testing.T) {
 func TestServeAudio_TelemetryGoesToHandlingOperatorOnly(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "AU-2")
-	eng := newFakeEngine(t, "tok")
+	eng := newFakeEngine(t)
 	a := NewAudio()
-	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base(), "tok"), uid, "AU-2")
+	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-2")
 	require.NoError(t, err)
 	defer browser.CloseNow()
 	engConn := <-eng.conn
@@ -165,14 +160,14 @@ func TestAuthorizeAudio_RingingCallNotYetAnsweredIsDenied(t *testing.T) {
 func TestServeAudio_SecondBrowserIsRejected(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "AU-5")
-	eng := newFakeEngine(t, "tok")
+	eng := newFakeEngine(t)
 	a := NewAudio()
-	first, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base(), "tok"), uid, "AU-5")
+	first, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-5")
 	require.NoError(t, err)
 	defer first.CloseNow()
 	<-eng.conn
 
-	second, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base(), "tok"), uid, "AU-5")
+	second, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-5")
 	require.NoError(t, err)
 	defer second.CloseNow()
 	rctx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -187,7 +182,7 @@ func TestServeAudio_EngineUnavailableClosesAndEndsCall(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "AU-6")
 	a := NewAudio()
-	bad := NewEngineDialer("ws://127.0.0.1:1", "tok")
+	bad := NewEngineDialer("ws://127.0.0.1:1")
 	browser, _, err := browserEndpoint(t, r, a, bad, uid, "AU-6")
 	require.NoError(t, err)
 	defer browser.CloseNow()
@@ -196,32 +191,27 @@ func TestServeAudio_EngineUnavailableClosesAndEndsCall(t *testing.T) {
 	_, _, err = browser.Read(rctx)
 	require.Error(t, err)
 	assert.Equal(t, websocket.StatusInternalError, websocket.CloseStatus(err))
+	var ce websocket.CloseError
+	require.ErrorAs(t, err, &ce)
+	assert.Equal(t, "audio_unavailable", ce.Reason, "o motivo chega ao navegador para o painel explicar a falha")
 	assert.Eventually(t, func() bool { return len(r.pub.cmds("call.end")) == 1 }, 2*time.Second, 10*time.Millisecond,
 		"sem áudio a chamada é encerrada (o contato não fica pendurado)")
 	assert.Eventually(t, func() bool { return a.Count() == 0 }, 2*time.Second, 10*time.Millisecond, "nenhuma ponte vaza")
 }
 
-func TestEngineDialer_WithoutConfigFails(t *testing.T) {
-	_, err := NewEngineDialer("", "")(ctx, "X")
-	assert.Error(t, err)
-	_, err = NewEngineDialer("ws://x", "")(ctx, "X")
-	assert.Error(t, err, "sem token não conecta")
-}
-
-func TestEngineDialer_WrongTokenIsRejected(t *testing.T) {
-	eng := newFakeEngine(t, "certo")
-	_, err := NewEngineDialer(eng.base(), "errado")(ctx, "X")
-	assert.Error(t, err)
+func TestEngineDialer_WithoutAddressFailsWithClearError(t *testing.T) {
+	_, err := NewEngineDialer("")(ctx, "X")
+	assert.ErrorIs(t, err, ErrAudioNotConfigured)
 }
 
 // 7.5 (integração): o navegador cai e não volta → a chamada é encerrada.
 func TestServeAudio_BrowserDropEndsCallAfterGrace(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "AU-7")
-	eng := newFakeEngine(t, "tok")
+	eng := newFakeEngine(t)
 	a := NewAudio()
 	a.dropTO = 80 * time.Millisecond
-	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base(), "tok"), uid, "AU-7")
+	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-7")
 	require.NoError(t, err)
 	<-eng.conn
 	browser.CloseNow()
@@ -238,10 +228,10 @@ func TestServeAudio_BrowserDropEndsCallAfterGrace(t *testing.T) {
 func TestServeAudio_SlowBrowserNeverBlocksEngineAndQueueStaysBounded(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "AU-8")
-	eng := newFakeEngine(t, "tok")
+	eng := newFakeEngine(t)
 	a := NewAudio()
 
-	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base(), "tok"), uid, "AU-8")
+	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-8")
 	require.NoError(t, err)
 	defer browser.CloseNow()
 	engConn := <-eng.conn

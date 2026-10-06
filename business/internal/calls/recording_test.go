@@ -238,9 +238,9 @@ func TestServeAudio_AutoModeStartsRecordingOnConnect(t *testing.T) {
 	r.withRecording(t, store)
 	r.setMode(t, "auto")
 	uid := answeredCall(t, r, "AUTO-1")
-	eng := newFakeEngine(t, "tok")
+	eng := newFakeEngine(t)
 
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base(), "tok"), uid, "AUTO-1")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-1")
 	require.NoError(t, err)
 	defer browser.CloseNow()
 	<-eng.conn
@@ -255,8 +255,8 @@ func TestServeAudio_OffModeConnectingAudioDoesNotRecord(t *testing.T) {
 	r := newRig(t)
 	r.withRecording(t, newMemStore())
 	uid := answeredCall(t, r, "AUTO-2")
-	eng := newFakeEngine(t, "tok")
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base(), "tok"), uid, "AUTO-2")
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-2")
 	require.NoError(t, err)
 	defer browser.CloseNow()
 	<-eng.conn
@@ -270,8 +270,8 @@ func TestServeAudio_AutoModeWithoutS3RecordsNothingAndCallContinues(t *testing.T
 	r.withRecording(t, nil)
 	r.setMode(t, "auto")
 	uid := answeredCall(t, r, "AUTO-3")
-	eng := newFakeEngine(t, "tok")
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base(), "tok"), uid, "AUTO-3")
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-3")
 	require.NoError(t, err)
 	defer browser.CloseNow()
 	<-eng.conn

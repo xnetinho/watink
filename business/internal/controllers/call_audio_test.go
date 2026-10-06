@@ -38,7 +38,7 @@ func newAudioRig(t *testing.T) *audioRig {
 	w := newCallWorld(t)
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	ctl := NewCallAudioController(w.svc, calls.NewAudio(), calls.NewEngineDialer("", ""), w.db)
+	ctl := NewCallAudioController(w.svc, calls.NewAudio(), calls.NewEngineDialer(""), w.db)
 	r.GET("/calls/:id/audio", ctl.Stream)
 	srv := httptest.NewServer(r)
 	t.Cleanup(srv.Close)

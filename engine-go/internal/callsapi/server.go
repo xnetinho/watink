@@ -1,18 +1,17 @@
 // Package callsapi expõe o ÚNICO endpoint direto engine↔business: o WebSocket
-// interno de áudio de uma chamada. Só docker-internal (expose, nunca ports) e
-// fail-closed sem CALLS_AUDIO_TOKEN. O resto da comunicação é RabbitMQ.
+// interno de áudio de uma chamada. Só docker-internal (expose, nunca ports): sem
+// autenticação própria, quem alcança a porta alcança o áudio. O resto da comunicação
+// é RabbitMQ.
 package callsapi
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/alltomatos/watinkdev/engine-go/internal/calls"
@@ -27,21 +26,13 @@ type Backend interface {
 	CallsLoad() (active int, audioQueued int)
 }
 
-// Token devolve o token configurado; vazio significa servidor desligado.
-func Token() string { return strings.TrimSpace(os.Getenv("CALLS_AUDIO_TOKEN")) }
-
-// Start sobe o servidor. Sem CALLS_AUDIO_TOKEN NÃO sobe (fail-closed).
+// Start sobe o servidor e só retorna quando ctx é cancelado.
 func Start(ctx context.Context, b Backend) {
-	token := Token()
-	if token == "" {
-		log.Println("[callsapi] CALLS_AUDIO_TOKEN not set — internal call audio API disabled (fail-closed)")
-		return
-	}
 	port := os.Getenv("CALLS_AUDIO_PORT")
 	if port == "" {
 		port = "8085"
 	}
-	srv := &http.Server{Addr: ":" + port, Handler: NewHandler(b, token)}
+	srv := &http.Server{Addr: ":" + port, Handler: NewHandler(b)}
 	go func() {
 		log.Printf("[callsapi] listening on :%s (docker-internal only)", port)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -52,24 +43,13 @@ func Start(ctx context.Context, b Backend) {
 	_ = srv.Shutdown(context.Background())
 }
 
-// NewHandler monta o roteador autenticado por X-Internal-Token.
-func NewHandler(b Backend, token string) http.Handler {
+// NewHandler monta o roteador do canal de áudio.
+func NewHandler(b Backend) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /calls/{id}/audio", func(w http.ResponseWriter, r *http.Request) {
 		serveAudio(w, r, b)
 	})
-	return auth(token, mux)
-}
-
-func auth(token string, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		got := r.Header.Get("X-Internal-Token")
-		if got == "" || subtle.ConstantTimeCompare([]byte(got), []byte(token)) != 1 {
-			http.Error(w, `{"error":"missing or invalid X-Internal-Token"}`, http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+	return mux
 }
 
 func serveAudio(w http.ResponseWriter, r *http.Request, b Backend) {
@@ -93,8 +73,8 @@ func serveAudio(w http.ResponseWriter, r *http.Request, b Backend) {
 	defer pipe.Close()
 
 	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		// Só o business (processo servidor, sem navegador nem Origin) conecta aqui, já
-		// autenticado por X-Internal-Token; a checagem de Origin não se aplica.
+		// Só o business (processo servidor, sem navegador nem Origin) conecta aqui;
+		// a checagem de Origin não se aplica.
 		InsecureSkipVerify: true,
 	})
 	if err != nil {

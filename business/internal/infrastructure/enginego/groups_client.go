@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/pkg/engineaddr"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 )
 
@@ -38,12 +39,12 @@ var groupsHTTPClient = &http.Client{Timeout: 45 * time.Second}
 // friendly, actionable error if either is unset — fail-closed, matching
 // the engine-go side's own refusal to start without GROUPS_API_TOKEN.
 func groupsAPIConfig() (baseURL, token string, err error) {
-	baseURL = os.Getenv("GROUPS_API_URL")
+	baseURL = engineaddr.GroupsURL()
 	token = os.Getenv("GROUPS_API_TOKEN")
 	if baseURL == "" || token == "" {
 		return "", "", utils.NewFriendlyError(http.StatusServiceUnavailable,
 			"Gestão de grupos indisponível para esta conexão no momento.",
-			errors.New("enginego: GROUPS_API_URL/GROUPS_API_TOKEN não configurados"))
+			errors.New("enginego: ENGINE_HOST (ou GROUPS_API_URL) e GROUPS_API_TOKEN não configurados"))
 	}
 	return baseURL, token, nil
 }

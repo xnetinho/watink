@@ -147,7 +147,7 @@ func TestE2E_FullCallFlowOverRealRabbitMQ(t *testing.T) {
 	defer engineSrv.Close()
 
 	audio := NewAudio()
-	dial := NewEngineDialer("ws"+strings.TrimPrefix(engineSrv.URL, "http"), "tok")
+	dial := NewEngineDialer("ws" + strings.TrimPrefix(engineSrv.URL, "http"))
 	browserSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if err := svc.AuthorizeAudio(r.tenant, uid, callID); err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)

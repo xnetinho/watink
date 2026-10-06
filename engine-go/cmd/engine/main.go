@@ -57,8 +57,8 @@ func main() {
 	// se GROUPS_API_TOKEN não estiver configurado (fail-closed).
 	go groupsapi.Start(ctx, waService)
 
-	// Endpoint interno de áudio das chamadas (docker-internal only) — não sobe
-	// se CALLS_AUDIO_TOKEN não estiver configurado (fail-closed).
+	// Endpoint interno de áudio das chamadas (docker-internal only, sem autenticação:
+	// a defesa é a rede — a porta nunca pode ser publicada em `ports:`).
 	load := waService.CallsLoad
 	callsLoad.Store(&load)
 	go callsapi.Start(ctx, waService)

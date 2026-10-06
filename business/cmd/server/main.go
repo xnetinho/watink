@@ -43,6 +43,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/internal/web"
+	"github.com/alltomatos/watinkdev/business/pkg/engineaddr"
 	"github.com/alltomatos/watinkdev/business/pkg/s3store"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -190,10 +191,10 @@ func main() {
 
 	// Áudio das chamadas (WebSocket do navegador). Também FORA do grupo com
 	// IsAuth: o navegador não manda Authorization num WebSocket; o controller
-	// valida o token da query, a permissão e a posse da chamada. Sem
-	// CALLS_AUDIO_URL/CALLS_AUDIO_TOKEN o discador falha e nenhuma chamada tem áudio.
+	// valida o token da query, a permissão e a posse da chamada. O endereço do canal
+	// do engine vem de ENGINE_HOST (ou CALLS_AUDIO_URL); sem ele nenhuma chamada tem áudio.
 	callAudioController := controllers.NewCallAudioController(container.Calls, calls.NewAudio(),
-		calls.NewEngineDialer(os.Getenv("CALLS_AUDIO_URL"), os.Getenv("CALLS_AUDIO_TOKEN")), database.DB)
+		calls.NewEngineDialer(engineaddr.CallsAudioURL()), database.DB)
 	r.GET("/api/v1/calls/:id/audio", callAudioController.Stream)
 
 	// izapia webhook — public route (no JWT), authenticated per-session by

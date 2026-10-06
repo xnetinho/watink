@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
+	"log/slog"
 	"time"
 
 	"github.com/coder/websocket"
@@ -14,19 +14,21 @@ import (
 // EngineDialer abre o WebSocket interno de áudio do engine para uma chamada.
 type EngineDialer func(ctx context.Context, callID string) (*websocket.Conn, error)
 
-// NewEngineDialer devolve o discador de produção: base é "ws://engine:8085" e
-// token o CALLS_AUDIO_TOKEN compartilhado. Sem base ou token não há áudio.
-func NewEngineDialer(base, token string) EngineDialer {
+// NewEngineDialer devolve o discador de produção: base é "ws://engine:8085", montada de
+// ENGINE_HOST. O canal é interno (rede do Docker) e não tem autenticação própria: a porta
+// do engine nunca pode ser publicada fora da rede. Sem base não há áudio.
+func NewEngineDialer(base string) EngineDialer {
 	return func(ctx context.Context, callID string) (*websocket.Conn, error) {
-		if base == "" || token == "" {
-			return nil, errors.New("áudio de chamadas não configurado (CALLS_AUDIO_URL/CALLS_AUDIO_TOKEN)")
+		if base == "" {
+			return nil, ErrAudioNotConfigured
 		}
-		hdr := http.Header{}
-		hdr.Set("X-Internal-Token", token)
-		c, _, err := websocket.Dial(ctx, base+"/calls/"+callID+"/audio", &websocket.DialOptions{HTTPHeader: hdr})
+		c, _, err := websocket.Dial(ctx, base+"/calls/"+callID+"/audio", nil)
 		return c, err
 	}
 }
+
+// ErrAudioNotConfigured: o business não sabe onde está o canal de áudio do engine.
+var ErrAudioNotConfigured = errors.New("canal de áudio das chamadas não configurado (defina ENGINE_HOST no business)")
 
 // Telemetry é o que o engine manda como texto no WebSocket de áudio.
 type Telemetry struct {
@@ -83,7 +85,9 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 
 	eng, err := dial(ctx, callID)
 	if err != nil {
-		_ = browser.Close(websocket.StatusInternalError, "áudio indisponível")
+		slog.Error("canal de áudio do engine indisponível: a chamada será encerrada",
+			"callId", callID, "tenantId", tenantID, "err", err)
+		_ = browser.Close(websocket.StatusInternalError, "audio_unavailable")
 		_ = s.End(ctx, tenantID, userID, callID)
 		return
 	}

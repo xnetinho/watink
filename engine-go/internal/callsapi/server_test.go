@@ -18,10 +18,7 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 )
 
-const (
-	callID = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-	token  = "segredo-interno"
-)
+const callID = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 type fakeHandle struct {
 	media calls.MediaHooks
@@ -65,59 +62,41 @@ func setup(t *testing.T) (*httptest.Server, *fakeHandle, *calls.Session) {
 	})
 	_ = sess.Ready(context.Background(), callID)
 	_ = sess.Accept(context.Background(), callID)
-	srv := httptest.NewServer(NewHandler(backend{sess}, token))
+	srv := httptest.NewServer(NewHandler(backend{sess}))
 	t.Cleanup(srv.Close)
 	return srv, h, sess
 }
 
-func dial(t *testing.T, srv *httptest.Server, path, tok string) (*websocket.Conn, *http.Response, error) {
+func dial(t *testing.T, srv *httptest.Server, path string) (*websocket.Conn, *http.Response, error) {
 	t.Helper()
-	hdr := http.Header{}
-	if tok != "" {
-		hdr.Set("X-Internal-Token", tok)
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	return websocket.Dial(ctx, "ws"+strings.TrimPrefix(srv.URL, "http")+path, &websocket.DialOptions{HTTPHeader: hdr})
+	return websocket.Dial(ctx, "ws"+strings.TrimPrefix(srv.URL, "http")+path, nil)
 }
 
-func TestWithoutToken_ServerDoesNotStart(t *testing.T) {
-	t.Setenv("CALLS_AUDIO_TOKEN", "")
-	if Token() != "" {
-		t.Fatal("token vazio")
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() { Start(ctx, backend{}); close(done) }()
-	select {
-	case <-done:
-	case <-time.After(time.Second):
-		t.Fatal("sem CALLS_AUDIO_TOKEN o servidor deve retornar na hora, sem subir")
-	}
-	cancel()
-}
-
-func TestWrongOrMissingToken_Is401(t *testing.T) {
+// O canal é interno e não tem credencial: a defesa é a rede (porta só em expose). O teste
+// trava o contrato para ninguém reintroduzir, sem querer, um cabeçalho obrigatório que o
+// business não manda.
+func TestAudioDoesNotRequireCredentials(t *testing.T) {
 	srv, _, _ := setup(t)
-	for _, tok := range []string{"", "errado", token + "x", token[:len(token)-1]} {
-		_, resp, err := dial(t, srv, "/calls/"+callID+"/audio", tok)
-		if err == nil || resp == nil || resp.StatusCode != http.StatusUnauthorized {
-			t.Fatalf("token %q: err=%v resp=%v", tok, err, resp)
-		}
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
+	if err != nil {
+		t.Fatalf("sem credencial deveria conectar: %v", err)
 	}
+	_ = c.CloseNow()
 }
 
 func TestInvalidAndUnknownCall(t *testing.T) {
 	srv, _, _ := setup(t)
-	_, resp, err := dial(t, srv, "/calls/../etc/audio", token)
+	_, resp, err := dial(t, srv, "/calls/../etc/audio")
 	if err == nil || resp == nil || resp.StatusCode != http.StatusBadRequest && resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("id inválido: %v %v", err, resp)
 	}
-	_, resp, err = dial(t, srv, "/calls/ZZZ/audio", token)
+	_, resp, err = dial(t, srv, "/calls/ZZZ/audio")
 	if err == nil || resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("id mal formado: %v", resp)
 	}
-	_, resp, err = dial(t, srv, "/calls/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB/audio", token)
+	_, resp, err = dial(t, srv, "/calls/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB/audio")
 	if err == nil || resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("chamada inexistente: %v", resp)
 	}
@@ -125,7 +104,7 @@ func TestInvalidAndUnknownCall(t *testing.T) {
 
 func TestAudioFlowsBothWaysAndTelemetryArrives(t *testing.T) {
 	srv, h, _ := setup(t)
-	c, _, err := dial(t, srv, "/calls/"+callID+"/audio", token)
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,12 +154,12 @@ func TestAudioFlowsBothWaysAndTelemetryArrives(t *testing.T) {
 
 func TestSecondConnectionIs409(t *testing.T) {
 	srv, _, _ := setup(t)
-	c, _, err := dial(t, srv, "/calls/"+callID+"/audio", token)
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer c.CloseNow()
-	_, resp, err := dial(t, srv, "/calls/"+callID+"/audio", token)
+	_, resp, err := dial(t, srv, "/calls/"+callID+"/audio")
 	if err == nil || resp == nil || resp.StatusCode != http.StatusConflict {
 		t.Fatalf("segunda conexão: err=%v resp=%v", err, resp)
 	}
@@ -189,14 +168,14 @@ func TestSecondConnectionIs409(t *testing.T) {
 func TestClientDropReleasesPipe(t *testing.T) {
 	srv, _, sess := setup(t)
 	base := runtime.NumGoroutine()
-	c, _, err := dial(t, srv, "/calls/"+callID+"/audio", token)
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
 	if err != nil {
 		t.Fatal(err)
 	}
 	c.CloseNow()
 	deadline := time.Now().Add(2 * time.Second)
 	for {
-		c2, _, err := dial(t, srv, "/calls/"+callID+"/audio", token)
+		c2, _, err := dial(t, srv, "/calls/"+callID+"/audio")
 		if err == nil {
 			c2.CloseNow()
 			break
@@ -215,7 +194,7 @@ func TestClientDropReleasesPipe(t *testing.T) {
 
 func TestCallEndClosesWebSocket(t *testing.T) {
 	srv, _, sess := setup(t)
-	c, _, err := dial(t, srv, "/calls/"+callID+"/audio", token)
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
 	if err != nil {
 		t.Fatal(err)
 	}
