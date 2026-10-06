@@ -78,7 +78,7 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 	// operador pede. Chamadas já em gravação (ex.: o operador reconectou) seguem.
 	if s.rec != nil {
 		br.Tap = func(fromOperator bool, frame []byte) { s.rec.Feed(tenantID, callID, fromOperator, frame) }
-		if s.autoRecord(tenantID) {
+		if s.autoRecord(tenantID) && s.callAnswered(tenantID, callID) {
 			s.startRecordingBestEffort(tenantID, userID, callID)
 		}
 	}

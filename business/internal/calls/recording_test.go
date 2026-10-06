@@ -3,6 +3,7 @@ package calls
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"io"
 	"math"
 	"sync"
@@ -249,6 +250,73 @@ func TestServeAudio_AutoModeStartsRecordingOnConnect(t *testing.T) {
 		"o modo auto grava assim que o áudio conecta")
 	assert.Equal(t, recording.StatusRecording, r.log(t, "AUTO-1").RecordingStatus)
 	assert.Equal(t, 1, r.bc.to(UserRoom(r.tenant, uid), "call.recording"), "o operador vê o indicador de gravação")
+}
+
+// Bug real: na chamada de SAÍDA o navegador abre o áudio assim que disca, ainda tocando. O modo
+// automático gravava o toque e, se o contato recusasse ou não atendesse, sobrava uma "gravação"
+// de uma chamada que nunca aconteceu. A gravação só começa quando a chamada é atendida.
+func TestServeAudio_AutoMode_OutgoingStillRingingDoesNotRecord(t *testing.T) {
+	r := newRig(t)
+	r.withRecording(t, newMemStore())
+	r.setMode(t, "auto")
+	placeOutgoing(t, r, "AUTO-RING")
+	uid := r.users["da_fila_A"].ID
+	eng := newFakeEngine(t)
+
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-RING")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	<-eng.conn
+	time.Sleep(300 * time.Millisecond)
+
+	assert.False(t, r.svc.Recording().Active(r.tenant, "AUTO-RING"), "tocando, ninguém atendeu: nada a gravar")
+	assert.Empty(t, r.log(t, "AUTO-RING").RecordingStatus)
+}
+
+// ...e quando o contato atende, a gravação começa nesse instante, sem o operador pedir.
+func TestServeAudio_AutoMode_OutgoingStartsRecordingWhenAnswered(t *testing.T) {
+	r := newRig(t)
+	r.withRecording(t, newMemStore())
+	r.setMode(t, "auto")
+	placeOutgoing(t, r, "AUTO-ANS")
+	uid := r.users["da_fila_A"].ID
+	eng := newFakeEngine(t)
+
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-ANS")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	<-eng.conn
+	require.False(t, r.svc.Recording().Active(r.tenant, "AUTO-ANS"))
+
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("AUTO-ANS", "active")))
+	require.Eventually(t, func() bool { return r.svc.Recording().Active(r.tenant, "AUTO-ANS") }, 2*time.Second, 10*time.Millisecond,
+		"atendida, a gravação automática começa")
+	assert.Equal(t, recording.StatusRecording, r.log(t, "AUTO-ANS").RecordingStatus)
+}
+
+// Recusada ou sem resposta: o registro fica sem gravação nenhuma.
+func TestServeAudio_AutoMode_OutgoingNeverAnsweredLeavesNoRecording(t *testing.T) {
+	r := newRig(t)
+	store := newMemStore()
+	r.withRecording(t, store)
+	r.setMode(t, "auto")
+	placeOutgoing(t, r, "AUTO-NONE")
+	uid := r.users["da_fila_A"].ID
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-NONE")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	<-eng.conn
+
+	raw, _ := json.Marshal(map[string]interface{}{"callId": "AUTO-NONE", "endReason": "declined", "durationSecs": 0, "direction": "outgoing"})
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, raw))
+
+	l := r.log(t, "AUTO-NONE")
+	assert.Empty(t, l.RecordingStatus, "chamada recusada não gera gravação")
+	assert.Empty(t, l.RecordingKey)
+	store.mu.Lock()
+	assert.Empty(t, store.objects, "nada foi enviado ao armazenamento")
+	store.mu.Unlock()
 }
 
 func TestServeAudio_OffModeConnectingAudioDoesNotRecord(t *testing.T) {

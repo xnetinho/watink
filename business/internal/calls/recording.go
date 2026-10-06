@@ -196,6 +196,14 @@ func (s *Service) autoRecord(tenantID uuid.UUID) bool {
 	return s.rec.Available() && s.recordingMode(tenantID) == CallRecordingAuto
 }
 
+// callAnswered diz se a chamada já foi atendida. A gravação automática só vale daí em diante:
+// na saída o navegador abre o áudio ao discar, com a chamada ainda tocando, e gravar o toque
+// deixava uma "gravação" de uma chamada recusada ou sem resposta.
+func (s *Service) callAnswered(tenantID uuid.UUID, callID string) bool {
+	l, err := s.load(tenantID, callID)
+	return err == nil && l.AnsweredAt != nil && l.EndedAt == nil
+}
+
 // startRecordingBestEffort liga a gravação sem nunca atrapalhar a chamada: se falhar,
 // registra e segue sem gravar (o histórico mostra recordingStatus=failed).
 func (s *Service) startRecordingBestEffort(tenantID uuid.UUID, userID int, callID string) {

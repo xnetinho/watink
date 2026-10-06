@@ -140,6 +140,23 @@ func (s *Service) HandleState(ctx context.Context, tenantID uuid.UUID, raw json.
 	}
 	if res.RowsAffected > 0 {
 		s.bcast.EmitToTenantRoom(tenantID.String(), "call.state", map[string]interface{}{"callId": ev.CallID, "state": "active"})
+		s.startAutoRecordingOnAnswer(tenantID, ev.CallID)
 	}
 	return nil
+}
+
+// startAutoRecordingOnAnswer: no modo automático a gravação começa quando a chamada é atendida.
+// Na chamada de saída o áudio do navegador já está aberto (abriu ao discar), então o gancho de
+// "áudio conectou" (audio_ws.go) passou antes de ela ser atendida; este cobre esse caso. O Tap da
+// ponte já está ligado e Feed é um no-op sem gravação ativa, então bastar iniciar a gravação.
+// Já gravando (o operador reconectou, ou a ponte conectou depois do atendimento) é ignorado.
+func (s *Service) startAutoRecordingOnAnswer(tenantID uuid.UUID, callID string) {
+	if s.rec == nil || !s.autoRecord(tenantID) {
+		return
+	}
+	l, err := s.load(tenantID, callID)
+	if err != nil || l.HandledByUserID == nil {
+		return
+	}
+	s.startRecordingBestEffort(tenantID, *l.HandledByUserID, callID)
 }
