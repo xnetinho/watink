@@ -509,6 +509,7 @@ const messages = {
           clients: "Clientes",
           helpdesk: "Helpdesk",
           whatsappGroupsHub: "Grupos WhatsApp",
+          calls: "Llamadas",
           administration: "Administración",
           tags: "Etiquetas",
           groups: "Grupos",

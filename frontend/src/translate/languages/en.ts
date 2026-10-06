@@ -505,6 +505,7 @@ const messages = {
           clients: "Clients",
           helpdesk: "Helpdesk",
           whatsappGroupsHub: "WhatsApp Groups",
+          calls: "Calls",
           administration: "Administration",
           tags: "Tags",
           groups: "Groups",

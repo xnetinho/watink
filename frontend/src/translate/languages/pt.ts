@@ -630,6 +630,7 @@ const messages = {
           clients: "Clientes",
           helpdesk: "Helpdesk",
           whatsappGroupsHub: "Grupos WhatsApp",
+          calls: "Chamadas",
           queues: "Filas",
           tags: "Tags",
           administration: "Administração",
