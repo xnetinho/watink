@@ -14,7 +14,7 @@ import {
 } from "./pcm";
 import { CAPTURE_PROCESSOR, PLAYBACK_PROCESSOR, loadCallWorklets } from "./worklet";
 
-export type AudioFailure = "mic_denied" | "mic_unavailable" | "socket" | "unsupported";
+export type AudioFailure = "mic_denied" | "mic_unavailable" | "socket" | "unsupported" | "audio_unavailable";
 
 export interface CallTelemetry {
   type: "quality";
@@ -146,7 +146,7 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry }:
       ws.binaryType = "arraybuffer";
       ws.onopen = () => { if (!disposed) setConnected(true); };
       ws.onerror = () => { if (!disposed) failureRef.current("socket"); };
-      ws.onclose = () => { if (!disposed) { setConnected(false); failureRef.current("socket"); } };
+      ws.onclose = (ev) => { if (!disposed) { setConnected(false); failureRef.current(ev.reason === "audio_unavailable" ? "audio_unavailable" : "socket"); } };
       ws.onmessage = (ev) => {
         if (typeof ev.data === "string") {
           try {

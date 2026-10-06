@@ -58,4 +58,6 @@ export interface ActiveCall {
   endReason: string | null;
   /** Falha de áudio (ex.: microfone negado), quando houver. */
   failure: string | null;
+  /** O operador clicou em Encerrar: "user_ended" é dele, não do contato. */
+  endedByMe?: boolean;
 }

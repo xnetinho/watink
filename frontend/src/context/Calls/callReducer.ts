@@ -26,6 +26,7 @@ export type CallsAction =
   | { type: "mute"; muted: boolean }
   | { type: "recording"; callId: string; recording: boolean }
   | { type: "failure"; callId: string; reason: string }
+  | { type: "endRequested"; callId: string }
   | { type: "dismiss" }
   | { type: "pause"; paused: boolean };
 
@@ -96,7 +97,13 @@ export function callsReducer(state: CallsState, action: CallsAction): CallsState
 
     case "failure": {
       if (!state.active || state.active.callId !== action.callId) return state;
+      if (action.reason === "socket" && state.active.phase === "ended") return state;
       return { ...state, active: { ...state.active, failure: action.reason } };
+    }
+
+    case "endRequested": {
+      if (!state.active || state.active.callId !== action.callId) return state;
+      return { ...state, active: { ...state.active, endedByMe: true } };
     }
 
     case "ended": {
@@ -106,7 +113,8 @@ export function callsReducer(state: CallsState, action: CallsAction): CallsState
         next = { ...next, ringing: rest };
       }
       if (next.active?.callId === action.callId) {
-        next = { ...next, active: { ...next.active, phase: "ended", endReason: action.endReason ?? null } };
+        const failure = next.active.failure === "socket" ? null : next.active.failure;
+        next = { ...next, active: { ...next.active, phase: "ended", endReason: action.endReason ?? null, failure } };
       }
       return next;
     }

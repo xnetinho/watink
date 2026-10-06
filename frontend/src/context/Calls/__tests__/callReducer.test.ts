@@ -106,6 +106,38 @@ describe("callsReducer", () => {
     expect(s.active?.failure).toBe("mic_denied");
   });
 
+  // O WebSocket de áudio fecha ANTES de o call.ended chegar pelo SSE: o contato desligou, o engine
+  // fechou o canal e o navegador registrou "socket". Depois que a chamada acaba, a queda do áudio
+  // é consequência do fim, não uma falha a mostrar ao operador.
+  it("queda de áudio seguida do fim da chamada não deixa o aviso de falha", () => {
+    let s = callsReducer(initialCallsState(), { type: "accepted", payload: incoming() });
+    s = callsReducer(s, { type: "failure", callId: "C1", reason: "socket" });
+    s = callsReducer(s, { type: "ended", callId: "C1", endReason: "user_ended" });
+    expect(s.active?.phase).toBe("ended");
+    expect(s.active?.failure).toBeNull();
+  });
+
+  it("falha de microfone continua visível depois do fim da chamada", () => {
+    let s = callsReducer(initialCallsState(), { type: "accepted", payload: incoming() });
+    s = callsReducer(s, { type: "failure", callId: "C1", reason: "mic_denied" });
+    s = callsReducer(s, { type: "ended", callId: "C1", endReason: "user_ended" });
+    expect(s.active?.failure).toBe("mic_denied");
+  });
+
+  it("falha de áudio que chega depois do fim é ignorada", () => {
+    let s = callsReducer(initialCallsState(), { type: "accepted", payload: incoming() });
+    s = callsReducer(s, { type: "ended", callId: "C1", endReason: "declined" });
+    s = callsReducer(s, { type: "failure", callId: "C1", reason: "socket" });
+    expect(s.active?.failure).toBeNull();
+  });
+
+  it("encerrar pelo painel marca que fui eu, e o fim preserva a marca", () => {
+    let s = callsReducer(initialCallsState(), { type: "accepted", payload: incoming() });
+    s = callsReducer(s, { type: "endRequested", callId: "C1" });
+    s = callsReducer(s, { type: "ended", callId: "C1", endReason: "user_ended" });
+    expect(s.active?.endedByMe).toBe(true);
+  });
+
   it("pausado: toques que chegam não aparecem e os que estavam na tela somem", () => {
     let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming("A") });
     s = callsReducer(s, { type: "pause", paused: true });

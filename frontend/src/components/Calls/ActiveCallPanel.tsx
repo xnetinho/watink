@@ -19,10 +19,18 @@ export function phaseLabel(call: ActiveCall, now: number): string {
     case "active":
       return formatDuration(elapsedSeconds(call.connectedAt, now));
     case "ended":
-      return t("calls.active.ended");
+      return endedLabel(call);
     default:
       return "";
   }
+}
+
+/** Quem encerrou e por quê: o texto genérico só sobra quando o motivo não é conhecido. */
+function endedLabel(call: ActiveCall): string {
+  if (call.endedByMe && (!call.endReason || call.endReason === "user_ended")) return t("calls.active.endedBy.local");
+  const key = call.endReason ? `calls.active.endedBy.${call.endReason}` : "";
+  const text = key ? t(key) : "";
+  return text && text !== key ? text : t("calls.active.ended");
 }
 
 const FAILURE_KEY: Record<string, string> = {
@@ -30,6 +38,7 @@ const FAILURE_KEY: Record<string, string> = {
   mic_unavailable: "calls.active.micUnavailable",
   unsupported: "calls.active.unsupported",
   socket: "calls.active.socketLost",
+  audio_unavailable: "calls.active.audioUnavailable",
 };
 
 /**

@@ -63,11 +63,24 @@ describe("ActiveCallPanel", () => {
   it("encerrada: mostra o fim, esconde os controles e permite fechar", () => {
     const ctx = makeCtx({ active: baseCall({ phase: "ended", endReason: "user_ended" }) });
     render(withCalls(ctx, <ActiveCallPanel />));
-    expect(screen.getByTestId("call-status")).toHaveTextContent("Chamada encerrada");
+    expect(screen.getByTestId("call-status")).toHaveTextContent("O contato desligou");
     expect(screen.queryByTestId("end-call")).not.toBeInTheDocument();
     expect(screen.queryByTestId("mute-call")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Fechar" }));
     expect(ctx.dismiss).toHaveBeenCalled();
+  });
+
+  it.each([
+    ["user_ended", false, "O contato desligou"],
+    ["user_ended", true, "Você encerrou a chamada"],
+    ["declined", false, "O contato recusou a chamada"],
+    ["timeout", false, "O contato não atendeu"],
+    ["busy", false, "O contato está ocupado"],
+    ["accepted_elsewhere", false, "Atendida em outro aparelho"],
+    ["motivo_desconhecido", false, "Chamada encerrada"],
+  ])("encerrada por %s (eu encerrei: %s) diz quem encerrou", (endReason, endedByMe, texto) => {
+    render(withCalls(makeCtx({ active: baseCall({ phase: "ended", endReason, endedByMe }) }), <ActiveCallPanel />));
+    expect(screen.getByTestId("call-status")).toHaveTextContent(texto);
   });
 
   it("microfone negado mostra o motivo e orienta a liberar a permissão", () => {
@@ -79,6 +92,7 @@ describe("ActiveCallPanel", () => {
     ["mic_unavailable", /Nenhum microfone/],
     ["unsupported", /não suporta/],
     ["socket", /conexão de áudio caiu/],
+    ["audio_unavailable", /canal de áudio do servidor está indisponível/],
   ])("falha %s tem texto próprio", (failure, re) => {
     render(withCalls(makeCtx({ active: baseCall({ phase: "active", failure, connectedAt: Date.now() }) }), <ActiveCallPanel />));
     expect(screen.getByTestId("call-failure")).toHaveTextContent(re);

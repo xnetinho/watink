@@ -166,6 +166,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       dispatch({ type: "dismiss" });
       return;
     }
+    dispatch({ type: "endRequested", callId: a.callId });
     try {
       await api.post(`/calls/${encodeURIComponent(a.callId)}/end`, {});
     } catch (err) {
@@ -215,7 +216,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const a = stateRef.current.active;
     if (!a) return;
     dispatch({ type: "failure", callId: a.callId, reason });
-    if (reason !== "socket") {
+    if (reason !== "socket" && reason !== "audio_unavailable") {
       api.post(`/calls/${encodeURIComponent(a.callId)}/end`, {}).catch(() => undefined);
     }
   }, []);
