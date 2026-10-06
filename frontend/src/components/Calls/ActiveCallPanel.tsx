@@ -52,11 +52,16 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
   const { active, end, setMuted, startRecording, stopRecording, dismiss } = useCalls();
   const [now, setNow] = useState(() => Date.now());
 
+  // Depende só de a chamada estar ativa, NÃO do objeto `active`: a telemetria troca esse objeto a
+  // cada ~1 s, e recriar o intervalo a cada troca cancelava o tick antes de disparar (relógio
+  // congelado e depois pulando para o horário real).
+  const isActive = active?.phase === "active";
   useEffect(() => {
-    if (!active || active.phase !== "active") return undefined;
+    if (!isActive) return undefined;
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [active]);
+  }, [isActive]);
 
   if (!active) return null;
 
