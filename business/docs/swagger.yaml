@@ -1739,6 +1739,33 @@ paths:
       summary: Atender chamada
       tags:
       - calls
+  /calls/{id}/audio:
+    get:
+      description: Abre o canal de áudio PCM 16 kHz mono Int16 (quadros de 640 bytes)
+        do operador que assumiu a chamada. Auth por token na query, como o SSE.
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: JWT
+        in: query
+        name: token
+        required: true
+        type: string
+      responses:
+        "101":
+          description: Switching Protocols
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+      summary: Áudio da chamada (WebSocket)
+      tags:
+      - calls
   /calls/{id}/end:
     post:
       parameters:

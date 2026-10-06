@@ -31,6 +31,7 @@ import (
 
 	_ "github.com/alltomatos/watinkdev/business/docs"
 	"github.com/alltomatos/watinkdev/business/internal/application"
+	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/database"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -186,6 +187,14 @@ func main() {
 	// presente na query string (?token=...) apareça no access-log.
 	sseController := controllers.NewSSEController(container.SSEHub, redisSvc, database.DB)
 	r.GET("/api/v1/events", sseController.Stream)
+
+	// Áudio das chamadas (WebSocket do navegador). Também FORA do grupo com
+	// IsAuth: o navegador não manda Authorization num WebSocket; o controller
+	// valida o token da query, a permissão e a posse da chamada. Sem
+	// CALLS_AUDIO_URL/CALLS_AUDIO_TOKEN o discador falha e nenhuma chamada tem áudio.
+	callAudioController := controllers.NewCallAudioController(container.Calls, calls.NewAudio(),
+		calls.NewEngineDialer(os.Getenv("CALLS_AUDIO_URL"), os.Getenv("CALLS_AUDIO_TOKEN")), database.DB)
+	r.GET("/api/v1/calls/:id/audio", callAudioController.Stream)
 
 	// izapia webhook — public route (no JWT), authenticated per-session by
 	// HMAC signature (X-izapia-Signature). See izapia.Provider.ensureSession
