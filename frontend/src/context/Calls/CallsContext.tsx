@@ -7,7 +7,7 @@ import { callsReducer, initialCallsState, type CallsState } from "./callReducer"
 import type { ActiveCall, CallEventPayload, CallQuality } from "./types";
 import { useCallAudio, type AudioFailure, type CallTelemetry } from "../../lib/calls/useCallAudio";
 import { notify } from "../../lib/notify";
-import { i18n } from "../../translate/i18n";
+import { t } from "../../lib/calls/t";
 
 const PAUSE_KEY = "wt:calls:paused";
 
@@ -133,7 +133,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
       dispatch({ type: "answered", callId, byMe: false });
-      if (code === "ALREADY_ANSWERED") notify.warning(i18n.t("calls.alreadyAnswered"));
+      if (code === "ALREADY_ANSWERED") notify.warning(t("calls.alreadyAnswered"));
       else notify.error(err);
     }
   }, []);
