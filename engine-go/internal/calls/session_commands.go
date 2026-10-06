@@ -120,6 +120,14 @@ func closedChan() chan struct{} {
 	return c
 }
 
+// AnnounceReset publica call.reset: esta sessão (re)iniciou e não tem nenhuma
+// chamada. O engine guarda chamadas só em memória, então depois de um reinício
+// só o business sabe quais ficaram órfãs; ele usa este evento para marcá-las
+// como interrompidas.
+func (s *Session) AnnounceReset() {
+	s.emit("call.reset", map[string]interface{}{})
+}
+
 // AbandonAll encerra localmente toda chamada em andamento (desconexão da
 // sessão ou parada do engine), sem enviar nada ao WhatsApp.
 func (s *Session) AbandonAll(reason string) {

@@ -86,6 +86,18 @@ func main() {
 		log.Fatalf("Failed to start command consumer: %v", err)
 	}
 
+	// Comandos de chamada têm fila, canal e consumidor próprios, e cada um roda em
+	// goroutine: "Atender"/"Encerrar" nunca esperam o envio de mensagens (que usa
+	// o laço serial acima).
+	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) {
+		if err := handleCommand(d, waService); err != nil {
+			log.Printf("Call command failed %s: %v", d.RoutingKey, err)
+		}
+		d.Ack(false)
+	}); err != nil {
+		log.Fatalf("Failed to start call command consumer: %v", err)
+	}
+
 	log.Println("Watink Engine Go (whatsmeow) started — PostgreSQL store, RabbitMQ connected")
 
 	sig := make(chan os.Signal, 1)
@@ -97,6 +109,10 @@ func main() {
 	_ = rabbit.Close()
 	log.Println("Engine stopped")
 }
+
+const callsQueue = "engine.go.calls"
+
+var callRoutingKeys = []string{"wbot.*.*.call.*"}
 
 func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 	log.Printf("Received command: %s", d.RoutingKey)
@@ -119,6 +135,13 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 	}
 
 	switch cmd {
+	case "call.ready", "call.accept", "call.reject", "call.end", "call.start":
+		var p whatsapp.CallPayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.HandleCallCommand(sessionID, cmd, p)
+
 	case "session.start":
 		var p struct {
 			ProxyURL       string `json:"proxyUrl"`

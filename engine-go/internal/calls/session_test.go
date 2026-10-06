@@ -596,3 +596,12 @@ func TestOffer_IgnoresEmptyCallID(t *testing.T) {
 		t.Fatal("oferta sem id deve ser ignorada")
 	}
 }
+
+func TestAnnounceReset_PublishesCallReset(t *testing.T) {
+	r := newRig(t, false, nil)
+	r.s.AnnounceReset()
+	e := r.evs("call.reset")
+	if len(e) != 1 || e[0]["sessionId"] != "7" {
+		t.Fatalf("call.reset: %v", e)
+	}
+}
