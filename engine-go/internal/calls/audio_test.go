@@ -335,3 +335,17 @@ func TestCleanup_ReopeningCancelsGrace(t *testing.T) {
 		t.Fatalf("reabrir o canal cancela a rede de segurança (disparou %d)", n)
 	}
 }
+
+func TestLoad_ReportsActiveCallAndQueuedAudio(t *testing.T) {
+	r := newRig(t, false, nil)
+	if a, q := r.s.Load(); a != 0 || q != 0 {
+		t.Fatalf("sem chamada: %d %d", a, q)
+	}
+	r, h := answered(t)
+	p, _ := r.s.OpenAudio(callA)
+	defer p.Close()
+	h.media.OnPeerPCM(pcm(320*7, 0.2))
+	if a, q := r.s.Load(); a != 1 || q != 7 {
+		t.Fatalf("ativa=%d fila=%d, esperava 1 e 7", a, q)
+	}
+}

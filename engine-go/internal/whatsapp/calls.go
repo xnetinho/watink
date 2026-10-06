@@ -114,3 +114,38 @@ func (s *WhatsAppService) HandleCallCommand(sessionID int, cmd string, p CallPay
 	log.Printf("Unknown call command: %s", cmd)
 	return nil
 }
+
+// OpenCallAudio abre o canal de áudio da chamada, procurando-a em todas as
+// sessões (o callId é único). Usado pelo endpoint interno de áudio.
+func (s *WhatsAppService) OpenCallAudio(callID string) (*calls.AudioPipe, error) {
+	s.callMu.Lock()
+	sessions := make([]*calls.Session, 0, len(s.callSessions))
+	for _, sess := range s.callSessions {
+		sessions = append(sessions, sess)
+	}
+	s.callMu.Unlock()
+	for _, sess := range sessions {
+		p, err := sess.OpenAudio(callID)
+		if errors.Is(err, calls.ErrNoCall) {
+			continue
+		}
+		return p, err
+	}
+	return nil, calls.ErrNoCall
+}
+
+// CallsLoad resume a carga de chamadas para o /health.
+func (s *WhatsAppService) CallsLoad() (active int, audioQueued int) {
+	s.callMu.Lock()
+	sessions := make([]*calls.Session, 0, len(s.callSessions))
+	for _, sess := range s.callSessions {
+		sessions = append(sessions, sess)
+	}
+	s.callMu.Unlock()
+	for _, sess := range sessions {
+		a, q := sess.Load()
+		active += a
+		audioQueued += q
+	}
+	return
+}

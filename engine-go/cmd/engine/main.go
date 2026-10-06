@@ -8,9 +8,11 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync/atomic"
 	"syscall"
 	"time"
 
+	"github.com/alltomatos/watinkdev/engine-go/internal/callsapi"
 	"github.com/alltomatos/watinkdev/engine-go/internal/command"
 	"github.com/alltomatos/watinkdev/engine-go/internal/groupsapi"
 	"github.com/alltomatos/watinkdev/engine-go/internal/health"
@@ -33,7 +35,14 @@ func main() {
 	defer cancel()
 
 	// Health server — responde /health antes mesmo do RabbitMQ conectar
-	go health.Start(ctx)
+	// O serviço só existe depois do RabbitMQ; até lá a carga é zero.
+	var callsLoad atomic.Pointer[func() (int, int)]
+	go health.Start(ctx, func() (int, int) {
+		if f := callsLoad.Load(); f != nil {
+			return (*f)()
+		}
+		return 0, 0
+	})
 
 	rabbit := rabbitmq.NewRabbitMQService()
 	if err := rabbit.Connect(); err != nil {
@@ -47,6 +56,12 @@ func main() {
 	// API interna de grupos/comunidades (T1.1, docker-internal only) — no-op
 	// se GROUPS_API_TOKEN não estiver configurado (fail-closed).
 	go groupsapi.Start(ctx, waService)
+
+	// Endpoint interno de áudio das chamadas (docker-internal only) — não sobe
+	// se CALLS_AUDIO_TOKEN não estiver configurado (fail-closed).
+	load := waService.CallsLoad
+	callsLoad.Store(&load)
+	go callsapi.Start(ctx, waService)
 
 	go func() {
 		time.Sleep(5 * time.Second)

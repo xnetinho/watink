@@ -140,3 +140,17 @@ func (s *Session) AbandonAll(reason string) {
 		s.finish(ac, State{CallID: ac.id, EndReason: reason})
 	}
 }
+
+// Load devolve quantas chamadas a sessão tem (0 ou 1) e quantos quadros de áudio
+// aguardam na fila rumo ao business, para o /health.
+func (s *Session) Load() (active int, audioQueued int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.active == nil {
+		return 0, 0
+	}
+	if s.active.pipe != nil {
+		audioQueued = s.active.pipe.QueueLen()
+	}
+	return 1, audioQueued
+}
