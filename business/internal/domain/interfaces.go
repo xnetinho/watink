@@ -235,6 +235,9 @@ type ObjectStore interface {
 	// header Authorization — usada pelo módulo Activities para servir fotos
 	// de checklist (ADR 0029). TTL curto; nunca cachear a URL além dele.
 	PresignedGetURL(ctx context.Context, key string, ttl time.Duration) (string, error)
+	// Delete remove o objeto (usado pela exclusão de gravações de chamadas).
+	// Apagar uma chave inexistente não é erro.
+	Delete(ctx context.Context, key string) error
 	// Describe returns the non-sensitive store configuration (no credentials).
 	Describe() map[string]any
 }

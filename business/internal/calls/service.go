@@ -40,7 +40,19 @@ type Service struct {
 
 	qualityMu sync.Mutex
 	quality   map[string]*Summary
+
+	// rec guarda as gravações em andamento; nil = sem armazenamento (não grava).
+	rec *Recording
 }
+
+// WithRecording liga o gravador de chamadas (precisa de armazenamento de objetos).
+func (s *Service) WithRecording(r *Recording) *Service {
+	s.rec = r
+	return s
+}
+
+// Recording devolve o gerenciador de gravações (pode ser nil).
+func (s *Service) Recording() *Recording { return s.rec }
 
 func NewService(db *gorm.DB, contacts ContactResolver, tickets domain.TicketRepository, queues domain.QueueRepository, publisher domain.CommandPublisher, bcast domain.Broadcaster, presence Presence) *Service {
 	return &Service{

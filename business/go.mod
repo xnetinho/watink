@@ -62,6 +62,7 @@ require (
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
+	github.com/hajimehoshi/go-mp3 v0.3.4 // indirect
 	github.com/itlightning/dateparse v0.2.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

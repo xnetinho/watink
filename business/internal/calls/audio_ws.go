@@ -71,6 +71,16 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 	}
 	defer a.Release(br)
 
+	// A gravação lê o MESMO áudio que atravessa o proxy, nos dois sentidos. No modo
+	// automático ela começa aqui, ao conectar o áudio; no opcional, só quando o
+	// operador pede. Chamadas já em gravação (ex.: o operador reconectou) seguem.
+	if s.rec != nil {
+		br.Tap = func(fromOperator bool, frame []byte) { s.rec.Feed(tenantID, callID, fromOperator, frame) }
+		if s.autoRecord(tenantID) {
+			s.startRecordingBestEffort(tenantID, userID, callID)
+		}
+	}
+
 	eng, err := dial(ctx, callID)
 	if err != nil {
 		_ = browser.Close(websocket.StatusInternalError, "áudio indisponível")

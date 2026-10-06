@@ -25,19 +25,6 @@ func TestNormalizeCallRecordingMode(t *testing.T) {
 	}
 }
 
-func TestCallRecordingModeOf_AbsentIsOff(t *testing.T) {
-	db := testutil.NewTestDB(t)
-	tenant := uuid.New()
-	assert.Equal(t, "off", callRecordingModeOf(db, tenant), "empresa que nunca configurou não grava")
-
-	require.NoError(t, db.Create(&models.Setting{Key: CallRecordingModeKey, TenantID: tenant, Value: "auto"}).Error)
-	assert.Equal(t, "auto", callRecordingModeOf(db, tenant))
-	assert.Equal(t, "off", callRecordingModeOf(db, uuid.New()), "o modo de outra empresa não vaza")
-
-	require.NoError(t, db.Model(&models.Setting{}).Where(`key = ? AND "tenantId" = ?`, CallRecordingModeKey, tenant).Update("value", "valor-corrompido").Error)
-	assert.Equal(t, "off", callRecordingModeOf(db, tenant), "valor inválido nunca liga a gravação")
-}
-
 // 5.4: o PUT genérico de settings (só settings:update) NÃO muda a gravação de
 // chamadas: sem a rota de aceite nada muda.
 func TestUpdateSetting_CallRecordingKeysAreRejected(t *testing.T) {

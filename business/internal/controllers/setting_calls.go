@@ -1,38 +1,25 @@
 package controllers
 
 import (
-	"strings"
-
+	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/models"
-	"gorm.io/gorm"
 )
 
-// Chaves por empresa da gravação de chamadas (módulo Chamadas).
+// As chaves e os modos de gravação de chamadas vivem em internal/calls (fonte
+// única); aqui só se reaproveitam para o controller de settings.
 const (
-	CallRecordingModeKey  = "callRecordingMode"
-	callRecordingAckByKey = "callRecordingAckBy"
-	callRecordingAckAtKey = "callRecordingAckAt"
-)
+	CallRecordingModeKey  = calls.SettingRecordingMode
+	callRecordingAckByKey = calls.SettingRecordingAckBy
+	callRecordingAckAtKey = calls.SettingRecordingAckAt
 
-// Modos de gravação. Ausente ou desconhecido equivale a "off": ninguém grava por
-// acidente.
-const (
-	CallRecordingOff      = "off"
-	CallRecordingOptional = "optional"
-	CallRecordingAuto     = "auto"
+	CallRecordingOff      = calls.CallRecordingOff
+	CallRecordingOptional = calls.CallRecordingOptional
+	CallRecordingAuto     = calls.CallRecordingAuto
 )
 
 // NormalizeCallRecordingMode devolve um dos três modos; qualquer outro valor
 // (inclusive vazio) vira "off".
-func NormalizeCallRecordingMode(v string) string {
-	switch strings.ToLower(strings.TrimSpace(v)) {
-	case CallRecordingOptional:
-		return CallRecordingOptional
-	case CallRecordingAuto:
-		return CallRecordingAuto
-	}
-	return CallRecordingOff
-}
+func NormalizeCallRecordingMode(v string) string { return calls.NormalizeRecordingMode(v) }
 
 // isCallRecordingKey diz se a chave pertence à gravação de chamadas. Essas
 // chaves só mudam pela rota própria (aceite de responsabilidade + calls:manage),
@@ -43,17 +30,6 @@ func isCallRecordingKey(key string) bool {
 		return true
 	}
 	return false
-}
-
-// callRecordingModeOf lê o modo de gravação da empresa; ausente = "off".
-func callRecordingModeOf(db *gorm.DB, tenantID interface{}) string {
-	var s models.Setting
-	err := db.Session(&gorm.Session{NewDB: true}).
-		Where(`key = ? AND "tenantId" = ?`, CallRecordingModeKey, tenantID).First(&s).Error
-	if err != nil {
-		return CallRecordingOff
-	}
-	return NormalizeCallRecordingMode(s.Value)
 }
 
 // hideCallRecordingSettings devolve a lista sem as chaves de gravação de chamadas

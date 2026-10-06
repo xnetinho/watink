@@ -65,6 +65,10 @@ func (s *Service) HandleEnded(ctx context.Context, tenantID uuid.UUID, raw json.
 	if err != nil {
 		return err
 	}
+	s.finalizeRecording(ctx, tenantID, ev.CallID)
+	if again, err := s.load(tenantID, ev.CallID); err == nil {
+		done = again
+	}
 	s.writeSystemMessage(ctx, tenantID, done)
 	s.notifyEnded(tenantID, done)
 	return nil
@@ -101,6 +105,9 @@ func (s *Service) HandleReset(ctx context.Context, tenantID uuid.UUID, raw json.
 		}
 		l.Status, l.EndReason, l.EndedAt = StatusInterrupted, "interrupted", &now
 		s.takeQuality(tenantID, l.CallID)
+		if s.rec != nil {
+			s.rec.Discard(tenantID, l.CallID)
+		}
 		s.writeSystemMessage(ctx, tenantID, &l)
 		s.notifyEnded(tenantID, &l)
 	}
