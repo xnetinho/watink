@@ -59,17 +59,39 @@ func HasPermission(c *gin.Context, resource, action string) bool {
 		return true
 	}
 
-	// Sessão nova por consulta: o db do contexto pode já vir escopado por quem
-	// chama (ex.: auth.GetScoped acrescenta WHERE tenantId), e reusá-lo acumularia
-	// condições e faria cada consulta abaixo casar 0 linhas — negando a permissão
-	// a quem a tem.
-	fresh := func() *gorm.DB { return GetDB(c).Session(&gorm.Session{NewDB: true}) }
-
 	userID, okUser := userIDFromContext(c)
 	tenantID, errTenant := TenantUUIDFromContext(c)
 	if !okUser || errTenant != nil {
 		return false
 	}
+	return userHasPermissionViaCargo(GetDB(c), userID, tenantID, resource, action)
+}
+
+// UserHasPermission decide por permissão fora de uma requisição HTTP (ex.: um
+// evento do AMQP que precisa saber quais usuários podem atender uma chamada).
+// Sem JWT, a fonte do alcance é o cadastro do usuário: alcance tenant/plataforma
+// passa; senão vale Cargo base + pacote Gestor, as mesmas regras de HasPermission.
+// Fail-closed: usuário de outra empresa, inexistente ou erro de consulta = false.
+func UserHasPermission(db *gorm.DB, userID int, tenantID uuid.UUID, resource, action string) bool {
+	var user models.User
+	if err := db.Session(&gorm.Session{NewDB: true}).
+		Where(`id = ? AND "tenantId" = ?`, userID, tenantID).
+		First(&user).Error; err != nil {
+		return false
+	}
+	if user.Alcance == "tenant" || user.Alcance == "plataforma" {
+		return true
+	}
+	return userHasPermissionViaCargo(db, userID, tenantID, resource, action)
+}
+
+// userHasPermissionViaCargo: Cargo base + pacote Gestor, sem olhar o alcance.
+func userHasPermissionViaCargo(db *gorm.DB, userID int, tenantID uuid.UUID, resource, action string) bool {
+	// Sessão nova por consulta: o db recebido pode já vir escopado por quem chama
+	// (ex.: auth.GetScoped acrescenta WHERE tenantId), e reusá-lo acumularia
+	// condições e faria cada consulta abaixo casar 0 linhas — negando a permissão
+	// a quem a tem.
+	fresh := func() *gorm.DB { return db.Session(&gorm.Session{NewDB: true}) }
 
 	var user models.User
 	if err := fresh().
