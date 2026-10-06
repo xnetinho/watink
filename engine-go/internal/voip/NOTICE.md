@@ -25,11 +25,16 @@ Este diretório é um porte da pilha de voz do WhatsApp do projeto **WaCalls**.
 |---|---|---|
 | `media/srtp.go`: verificação da tag de autenticação (HMAC, tempo constante), janela anti-replay de 64 pacotes (RFC 3711), ROC só avança após autenticar, mutex | `arthost/WaCalls` (`media/srtp.go` e `srtp_{auth,replay,race}_test.go`) | Reescrito sobre o nosso `srtp.go`. Antes pacote forjado, adulterado ou repetido era aceito. Resolve também a duplicação de áudio quando o mesmo pacote chega por vários relays. |
 | `media/mlow/{fft,lpc,perc,analysis}.go`: tabela de twiddle da FFT pré-calculada e buffers reutilizados | `arthost/WaCalls` commit `7e06e90` (2026-07-16) | Cópia dos arquivos do commit. Mantém a aritmética float32 original: 160 de 160 pacotes codificados idênticos aos do porte original. Codificar 60 ms caiu de ~10,0 para ~3,9 ms. |
+| `call/callmanager.go`: `reject`/`terminate` enviados fora do contexto do chamador; `terminate` vai ao aparelho que atendeu; `RejectCall` devolve o erro de transição inválida | `arthost/WaCalls` commits `3123307` e `8ef1695` e `call/callmanager_endsend_test.go` | Reescrito sobre o nosso `callmanager.go`. Antes o envio era abandonado se o contexto do comando já tivesse sido cancelado. |
 
 Os testes de bit-exactness (`fft_bitexact_test.go`) falham se o cálculo do ângulo mudar.
 Em `mlow/*.go` o commit também troca `for i := 0; i < n; i++` por `for i := range n`
 (equivalente). `fft_bench_test.go` ganhou as duas constantes que vinham do adaptador de codec
 que não portamos.
+
+Não trazido de propósito: o estado "reconectando" com redial de relay do `arthost` (~960 linhas
+em `transport` e na máquina de estados), por não haver como validá-lo sem uma chamada real.
+O tratamento de `accept` vindo de outro aparelho já existe em `internal/calls`.
 
 ## Atualizar
 
