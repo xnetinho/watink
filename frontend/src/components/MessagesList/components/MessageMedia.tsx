@@ -9,6 +9,7 @@ import { parseData } from "../utils/messageHelpers";
 import OnDemandMediaPreview from "./OnDemandMediaPreview";
 import AudioTranscribeButton from "./AudioTranscribeButton";
 import { Message } from "../types";
+import CallMessage from "../../Calls/CallMessage";
 
 interface Props {
   message: Message;
@@ -23,6 +24,11 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
   const [localTranscription, setLocalTranscription] = useState<string | null>(
     null
   );
+
+  // Mensagem de sistema de uma chamada de voz (direção, resultado, duração, gravação).
+  if (message.mediaType === "call") {
+    return <CallMessage dataJson={message.dataJson} body={message.body} />;
+  }
 
   // Pending media: a downloadable type with no stored URL yet → show the blurred
   // thumbnail + download button instead of blocking on a full download.

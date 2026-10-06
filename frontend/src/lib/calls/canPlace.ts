@@ -29,7 +29,7 @@ export function placeBlock(ticket: PlaceInput, connection: ConnectionLike | unde
   if (ticket.isGroup || ticket.isCommunity || ticket.isSubGroup) return "not_individual";
   if (inCall) return "busy";
   if (!connection || connection.status !== "CONNECTED") return "disconnected";
-  
+  if (connectionHasProxy(connection)) return "proxy";
   return null;
 }
 

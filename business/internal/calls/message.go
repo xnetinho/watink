@@ -37,10 +37,18 @@ func (s *Service) writeSystemMessage(ctx context.Context, tenantID uuid.UUID, l 
 	if l.TicketID == nil {
 		return
 	}
-	data, _ := json.Marshal(map[string]interface{}{
+	payload := map[string]interface{}{
 		"callId": l.CallID, "direction": l.Direction, "status": l.Status, "endReason": l.EndReason,
 		"durationSec": l.DurationSec, "recordingStatus": l.RecordingStatus, "mosEstimated": l.MosEstimated,
-	})
+	}
+	if l.HandledByUserID != nil {
+		payload["handledByUserId"] = *l.HandledByUserID
+		var u models.User
+		if s.fresh().Select("name").Where(`id = ? AND "tenantId" = ?`, *l.HandledByUserID, tenantID).First(&u).Error == nil {
+			payload["handledByName"] = u.Name
+		}
+	}
+	data, _ := json.Marshal(payload)
 	msg := models.Message{
 		ID: callMessageID(l.CallID), Body: callBody(l), TicketID: *l.TicketID, ContactID: l.ContactID,
 		FromMe: l.Direction == "outgoing", TenantID: tenantID, MediaType: "call", DataJson: string(data),
@@ -54,7 +62,7 @@ func (s *Service) writeSystemMessage(ctx context.Context, tenantID uuid.UUID, l 
 		return
 	}
 	_ = s.tickets
-	payload := map[string]interface{}{"action": "create", "message": msg}
-	s.bcast.EmitToRoom("/", fmt.Sprintf("chat:%d", *l.TicketID), "appMessage", payload)
-	s.bcast.EmitToTenantRoom(tenantID.String(), "appMessage", payload)
+	ev := map[string]interface{}{"action": "create", "message": msg}
+	s.bcast.EmitToRoom("/", fmt.Sprintf("chat:%d", *l.TicketID), "appMessage", ev)
+	s.bcast.EmitToTenantRoom(tenantID.String(), "appMessage", ev)
 }

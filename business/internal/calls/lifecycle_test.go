@@ -262,3 +262,33 @@ func TestHandleQuality_DeliveredOnlyToTheHandlingOperator(t *testing.T) {
 	assert.Contains(t, got["alerts"], AlertLoss)
 	assert.NotNil(t, got["mosEstimated"])
 }
+
+func TestSystemMessage_CarriesOperatorNameAndCallFields(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "MSG-1")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "MSG-1")
+	require.NoError(t, err)
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("MSG-1", "user_ended", 42)))
+
+	var m models.Message
+	require.NoError(t, r.db.Where(`id = ?`, callMessageID("MSG-1")).First(&m).Error)
+	var d map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(m.DataJson), &d))
+	assert.Equal(t, "filaA", d["handledByName"], "o histórico mostra quem atendeu")
+	assert.EqualValues(t, r.users["da_fila_A"].ID, d["handledByUserId"])
+	assert.EqualValues(t, 42, d["durationSec"])
+	assert.Equal(t, "ended", d["status"])
+	assert.Equal(t, "incoming", d["direction"])
+}
+
+func TestSystemMessage_MissedCallHasNoOperator(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "MSG-2")
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("MSG-2", "timeout", 0)))
+	var m models.Message
+	require.NoError(t, r.db.Where(`id = ?`, callMessageID("MSG-2")).First(&m).Error)
+	var d map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(m.DataJson), &d))
+	assert.NotContains(t, d, "handledByName", "ninguém atendeu")
+	assert.Equal(t, "missed", d["status"])
+}

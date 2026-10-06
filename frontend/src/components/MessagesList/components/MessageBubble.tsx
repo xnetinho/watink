@@ -32,8 +32,9 @@ const MEDIA_BUBBLE_TYPES = [
   "location",
   "vcard",
   "carousel",
+  "call",
 ];
-const hasMediaBubble = (m: Message): boolean =>
+export const hasMediaBubble = (m: Message): boolean =>
   !!m.mediaUrl || MEDIA_BUBBLE_TYPES.includes(m.mediaType ?? "");
 import MessageReactions from "./MessageReactions";
 import MessageInteractive from "./MessageInteractive";
