@@ -1,9 +1,8 @@
 // Package engineaddr monta os endereços do engine a partir de uma única variável.
 //
 // ENGINE_HOST é só o nome (ou IP) do engine na rede interna, por exemplo "watink-engine".
-// Daí saem as três portas internas, cada uma com o seu esquema. Cada endereço ainda pode
-// ser sobreposto pela variável antiga (ENGINE_HEALTH_URL, GROUPS_API_URL, CALLS_AUDIO_URL),
-// para instalações que já as definiram continuarem iguais.
+// Daí saem as três portas internas, cada uma com o seu esquema: /health (http, 8083), API de
+// grupos (http, 8084) e áudio das chamadas (ws, 8085).
 package engineaddr
 
 import (
@@ -26,10 +25,7 @@ func Host() string {
 	return strings.TrimRight(h, "/")
 }
 
-func derive(override, scheme, port, path string) string {
-	if v := strings.TrimSpace(os.Getenv(override)); v != "" {
-		return v
-	}
+func build(scheme, port, path string) string {
 	h := Host()
 	if h == "" {
 		return ""
@@ -37,11 +33,11 @@ func derive(override, scheme, port, path string) string {
 	return scheme + "://" + h + ":" + port + path
 }
 
-// HealthURL é o /health do engine (ENGINE_HEALTH_URL sobrepõe).
-func HealthURL() string { return derive("ENGINE_HEALTH_URL", "http", healthPort, "/health") }
+// HealthURL é o /health do engine. Vazio sem ENGINE_HOST.
+func HealthURL() string { return build("http", healthPort, "/health") }
 
-// GroupsURL é a base da API interna de grupos (GROUPS_API_URL sobrepõe).
-func GroupsURL() string { return derive("GROUPS_API_URL", "http", groupsPort, "") }
+// GroupsURL é a base da API interna de grupos. Vazio sem ENGINE_HOST.
+func GroupsURL() string { return build("http", groupsPort, "") }
 
-// CallsAudioURL é a base do WebSocket de áudio das chamadas (CALLS_AUDIO_URL sobrepõe).
-func CallsAudioURL() string { return derive("CALLS_AUDIO_URL", "ws", callsPort, "") }
+// CallsAudioURL é a base do WebSocket de áudio das chamadas. Vazio sem ENGINE_HOST.
+func CallsAudioURL() string { return build("ws", callsPort, "") }

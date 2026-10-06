@@ -98,9 +98,10 @@ Registradas porque o teste mostrou que o plano estava errado ou incompleto:
   andamento (precisa conhecer o `callId`). A defesa é só de rede: `expose`, nunca `ports:`, e nenhum
   outro serviço na rede do engine. O `GROUPS_API_TOKEN` (porta 8084) continua exigido.
 - **Um único endereço do engine no business:** `ENGINE_HOST` (só o nome, sem esquema nem porta). Daí
-  saem `/health` (8083), grupos (8084) e o áudio (`ws://…:8085`); as variáveis antigas
-  (`ENGINE_HEALTH_URL`, `GROUPS_API_URL`, `CALLS_AUDIO_URL`) sobrepõem cada uma, para não quebrar
-  instalações existentes. Implementado em `business/pkg/engineaddr`.
+  saem `/health` (8083), grupos (8084) e o áudio (`ws://…:8085`). `ENGINE_HEALTH_URL`,
+  `GROUPS_API_URL` e `CALLS_AUDIO_URL` foram **removidas**, não mantidas como sobreposição: duas
+  formas de configurar o mesmo endereço foi justamente o que deixou o áudio mudo no primeiro deploy.
+  Implementado em `business/pkg/engineaddr`.
 - **Sem `ENGINE_HOST` a falha deixou de ser silenciosa:** o business registra o erro da discagem ao
   engine e o painel mostra "canal de áudio indisponível" (antes a chamada era encerrada sem aviso e
   parecia "perdida").

@@ -25,7 +25,7 @@ Leia antes de atualizar uma instalação que já tem empresas em uso.
 
 | Variável | Onde | Observação |
 |---|---|---|
-| `ENGINE_HOST` | business | Ex.: `watink-engine`. O business monta as URLs de `/health`, grupos e áudio a partir dele. `CALLS_AUDIO_URL`, `GROUPS_API_URL` e `ENGINE_HEALTH_URL` ainda sobrepõem. |
+| `ENGINE_HOST` | business | Ex.: `watink-engine`. O business monta sozinho as URLs de `/health`, grupos e áudio a partir dele. `ENGINE_HEALTH_URL`, `GROUPS_API_URL` e `CALLS_AUDIO_URL` **deixaram de existir**: remova-as do compose. |
 | `CALLS_AUDIO_PORT` | engine | Padrão `8085`. Só `expose`, nunca `ports`. |
 | `CALLS_AUDIO_ORIGINS` | business | Opcional. Origens extras do WebSocket do navegador. |
 

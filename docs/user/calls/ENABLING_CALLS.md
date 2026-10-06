@@ -117,9 +117,9 @@ as chamadas tocam mas não têm áudio** (e o painel avisa que o canal está ind
 | `CALLS_AUDIO_PORT` | **engine** (opcional) | Porta do canal de áudio (padrão `8085`). |
 | `CALLS_AUDIO_ORIGINS` | **business** (opcional) | Origens extras aceitas no WebSocket do navegador (lista separada por vírgula). |
 
-Instalações antigas continuam funcionando: `ENGINE_HEALTH_URL`, `GROUPS_API_URL` e `CALLS_AUDIO_URL`
-ainda valem e **sobrepõem** o endereço montado a partir do `ENGINE_HOST`. O `CALLS_AUDIO_TOKEN`
-deixou de existir e pode ser removido do compose.
+As variáveis `ENGINE_HEALTH_URL`, `GROUPS_API_URL` e `CALLS_AUDIO_URL` **deixaram de existir**: o
+business só lê o `ENGINE_HOST`, e uma delas definida sozinha não liga mais o recurso. Remova-as do
+compose. O `CALLS_AUDIO_TOKEN` também deixou de existir.
 
 O canal do engine é **só interno** e **não tem senha**: quem alcança a porta alcança o áudio das chamadas em andamento. **Nunca o publique em `ports:`**, use apenas `expose:`, e não coloque outros serviços na mesma rede do engine.
 

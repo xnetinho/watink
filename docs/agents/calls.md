@@ -71,7 +71,7 @@ Navegador ──WSS PCM──► business ──WS interno──► engine ─�
 `GET|DELETE /calls/:id/recording` (`read` / `delete`) · `GET|PUT /calls/recording-config` (`manage`).
 
 ## Variáveis de ambiente
-`ENGINE_HOST` (business: de onde saem `/health`, grupos e o áudio; `ENGINE_HEALTH_URL`/`GROUPS_API_URL`/`CALLS_AUDIO_URL` ainda sobrepõem) ·
+`ENGINE_HOST` (business: o único endereço do engine; dele saem `/health`, grupos e o áudio) ·
 `CALLS_AUDIO_PORT` (engine, padrão 8085) · `CALLS_AUDIO_ORIGINS` (business, opcional) ·
 `S3_*` (para gravar).
 

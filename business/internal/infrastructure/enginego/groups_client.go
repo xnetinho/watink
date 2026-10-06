@@ -19,7 +19,7 @@ import (
 
 // groupsHTTPClient is a small, timeout-bounded HTTP client for the
 // engine-go internal groups API (engine-go/docs/groups-api.md). Resolved
-// lazily from env (GROUPS_API_URL, GROUPS_API_TOKEN) on each call — same
+// lazily from env (ENGINE_HOST, GROUPS_API_TOKEN) on each call — same
 // pattern as izapia.Provider.clientFor resolving per-tenant credentials —
 // rather than threaded through enginego.New's constructor, to avoid
 // widening that signature for every existing call site
@@ -35,16 +35,20 @@ import (
 // nothing wrong on the business/engine-go side -- just too tight a budget.
 var groupsHTTPClient = &http.Client{Timeout: 45 * time.Second}
 
+// groupsBaseURL é a base da API de grupos, montada de ENGINE_HOST. É uma variável só para o
+// teste apontar para um servidor local de porta aleatória.
+var groupsBaseURL = engineaddr.GroupsURL
+
 // groupsAPIConfig returns the internal API's base URL and token, or a
 // friendly, actionable error if either is unset — fail-closed, matching
 // the engine-go side's own refusal to start without GROUPS_API_TOKEN.
 func groupsAPIConfig() (baseURL, token string, err error) {
-	baseURL = engineaddr.GroupsURL()
+	baseURL = groupsBaseURL()
 	token = os.Getenv("GROUPS_API_TOKEN")
 	if baseURL == "" || token == "" {
 		return "", "", utils.NewFriendlyError(http.StatusServiceUnavailable,
 			"Gestão de grupos indisponível para esta conexão no momento.",
-			errors.New("enginego: ENGINE_HOST (ou GROUPS_API_URL) e GROUPS_API_TOKEN não configurados"))
+			errors.New("enginego: ENGINE_HOST e GROUPS_API_TOKEN não configurados"))
 	}
 	return baseURL, token, nil
 }

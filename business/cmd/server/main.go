@@ -192,7 +192,7 @@ func main() {
 	// Áudio das chamadas (WebSocket do navegador). Também FORA do grupo com
 	// IsAuth: o navegador não manda Authorization num WebSocket; o controller
 	// valida o token da query, a permissão e a posse da chamada. O endereço do canal
-	// do engine vem de ENGINE_HOST (ou CALLS_AUDIO_URL); sem ele nenhuma chamada tem áudio.
+	// do engine vem só de ENGINE_HOST; sem ele nenhuma chamada tem áudio.
 	callAudioController := controllers.NewCallAudioController(container.Calls, calls.NewAudio(),
 		calls.NewEngineDialer(engineaddr.CallsAudioURL()), database.DB)
 	r.GET("/api/v1/calls/:id/audio", callAudioController.Stream)
