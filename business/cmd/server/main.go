@@ -31,6 +31,7 @@ import (
 
 	_ "github.com/alltomatos/watinkdev/business/docs"
 	"github.com/alltomatos/watinkdev/business/internal/application"
+	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/database"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -149,8 +150,16 @@ func main() {
 	eventListener := services.NewEventListener(container.ChannelSessionRepo, container.MessageRepo, container.ContactRepo, container.TicketRepo, container.ReceiveMessage, broadcast, database.DB, channelRegistry, redisSvc, rabbitMQ, mediaWaiter)
 	eventListener.ConfigureKnowledge(ragRetriever, ragResponder)
 
+	// Chamadas de voz: serviço de regras (elegibilidade, registro, atribuição) com
+	// fila de eventos PRÓPRIA. A presença vem do mesmo SSEHub do stream de eventos.
+	callService := calls.NewService(database.DB, container.ContactRepo, container.TicketRepo,
+		container.QueueRepo, rabbitMQ, broadcast, container.SSEHub)
+
 	if err := rabbitMQ.Connect(); err == nil {
 		services.StartEventListener(rabbitMQ, eventListener)
+		if err := callService.Start(rabbitMQ); err != nil {
+			log.Printf("[calls] event consumer: %v", err)
+		}
 
 		// Ingestion worker (fetch→parse→chunk→embed→store) + stuck-source
 		// reconciler.
