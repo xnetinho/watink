@@ -7,6 +7,8 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
+	"sync"
+
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
 )
 
@@ -17,7 +19,11 @@ const (
 	SrtpErrAuthFailed     SrtpErrorType = "auth_failed"
 	SrtpErrEncryption     SrtpErrorType = "encryption"
 	SrtpErrDecryption     SrtpErrorType = "decryption"
+	SrtpErrReplay         SrtpErrorType = "replay"
 )
+
+// srtpReplayWindowSize é a janela anti-replay (RFC 3711 §3.3.2) em pacotes.
+const srtpReplayWindowSize = 64
 
 type SrtpError struct {
 	Type SrtpErrorType
@@ -27,6 +33,7 @@ type SrtpError struct {
 func (e *SrtpError) Error() string { return fmt.Sprintf("srtp %s: %s", e.Type, e.Msg) }
 
 type SrtpContext struct {
+	mu          sync.Mutex
 	sessionKey  []byte
 	sessionSalt []byte
 	authKey     []byte
@@ -34,6 +41,10 @@ type SrtpContext struct {
 	lastSeq     uint16
 	initialized bool
 	authTagLen  int
+
+	replayHighest uint64
+	replayWindow  uint64
+	replaySeen    bool
 }
 
 func NewSrtpContext(keying core.SrtpKeyingMaterial, authTagLen int) (*SrtpContext, error) {
@@ -61,6 +72,8 @@ func NewSrtpContext(keying core.SrtpKeyingMaterial, authTagLen int) (*SrtpContex
 }
 
 func (c *SrtpContext) SetAuthKeying(keying core.SrtpKeyingMaterial) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	ak, err := deriveSrtpKey(keying.MasterKey, keying.MasterSalt, core.SRTPLabelAuth, 20)
 	if err != nil {
 		return err
@@ -70,6 +83,8 @@ func (c *SrtpContext) SetAuthKeying(keying core.SrtpKeyingMaterial) error {
 }
 
 func (c *SrtpContext) Protect(packet *RtpPacket) ([]byte, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.updateRoc(packet.Header.SequenceNumber)
 	index := c.packetIndex(packet.Header.SequenceNumber)
 
@@ -94,7 +109,14 @@ func (c *SrtpContext) Protect(packet *RtpPacket) ([]byte, error) {
 	return output, nil
 }
 
+// Unprotect valida e decifra um pacote SRTP recebido.
+//
+// A ordem importa: estima o ROC SEM alterar o estado, rejeita repetição, verifica a tag de
+// autenticação e SÓ ENTÃO avança ROC e janela. Assim um pacote forjado (tag errada) nunca
+// consegue dessincronizar o contador nem "queimar" um número de sequência legítimo.
 func (c *SrtpContext) Unprotect(data []byte) (*RtpPacket, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if len(data) < 12 {
 		return nil, &SrtpError{SrtpErrPacketTooShort, fmt.Sprintf("packet too short: %d bytes", len(data))}
 	}
@@ -109,8 +131,19 @@ func (c *SrtpContext) Unprotect(data []byte) (*RtpPacket, error) {
 		return nil, &SrtpError{SrtpErrPacketTooShort, fmt.Sprintf("no payload: %dB total, %dB header, auth=%d", len(data), headerSize, c.authTagLen)}
 	}
 
-	c.updateRoc(header.SequenceNumber)
-	index := c.packetIndex(header.SequenceNumber)
+	roc := c.estimateRoc(header.SequenceNumber)
+	index := (uint64(roc) << 16) | uint64(header.SequenceNumber)
+	if err := c.replayCheck(index); err != nil {
+		return nil, err
+	}
+	if c.authTagLen > 0 {
+		expected := c.computeAuthTag(data[:headerSize+payloadLen], roc, c.authTagLen)
+		if !hmac.Equal(expected, data[headerSize+payloadLen:]) {
+			return nil, &SrtpError{SrtpErrAuthFailed, fmt.Sprintf("auth tag mismatch for seq %d", header.SequenceNumber)}
+		}
+	}
+	c.commitRoc(roc, header.SequenceNumber)
+	c.replayUpdate(index)
 
 	iv := c.generateIV(header.Ssrc, index)
 	decrypted := make([]byte, payloadLen)
@@ -137,6 +170,78 @@ func (c *SrtpContext) updateRoc(seq uint16) {
 
 func (c *SrtpContext) packetIndex(seq uint16) uint64 {
 	return (uint64(c.roc) << 16) | uint64(seq)
+}
+
+// estimateRoc calcula o ROC provável de um pacote recebido, sem alterar o estado (RFC 3711
+// §3.3.1). Um pacote ligeiramente atrasado logo após a virada de 65535→0 pertence ao ROC anterior.
+func (c *SrtpContext) estimateRoc(seq uint16) uint32 {
+	if !c.initialized {
+		return c.roc
+	}
+	if c.lastSeq < 0x8000 {
+		if int32(seq)-int32(c.lastSeq) > 0x8000 {
+			return c.roc - 1
+		}
+		return c.roc
+	}
+	if int32(c.lastSeq)-int32(seq) > 0x8000 {
+		return c.roc + 1
+	}
+	return c.roc
+}
+
+// commitRoc grava ROC e último seq, só depois de o pacote ter sido autenticado.
+func (c *SrtpContext) commitRoc(v uint32, seq uint16) {
+	if !c.initialized {
+		c.lastSeq = seq
+		c.initialized = true
+		return
+	}
+	switch v {
+	case c.roc:
+		if seq > c.lastSeq {
+			c.lastSeq = seq
+		}
+	case c.roc + 1:
+		c.roc = v
+		c.lastSeq = seq
+	}
+}
+
+// replayCheck rejeita um índice já visto ou mais antigo que a janela (RFC 3711 §3.3.2).
+func (c *SrtpContext) replayCheck(index uint64) error {
+	if !c.replaySeen || index > c.replayHighest {
+		return nil
+	}
+	delta := c.replayHighest - index
+	if delta >= srtpReplayWindowSize {
+		return &SrtpError{SrtpErrReplay, fmt.Sprintf("index %d older than replay window", index)}
+	}
+	if c.replayWindow&(1<<delta) != 0 {
+		return &SrtpError{SrtpErrReplay, fmt.Sprintf("duplicate index %d", index)}
+	}
+	return nil
+}
+
+// replayUpdate marca o índice como recebido.
+func (c *SrtpContext) replayUpdate(index uint64) {
+	if !c.replaySeen {
+		c.replaySeen = true
+		c.replayHighest = index
+		c.replayWindow = 1
+		return
+	}
+	if index > c.replayHighest {
+		delta := index - c.replayHighest
+		if delta >= srtpReplayWindowSize {
+			c.replayWindow = 1
+		} else {
+			c.replayWindow = c.replayWindow<<delta | 1
+		}
+		c.replayHighest = index
+		return
+	}
+	c.replayWindow |= 1 << (c.replayHighest - index)
 }
 
 func (c *SrtpContext) generateIV(ssrc uint32, index uint64) []byte {
