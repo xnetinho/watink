@@ -45,3 +45,22 @@ func (m *CallManager) AbandonCall(reason core.EndCallReason) {
 	}
 	m.cleanupMedia()
 }
+
+// RelayRTTMs devolve o RTT do relay em ms, vindo do `c2r_rtt` da oferta (o menor
+// entre os relays). ok=false se a oferta não trouxe a medida.
+func (m *CallManager) RelayRTTMs() (rtt int, ok bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.currentCall == nil || m.currentCall.RelayData == nil {
+		return 0, false
+	}
+	for _, ep := range m.currentCall.RelayData.Endpoints {
+		if ep.C2RRtt != nil && (!ok || *ep.C2RRtt < rtt) {
+			rtt, ok = *ep.C2RRtt, true
+		}
+	}
+	return rtt, ok
+}
+
+// RelayConnected diz se há ao menos um relay com a mídia aberta.
+func (m *CallManager) RelayConnected() bool { return m.relay != nil && m.relay.HasConnection() }

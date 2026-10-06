@@ -51,6 +51,12 @@ type CallManager struct {
 	OnIncoming    func(*CallInfo)
 	OnEnded       func(*CallInfo)
 	OnPeerAudio   func([]float32)
+
+	// OnPeerRtp (alteração Watink) recebe sequência, timestamp e tamanho do payload
+	// de cada pacote RTP do contato já autenticado, para medir perda, jitter e taxa.
+	OnPeerRtp func(seq uint16, timestamp uint32, payloadLen int)
+	// OnSentRtp (alteração Watink) recebe o tamanho de cada pacote enviado ao relay.
+	OnSentRtp func(size int)
 }
 
 func NewCallManager(sock core.VoipSocket, log *slog.Logger) *CallManager {

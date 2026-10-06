@@ -107,3 +107,19 @@ func TestAbandonCall_SendsNothingAndFiresOnEnded(t *testing.T) {
 		t.Fatal("preaccept numa chamada encerrada deve ser no-op")
 	}
 }
+
+func TestRelayRTTMs_PicksLowestC2R(t *testing.T) {
+	m := &CallManager{log: slog.Default()}
+	if _, ok := m.RelayRTTMs(); ok {
+		t.Fatal("sem chamada não há RTT")
+	}
+	a, b := 80, 35
+	m.currentCall = NewIncomingCall("C", "p@lid", "c@lid", "", core.CallMediaTypeAudio)
+	if _, ok := m.RelayRTTMs(); ok {
+		t.Fatal("sem relays não há RTT")
+	}
+	m.currentCall.RelayData = &core.RelayData{Endpoints: []core.RelayEndpoint{{C2RRtt: &a}, {}, {C2RRtt: &b}}}
+	if got, ok := m.RelayRTTMs(); !ok || got != 35 {
+		t.Fatalf("rtt=%d ok=%v", got, ok)
+	}
+}

@@ -74,6 +74,9 @@ func (m *CallManager) sendOpusFrameLocked(opus []byte) {
 		return
 	}
 	m.relay.Broadcast(srtp)
+	if m.OnSentRtp != nil {
+		m.OnSentRtp(len(srtp))
+	}
 }
 
 func (m *CallManager) startSilenceKeepaliveLocked() {
@@ -147,6 +150,9 @@ func (m *CallManager) onRelayData(data []byte) {
 	if err != nil {
 		m.log.Debug("srtp unprotect error", "err", err)
 		return
+	}
+	if m.OnPeerRtp != nil && pkt.Header != nil {
+		m.OnPeerRtp(pkt.Header.SequenceNumber, pkt.Header.Timestamp, len(pkt.Payload))
 	}
 	if len(pkt.Payload) == 0 {
 		return

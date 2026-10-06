@@ -65,6 +65,18 @@ type Handle interface {
 	End(ctx context.Context, reason string) error
 	Start(ctx context.Context, callID string, peer types.JID) error
 	Abandon(reason string)
+
+	SetMedia(MediaHooks)
+	FeedPCM(pcm []float32)
+	RelayRTTMs() (int, bool)
+	RelayConnected() bool
+}
+
+// MediaHooks são os ganchos de mídia de uma chamada, ligados ao canal de áudio.
+type MediaHooks struct {
+	OnPeerPCM func(pcm []float32)
+	OnPeerRtp func(seq uint16, timestamp uint32, payloadLen int)
+	OnSentRtp func(size int)
 }
 
 // NewHandleFunc cria o gerenciador de uma chamada sobre o socket da sessão.

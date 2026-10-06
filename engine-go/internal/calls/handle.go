@@ -69,4 +69,12 @@ func (h *managerHandle) End(ctx context.Context, reason string) error {
 func (h *managerHandle) Start(ctx context.Context, callID string, peer types.JID) error {
 	return h.m.StartCall(ctx, callID, peer, false)
 }
-func (h *managerHandle) Abandon(reason string) { h.m.AbandonCall(core.EndCallReason(reason)) }
+func (h *managerHandle) SetMedia(k MediaHooks) {
+	h.m.OnPeerAudio = k.OnPeerPCM
+	h.m.OnPeerRtp = k.OnPeerRtp
+	h.m.OnSentRtp = k.OnSentRtp
+}
+func (h *managerHandle) FeedPCM(pcm []float32)   { h.m.FeedCapturedPCM(pcm) }
+func (h *managerHandle) RelayRTTMs() (int, bool) { return h.m.RelayRTTMs() }
+func (h *managerHandle) RelayConnected() bool    { return h.m.RelayConnected() }
+func (h *managerHandle) Abandon(reason string)   { h.m.AbandonCall(core.EndCallReason(reason)) }

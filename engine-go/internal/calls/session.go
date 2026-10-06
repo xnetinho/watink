@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"sync"
+	"time"
 
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
 	waBinary "go.mau.fi/whatsmeow/binary"
@@ -29,6 +30,8 @@ type Session struct {
 	proxied   bool
 	lookupPN  func(ctx context.Context, lid types.JID) (types.JID, error)
 
+	tickEvery time.Duration
+
 	mu     sync.Mutex
 	active *activeCall
 }
@@ -45,6 +48,14 @@ type activeCall struct {
 	state     string
 	offerDone chan struct{}
 	timer     stopper
+
+	rx         RxStats
+	rxMeter    meter
+	txMeter    meter
+	pipe       *AudioPipe
+	grace      stopper
+	relayWasUp bool
+	relayDrops int
 }
 
 // SessionConfig reúne o que uma Session precisa; Clock e NewHandle são
@@ -58,6 +69,7 @@ type SessionConfig struct {
 	LookupPN  func(ctx context.Context, lid types.JID) (types.JID, error)
 	NewHandle NewHandleFunc
 	Clock     clock
+	TickEvery time.Duration
 }
 
 func NewSession(c SessionConfig) *Session {
@@ -67,9 +79,12 @@ func NewSession(c SessionConfig) *Session {
 	if c.Clock == nil {
 		c.Clock = realClock{}
 	}
+	if c.TickEvery <= 0 {
+		c.TickEvery = time.Second
+	}
 	return &Session{
 		id: c.ID, tenantID: c.TenantID, sock: c.Sock, newHandle: c.NewHandle,
-		publish: c.Publish, clock: c.Clock, proxied: c.Proxied, lookupPN: c.LookupPN,
+		publish: c.Publish, clock: c.Clock, proxied: c.Proxied, lookupPN: c.LookupPN, tickEvery: c.TickEvery,
 	}
 }
 
@@ -143,10 +158,18 @@ func (s *Session) finish(ac *activeCall, st State) {
 		ac.timer.Stop()
 		ac.timer = nil
 	}
+	if ac.grace != nil {
+		ac.grace.Stop()
+		ac.grace = nil
+	}
 	if s.active == ac {
 		s.active = nil
 	}
+	pipe := ac.pipe
 	s.mu.Unlock()
+	if pipe != nil {
+		pipe.Close()
+	}
 
 	dir := "outgoing"
 	if ac.incoming {

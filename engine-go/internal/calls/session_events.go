@@ -63,6 +63,7 @@ func (s *Session) OnOffer(ctx context.Context, evt *events.CallOffer) {
 	}
 	ac.h = s.newHandle(s.sock)
 	ac.h.SetHooks(s.hooks(ac))
+	s.wireMedia(ac)
 	s.setTimer(ac, s.clock.AfterFunc(readyTimeout, func() { s.onReadyTimeout(ac) }))
 
 	// O processamento da oferta (decifrar chave, ler relays) sai do laço de

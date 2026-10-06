@@ -105,6 +105,7 @@ func (s *Session) Start(ctx context.Context, callID, to string) error {
 	}
 	ac.h = s.newHandle(s.sock)
 	ac.h.SetHooks(s.hooks(ac))
+	s.wireMedia(ac)
 	s.setTimer(ac, s.clock.AfterFunc(ringTimeout, func() { s.onRingTimeout(ac) }))
 	go s.run(ac, func() {
 		if err := ac.h.Start(ctx, callID, peer); err != nil {

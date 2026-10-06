@@ -56,6 +56,11 @@ type fakeHandle struct {
 	log     []string
 	panicOn string
 	started chan struct{}
+
+	media   MediaHooks
+	fed     []float32
+	rtt     int
+	relayUp bool
 }
 
 func (h *fakeHandle) rec(s string) {
@@ -109,6 +114,22 @@ func (h *fakeHandle) End(_ context.Context, reason string) error {
 	return nil
 }
 func (h *fakeHandle) Start(context.Context, string, types.JID) error { h.rec("start"); return nil }
+func (h *fakeHandle) SetMedia(k MediaHooks)                          { h.media = k }
+func (h *fakeHandle) FeedPCM(p []float32) {
+	h.mu.Lock()
+	h.fed = append(h.fed, p...)
+	h.mu.Unlock()
+}
+func (h *fakeHandle) RelayRTTMs() (int, bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.rtt, h.rtt > 0
+}
+func (h *fakeHandle) RelayConnected() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.relayUp
+}
 func (h *fakeHandle) Abandon(reason string) {
 	h.rec("abandon:" + reason)
 	h.hooks.OnEnded(State{EndReason: reason})
