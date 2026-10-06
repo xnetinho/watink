@@ -641,3 +641,47 @@ func TestOfferNotice_GroupCallIsRegisteredAsUnsupportedAndNotAnswered(t *testing
 		t.Fatal("aviso de grupo não pode abrir gerenciador nem tocar")
 	}
 }
+
+// Contrato dos eventos que o business consome: nomes e campos não podem mudar
+// sem mudar o consumidor (6.x).
+func TestEventContract(t *testing.T) {
+	r := newRig(t, false, nil)
+	r.s.tickEvery = 20 * time.Millisecond
+	ctx := context.Background()
+	r.s.OnOffer(ctx, offer(callA, pn("5511999990001")))
+	r.s.OnOffer(ctx, offer(callB, pn("5511999990002")))
+	eventually(t, "oferta", func() bool { return r.handle(0).has("offer") })
+	_ = r.s.Ready(ctx, callA)
+	r.handle(0).hooks.OnState(State{State: "connecting", Direction: "incoming"})
+	_ = r.s.Accept(ctx, callA)
+	p, _ := r.s.OpenAudio(callA)
+	defer p.Close()
+	eventually(t, "call.quality", func() bool { return len(r.evs("call.quality")) > 0 })
+	_ = r.s.End(ctx, callA)
+	eventually(t, "call.ended", func() bool { return len(r.evs("call.ended")) == 1 })
+
+	need := map[string][]string{
+		"call.incoming": {"callId", "peer", "callerPn", "direction", "media", "sessionId"},
+		"call.state":    {"callId", "peer", "callerPn", "direction", "state", "sessionId"},
+		"call.ended":    {"callId", "peer", "callerPn", "direction", "endReason", "durationSecs", "sessionId"},
+		"call.missed":   {"callId", "peer", "callerPn", "reason", "sessionId"},
+		"call.quality":  {"callId", "lossPct", "jitterMs", "rttMs", "sessionId"},
+	}
+	for typ, fields := range need {
+		evs := r.evs(typ)
+		if len(evs) == 0 {
+			t.Fatalf("nenhum evento %s foi publicado", typ)
+		}
+		for _, f := range fields {
+			if _, ok := evs[0][f]; !ok {
+				t.Errorf("%s sem o campo %q: %v", typ, f, evs[0])
+			}
+		}
+	}
+	if got := r.evs("call.incoming")[0]["direction"]; got != "incoming" {
+		t.Errorf("direction=%v", got)
+	}
+	if got := r.evs("call.missed")[0]["reason"]; got != ReasonBusy {
+		t.Errorf("reason=%v", got)
+	}
+}

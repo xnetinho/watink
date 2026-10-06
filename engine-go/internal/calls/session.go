@@ -139,7 +139,10 @@ func (s *Session) hooks(ac *activeCall) Hooks {
 			s.mu.Lock()
 			ac.state = st.State
 			s.mu.Unlock()
-			s.emit("call.state", map[string]interface{}{"callId": ac.id, "state": st.State, "direction": st.Direction})
+			s.emit("call.state", map[string]interface{}{
+				"callId": ac.id, "peer": ac.peer, "callerPn": ac.callerPn,
+				"state": st.State, "direction": st.Direction,
+			})
 		},
 		OnEnded: func(st State) { s.finish(ac, st) },
 	}
