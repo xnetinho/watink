@@ -7,6 +7,8 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func provisionSeed(t *testing.T) (*SetupService, *domain.ProvisionPlanSpec) {
@@ -198,5 +200,41 @@ func TestPushSubscriptionUnknownTenant(t *testing.T) {
 	err := svc.PushSubscription(uuid.New(), *spec, "active", nil)
 	if !errors.Is(err, ErrTenantNotFound) {
 		t.Fatalf("erro = %v, quer ErrTenantNotFound", err)
+	}
+}
+
+// 5.3: numa empresa NOVA, só o Administrador (que recebe o catálogo inteiro por
+// desenho) tem calls:*; Atendente, Gestor e Gerente Geral não.
+func TestProvisionTenant_CallPermissionsOnlyOnAdministrador(t *testing.T) {
+	svc, spec := provisionSeed(t)
+	require.NoError(t, svc.db.Create(&[]models.Permission{
+		{Resource: "calls", Action: "receive", IsSystem: true},
+		{Resource: "calls", Action: "place", IsSystem: true},
+		{Resource: "calls", Action: "read", IsSystem: true},
+		{Resource: "calls", Action: "delete", IsSystem: true},
+		{Resource: "calls", Action: "manage", IsSystem: true},
+	}).Error)
+
+	res, err := svc.ProvisionTenant(provisionData("calls@acme.com"), *spec, "key-calls")
+	require.NoError(t, err)
+
+	has := map[string]int64{}
+	var rows []struct {
+		Name string
+		N    int64
+	}
+	require.NoError(t, svc.db.Raw(`
+		SELECT c.name AS name, COUNT(*) AS n
+		FROM cargo_permissoes cp
+		JOIN "Cargos" c ON c.id = cp."cargoId"
+		JOIN "Permissions" p ON p.id = cp."permissionId"
+		WHERE c."tenantId" = ? AND p.resource = 'calls'
+		GROUP BY c.name`, res.TenantID).Scan(&rows).Error)
+	for _, r := range rows {
+		has[r.Name] = r.N
+	}
+	assert.Equal(t, int64(5), has["Administrador"], "o Administrador recebe o catálogo inteiro")
+	for _, name := range []string{"Atendente", "Gestor", "Gerente Geral"} {
+		assert.Zero(t, has[name], "%s não pode ganhar calls:* sozinho", name)
 	}
 }

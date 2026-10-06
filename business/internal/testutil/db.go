@@ -114,6 +114,8 @@ func allModels() []interface{} {
 		&models.Protocol{},
 		&models.ProtocolLog{},
 		&models.ProtocolAttachment{},
+		&models.CallLog{},
+		&models.CallRecordingAccess{},
 		&models.Activity{},
 		&models.ActivityAssignee{},
 		&models.ActivityChecklistItem{},
