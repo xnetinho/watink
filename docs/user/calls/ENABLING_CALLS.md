@@ -4,6 +4,11 @@ Guia do **administrador**: dar às pessoas certas acesso às chamadas, configura
 que a instalação precisa ter. As chamadas são um recurso **nativo**: não há plugin nem botão
 **Ativar**. O acesso é só por **permissão de cargo**.
 
+> **Risco de bloqueio.** O Watink acessa o WhatsApp por um canal **não oficial**, e **chamadas por
+> canal não oficial aumentam o risco de bloqueio do número**. Esse risco é **da empresa**.
+> Decida com cuidado quem pode ligar e receber, e em quais conexões. O aviso também aparece, de
+> forma permanente, na tela de toda chamada.
+
 ## 1. Quem já passa sem fazer nada
 
 Usuários de **alcance de empresa** (**Administrador** e **Gerente Geral**) passam por todas as

@@ -28,6 +28,7 @@ const messages = {
           micUnavailable: "No microphone available.",
           unsupported: "This browser does not support voice calls.",
           socketLost: "The audio connection dropped.",
+          riskNotice: "Calls over an unofficial channel increase the risk of the number being blocked. This risk is the company's.",
         },
         pause: {
           pause: "Pause calls",

@@ -28,6 +28,7 @@ const messages = {
           micUnavailable: "Nenhum microfone disponível.",
           unsupported: "Este navegador não suporta chamadas de voz.",
           socketLost: "A conexão de áudio caiu.",
+          riskNotice: "Chamadas por canal não oficial aumentam o risco de bloqueio do número. Esse risco é da empresa.",
         },
         pause: {
           pause: "Pausar chamadas",

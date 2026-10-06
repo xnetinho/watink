@@ -131,3 +131,11 @@ describe("ActiveCallPanel", () => {
 });
 
 void rec;
+
+describe("ActiveCallPanel — aviso de risco permanente", () => {
+  it.each(["calling", "connecting", "active", "ended"] as const)("aparece com a chamada em '%s'", (phase) => {
+    render(withCalls(makeCtx({ active: baseCall({ phase, connectedAt: phase === "active" ? Date.now() : null }) }), <ActiveCallPanel />));
+    expect(screen.getByTestId("risk-notice")).toHaveTextContent("risco de bloqueio do número");
+    expect(screen.getByTestId("risk-notice")).toHaveTextContent("Esse risco é da empresa");
+  });
+});

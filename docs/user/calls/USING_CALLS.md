@@ -117,6 +117,13 @@ situação, início, duração, qualidade e gravação, com filtros por **situa�
 **Ouvir** toca a gravação (a escuta fica registrada) e, se você puder excluir, **Excluir
 gravação** pede confirmação e remove o arquivo definitivamente.
 
+## Aviso de risco
+
+O Watink usa o WhatsApp por um canal **não oficial**. Isso vale para mensagens e também para
+**chamadas**, e **chamadas por canal não oficial aumentam o risco de bloqueio do número**. Esse
+risco é **da empresa**, não do Watink. Por isso a tela da chamada mostra este aviso o tempo todo.
+Use chamadas com moderação nos números que a empresa não pode perder.
+
 ## Limitações
 
 - Só **voz 1:1**. Chamadas de **vídeo** e **em grupo** não são oferecidas; o sistema não as recusa

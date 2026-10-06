@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Circle, Mic, MicOff, PhoneOff, TriangleAlert, X } from "lucide-react";
+import { Circle, Mic, MicOff, PhoneOff, ShieldAlert, TriangleAlert, X } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -101,6 +101,11 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
       )}
 
       {active.phase === "active" && <CallQualityPanel quality={active.quality} />}
+
+      <p className="flex items-start gap-1.5 text-[0.7rem] leading-snug text-muted-foreground" data-testid="risk-notice">
+        <ShieldAlert className="mt-0.5 h-3 w-3 shrink-0" />
+        <span>{t("calls.active.riskNotice")}</span>
+      </p>
 
       {!ended && (
         <div className="flex items-center justify-center gap-2">
