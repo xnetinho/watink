@@ -177,7 +177,7 @@ func main() {
 
 	// SSE stream — registrado SEM gin.Logger para evitar que o token JWT
 	// presente na query string (?token=...) apareça no access-log.
-	sseController := controllers.NewSSEController(container.SSEHub, redisSvc)
+	sseController := controllers.NewSSEController(container.SSEHub, redisSvc, database.DB)
 	r.GET("/api/v1/events", sseController.Stream)
 
 	// izapia webhook — public route (no JWT), authenticated per-session by
