@@ -38,6 +38,7 @@ Navegador ──WSS PCM──► business ──WS interno──► engine ─�
 - Uma chamada ativa por conexão e por operador; nenhum teto por empresa.
 - Conexão com proxy (`proxyMode`, `proxyId` **ou** `proxyGroupId`) → sem chamada, **fail-closed**.
 - Prazos: 3 s (`call.ready`), 45 s de toque, 25 s para a mídia conectar, 10 s sem o canal do navegador. O toque de 45 s é cancelado ao atender (`trackMedia`), nos dois sentidos.
+- **Gatilho único** da gravação automática = `call.state active` (`HandleState` → `startAutoRecordingOnAnswer`), o mesmo evento que liga o cronômetro no navegador, nos dois sentidos. Não é o clique em Atender nem a conexão do áudio do navegador (`audio_ws.go` só liga o `Tap`).
 - `answeredAt`: gravado em `Accept` (entrada) ou no primeiro `call.state active` (saída); separa `ended` de `missed` em `statusForEnd`. `<reject>` do contato encerra como `declined`, `<terminate>` como `user_ended`.
 
 **Áudio e gravação**

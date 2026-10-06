@@ -73,14 +73,13 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 	}
 	defer a.Release(br)
 
-	// A gravação lê o MESMO áudio que atravessa o proxy, nos dois sentidos. No modo
-	// automático ela começa aqui, ao conectar o áudio; no opcional, só quando o
-	// operador pede. Chamadas já em gravação (ex.: o operador reconectou) seguem.
+	// A gravação lê o MESMO áudio que atravessa o proxy, nos dois sentidos. Aqui só se liga o
+	// Tap; quem INICIA a gravação é o call.state "active" (modo automático, HandleState) ou o
+	// pedido do operador (modo opcional). Assim o gatilho é um só, nos dois sentidos, o mesmo que
+	// liga o cronômetro. Feed é no-op sem gravação ativa, e uma já em curso (o operador
+	// reconectou o áudio) continua.
 	if s.rec != nil {
 		br.Tap = func(fromOperator bool, frame []byte) { s.rec.Feed(tenantID, callID, fromOperator, frame) }
-		if s.autoRecord(tenantID) && s.callAnswered(tenantID, callID) {
-			s.startRecordingBestEffort(tenantID, userID, callID)
-		}
 	}
 
 	eng, err := dial(ctx, callID)

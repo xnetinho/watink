@@ -53,7 +53,7 @@ A gravação **nasce desligada** em toda empresa. Quem tem `calls:manage` a conf
 |---|---|
 | **Desligada** (padrão) | Nada é gravado e nenhum botão de gravar aparece. |
 | **Opcional** | O operador escolhe gravar em cada chamada (botão **Gravar** na tela da chamada). |
-| **Automática** | Toda chamada é gravada a partir do momento em que o áudio conecta. |
+| **Automática** | Toda chamada **atendida** é gravada a partir do momento em que a conversa começa (o mesmo instante em que o cronômetro liga). Chamada recusada, sem resposta ou que não chega a conectar não gera gravação. |
 
 ### O aceite de responsabilidade
 

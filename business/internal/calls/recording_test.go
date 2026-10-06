@@ -12,6 +12,7 @@ import (
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/recording"
+	"github.com/coder/websocket"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -231,9 +232,9 @@ func TestRecordingKeys_MatchTheSettingsController(t *testing.T) {
 
 var _ = models.CallLog{}
 
-// 7.11: no modo auto a gravação começa ao CONECTAR o áudio, sem o operador pedir;
-// no modo off, conectar o áudio não grava nada.
-func TestServeAudio_AutoModeStartsRecordingOnConnect(t *testing.T) {
+// 7.11 (revisado): no modo auto a gravação começa no call.state "active", NÃO ao conectar o áudio do
+// navegador; no modo off, nem o áudio nem o active gravam nada.
+func TestServeAudio_AutoModeStartsRecordingOnActive(t *testing.T) {
 	r := newRig(t)
 	store := newMemStore()
 	r.withRecording(t, store)
@@ -245,11 +246,103 @@ func TestServeAudio_AutoModeStartsRecordingOnConnect(t *testing.T) {
 	require.NoError(t, err)
 	defer browser.CloseNow()
 	<-eng.conn
+	time.Sleep(200 * time.Millisecond)
+	require.False(t, r.svc.Recording().Active(r.tenant, "AUTO-1"), "conectar o áudio sozinho não inicia a gravação")
 
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("AUTO-1", "active")))
 	require.Eventually(t, func() bool { return r.svc.Recording().Active(r.tenant, "AUTO-1") }, 2*time.Second, 10*time.Millisecond,
-		"o modo auto grava assim que o áudio conecta")
+		"o modo auto grava quando a mídia conecta")
 	assert.Equal(t, recording.StatusRecording, r.log(t, "AUTO-1").RecordingStatus)
 	assert.Equal(t, 1, r.bc.to(UserRoom(r.tenant, uid), "call.recording"), "o operador vê o indicador de gravação")
+}
+
+// Mesmo gatilho nos dois sentidos: a gravação automática começa no call.state "active" (mídia do
+// WhatsApp conectada), o mesmo evento que liga o cronômetro. Na chamada RECEBIDA o clique em
+// Atender já grava answeredAt e o navegador abre o áudio logo em seguida, mas a mídia ainda está
+// conectando: gravar aí registrava silêncio e, se a mídia nunca conectasse (media_timeout),
+// deixava a gravação de uma chamada que não aconteceu.
+func TestAutoRecording_Incoming_StartsOnActiveNotOnAccept(t *testing.T) {
+	r := newRig(t)
+	r.withRecording(t, newMemStore())
+	r.setMode(t, "auto")
+	uid := answeredCall(t, r, "IN-ACT")
+	eng := newFakeEngine(t)
+
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-ACT")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	<-eng.conn
+	time.Sleep(300 * time.Millisecond)
+	assert.False(t, r.svc.Recording().Active(r.tenant, "IN-ACT"),
+		"atendida no clique, mas a mídia ainda não conectou: nada a gravar")
+
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("IN-ACT", "active")))
+	require.Eventually(t, func() bool { return r.svc.Recording().Active(r.tenant, "IN-ACT") }, 2*time.Second, 10*time.Millisecond,
+		"mídia conectada: a gravação começa junto com o cronômetro")
+	assert.Equal(t, recording.StatusRecording, r.log(t, "IN-ACT").RecordingStatus)
+}
+
+func TestAutoRecording_Incoming_MediaNeverConnectsLeavesNoRecording(t *testing.T) {
+	r := newRig(t)
+	store := newMemStore()
+	r.withRecording(t, store)
+	r.setMode(t, "auto")
+	uid := answeredCall(t, r, "IN-NOMEDIA")
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-NOMEDIA")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	<-eng.conn
+
+	raw, _ := json.Marshal(map[string]interface{}{"callId": "IN-NOMEDIA", "endReason": "media_timeout", "durationSecs": 0, "direction": "incoming"})
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, raw))
+
+	l := r.log(t, "IN-NOMEDIA")
+	assert.Empty(t, l.RecordingStatus, "a mídia nunca conectou: não há gravação")
+	store.mu.Lock()
+	assert.Empty(t, store.objects)
+	store.mu.Unlock()
+}
+
+// O active pode chegar ANTES de o navegador abrir o áudio (recebida: o SSE corre na frente do POST).
+// A gravação começa mesmo assim, sem erro, e passa a receber quadros quando a ponte abre.
+func TestAutoRecording_ActiveBeforeBrowserAudioStillRecords(t *testing.T) {
+	r := newRig(t)
+	r.withRecording(t, newMemStore())
+	r.setMode(t, "auto")
+	uid := answeredCall(t, r, "IN-EARLY")
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("IN-EARLY", "active")))
+	require.True(t, r.svc.Recording().Active(r.tenant, "IN-EARLY"), "começou sem nenhuma ponte de áudio aberta")
+	assert.Equal(t, recording.StatusRecording, r.log(t, "IN-EARLY").RecordingStatus)
+
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-EARLY")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	<-eng.conn
+	require.NoError(t, browser.Write(ctx, websocket.MessageBinary, make([]byte, 640)))
+	time.Sleep(200 * time.Millisecond)
+	assert.True(t, r.svc.Recording().Active(r.tenant, "IN-EARLY"))
+	assert.NotEqual(t, recording.StatusFailed, r.log(t, "IN-EARLY").RecordingStatus)
+}
+
+// O operador pode reconectar o áudio no meio da chamada; a gravação já em curso segue, sem erro.
+func TestAutoRecording_ReconnectingAudioKeepsRecording(t *testing.T) {
+	r := newRig(t)
+	r.withRecording(t, newMemStore())
+	r.setMode(t, "auto")
+	uid := answeredCall(t, r, "IN-RECON")
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("IN-RECON", "active")))
+	require.True(t, r.svc.Recording().Active(r.tenant, "IN-RECON"))
+
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-RECON")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	<-eng.conn
+	time.Sleep(200 * time.Millisecond)
+	assert.True(t, r.svc.Recording().Active(r.tenant, "IN-RECON"))
+	assert.Equal(t, recording.StatusRecording, r.log(t, "IN-RECON").RecordingStatus, "reconectar não marca falha")
 }
 
 // Bug real: na chamada de SAÍDA o navegador abre o áudio assim que disca, ainda tocando. O modo

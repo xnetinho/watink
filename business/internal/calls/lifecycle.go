@@ -145,11 +145,12 @@ func (s *Service) HandleState(ctx context.Context, tenantID uuid.UUID, raw json.
 	return nil
 }
 
-// startAutoRecordingOnAnswer: no modo automático a gravação começa quando a chamada é atendida.
-// Na chamada de saída o áudio do navegador já está aberto (abriu ao discar), então o gancho de
-// "áudio conectou" (audio_ws.go) passou antes de ela ser atendida; este cobre esse caso. O Tap da
-// ponte já está ligado e Feed é um no-op sem gravação ativa, então bastar iniciar a gravação.
-// Já gravando (o operador reconectou, ou a ponte conectou depois do atendimento) é ignorado.
+// startAutoRecordingOnAnswer é o ÚNICO gatilho da gravação automática, nos dois sentidos: o
+// call.state "active" (mídia do WhatsApp conectada), o mesmo evento que liga o cronômetro no
+// navegador. Não é o clique em Atender (a mídia ainda não conectou: gravaria silêncio, e uma
+// chamada que falha por media_timeout deixaria gravação) nem o áudio do navegador (na saída ele
+// abre ao discar, com a chamada tocando). O Tap da ponte já está ligado e Feed é no-op sem
+// gravação ativa, então iniciar aqui basta. Já gravando (reconexão) é ignorado.
 func (s *Service) startAutoRecordingOnAnswer(tenantID uuid.UUID, callID string) {
 	if s.rec == nil || !s.autoRecord(tenantID) {
 		return

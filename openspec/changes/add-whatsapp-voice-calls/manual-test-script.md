@@ -103,7 +103,7 @@ Registre: versão/commit das imagens: `__________`  data: `__________`  testador
 | 8.2 | Chamada normal no modo **Opcional**; clique **Gravar** no meio; fale 20 s; **Parar**; encerre. | Indicador **"Gravando"** durante a gravação. No histórico há **Ouvir**. | |
 | 8.3 | Clique **Ouvir**. | O áudio toca com **as duas vozes**, na ordem em que ocorreram; **duração coerente** (±1 s da gravada); sem distorção, chiado ou voz de robô. | |
 | 8.4 | Baixe/abra o MP3 em outro player. | Abre sem erro, mono, 16 kHz. | |
-| 8.5 | Modo **Automática**. Faça uma chamada sem clicar em nada. | Começa a gravar ao conectar o áudio; indicador visível; ao fim há gravação. | |
+| 8.5 | Modo **Automática**. Faça uma chamada sem clicar em nada. | Começa a gravar quando o cronômetro liga (mídia conectada), nos dois sentidos; recusada ou sem resposta não grava; indicador visível; ao fim há gravação. | |
 | 8.6 | Modo **Desligada**. Faça uma chamada. | Nenhum botão de gravar; nenhuma gravação criada. | |
 | 8.7 | Com a gravação ouvida, olhe **Auditoria** (consulta ao banco: `CallRecordingAccesses`). | Há uma linha por escuta com **usuário e horário**. | |
 | 8.8 | **Excluir** uma gravação (usuário com `calls:delete`). | Pede confirmação; o arquivo some do S3; histórico mostra "Gravação excluída"; existe linha de auditoria `delete`. | |
