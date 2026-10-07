@@ -7,21 +7,21 @@
 
 ## PR A: repositório e documentação (`chore/purge-repo-dead-config`)
 
-- [ ] A.1 Remover `business/web/` (160 arquivos, 15,8 MB, bundle estale; nenhuma referência) e ignorar no `.gitignore`
-- [ ] A.2 Remover `frontend/frontend/` (3 arquivos vazios versionados por engano)
-- [ ] A.3 Remover `update.sh`, `business/run_migrate.go` e `plugins/watink-smtp-go/` (esqueleto de 42 linhas, sem uso)
-- [ ] A.4 Remover `scripts/gen-proto.sh`, `init_db.sh`, `rebuild-backend-with-embed.sh`, `smoke-navigation.js` (sem
+- [x] A.1 Remover `business/web/` (160 arquivos, 15,8 MB, bundle estale; nenhuma referência) e ignorar no `.gitignore`
+- [x] A.2 Remover `frontend/frontend/` (3 arquivos vazios versionados por engano)
+- [x] A.3 Remover `update.sh`, `business/run_migrate.go` e `plugins/watink-smtp-go/` (esqueleto de 42 linhas, sem uso)
+- [x] A.4 Remover `scripts/gen-proto.sh`, `init_db.sh`, `rebuild-backend-with-embed.sh`, `smoke-navigation.js` (sem
       referência). **Ficam** `setup-branch-protection.sh`, `smoke-docker.sh`, `report-duplicate-contacts.sql` (manuais)
-- [ ] A.5 `package.json` da raiz: remover scripts `windows:*` e `main: ecosystem.config.js`; remover
+- [x] A.5 `package.json` da raiz: remover scripts `windows:*` e `main: ecosystem.config.js`; remover
       `ecosystem.config.js` e a seção PM2 de `docs/dev/commands.md`
-- [ ] A.6 Workflows: remover `push-image-frontend.yaml` (dispara em `master`, nunca roda). **Ficam**
+- [x] A.6 Workflows: remover `push-image-frontend.yaml` (dispara em `master`, nunca roda). **Ficam**
       `build-frontend.yaml` (avaliar) e `publish-ghcr-fork.yml`
-- [ ] A.7 `dependabot.yml`: remover entradas de pastas inexistentes (`marketplace-hub`, `plugin-manager`,
+- [x] A.7 `dependabot.yml`: remover entradas de pastas inexistentes (`marketplace-hub`, `plugin-manager`,
       `legacy/backend`, `legacy/engine-standard`) e **adicionar** `engine-go` e `e2e`; `codeql/js-config.yml` e
       `.gitignore`: tirar `legacy`, `marketplace-hub`, `plugin-manager` e os artefatos de Python
-- [ ] A.8 `CLAUDE.md`: tirar da tabela de Services `Marketplace Hub`, `Backend Node (legacy)` e `Engine Node (legacy)`;
+- [x] A.8 `CLAUDE.md`: tirar da tabela de Services `Marketplace Hub`, `Backend Node (legacy)` e `Engine Node (legacy)`;
       corrigir a lista de plugins; remover a contradição sobre `marketplace-hub`
-- [ ] A.9 ADR 0018 `Superseded by 0028`; corrigir o link quebrado de `docs/frontend/chats/OVERVIEW.md`; aviso de
+- [x] A.9 ADR 0018 `Superseded by 0028`; corrigir o link quebrado de `docs/frontend/chats/OVERVIEW.md`; aviso de
       "histórico" em `docs/legacy-backend/` e `docs/legacy-engine/`; `ESTADO_ORQUESTRATOR.md` para `docs/`
 - [x] A.10 PR #4 contra `develop`, CI verde (workflows só se validam na CI), merge
 
