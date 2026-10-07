@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// TagController encapsulates tag operations with RLS-scoped DB from auth middleware.
+// TagController encapsulates tag operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetScoped.
 type TagController struct{}
 

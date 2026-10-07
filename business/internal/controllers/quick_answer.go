@@ -59,7 +59,7 @@ func isUniqueViolation(err error, indexName string) bool {
 // BuildQuickAnswerCommand para exatamente esse tipo de função. Ver issue
 // #592.
 
-// QuickAnswerController encapsulates quick answer operations with RLS-scoped DB from auth middleware.
+// QuickAnswerController encapsulates quick answer operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetDB(c).
 type QuickAnswerController struct {
 	rabbit    domain.CommandPublisher

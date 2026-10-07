@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// PipelineController encapsulates pipeline operations with RLS-scoped DB from auth middleware.
+// PipelineController encapsulates pipeline operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetScoped.
 type PipelineController struct{}
 

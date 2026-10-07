@@ -16,7 +16,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// FlowController encapsulates flow operations with RLS-scoped DB from auth middleware.
+// FlowController encapsulates flow operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetScoped(c, "Flows").
 //
 // runtime drives on-demand run starts (POST /flows/:id/run); it may be nil in
