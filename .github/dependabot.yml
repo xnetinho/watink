@@ -10,14 +10,6 @@ updates:
         update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 5
 
-  - package-ecosystem: "npm"
-    directory: "/marketplace-hub"
-    schedule:
-      interval: "monthly"
-    ignore:
-      - dependency-name: "*"
-    open-pull-requests-limit: 0
-
   - package-ecosystem: "gomod"
     directory: "/business"
     target-branch: "develop"
@@ -26,10 +18,20 @@ updates:
     open-pull-requests-limit: 5
 
   - package-ecosystem: "gomod"
-    directory: "/plugin-manager"
+    directory: "/engine-go"
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 3
 
   - package-ecosystem: "github-actions"
@@ -38,19 +40,3 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 3
-
-  - package-ecosystem: "npm"
-    directory: "/legacy/backend"
-    schedule:
-      interval: "monthly"
-    ignore:
-      - dependency-name: "*"
-    open-pull-requests-limit: 0
-
-  - package-ecosystem: "npm"
-    directory: "/legacy/engine-standard"
-    schedule:
-      interval: "monthly"
-    ignore:
-      - dependency-name: "*"
-    open-pull-requests-limit: 0
