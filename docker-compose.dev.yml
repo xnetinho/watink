@@ -91,6 +91,7 @@ services:
       # invalida segredos já gravados — re-importe os proxies.
       - PROXY_ENC_KEY=${PROXY_ENC_KEY:-dev_proxy_enc_key_change_in_prod}
       - DOCS_PUBLIC=${DOCS_PUBLIC:-false}
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
       # PLUGIN_MANAGER_URL não é configurável: fixa em código
       # (business/internal/pluginlicense/client.go) como http://plugin-manager:8081,
       # de propósito — ver comentário na constante pluginManagerBaseURL.

@@ -58,7 +58,7 @@ func IsAuth(db *gorm.DB) gin.HandlerFunc {
 
 		tenantID, _ := claims["tenantId"].(string)
 
-		// Validate UUID to prevent SQL injection before string concatenation in SET LOCAL
+		// O tenantId do token alimenta todo filtro "tenantId" das consultas: tem de ser um UUID válido.
 		if _, err := uuid.Parse(tenantID); err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid tenant ID format"})
 			c.Abort()
@@ -69,9 +69,10 @@ func IsAuth(db *gorm.DB) gin.HandlerFunc {
 		c.Set("alcance", claims["alcance"])
 		c.Set("tenantId", tenantID)
 
-		tx := db.Session(&gorm.Session{})
-		tx.Exec("SET LOCAL app.current_tenant = ?", tenantID)
-		c.Set("db", tx)
+		// Sem SET LOCAL app.current_tenant: o comando nunca funcionou (SET não aceita parâmetro, o handle não está
+		// em transação e o usuário do banco é superusuário, que ignora RLS). O isolamento entre empresas é o filtro
+		// "tenantId" explícito em cada consulta (auth.GetScoped), ver ADR 0001.
+		c.Set("db", db)
 
 		c.Next()
 	}
