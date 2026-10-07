@@ -123,7 +123,7 @@ func TestCrawlSite_Sitemapindex_NotSupported_KnownLimitation(t *testing.T) {
 	var indexXML string
 	mux.HandleFunc("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(indexXML)) })
 	mux.HandleFunc("/sitemap-pages.xml", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`<urlset><url><loc>%s/p1</loc></url><url><loc>%s/p2</loc></url></urlset>`, "http://"+r.Host, "http://"+r.Host)))
+		_, _ = fmt.Fprintf(w, `<urlset><url><loc>%s/p1</loc></url><url><loc>%s/p2</loc></url></urlset>`, "http://"+r.Host, "http://"+r.Host)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(pageWithLink(""))) })
 	mux.HandleFunc("/p1", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(pageWithLink(""))) })
