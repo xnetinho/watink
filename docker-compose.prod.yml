@@ -107,6 +107,7 @@ services:
       - PROXY_ENC_KEY=${PROXY_ENC_KEY}
       - PLUGIN_MANAGER_INTERNAL_TOKEN=${PLUGIN_MANAGER_INTERNAL_TOKEN}
       - DOCS_PUBLIC=false
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
       # Object store da Base de Conhecimento (upload/download de fontes de
       # arquivo). Antes desta config, docker-compose.prod.yml não tinha
       # MinIO/S3 nenhum e o upload de arquivo respondia "object store não
