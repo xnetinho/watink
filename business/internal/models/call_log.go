@@ -19,6 +19,8 @@ type CallLog struct {
 
 	// Direction: incoming | outgoing.
 	Direction string `gorm:"not null" json:"direction"`
+	// Media: audio | video. Ausente (registros anteriores ao vídeo) vale audio.
+	Media string `gorm:"not null;default:'audio'" json:"media"`
 	// Status: ringing | active | ended | missed | rejected | failed | interrupted.
 	Status string `gorm:"not null;default:'ringing';index" json:"status"`
 	// PeerJid/CallerPn identificam o chamador mesmo quando ainda não há contato.

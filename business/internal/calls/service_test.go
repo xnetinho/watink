@@ -80,6 +80,18 @@ func (f *fakeBroadcaster) to(room, event string) int {
 	return n
 }
 
+// last devolve o payload do último evento de um tipo numa sala, ou nil.
+func (f *fakeBroadcaster) last(room, event string) interface{} {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for i := len(f.evs) - 1; i >= 0; i-- {
+		if f.evs[i].room == room && f.evs[i].event == event {
+			return f.evs[i].payload
+		}
+	}
+	return nil
+}
+
 type fakePresence struct{ online map[string]bool }
 
 func (f fakePresence) HasSubscribers(room string) bool { return f.online[room] }
@@ -377,4 +389,51 @@ func TestDispatch_ForeignConnectionNeverRingsAnyone(t *testing.T) {
 		incoming("DSP-2", r.waX.ID, "5511999990021@s.whatsapp.net", "5511999990021"))))
 	assert.Empty(t, r.pub.cmds("call.ready"), "conexão de outra empresa: ninguém é elegível")
 	assert.Zero(t, r.bc.to(UserRoom(r.tenant, r.users["admin"].ID), "call.incoming"))
+}
+
+// ---- videochamada (fase 1) ----
+
+func incomingMedia(callID string, wa int, media string) json.RawMessage {
+	b, _ := json.Marshal(map[string]interface{}{
+		"callId": callID, "sessionId": itoa(wa), "peer": "5511999990010@s.whatsapp.net", "callerPn": "5511999990010",
+		"direction": "incoming", "media": media,
+	})
+	return b
+}
+
+// O toque precisa saber se é videochamada: o engine manda media=video e o business repassa ao navegador
+// e guarda no registro (o histórico e o painel mostram o ícone).
+func TestHandleIncoming_VideoCallIsAnnouncedAndStored(t *testing.T) {
+	r := newRig(t)
+	r.grant(t, "da_fila_A", "receive")
+	r.online("da_fila_A")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incomingMedia("VC-1", r.waA.ID, "video")))
+
+	assert.Equal(t, "video", r.log(t, "VC-1").Media, "o registro guarda que foi videochamada")
+	ev := r.bc.last(UserRoom(r.tenant, r.users["da_fila_A"].ID), "call.incoming")
+	require.NotNil(t, ev, "o operador recebeu o toque")
+	assert.Equal(t, "video", ev.(map[string]interface{})["media"], "o toque anuncia videochamada")
+}
+
+func TestHandleIncoming_VoiceCallStaysAudio(t *testing.T) {
+	r := newRig(t)
+	r.grant(t, "da_fila_A", "receive")
+	r.online("da_fila_A")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incomingMedia("VC-2", r.waA.ID, "audio")))
+	assert.Equal(t, "audio", r.log(t, "VC-2").Media)
+	ev := r.bc.last(UserRoom(r.tenant, r.users["da_fila_A"].ID), "call.incoming")
+	require.NotNil(t, ev)
+	assert.Equal(t, "audio", ev.(map[string]interface{})["media"])
+}
+
+// Evento antigo sem o campo media (engine anterior): assume voz, como sempre foi.
+func TestHandleIncoming_MissingMediaDefaultsToAudio(t *testing.T) {
+	r := newRig(t)
+	r.grant(t, "da_fila_A", "receive")
+	r.online("da_fila_A")
+	b, _ := json.Marshal(map[string]interface{}{
+		"callId": "VC-3", "sessionId": itoa(r.waA.ID), "peer": "5511999990010@s.whatsapp.net", "callerPn": "5511999990010", "direction": "incoming",
+	})
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, b))
+	assert.Equal(t, "audio", r.log(t, "VC-3").Media)
 }

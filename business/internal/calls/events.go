@@ -32,6 +32,16 @@ type IncomingEvent struct {
 	CallerPn  string `json:"callerPn"`
 	Direction string `json:"direction"`
 	Reason    string `json:"reason"`
+	// Media: audio | video. O engine de antes do vídeo não manda o campo: vale audio.
+	Media string `json:"media"`
+}
+
+// mediaOf normaliza o tipo de mídia do evento: só "video" é vídeo, qualquer outra coisa é voz.
+func mediaOf(m string) string {
+	if m == "video" {
+		return "video"
+	}
+	return "audio"
 }
 
 // StateEvent é o corpo de call.state.
@@ -140,7 +150,7 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 	}
 	l, created, err := s.upsertLog(tenantID, &models.CallLog{
 		CallID: ev.CallID, WhatsappID: waID, ContactID: &contact.ID, TicketID: &ticket.ID,
-		Direction: "incoming", Status: StatusRinging, PeerJid: ev.Peer, CallerPn: ev.CallerPn, StartedAt: s.now(),
+		Direction: "incoming", Media: mediaOf(ev.Media), Status: StatusRinging, PeerJid: ev.Peer, CallerPn: ev.CallerPn, StartedAt: s.now(),
 	})
 	if err != nil {
 		return err
@@ -182,7 +192,7 @@ func (s *Service) command(tenantID uuid.UUID, whatsappID int, cmd string, payloa
 func (s *Service) callPayload(l *models.CallLog, c *domain.Contact, t *domain.Ticket) map[string]interface{} {
 	return map[string]interface{}{
 		"callId": l.CallID, "whatsappId": l.WhatsappID, "direction": l.Direction, "status": l.Status,
-		"contact": c, "ticketId": l.TicketID, "startedAt": l.StartedAt,
+		"media": l.Media, "contact": c, "ticketId": l.TicketID, "startedAt": l.StartedAt,
 	}
 }
 

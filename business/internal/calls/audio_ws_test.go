@@ -262,3 +262,85 @@ func TestServeAudio_SlowBrowserNeverBlocksEngineAndQueueStaysBounded(t *testing.
 	}
 	assert.LessOrEqual(t, bridge.ToBrowser.Len(), bridgeQueue, "a fila para o navegador nunca passa do limite")
 }
+
+// ---- vídeo no canal (fase 1) ----
+
+// videoMsg monta um quadro de vídeo no formato do canal (prefixo FF 56 44 01 + flags + ts + Annex-B).
+func videoMsg(key bool, au []byte) []byte {
+	out := []byte{0xFF, 'V', 'D', 0x01, 0, 0, 0, 0, 0}
+	if key {
+		out[4] = 0x01
+	}
+	return append(out, au...)
+}
+
+// O vídeo do contato atravessa o business até o navegador sem alteração, e o áudio continua igual.
+func TestServeAudio_VideoFromEngineReachesBrowserUnchanged(t *testing.T) {
+	r := newRig(t)
+	uid := answeredCall(t, r, "VID-1")
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "VID-1")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	engConn := <-eng.conn
+
+	au := bytes.Repeat([]byte{0x65, 0xAB}, 1500) // 3000 B: bem maior que um quadro de PCM
+	msg := videoMsg(true, au)
+	require.NoError(t, engConn.Write(ctx, websocket.MessageBinary, msg))
+
+	rctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	_, got, err := browser.Read(rctx)
+	require.NoError(t, err)
+	assert.Equal(t, msg, got, "o quadro de vídeo chega inteiro ao navegador")
+}
+
+// O gravador de ÁUDIO nunca pode receber bytes de vídeo: o Tap é só de PCM. 60 quadros de vídeo de 6 KB
+// somam ~360 KB; lidos como PCM seriam ~11 s de "áudio" (32 KB/s), e a duração gravada sairia > 0.
+func TestServeAudio_VideoNeverReachesTheAudioRecorder(t *testing.T) {
+	r := newRig(t)
+	r.withRecording(t, newMemStore())
+	r.setMode(t, "auto")
+	uid := answeredCall(t, r, "VID-2")
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("VID-2", "active")))
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "VID-2")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	engConn := <-eng.conn
+	require.True(t, r.svc.Recording().Active(r.tenant, "VID-2"))
+
+	const n = 60
+	for i := 0; i < n; i++ {
+		require.NoError(t, engConn.Write(ctx, websocket.MessageBinary, videoMsg(i == 0, bytes.Repeat([]byte{0x41}, 6000))))
+	}
+	rctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	for i := 0; i < n; i++ {
+		_, _, err := browser.Read(rctx)
+		require.NoError(t, err)
+	}
+	time.Sleep(600 * time.Millisecond)
+
+	raw, _ := json.Marshal(map[string]interface{}{"callId": "VID-2", "endReason": "user_ended", "durationSecs": 1, "direction": "incoming"})
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, raw))
+	assert.Zero(t, r.log(t, "VID-2").RecordingDurationSec, "o vídeo não pode virar áudio gravado")
+}
+
+// O vídeo e o PCM não se misturam: PCM do operador continua indo ao engine, e um quadro de vídeo vindo do
+// NAVEGADOR (fase 2, ainda não suportada) é descartado em vez de ser entregue como se fosse áudio.
+func TestServeAudio_VideoFromBrowserIsNotForwardedAsAudio(t *testing.T) {
+	r := newRig(t)
+	uid := answeredCall(t, r, "VID-3")
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "VID-3")
+	require.NoError(t, err)
+	defer browser.CloseNow()
+	<-eng.conn
+
+	require.NoError(t, browser.Write(ctx, websocket.MessageBinary, videoMsg(true, bytes.Repeat([]byte{1}, 500))))
+	pcm := make([]byte, FrameBytes)
+	require.NoError(t, browser.Write(ctx, websocket.MessageBinary, pcm))
+	assert.Eventually(t, func() bool { return len(eng.audio()) == 1 }, 2*time.Second, 10*time.Millisecond)
+	assert.Len(t, eng.audio(), 1, "só o PCM chegou ao engine; o vídeo do navegador não vira áudio")
+}

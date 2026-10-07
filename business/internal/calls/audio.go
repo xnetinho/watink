@@ -69,17 +69,31 @@ func newBridge(callID string) *Bridge {
 	return &Bridge{CallID: callID, ToEngine: newPipe(), ToBrowser: newPipe(), done: make(chan struct{})}
 }
 
-// FromBrowser registra um quadro vindo do operador.
+// IsVideoFrame diz se a mensagem binária é um quadro de VÍDEO (prefixo FF 56 44 01 + cabeçalho), o
+// mesmo formato do engine. Tudo o mais é PCM de áudio, como sempre foi.
+func IsVideoFrame(msg []byte) bool {
+	return len(msg) > videoHeaderLen && msg[0] == 0xFF && msg[1] == 'V' && msg[2] == 'D' && msg[3] == 0x01
+}
+
+// videoHeaderLen: prefixo (4) + flags (1) + timestamp de 90 kHz (4).
+const videoHeaderLen = 9
+
+// FromBrowser registra um quadro vindo do operador. O vídeo do navegador (envio, fase 2) ainda não é
+// suportado: é descartado em vez de seguir ao engine e à gravação como se fosse áudio.
 func (b *Bridge) FromBrowser(f []byte) {
+	if IsVideoFrame(f) {
+		return
+	}
 	if b.Tap != nil {
 		b.Tap(true, f)
 	}
 	b.ToEngine.Push(f)
 }
 
-// FromEngine registra um quadro vindo do contato.
+// FromEngine registra um quadro vindo do contato. O vídeo segue ao navegador pela mesma fila, mas NUNCA
+// entra no Tap: o gravador é só de áudio.
 func (b *Bridge) FromEngine(f []byte) {
-	if b.Tap != nil {
+	if b.Tap != nil && !IsVideoFrame(f) {
 		b.Tap(false, f)
 	}
 	b.ToBrowser.Push(f)
