@@ -69,6 +69,8 @@ type AudioPipe struct {
 type VideoFrame struct {
 	AccessUnit []byte
 	Keyframe   bool
+	// Rotation: quartos de volta horários (0..3) que o navegador deve girar a imagem.
+	Rotation int
 }
 
 func (p *AudioPipe) Out() <-chan []byte          { return p.out }
@@ -89,8 +91,8 @@ func (p *AudioPipe) pushPeerPCM(pcm []float32) {
 
 // pushPeerVideo entrega um quadro de vídeo do contato. NUNCA bloqueia (roda na goroutine do relay):
 // com a fila cheia descarta o mais antigo. Guarda uma CÓPIA, porque o chamador reutiliza o buffer.
-func (p *AudioPipe) pushPeerVideo(au []byte, keyframe bool) {
-	f := VideoFrame{AccessUnit: append([]byte(nil), au...), Keyframe: keyframe}
+func (p *AudioPipe) pushPeerVideo(au []byte, keyframe bool, rotation int) {
+	f := VideoFrame{AccessUnit: append([]byte(nil), au...), Keyframe: keyframe, Rotation: rotation}
 	select {
 	case <-p.done:
 		return
@@ -238,12 +240,12 @@ func (s *Session) wireMedia(ac *activeCall) {
 			ac.rxMeter.add(nil, payloadLen)
 		},
 		OnSentRtp: func(size int) { ac.txMeter.add(nil, size) },
-		OnPeerVideo: func(au []byte, keyframe bool) {
+		OnPeerVideoFrame: func(au []byte, keyframe bool, rotation int) {
 			s.mu.Lock()
 			p := ac.pipe
 			s.mu.Unlock()
 			if p != nil {
-				p.pushPeerVideo(au, keyframe)
+				p.pushPeerVideo(au, keyframe, rotation)
 			}
 		},
 	})

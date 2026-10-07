@@ -69,20 +69,46 @@ func (m *CallManager) onVideoRtp(data []byte, ssrc uint32) {
 		return
 	}
 
+	// CVO: os 2 bits baixos do MediaFrameInfo dizem quantos quartos de volta (horários) o receptor deve
+	// girar. Sem a extensão, a imagem fica como veio (0).
+	rotation, hasRotation := 0, false
+	if ext, ok := media.ParseVideoRtpExtension(pkt.Header); ok {
+		rotation, hasRotation = ext.DisplayOrientation(), true
+	}
+
 	m.mu.Lock()
+	rotationChanged := false
+	if hasRotation && m.videoOrientation != rotation {
+		m.videoOrientation = rotation
+		rotationChanged = true
+	}
 	au, ok, recovery := m.videoRx.Push(pkt.Header.SequenceNumber, pkt.Header.Marker, pkt.Payload)
 	needPLI := false
 	if recovery && time.Since(m.videoLastPLI) >= videoPLIInterval {
 		m.videoLastPLI = time.Now()
 		needPLI = true
 	}
-	onVideo, onPLI := m.OnPeerVideo, m.OnVideoKeyframeNeeded
+	onVideo, onVideoRot, onPLI := m.OnPeerVideo, m.OnPeerVideoFrame, m.OnVideoKeyframeNeeded
+	onOrient := m.OnPeerVideoOrientation
+	current := m.videoOrientation
+	if current < 0 {
+		current = 0
+	}
 	m.mu.Unlock()
 
 	if needPLI && onPLI != nil {
 		onPLI()
 	}
-	if ok && onVideo != nil {
-		onVideo(au, media.AUHasIDR(au))
+	if rotationChanged && onOrient != nil {
+		onOrient(rotation)
+	}
+	if ok {
+		key := media.AUHasIDR(au)
+		if onVideoRot != nil {
+			onVideoRot(au, key, current)
+		}
+		if onVideo != nil {
+			onVideo(au, key)
+		}
 	}
 }

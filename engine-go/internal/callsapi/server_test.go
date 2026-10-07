@@ -221,14 +221,14 @@ func TestAudioSocketCarriesVideoFrames(t *testing.T) {
 	}
 	defer c.CloseNow()
 	deadline := time.Now().Add(2 * time.Second)
-	for h.media.OnPeerVideo == nil && time.Now().Before(deadline) {
+	for h.media.OnPeerVideoFrame == nil && time.Now().Before(deadline) {
 		time.Sleep(5 * time.Millisecond)
 	}
-	if h.media.OnPeerVideo == nil {
+	if h.media.OnPeerVideoFrame == nil {
 		t.Fatal("o gancho de vídeo não foi ligado")
 	}
 	au := []byte{0, 0, 0, 1, 0x65, 9, 9, 9}
-	h.media.OnPeerVideo(au, true)
+	h.media.OnPeerVideoFrame(au, true, 3)
 	h.media.OnPeerPCM(make([]float32, 320))
 
 	gotVideo, gotAudio := false, false
@@ -243,9 +243,9 @@ func TestAudioSocketCarriesVideoFrames(t *testing.T) {
 			continue
 		}
 		if calls.IsVideoFrame(msg) {
-			_, key, body, derr := calls.DecodeVideoFrame(msg)
-			if derr != nil || !key || string(body) != string(au) {
-				t.Fatalf("quadro de vídeo adulterado: key=%v body=%x err=%v", key, body, derr)
+			_, key, rot, body, derr := calls.DecodeVideoFrame(msg)
+			if derr != nil || !key || rot != 3 || string(body) != string(au) {
+				t.Fatalf("quadro de vídeo adulterado: key=%v rot=%d body=%x err=%v", key, rot, body, derr)
 			}
 			gotVideo = true
 		} else if len(msg) == 640 {

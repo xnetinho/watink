@@ -108,7 +108,7 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
       {showVideo && (
         <canvas
           ref={canvasRef}
-          className="aspect-[4/3] w-full rounded-xl bg-black object-contain"
+          className="max-h-80 w-full rounded-xl bg-black object-contain"
           data-testid="call-video"
           aria-label={t("calls.active.videoOf")}
         />

@@ -38,6 +38,8 @@ type CallManager struct {
 	// videoRx remonta as access units do contato; recebe os pacotes na ordem em que chegam.
 	videoRx          media.H264AccessUnitAssembler
 	videoLastPLI time.Time
+	// videoOrientation é a última rotação anunciada pelo contato (-1 = ainda desconhecida).
+	videoOrientation int
 
 	firstPacketSent       bool
 	initialTransportSent  bool
@@ -64,6 +66,11 @@ type CallManager struct {
 	// OnPeerVideo (vídeo, fase 1) recebe cada access unit H.264 completa do contato, em Annex-B, e se
 	// ela é um quadro-chave. Roda na goroutine do relay: NÃO pode bloquear.
 	OnPeerVideo func(accessUnit []byte, keyframe bool)
+	// OnPeerVideoFrame é como OnPeerVideo, mas entrega também a rotação (0..3, quartos de volta horários)
+	// que o aparelho do contato anuncia no RTP (CVO): o celular em retrato manda a imagem deitada.
+	OnPeerVideoFrame func(accessUnit []byte, keyframe bool, orientation int)
+	// OnPeerVideoOrientation avisa só quando a rotação MUDA (o contato girou o aparelho).
+	OnPeerVideoOrientation func(orientation int)
 	// OnVideoKeyframeNeeded avisa que um pacote se perdeu e o contato precisa mandar um quadro-chave.
 	OnVideoKeyframeNeeded func()
 
@@ -79,9 +86,10 @@ func NewCallManager(sock core.VoipSocket, log *slog.Logger) *CallManager {
 		log = slog.Default()
 	}
 	m := &CallManager{
-		sock:        sock,
-		log:         log,
-		debeEnabled: true,
+		sock:             sock,
+		log:              log,
+		debeEnabled:      true,
+		videoOrientation: -1,
 	}
 	relay := transport.NewSctpRelayManager(log)
 	relay.SetOnConnected(func(ip string, port int) { m.onRelayConnected() })

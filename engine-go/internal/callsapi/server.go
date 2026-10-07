@@ -116,7 +116,7 @@ func serveAudio(w http.ResponseWriter, r *http.Request, b Backend) {
 			// O relógio de 90 kHz do WebCodecs é só uma referência de apresentação: o decoder do navegador
 			// usa o timestamp que vier. Um contador por quadro (≈15 fps) basta para a fase de recepção.
 			videoTs += 6000
-			if !write(ctx, c, websocket.MessageBinary, calls.EncodeVideoFrame(videoTs, v.Keyframe, v.AccessUnit)) {
+			if !write(ctx, c, websocket.MessageBinary, calls.EncodeVideoFrame(videoTs, v.Keyframe, v.Rotation, v.AccessUnit)) {
 				return
 			}
 		case t := <-pipe.Telemetry():

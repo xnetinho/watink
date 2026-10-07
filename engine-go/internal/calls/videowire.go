@@ -8,7 +8,8 @@ import "errors"
 //
 //	[FF 56 44 01][flags 1B][ts90k 4B BE][access unit Annex-B…]
 //
-// flags: bit0 = quadro-chave. (bits 1-2 reservados para a rotação, na fase de envio.)
+// flags: bit0 = quadro-chave; bits 1-2 = rotação em quartos de volta horários (0..3), o CVO que o aparelho
+// do contato anuncia: o celular em retrato manda a imagem deitada e o navegador precisa girá-la.
 var videoMagic = [4]byte{0xFF, 'V', 'D', 0x01}
 
 const (
@@ -19,12 +20,17 @@ const (
 // ErrNotVideoFrame: a mensagem não é um quadro de vídeo (é PCM ou lixo).
 var ErrNotVideoFrame = errors.New("não é um quadro de vídeo")
 
-// EncodeVideoFrame monta a mensagem binária de um quadro de vídeo.
-func EncodeVideoFrame(ts90k uint32, keyframe bool, accessUnit []byte) []byte {
+// EncodeVideoFrame monta a mensagem binária de um quadro de vídeo. rotation fora de 0..3 vale 0 (nunca
+// pode vazar para o bit de quadro-chave).
+func EncodeVideoFrame(ts90k uint32, keyframe bool, rotation int, accessUnit []byte) []byte {
 	out := make([]byte, videoHeaderLen+len(accessUnit))
 	copy(out, videoMagic[:])
+	if rotation < 0 || rotation > 3 {
+		rotation = 0
+	}
+	out[4] = byte(rotation) << 1
 	if keyframe {
-		out[4] = videoFlagKey
+		out[4] |= videoFlagKey
 	}
 	out[5], out[6], out[7], out[8] = byte(ts90k>>24), byte(ts90k>>16), byte(ts90k>>8), byte(ts90k)
 	copy(out[videoHeaderLen:], accessUnit)
@@ -40,10 +46,10 @@ func IsVideoFrame(msg []byte) bool {
 }
 
 // DecodeVideoFrame lê a mensagem; o slice devolvido aponta para dentro de msg.
-func DecodeVideoFrame(msg []byte) (ts90k uint32, keyframe bool, accessUnit []byte, err error) {
+func DecodeVideoFrame(msg []byte) (ts90k uint32, keyframe bool, rotation int, accessUnit []byte, err error) {
 	if !IsVideoFrame(msg) {
-		return 0, false, nil, ErrNotVideoFrame
+		return 0, false, 0, nil, ErrNotVideoFrame
 	}
 	ts := uint32(msg[5])<<24 | uint32(msg[6])<<16 | uint32(msg[7])<<8 | uint32(msg[8])
-	return ts, msg[4]&videoFlagKey != 0, msg[videoHeaderLen:], nil
+	return ts, msg[4]&videoFlagKey != 0, int(msg[4]>>1) & 0x03, msg[videoHeaderLen:], nil
 }

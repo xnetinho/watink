@@ -379,3 +379,68 @@ func TestRecvVideo_VoiceCallDoesNotTouchTheAssembler(t *testing.T) {
 		t.Fatalf("a chamada de voz consumiu o contexto SRTP do vídeo: %v", err)
 	}
 }
+
+// ---- orientação (CVO) ----
+
+// sendWithInfo envia uma AU como o WhatsApp, mas com o MediaFrameInfo exato (tipo de quadro + 2 bits de CVO).
+func (r *videoRig) sendWithInfo(t *testing.T, annexb []byte, info uint8, stream *media.VideoRtpStream) {
+	t.Helper()
+	parts := media.PackageH264NALU(packAU(annexb))
+	for i, p := range parts {
+		h, _ := stream.NextPacket(i == len(parts)-1, info)
+		wire, err := r.tx.Protect(&media.RtpPacket{Header: h, Payload: p})
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.m.onRelayData(wire)
+	}
+}
+
+// O celular em retrato manda o vídeo "deitado" e avisa a rotação nos 2 bits baixos do MediaFrameInfo (CVO,
+// quartos de volta horários). Sem repassar isso o navegador mostrava a imagem virada para a esquerda.
+func TestRecvVideo_ReportsDisplayOrientationFromRtpExtension(t *testing.T) {
+	r := newRecvRig(t)
+	var got []int
+	r.m.OnPeerVideoOrientation = func(q int) { got = append(got, q) }
+	s := media.NewVideoRtpStream(r.videoSsrc(), 6000)
+
+	r.sendWithInfo(t, au(0x65, 100), media.VideoFrameInfoIDR|0x03, s) // retrato: 3 quartos de volta
+	r.sendWithInfo(t, au(0x41, 100), media.VideoFrameInfoDelta|0x03, s)
+	r.sendWithInfo(t, au(0x41, 100), media.VideoFrameInfoDelta|0x03, s)
+	if len(got) != 1 || got[0] != 3 {
+		t.Fatalf("orientação reportada = %v, esperado [3] (só na mudança, não a cada quadro)", got)
+	}
+	r.sendWithInfo(t, au(0x41, 100), media.VideoFrameInfoDelta|0x01, s) // girou o aparelho
+	if len(got) != 2 || got[1] != 1 {
+		t.Fatalf("mudança de orientação não reportada: %v", got)
+	}
+}
+
+// A orientação acompanha o quadro: o hook de vídeo recebe a rotação junto com a AU.
+func TestRecvVideo_DeliversOrientationWithTheFrame(t *testing.T) {
+	r := newRecvRig(t)
+	var orient []int
+	r.m.OnPeerVideo = nil
+	r.m.OnPeerVideoFrame = func(au []byte, key bool, q int) { orient = append(orient, q) }
+	s := media.NewVideoRtpStream(r.videoSsrc(), 6000)
+	r.sendWithInfo(t, au(0x65, 100), media.VideoFrameInfoIDR|0x02, s)
+	r.sendWithInfo(t, au(0x41, 100), media.VideoFrameInfoDelta|0x02, s)
+	if len(orient) != 2 || orient[0] != 2 || orient[1] != 2 {
+		t.Fatalf("rotação por quadro = %v, esperado [2 2]", orient)
+	}
+}
+
+// Sem a extensão (ou com perfil estranho) a imagem fica sem rotação, sem quebrar.
+func TestRecvVideo_NoExtensionMeansNoRotation(t *testing.T) {
+	r := newRecvRig(t)
+	var orient []int
+	r.m.OnPeerVideo = nil
+	r.m.OnPeerVideoFrame = func(au []byte, key bool, q int) { orient = append(orient, q) }
+	h := media.NewRtpHeader(media.PayloadTypeH264, 1, 0, r.videoSsrc())
+	h.Marker = true
+	wire, _ := r.tx.Protect(&media.RtpPacket{Header: h, Payload: []byte{0x65, 1, 2, 3}})
+	r.m.onRelayData(wire)
+	if len(orient) != 1 || orient[0] != 0 {
+		t.Fatalf("sem extensão a rotação é 0: %v", orient)
+	}
+}

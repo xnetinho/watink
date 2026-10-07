@@ -18,10 +18,10 @@ func TestVideoPipe_IsSeparateFromAudioQueue(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer p.Close()
-	eventually(t, "mídia ligada", func() bool { return r.handle(0).media.OnPeerVideo != nil })
+	eventually(t, "mídia ligada", func() bool { return r.handle(0).media.OnPeerVideoFrame != nil })
 
 	for i := 0; i < videoQueueFrames+10; i++ {
-		r.handle(0).media.OnPeerVideo([]byte{0, 0, 0, 1, 0x41, byte(i)}, false)
+		r.handle(0).media.OnPeerVideoFrame([]byte{0, 0, 0, 1, 0x41, byte(i)}, false, 0)
 	}
 	select {
 	case <-p.Out():
@@ -48,15 +48,18 @@ func TestVideoPipe_KeyframeFlagAndCopy(t *testing.T) {
 	_ = r.s.Accept(context.Background(), callA)
 	p, _ := r.s.OpenAudio(callA)
 	defer p.Close()
-	eventually(t, "mídia ligada", func() bool { return r.handle(0).media.OnPeerVideo != nil })
+	eventually(t, "mídia ligada", func() bool { return r.handle(0).media.OnPeerVideoFrame != nil })
 
 	buf := []byte{0, 0, 0, 1, 0x65, 1, 2, 3}
-	r.handle(0).media.OnPeerVideo(buf, true)
+	r.handle(0).media.OnPeerVideoFrame(buf, true, 2)
 	buf[5] = 99 // o chamador reutiliza o buffer: a cópia da fila não pode mudar
 	select {
 	case f := <-p.Video():
 		if !f.Keyframe {
 			t.Fatal("flag de keyframe perdida")
+		}
+		if f.Rotation != 2 {
+			t.Fatalf("a rotação se perdeu na fila: %d", f.Rotation)
 		}
 		if !bytes.Equal(f.AccessUnit, []byte{0, 0, 0, 1, 0x65, 1, 2, 3}) {
 			t.Fatalf("a fila guardou uma referência, não uma cópia: %x", f.AccessUnit)
@@ -72,9 +75,9 @@ func TestVideoPipe_NoPipeDropsSilently(t *testing.T) {
 	r.s.OnOffer(context.Background(), offer(callA, pn("5511999990001")))
 	_ = r.s.Ready(context.Background(), callA)
 	_ = r.s.Accept(context.Background(), callA)
-	eventually(t, "mídia ligada", func() bool { return r.handle(0).media.OnPeerVideo != nil })
+	eventually(t, "mídia ligada", func() bool { return r.handle(0).media.OnPeerVideoFrame != nil })
 	done := make(chan struct{})
-	go func() { r.handle(0).media.OnPeerVideo([]byte{1, 2, 3}, false); close(done) }()
+	go func() { r.handle(0).media.OnPeerVideoFrame([]byte{1, 2, 3}, false, 0); close(done) }()
 	select {
 	case <-done:
 	case <-time.After(time.Second):

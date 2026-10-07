@@ -88,6 +88,8 @@ type MediaHooks struct {
 	// OnPeerVideo recebe cada access unit H.264 (Annex-B) completa do contato. Roda na goroutine do
 	// relay: nunca pode bloquear.
 	OnPeerVideo func(accessUnit []byte, keyframe bool)
+	// OnPeerVideoFrame é como OnPeerVideo, com a rotação (0..3) anunciada pelo aparelho do contato.
+	OnPeerVideoFrame func(accessUnit []byte, keyframe bool, rotation int)
 }
 
 // NewHandleFunc cria o gerenciador de uma chamada sobre o socket da sessão.
