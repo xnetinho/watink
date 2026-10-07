@@ -10,6 +10,21 @@ import (
 // SSRCs de vídeo: o mesmo HKDF do áudio (callID, JID do aparelho), com o slot 2 no lugar do 0. O
 // vídeo é uma mídia à parte da mesma chamada, com SSRC, sequência e ROC próprios, mas as mesmas chaves.
 
+// receiverRotation converte o valor CVO anunciado no sentido que o receptor realmente deve girar. O
+// Android do contato (confirmado ao vivo, em retrato) anuncia 1 e 3 trocados em relação ao padrão que
+// a meowcaller documenta: aplicar o valor direto deixava a imagem de cabeça para baixo. 0 e 2 não
+// dependem do sentido. ponytail: vale para o aparelho testado; se um iPhone ou a câmera traseira aparecer
+// invertido, o valor bruto está no log "peer video orientation" e a troca passa a depender de um sinal.
+func receiverRotation(announced int) int {
+	switch announced {
+	case 1:
+		return 3
+	case 3:
+		return 1
+	}
+	return announced
+}
+
 // isVideoCallLocked diz se a chamada atual foi negociada com vídeo. Precisa estar com m.mu travado.
 func (m *CallManager) isVideoCallLocked() bool {
 	return m.currentCall != nil && m.currentCall.MediaType == core.CallMediaTypeVideo
@@ -73,7 +88,7 @@ func (m *CallManager) onVideoRtp(data []byte, ssrc uint32) {
 	// girar. Sem a extensão, a imagem fica como veio (0).
 	rotation, hasRotation := 0, false
 	if ext, ok := media.ParseVideoRtpExtension(pkt.Header); ok {
-		rotation, hasRotation = ext.DisplayOrientation(), true
+		rotation, hasRotation = receiverRotation(ext.DisplayOrientation()), true
 	}
 
 	m.mu.Lock()
@@ -81,6 +96,7 @@ func (m *CallManager) onVideoRtp(data []byte, ssrc uint32) {
 	if hasRotation && m.videoOrientation != rotation {
 		m.videoOrientation = rotation
 		rotationChanged = true
+		m.log.Info("peer video orientation", "rotation", rotation)
 	}
 	au, ok, recovery := m.videoRx.Push(pkt.Header.SequenceNumber, pkt.Header.Marker, pkt.Payload)
 	needPLI := false

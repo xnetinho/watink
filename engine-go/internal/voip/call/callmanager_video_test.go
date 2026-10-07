@@ -404,14 +404,14 @@ func TestRecvVideo_ReportsDisplayOrientationFromRtpExtension(t *testing.T) {
 	r.m.OnPeerVideoOrientation = func(q int) { got = append(got, q) }
 	s := media.NewVideoRtpStream(r.videoSsrc(), 6000)
 
-	r.sendWithInfo(t, au(0x65, 100), media.VideoFrameInfoIDR|0x03, s) // retrato: 3 quartos de volta
+	r.sendWithInfo(t, au(0x65, 100), media.VideoFrameInfoIDR|0x03, s) // anunciado 3 → o receptor gira 1 (Android invertido)
 	r.sendWithInfo(t, au(0x41, 100), media.VideoFrameInfoDelta|0x03, s)
 	r.sendWithInfo(t, au(0x41, 100), media.VideoFrameInfoDelta|0x03, s)
-	if len(got) != 1 || got[0] != 3 {
-		t.Fatalf("orientação reportada = %v, esperado [3] (só na mudança, não a cada quadro)", got)
+	if len(got) != 1 || got[0] != 1 {
+		t.Fatalf("orientação reportada = %v, esperado [1] (só na mudança, não a cada quadro)", got)
 	}
 	r.sendWithInfo(t, au(0x41, 100), media.VideoFrameInfoDelta|0x01, s) // girou o aparelho
-	if len(got) != 2 || got[1] != 1 {
+	if len(got) != 2 || got[1] != 3 {
 		t.Fatalf("mudança de orientação não reportada: %v", got)
 	}
 }
@@ -442,5 +442,14 @@ func TestRecvVideo_NoExtensionMeansNoRotation(t *testing.T) {
 	r.m.onRelayData(wire)
 	if len(orient) != 1 || orient[0] != 0 {
 		t.Fatalf("sem extensão a rotação é 0: %v", orient)
+	}
+}
+
+// Os quartos ímpares chegam trocados do Android; 0 e 2 não dependem do sentido do giro.
+func TestReceiverRotation_SwapsOddQuartersOnly(t *testing.T) {
+	for in, want := range map[int]int{0: 0, 1: 3, 2: 2, 3: 1} {
+		if got := receiverRotation(in); got != want {
+			t.Fatalf("receiverRotation(%d) = %d, esperado %d", in, got, want)
+		}
 	}
 }
