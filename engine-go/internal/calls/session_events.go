@@ -47,8 +47,10 @@ func (s *Session) OnOffer(ctx context.Context, evt *events.CallOffer) {
 	peer := creator.String()
 	pn := s.callerPN(ctx, evt.CallCreator, evt.CallCreatorAlt)
 
+	// Vídeo 1:1 é suportado (fase 1 do plano add-whatsapp-video-calls); só o grupo continua sem suporte.
+	isVideo := hasChild(evt.Data, "video")
 	switch {
-	case !evt.GroupJID.IsEmpty() || hasChild(evt.Data, "video"):
+	case !evt.GroupJID.IsEmpty():
 		s.missed(callID, peer, pn, ReasonUnsupportedType)
 		return
 	case s.proxied:
@@ -72,8 +74,12 @@ func (s *Session) OnOffer(ctx context.Context, evt *events.CallOffer) {
 		defer close(ac.offerDone)
 		s.run(ac, func() { ac.h.HandleOffer(ctx, wrapCall(evt.From, evt.Data), evt.From) })
 	}()
+	mediaKind := "audio"
+	if isVideo {
+		mediaKind = "video"
+	}
 	s.emit("call.incoming", map[string]interface{}{
-		"callId": callID, "peer": peer, "callerPn": pn, "direction": "incoming", "media": "audio",
+		"callId": callID, "peer": peer, "callerPn": pn, "direction": "incoming", "media": mediaKind,
 	})
 }
 

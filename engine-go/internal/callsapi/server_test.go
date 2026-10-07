@@ -211,3 +211,48 @@ func TestCallEndClosesWebSocket(t *testing.T) {
 		}
 	}
 }
+
+// O quadro de vídeo do contato sai no mesmo WebSocket, com o prefixo mágico, e o áudio não é afetado.
+func TestAudioSocketCarriesVideoFrames(t *testing.T) {
+	srv, h, _ := setup(t)
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.CloseNow()
+	deadline := time.Now().Add(2 * time.Second)
+	for h.media.OnPeerVideo == nil && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if h.media.OnPeerVideo == nil {
+		t.Fatal("o gancho de vídeo não foi ligado")
+	}
+	au := []byte{0, 0, 0, 1, 0x65, 9, 9, 9}
+	h.media.OnPeerVideo(au, true)
+	h.media.OnPeerPCM(make([]float32, 320))
+
+	gotVideo, gotAudio := false, false
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	for i := 0; i < 4 && !(gotVideo && gotAudio); i++ {
+		typ, msg, err := c.Read(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if typ != websocket.MessageBinary {
+			continue
+		}
+		if calls.IsVideoFrame(msg) {
+			_, key, body, derr := calls.DecodeVideoFrame(msg)
+			if derr != nil || !key || string(body) != string(au) {
+				t.Fatalf("quadro de vídeo adulterado: key=%v body=%x err=%v", key, body, derr)
+			}
+			gotVideo = true
+		} else if len(msg) == 640 {
+			gotAudio = true
+		}
+	}
+	if !gotVideo || !gotAudio {
+		t.Fatalf("vídeo=%v áudio=%v: os dois tinham de chegar", gotVideo, gotAudio)
+	}
+}

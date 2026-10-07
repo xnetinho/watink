@@ -296,22 +296,60 @@ func TestBusy_SecondOfferIsIgnoredNotRejected(t *testing.T) {
 	}
 }
 
-func TestUnsupportedTypes_AreIgnored(t *testing.T) {
+// Chamada em GRUPO continua sem suporte (fora do escopo do vídeo): ignorada, o celular segue tocando.
+func TestUnsupportedTypes_GroupIsIgnored(t *testing.T) {
 	r := newRig(t, false, nil)
-	video := offer(callA, pn("5511999990001"))
-	video.Data = &waBinary.Node{Tag: "offer", Content: []waBinary.Node{{Tag: "video"}}}
-	r.s.OnOffer(context.Background(), video)
-
 	group := offer(callB, pn("5511999990002"))
 	group.GroupJID = types.NewJID("123", types.GroupServer)
 	r.s.OnOffer(context.Background(), group)
 
 	m := r.evs("call.missed")
-	if len(m) != 2 || m[0]["reason"] != ReasonUnsupportedType || m[1]["reason"] != ReasonUnsupportedType {
+	if len(m) != 1 || m[0]["reason"] != ReasonUnsupportedType {
 		t.Fatalf("call.missed: %v", m)
 	}
 	if r.nHandles() != 0 || len(r.evs("call.incoming")) != 0 {
-		t.Fatal("tipo não suportado não pode abrir gerenciador nem tocar")
+		t.Fatal("grupo não pode abrir gerenciador nem tocar")
+	}
+}
+
+// Oferta com vídeo (1:1) agora TOCA como videochamada, em vez de ser descartada como "tipo não
+// suportado" (fase 1 do plano add-whatsapp-video-calls). A voz continua anunciando "audio".
+func TestVideoOffer_RingsAsVideoCall(t *testing.T) {
+	r := newRig(t, false, nil)
+	video := offer(callA, pn("5511999990001"))
+	video.Data = &waBinary.Node{Tag: "offer", Content: []waBinary.Node{{Tag: "video"}}}
+	r.s.OnOffer(context.Background(), video)
+
+	if len(r.evs("call.missed")) != 0 {
+		t.Fatalf("videochamada não pode virar perdida: %v", r.evs("call.missed"))
+	}
+	in := r.evs("call.incoming")
+	if len(in) != 1 || in[0]["media"] != "video" {
+		t.Fatalf("call.incoming deveria anunciar media=video: %v", in)
+	}
+	if r.nHandles() != 1 {
+		t.Fatalf("a videochamada precisa de gerenciador: %d", r.nHandles())
+	}
+}
+
+func TestVoiceOffer_StillAnnouncesAudio(t *testing.T) {
+	r := newRig(t, false, nil)
+	r.s.OnOffer(context.Background(), offer(callA, pn("5511999990001")))
+	in := r.evs("call.incoming")
+	if len(in) != 1 || in[0]["media"] != "audio" {
+		t.Fatalf("voz deve anunciar media=audio: %v", in)
+	}
+}
+
+// Videochamada com proxy continua bloqueada: a mídia sairia pelo IP do servidor (ADR 0021).
+func TestVideoOffer_ProxyStillBlocks(t *testing.T) {
+	r := newRig(t, true, nil)
+	video := offer(callA, pn("5511999990001"))
+	video.Data = &waBinary.Node{Tag: "offer", Content: []waBinary.Node{{Tag: "video"}}}
+	r.s.OnOffer(context.Background(), video)
+	m := r.evs("call.missed")
+	if len(m) != 1 || m[0]["reason"] != ReasonProxyBlocked || r.nHandles() != 0 {
+		t.Fatalf("proxy tem de bloquear o vídeo: %v handles=%d", m, r.nHandles())
 	}
 }
 

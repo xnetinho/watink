@@ -73,6 +73,7 @@ func (h *managerHandle) SetMedia(k MediaHooks) {
 	h.m.OnPeerAudio = k.OnPeerPCM
 	h.m.OnPeerRtp = k.OnPeerRtp
 	h.m.OnSentRtp = k.OnSentRtp
+	h.m.OnPeerVideo = k.OnPeerVideo
 }
 func (h *managerHandle) FeedPCM(pcm []float32)   { h.m.FeedCapturedPCM(pcm) }
 func (h *managerHandle) RelayRTTMs() (int, bool) { return h.m.RelayRTTMs() }

@@ -85,6 +85,9 @@ type MediaHooks struct {
 	OnPeerPCM func(pcm []float32)
 	OnPeerRtp func(seq uint16, timestamp uint32, payloadLen int)
 	OnSentRtp func(size int)
+	// OnPeerVideo recebe cada access unit H.264 (Annex-B) completa do contato. Roda na goroutine do
+	// relay: nunca pode bloquear.
+	OnPeerVideo func(accessUnit []byte, keyframe bool)
 }
 
 // NewHandleFunc cria o gerenciador de uma chamada sobre o socket da sessão.

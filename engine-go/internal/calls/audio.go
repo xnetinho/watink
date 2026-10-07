@@ -17,6 +17,10 @@ const (
 	// outQueueFrames: no máximo 1 s de áudio na fila rumo ao business. Cheia, o
 	// quadro mais antigo é descartado: atraso acumulado é pior que um pico de ruído.
 	outQueueFrames = 50
+	// videoQueueFrames: no máximo ~2 s de vídeo (15 fps ≈ 30 quadros) na fila rumo ao business. Cheia,
+	// o mais antigo é descartado: vídeo atrasado é pior que um quadro a menos. É uma fila SEPARADA da
+	// de áudio, para o vídeo nunca atrasar nem empurrar o PCM.
+	videoQueueFrames = 32
 	// audioGrace: sem o canal de áudio por esse tempo numa chamada atendida, o
 	// engine a encerra (o business já encerra antes, aos 10 s; isto é a rede de segurança).
 	audioGrace = 30 * time.Second
@@ -53,6 +57,7 @@ type AudioPipe struct {
 	s         *Session
 	ac        *activeCall
 	out       chan []byte
+	video     chan VideoFrame
 	tel       chan Telemetry
 	done      chan struct{}
 	once      sync.Once
@@ -60,7 +65,14 @@ type AudioPipe struct {
 	tickEvery time.Duration
 }
 
+// VideoFrame é uma access unit H.264 (Annex-B) completa do contato.
+type VideoFrame struct {
+	AccessUnit []byte
+	Keyframe   bool
+}
+
 func (p *AudioPipe) Out() <-chan []byte          { return p.out }
+func (p *AudioPipe) Video() <-chan VideoFrame    { return p.video }
 func (p *AudioPipe) Telemetry() <-chan Telemetry { return p.tel }
 func (p *AudioPipe) Done() <-chan struct{}       { return p.done }
 func (p *AudioPipe) QueueLen() int               { return len(p.out) }
@@ -72,6 +84,29 @@ func (p *AudioPipe) pushPeerPCM(pcm []float32) {
 	for len(b) >= frameBytes {
 		p.pushFrame(b[:frameBytes:frameBytes])
 		b = b[frameBytes:]
+	}
+}
+
+// pushPeerVideo entrega um quadro de vídeo do contato. NUNCA bloqueia (roda na goroutine do relay):
+// com a fila cheia descarta o mais antigo. Guarda uma CÓPIA, porque o chamador reutiliza o buffer.
+func (p *AudioPipe) pushPeerVideo(au []byte, keyframe bool) {
+	f := VideoFrame{AccessUnit: append([]byte(nil), au...), Keyframe: keyframe}
+	select {
+	case <-p.done:
+		return
+	default:
+	}
+	for {
+		select {
+		case p.video <- f:
+			return
+		default:
+			select {
+			case <-p.video:
+				p.dropped.Add(1)
+			default:
+			}
+		}
 	}
 }
 
@@ -153,7 +188,7 @@ func (s *Session) OpenAudio(callID string) (*AudioPipe, error) {
 		s.mu.Unlock()
 		return nil, ErrAudioInUse
 	}
-	p := &AudioPipe{s: s, ac: ac, out: make(chan []byte, outQueueFrames), tel: make(chan Telemetry, 4),
+	p := &AudioPipe{s: s, ac: ac, out: make(chan []byte, outQueueFrames), video: make(chan VideoFrame, videoQueueFrames), tel: make(chan Telemetry, 4),
 		done: make(chan struct{}), tickEvery: s.tickEvery}
 	ac.pipe = p
 	if ac.grace != nil {
@@ -203,6 +238,14 @@ func (s *Session) wireMedia(ac *activeCall) {
 			ac.rxMeter.add(nil, payloadLen)
 		},
 		OnSentRtp: func(size int) { ac.txMeter.add(nil, size) },
+		OnPeerVideo: func(au []byte, keyframe bool) {
+			s.mu.Lock()
+			p := ac.pipe
+			s.mu.Unlock()
+			if p != nil {
+				p.pushPeerVideo(au, keyframe)
+			}
+		},
 	})
 }
 
