@@ -60,5 +60,4 @@ const (
 	GroupCampaignRunStatusRunning   = "running"
 	GroupCampaignRunStatusCompleted = "completed"
 	GroupCampaignRunStatusCanceled  = "canceled"
-	GroupCampaignRunStatusFailed    = "failed"
 )

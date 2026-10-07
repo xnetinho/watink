@@ -47,10 +47,6 @@ func NewPluginController(planLimitSvc domain.PlanLimitServiceInterface, db *gorm
 	return &PluginController{planLimitSvc: planLimitSvc, db: db, registry: registry, license: license, pmProxy: pmProxy}
 }
 
-type checkoutRequest struct {
-	Slug string `json:"slug" binding:"required"`
-}
-
 // @Summary      Ativar/instalar plugin (legado)
 // @Description  Endpoint legado -- superado por POST /plugins/:slug/activate.
 // @Tags         plugins
