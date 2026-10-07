@@ -17,10 +17,14 @@ export interface CallContactInfo {
 }
 
 /** Corpo do evento `call.incoming` e do `POST /calls` / `accept`. */
+export type CallMedia = "audio" | "video";
+
 export interface CallEventPayload {
   callId: string;
   whatsappId: number;
   direction: CallDirection;
+  /** Ausente (engine anterior ao vídeo) vale "audio". */
+  media?: CallMedia;
   status?: string;
   contact?: CallContactInfo;
   ticketId?: number | null;
@@ -45,6 +49,7 @@ export interface CallQuality {
 export interface ActiveCall {
   callId: string;
   direction: CallDirection;
+  media: CallMedia;
   phase: CallPhase;
   whatsappId: number;
   contact: CallContactInfo;

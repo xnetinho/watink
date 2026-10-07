@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Phone, PhoneOff } from "lucide-react";
+import { Phone, PhoneOff, Video } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,7 +16,7 @@ import ringtone from "@/assets/sound.mp3";
 const IncomingCallModal: React.FC<{ connectionName?: (whatsappId: number) => string | undefined }> = ({
   connectionName,
 }) => {
-  const { ringing, accept, reject, active } = useCalls();
+  const { ringing, accept, reject, active, videoSink } = useCalls();
   const current = ringing[0];
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -40,6 +40,7 @@ const IncomingCallModal: React.FC<{ connectionName?: (whatsappId: number) => str
   const name = displayName(current.contact, t("calls.unknownContact"));
   const connection = connectionName?.(current.whatsappId);
   const busy = !!active;
+  const isVideo = current.media === "video";
 
   return (
     <>
@@ -48,6 +49,7 @@ const IncomingCallModal: React.FC<{ connectionName?: (whatsappId: number) => str
         <DialogContent
           className="max-w-sm"
           data-testid="incoming-call"
+          data-media={current.media}
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
@@ -55,10 +57,16 @@ const IncomingCallModal: React.FC<{ connectionName?: (whatsappId: number) => str
             <Avatar size="xl" src={current.contact.profilePicUrl} name={name} />
             <DialogTitle className="mt-2">{name}</DialogTitle>
             <DialogDescription>
-              {t("calls.incoming.title")}
+              {isVideo ? t("calls.incoming.videoTitle") : t("calls.incoming.title")}
               {connection ? ` · ${t("calls.incoming.connection")}: ${connection}` : ""}
             </DialogDescription>
           </DialogHeader>
+          {isVideo && !videoSink.supported && (
+            <p className="flex items-start gap-1.5 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground" data-testid="incoming-video-unsupported">
+              <Video className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{t("calls.incoming.videoUnsupported")}</span>
+            </p>
+          )}
           {ringing.length > 1 && (
             <p className="text-center text-xs text-muted-foreground">+{ringing.length - 1}</p>
           )}

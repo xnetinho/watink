@@ -27,6 +27,11 @@ Este diretório é um porte da pilha de voz do WhatsApp do projeto **WaCalls**.
 | `media/mlow/{fft,lpc,perc,analysis}.go`: tabela de twiddle da FFT pré-calculada e buffers reutilizados | `arthost/WaCalls` commit `7e06e90` (2026-07-16) | Cópia dos arquivos do commit. Mantém a aritmética float32 original: 160 de 160 pacotes codificados idênticos aos do porte original. Codificar 60 ms caiu de ~10,0 para ~3,9 ms. |
 | `call/callmanager.go`: `reject`/`terminate` enviados fora do contexto do chamador; `terminate` vai ao aparelho que atendeu; `RejectCall` devolve o erro de transição inválida | `arthost/WaCalls` commits `3123307` e `8ef1695` e `call/callmanager_endsend_test.go` | Reescrito sobre o nosso `callmanager.go`. Antes o envio era abandonado se o contexto do comando já tivesse sido cancelado. |
 
+| `media/h264.go` (+ `h264_test.go`): packetizer FU-A, depacketizer e `H264AccessUnitAssembler` com recuperação de IDR | `purpshell/meowcaller` `rtp/h264.go` (MIT, Rajeh Taher), que o traz do WaCalls `feat/video-calls` (jotadev66) | Cópia com o pacote renomeado. A AU inteira vai como um único NAL em FU-A de 800 bytes, porque é assim que o WhatsApp a envia (fixado por teste) |
+| `media/h264_rtp.go` (+ testes): extensão RTP `0xDEBE` de vídeo e `VideoRtpStream` | `purpshell/meowcaller` `rtp/rtp.go`; o `fabriciosprj/WaCalls-Video` descobriu que sem o tipo de quadro nela o WhatsApp nunca trata um quadro como keyframe | Reescrito sobre o nosso `RtpHeader`. Os testes usam os bytes de capturas reais (Android e web) |
+| `signaling/video.go` (+ `video_test.go`): `<video>` H.264, estados 0..11 e ack tipado | `purpshell/meowcaller` `signaling/video.go` | Adaptado aos tipos do whatsmeow upstream. O `<video>` anterior (`vp8`) foi removido: o iPhone o ignora |
+| `media/srtp.go`: estado de sequência, ROC e anti-replay por SSRC | Achado nosso, ao somar o vídeo | `SrtpSession` mantém um contexto por SSRC com as mesmas chaves |
+
 Os testes de bit-exactness (`fft_bitexact_test.go`) falham se o cálculo do ângulo mudar.
 Em `mlow/*.go` o commit também troca `for i := 0; i < n; i++` por `for i := range n`
 (equivalente). `fft_bench_test.go` ganhou as duas constantes que vinham do adaptador de codec

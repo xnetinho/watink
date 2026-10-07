@@ -13,6 +13,7 @@ import {
   rms,
 } from "./pcm";
 import { CAPTURE_PROCESSOR, PLAYBACK_PROCESSOR, loadCallWorklets } from "./worklet";
+import { decodeVideoFrame, isVideoFrame, type VideoFrame } from "./videoFrame";
 
 export type AudioFailure = "mic_denied" | "mic_unavailable" | "socket" | "unsupported" | "audio_unavailable";
 
@@ -39,6 +40,8 @@ export interface UseCallAudioOptions {
   muted: boolean;
   onFailure: (reason: AudioFailure) => void;
   onTelemetry?: (t: CallTelemetry) => void;
+  /** Recebe cada quadro de vídeo do contato. Sem isto o vídeo é ignorado (chamada de voz). */
+  onVideoFrame?: (frame: VideoFrame) => void;
 }
 
 function getToken(): string {
@@ -68,10 +71,11 @@ export function classifyMicError(err: unknown): AudioFailure {
  * 16 kHz mono Int16 com quadros de 20 ms, e reproduz o que chega com um jitter
  * buffer de ~60 ms. Encerra tudo ao desmontar ou quando `enabled` volta a falso.
  */
-export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry }: UseCallAudioOptions) {
+export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, onVideoFrame }: UseCallAudioOptions) {
   const mutedRef = useRef(muted);
   const failureRef = useRef(onFailure);
   const telemetryRef = useRef(onTelemetry);
+  const videoRef = useRef(onVideoFrame);
   const [connected, setConnected] = useState(false);
   const [levels, setLevels] = useState({ tx: 0, rx: 0 });
 
@@ -81,7 +85,8 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry }:
   useEffect(() => {
     failureRef.current = onFailure;
     telemetryRef.current = onTelemetry;
-  }, [onFailure, onTelemetry]);
+    videoRef.current = onVideoFrame;
+  }, [onFailure, onTelemetry, onVideoFrame]);
 
   const cleanupRef = useRef<(() => void) | null>(null);
   const teardown = useCallback(() => {
@@ -153,6 +158,14 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry }:
             const t = JSON.parse(ev.data) as CallTelemetry;
             if (t.type === "quality") telemetryRef.current?.(t);
           } catch { /* mensagem de controle inválida: ignora */ }
+          return;
+        }
+        // Vídeo do contato (prefixo FF 56 44 01): segue ao decodificador e NUNCA vira PCM. O áudio é
+        // sempre uma mensagem de 640 bytes sem cabeçalho e continua exatamente como antes.
+        const raw = new Uint8Array(ev.data as ArrayBuffer);
+        if (isVideoFrame(raw)) {
+          const vf = decodeVideoFrame(raw);
+          if (vf) videoRef.current?.(vf);
           return;
         }
         const pcm = bytesToInt16(ev.data as ArrayBuffer);

@@ -167,6 +167,25 @@ describe("callsReducer", () => {
     expect(s.active?.connectedAt).not.toBeNull();
   });
 
+  it("videochamada: a mídia vai do toque para a chamada ativa", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: { ...incoming(), media: "video" } });
+    expect(s.ringing.C1.media).toBe("video");
+    s = callsReducer(s, { type: "accepted", payload: incoming() });
+    expect(s.active?.media).toBe("video");
+  });
+
+  it("sem media no evento, a chamada é de voz (engine antigo)", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming() });
+    expect(s.ringing.C1.media).toBe("audio");
+    s = callsReducer(s, { type: "accepted", payload: incoming() });
+    expect(s.active?.media).toBe("audio");
+  });
+
+  it("chamada de saída guarda a mídia pedida", () => {
+    const s = callsReducer(initialCallsState(), { type: "originate", payload: { ...incoming(), direction: "outgoing", media: "video" } });
+    expect(s.active?.media).toBe("video");
+  });
+
   it("pausado: toques que chegam não aparecem e os que estavam na tela somem", () => {
     let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming("A") });
     s = callsReducer(s, { type: "pause", paused: true });

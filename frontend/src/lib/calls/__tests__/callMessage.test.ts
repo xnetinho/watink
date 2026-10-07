@@ -74,3 +74,21 @@ describe("recordingView", () => {
     ["qualquer", "none"],
   ])("%s -> %s", (s, v) => expect(recordingView({ recordingStatus: s })).toBe(v));
 });
+
+describe("mídia da chamada", () => {
+  it("lê media=video do registro", () => {
+    expect(parseCallData({ ...base, media: "video" })?.media).toBe("video");
+  });
+  it("sem media (registro antigo) vale voz", () => {
+    expect(parseCallData(base)?.media).toBe("audio");
+    expect(parseCallData({ ...base, media: "outra-coisa" })?.media).toBe("audio");
+  });
+  it("o título de uma videochamada tem chave própria; a de voz continua igual", () => {
+    expect(callTitleKey({ status: "ended", direction: "incoming", media: "video" })).toBe("calls.message.videoReceived");
+    expect(callTitleKey({ status: "ended", direction: "outgoing", media: "video" })).toBe("calls.message.videoMade");
+    expect(callTitleKey({ status: "missed", direction: "incoming", media: "video" })).toBe("calls.message.videoMissed");
+    expect(callTitleKey({ status: "ended", direction: "incoming", media: "audio" })).toBe("calls.message.received");
+    expect(callTitleKey({ status: "ended", direction: "outgoing", media: "audio" })).toBe("calls.message.made");
+  });
+});
+

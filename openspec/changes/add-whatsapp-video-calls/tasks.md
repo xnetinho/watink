@@ -17,11 +17,14 @@
       payload 800), depacketizador e `H264AccessUnitAssembler` com recuperação de IDR; trazer os vetores de teste
 - [x] 0.4 Cabeçalho RTP de vídeo com extensão `0xDEBE` (`MediaFrameInfo` 0x08/0x20, `FrameNumber`,
       `TransportSequence`) e `VideoRtpStream`; testes com os bytes das capturas (`rtp_test.go:89-212`)
-- [ ] 0.5 SSRC de vídeo com slot 2 e subscrição no relay junto do áudio; teste cruzado do `GenerateSecureSsrc`
-- [ ] 0.6 SRTP do vídeo: mesmo `callKey`/HKDF por JID, ROC e replay **independentes por SSRC**; teste de
-      round-trip de vídeo e de que um pacote de vídeo repetido é rejeitado sem afetar o áudio
-- [ ] 0.7 **`rxLockedSsrc` por tipo de mídia**: o dedup de relay não pode travar no SSRC do áudio e descartar o
-      vídeo; teste com áudio e vídeo chegando por 3 relays
+- [x] 0.5 SSRC de vídeo com slot 2 e subscrição no relay junto do áudio; teste cruzado do `GenerateSecureSsrc`
+- [x] 0.6 SRTP do vídeo: mesmas chaves, mas **estado de sequência, ROC e anti-replay por SSRC** (`SrtpSession` agora
+      guarda um contexto por SSRC). Achado: com um contexto único o vídeo (seq alto) empurrava a janela do áudio e o
+      derrubava como "repetido". Testes de intercalação, replay por fluxo, ROC por fluxo e pacote forjado de vídeo
+- [x] 0.7 O dedup de relay (`rxLockedSsrc`) do arthost **não existe no nosso porte**, então o risco que ele tinha não se
+      aplica; o demux por payload type 97 em `onRelayData` manda o vídeo ao caminho próprio e não toca na subscrição
+      de áudio (`peerSsrcs`/`actualPeerSet`); teste cobre, e o anti-replay descarta as cópias do mesmo pacote vindas de
+      outros relays
 - [ ] 0.8 **Adiado para a fase 4.** O ack tipado `<ack class="call" type="video">` só importa no upgrade no meio da
       chamada: o changelog da meowcaller diz que "from-start video calls are unaffected" (o vídeo é negociado no
       offer/accept). Exige interceptar o `<call>` por reflection+unsafe no `nodeHandlers` do whatsmeow (marcado NOT
@@ -31,16 +34,20 @@
 
 ## 1. Receber vídeo
 
-- [ ] 1.1 Engine: demux do PT 97 → assembler → entrega ao business; PLI com throttle de 300 ms na lacuna
-- [ ] 1.2 Protocolo do canal: byte de tipo (`0x01` PCM, `0x02` vídeo, `0x03` pede keyframe) no WebSocket
-      existente, sem quebrar clientes só de áudio; limites de tamanho e fila limitada com descarte do mais
-      antigo; testes de ida e volta e de fila lenta que nunca trava o áudio
-- [ ] 1.3 Business: ponte do vídeo no `ServeAudio`, mesma autorização e canal único; `call.state` indica
+- [x] 1.1 Engine: demux do PT 97 → assembler → `OnPeerVideo`, com a AU em Annex-B e a flag de quadro-chave; lacuna de
+      sequência descarta o quadro quebrado e só volta a entregar num IDR. **O PLI (pedido de quadro-chave ao contato)
+      ficou para a fase 2:** exige SRTCP cifrado, que o engine ainda não tem. O gancho `OnVideoKeyframeNeeded` existe
+      e é throttled a 300 ms; hoje a recuperação depende de o contato mandar um IDR sozinho
+- [x] 1.2 Protocolo do canal (**revisado**): o PCM segue **intocado** (640 B, sem cabeçalho); o vídeo é uma mensagem binária
+      com **prefixo mágico `FF 56 44 01`** + flags + ts90k + Annex-B, nos três pontos (engine, business, navegador),
+      com vetor de bytes idêntico nos dois lados. Fila de vídeo **separada** da de áudio (32 quadros, descarta o mais
+      antigo, guarda cópia). O vídeo nunca entra no gravador de áudio; vídeo vindo do navegador (fase 2) é descartado
+- [x] 1.3 Business: ponte do vídeo no `ServeAudio`, mesma autorização e canal único; `call.state` indica
       `video: true`
-- [ ] 1.4 Frontend: `VideoDecoder` (`avc1.42E01F`, `optimizeForLatency`), canvas, só inicia no primeiro
+- [x] 1.4 Frontend: `VideoDecoder` (`avc1.42E01F`, `optimizeForLatency`), canvas, só inicia no primeiro
       keyframe, reconstrói o decoder em erro; detecção de suporte e mensagem em navegador sem WebCodecs
-- [ ] 1.5 Frontend: painel de videochamada (vídeo do contato, controles, indicador de qualidade já existente)
-- [ ] 1.6 Toque indica videochamada; atender sem suporte de vídeo atende só com voz e avisa
+- [x] 1.5 Frontend: painel de videochamada (vídeo do contato, controles, indicador de qualidade já existente)
+- [x] 1.6 Toque indica videochamada; atender sem suporte de vídeo atende só com voz e avisa
 - [ ] 1.7 **Teste real com dois números: o contato liga por vídeo, o operador atende e vê a imagem**
 
 ## 2. Enviar a câmera

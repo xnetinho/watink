@@ -124,10 +124,26 @@ O Watink usa o WhatsApp por um canal **não oficial**. Isso vale para mensagens 
 risco é **da empresa**, não do Watink. Por isso a tela da chamada mostra este aviso o tempo todo.
 Use chamadas com moderação nos números que a empresa não pode perder.
 
+## Videochamada (em implantação)
+
+> **Esta parte ainda não foi testada com chamadas reais.** Ela está em fases e só a primeira (receber) está
+> pronta. Use com esse aviso.
+
+- **Receber:** quando o contato liga **por vídeo**, o toque diz **“Videochamada recebida”**. Ao atender, você vê a
+  imagem do contato na tela da chamada e ouve o áudio como sempre.
+- **Navegador:** para **ver** o vídeo você precisa do **Chrome, do Edge ou do Brave**. Em outro navegador a
+  chamada é atendida **só com áudio**, e o toque e a tela avisam disso.
+- **Ainda não dá para:** mostrar a **sua** câmera ao contato, **ligar** uma chamada já como vídeo, nem **transformar**
+  uma chamada de voz em vídeo no meio da conversa. Isso vem nas próximas fases.
+- Se a imagem **congelar**, o sistema espera o contato mandar um novo quadro completo, o que costuma levar poucos
+  segundos. Ainda não há como pedir esse quadro ao contato.
+- Videochamada por conexão com **proxy** continua bloqueada, como a voz.
+- A **gravação** continua só de áudio nesta fase.
+
 ## Limitações
 
-- Só **voz 1:1**. Chamadas de **vídeo** e **em grupo** não são oferecidas; o sistema não as recusa
-  (o celular continua tocando) e registra que o tipo não é suportado.
+- Chamadas **em grupo** não são oferecidas; o sistema não as recusa (o celular continua tocando) e registra que o
+  tipo não é suportado. Vídeo 1:1: veja a seção acima.
 - **Uma chamada por conexão** e uma por operador. Se a conexão já está em chamada e chega outra,
   a nova **não é atendida** pelo sistema e fica registrada como perdida por ocupação.
 - Conexões com **proxy** não fazem nem recebem chamadas pelo sistema.

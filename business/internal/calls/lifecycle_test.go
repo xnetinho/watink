@@ -363,3 +363,39 @@ func TestHandleState_AnsweredAtIsSetOnce(t *testing.T) {
 	got := *r.log(t, "OUT-3").AnsweredAt
 	assert.True(t, old.Equal(got.UTC()), "a reentrega moveu o instante: %s -> %s", old, got)
 }
+
+// O registro do chat precisa saber que foi videochamada: o frontend mostra o ícone e o título certos.
+func TestSystemMessage_CarriesMediaAndBody(t *testing.T) {
+	r := newRig(t)
+	r.grant(t, "da_fila_A", "receive")
+	r.online("da_fila_A")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incomingMedia("SM-V", r.waA.ID, "video")))
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "SM-V")
+	require.NoError(t, err)
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("SM-V", "user_ended", 42)))
+
+	l := r.log(t, "SM-V")
+	var msg models.Message
+	require.NoError(t, r.db.Where(`"ticketId" = ? AND "mediaType" = 'call'`, *l.TicketID).First(&msg).Error)
+	assert.Equal(t, "Videochamada recebida", msg.Body)
+	var data map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(msg.DataJson), &data))
+	assert.Equal(t, "video", data["media"])
+}
+
+func TestSystemMessage_VoiceStaysVoice(t *testing.T) {
+	r := newRig(t)
+	r.grant(t, "da_fila_A", "receive")
+	r.online("da_fila_A")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incomingMedia("SM-A", r.waA.ID, "audio")))
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "SM-A")
+	require.NoError(t, err)
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("SM-A", "user_ended", 10)))
+	l := r.log(t, "SM-A")
+	var msg models.Message
+	require.NoError(t, r.db.Where(`"ticketId" = ? AND "mediaType" = 'call'`, *l.TicketID).First(&msg).Error)
+	assert.Equal(t, "Chamada de voz recebida", msg.Body)
+	var data map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(msg.DataJson), &data))
+	assert.Equal(t, "audio", data["media"])
+}

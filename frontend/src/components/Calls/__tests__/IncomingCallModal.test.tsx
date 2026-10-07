@@ -74,4 +74,26 @@ describe("IncomingCallModal", () => {
     expect(screen.getByText("Maria Souza")).toBeInTheDocument();
     expect(screen.getByText("+1")).toBeInTheDocument();
   });
+
+  it("videochamada: o toque diz que é videochamada e usa o ícone de vídeo", () => {
+    render(withCalls(makeCtx({ ringing: [baseCall({ media: "video" })] }), <IncomingCallModal />));
+    expect(screen.getByTestId("incoming-call")).toHaveTextContent("Videochamada");
+    expect(screen.getByTestId("incoming-call")).toHaveAttribute("data-media", "video");
+  });
+
+  it("chamada de voz continua sem a palavra videochamada", () => {
+    render(withCalls(makeCtx({ ringing: [baseCall({ media: "audio" })] }), <IncomingCallModal />));
+    expect(screen.getByTestId("incoming-call")).not.toHaveTextContent("Videochamada");
+    expect(screen.getByTestId("incoming-call")).toHaveAttribute("data-media", "audio");
+  });
+
+  it("videochamada num navegador sem suporte avisa que atende só com voz", () => {
+    render(withCalls(makeCtx({ ringing: [baseCall({ media: "video" })] }), <IncomingCallModal />));
+    expect(screen.getByTestId("incoming-video-unsupported")).toHaveTextContent(/só com áudio|só áudio|apenas áudio/i);
+  });
+
+  it("chamada de voz num navegador sem suporte a vídeo NÃO mostra aviso de vídeo", () => {
+    render(withCalls(makeCtx({ ringing: [baseCall({ media: "audio" })] }), <IncomingCallModal />));
+    expect(screen.queryByTestId("incoming-video-unsupported")).not.toBeInTheDocument();
+  });
 });

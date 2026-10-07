@@ -4,6 +4,8 @@ import { formatDuration } from "./format";
 export interface CallMessageData {
   callId: string;
   direction: "incoming" | "outgoing";
+  /** audio | video; registro anterior ao vídeo vale audio. */
+  media: "audio" | "video";
   status: string;
   endReason?: string;
   durationSec?: number;
@@ -29,6 +31,7 @@ export function parseCallData(raw: unknown): CallMessageData | null {
   return {
     callId: d.callId,
     direction: d.direction === "outgoing" ? "outgoing" : "incoming",
+    media: d.media === "video" ? "video" : "audio",
     status: typeof d.status === "string" ? d.status : "ended",
     endReason: typeof d.endReason === "string" ? d.endReason : undefined,
     durationSec: typeof d.durationSec === "number" ? d.durationSec : undefined,
@@ -59,7 +62,20 @@ export function callTone(status: string): CallTone {
 }
 
 /** Chave i18n do título da mensagem, a partir do status e da direção. */
-export function callTitleKey(d: Pick<CallMessageData, "status" | "direction">): string {
+export function callTitleKey(d: Pick<CallMessageData, "status" | "direction"> & { media?: "audio" | "video" }): string {
+  if (d.media === "video") {
+    switch (d.status) {
+      case "missed":
+        return "calls.message.videoMissed";
+      case "rejected":
+        return "calls.message.videoRejected";
+      case "failed":
+      case "interrupted":
+        return "calls.message.videoInterrupted";
+      default:
+        return d.direction === "outgoing" ? "calls.message.videoMade" : "calls.message.videoReceived";
+    }
+  }
   switch (d.status) {
     case "missed":
       return "calls.message.missed";

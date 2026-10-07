@@ -100,4 +100,23 @@ describe("CallMessage", () => {
     expect(screen.getByTestId("call-recording-deleted")).toHaveTextContent("Gravação excluída");
     expect(screen.queryByTestId("call-recording-listen")).not.toBeInTheDocument();
   });
+
+  it("videochamada mostra o título e o ícone de vídeo", () => {
+    render(<CallMessage dataJson={{ callId: "V1", direction: "incoming", media: "video", status: "ended", durationSec: 30 }} />);
+    expect(screen.getByTestId("call-message")).toHaveTextContent("Videochamada recebida");
+    expect(screen.getByTestId("call-message").querySelector("svg.lucide-video")).not.toBeNull();
+  });
+
+  it("chamada de voz não tem o ícone de vídeo e mantém o título", () => {
+    render(<CallMessage dataJson={{ callId: "V2", direction: "incoming", media: "audio", status: "ended", durationSec: 30 }} />);
+    expect(screen.getByTestId("call-message")).toHaveTextContent("Chamada de voz recebida");
+    expect(screen.getByTestId("call-message").querySelector("svg.lucide-video")).toBeNull();
+  });
+
+  it("videochamada perdida usa o ícone de perdida, não o de vídeo", () => {
+    render(<CallMessage dataJson={{ callId: "V3", direction: "incoming", media: "video", status: "missed" }} />);
+    expect(screen.getByTestId("call-message")).toHaveTextContent("Videochamada perdida");
+    expect(screen.getByTestId("call-message").querySelector("svg.lucide-video")).toBeNull();
+  });
 });
+

@@ -6,6 +6,8 @@ import { subscribeToSocket } from "../../services/sse-client";
 import { callsReducer, initialCallsState, type CallsState } from "./callReducer";
 import type { ActiveCall, CallEventPayload, CallQuality } from "./types";
 import { useCallAudio, type AudioFailure, type CallTelemetry } from "../../lib/calls/useCallAudio";
+import { VideoSink } from "../../lib/calls/videoSink";
+import type { VideoFrame } from "../../lib/calls/videoFrame";
 import { notify } from "../../lib/notify";
 import { t } from "../../lib/calls/t";
 
@@ -28,6 +30,8 @@ export interface CallsContextValue {
   stopRecording: () => Promise<void>;
   dismiss: () => void;
   audioLevels: { tx: number; rx: number };
+  /** Desenha o vídeo do contato num canvas; o painel o registra com `attach`. */
+  videoSink: VideoSink;
 }
 
 const noop = async () => undefined;
@@ -49,6 +53,7 @@ export const CallsContext = createContext<CallsContextValue>({
   stopRecording: noop,
   dismiss: () => undefined,
   audioLevels: { tx: 0, rx: 0 },
+  videoSink: new VideoSink(undefined, undefined),
 });
 
 export const useCalls = () => useContext(CallsContext);
@@ -244,12 +249,23 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   }, []);
 
+  // Um sink por provedor (e não por render): ele guarda o decoder e o canvas entre quadros.
+  const videoSink = useMemo(() => new VideoSink(), []);
+  useEffect(() => {
+    // Pedir um quadro-chave ao contato depende do SRTCP do engine (fase 2); por ora o decoder só
+    // descarta até o próximo quadro-chave que o contato mandar sozinho.
+    videoSink.onNeedKeyframe = undefined;
+    return () => videoSink.close();
+  }, [videoSink]);
+  const onVideoFrame = useCallback((f: VideoFrame) => videoSink.push(f), [videoSink]);
+
   const audio = useCallAudio({
     callId: active?.callId ?? null,
     enabled: !!active && (active.phase === "connecting" || active.phase === "active" || active.phase === "calling"),
     muted: active?.muted ?? false,
     onFailure,
     onTelemetry,
+    onVideoFrame,
   });
 
   const value = useMemo<CallsContextValue>(
@@ -270,8 +286,9 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       stopRecording,
       dismiss,
       audioLevels: audio.levels,
+      videoSink,
     }),
-    [state, canReceive, canPlace, active, accept, reject, place, end, setMuted, setPaused, startRecording, stopRecording, dismiss, audio.levels],
+    [state, canReceive, canPlace, active, accept, reject, place, end, setMuted, setPaused, startRecording, stopRecording, dismiss, audio.levels, videoSink],
   );
 
   return <CallsContext.Provider value={value}>{children}</CallsContext.Provider>;

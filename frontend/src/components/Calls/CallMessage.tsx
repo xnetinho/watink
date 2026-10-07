@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PhoneIncoming, PhoneMissed, PhoneOff, PhoneOutgoing } from "lucide-react";
+import { PhoneIncoming, PhoneMissed, PhoneOff, PhoneOutgoing, Video } from "lucide-react";
 import { StatusChip } from "@/components/ui/status-chip";
 import { cn } from "@/lib/utils";
 import api from "@/services/api";
@@ -18,6 +18,7 @@ const Icon: React.FC<{ d: CallMessageData }> = ({ d }) => {
   const cls = "h-5 w-5 shrink-0";
   if (d.status === "missed") return <PhoneMissed className={cls} />;
   if (d.status === "rejected" || d.status === "failed" || d.status === "interrupted") return <PhoneOff className={cls} />;
+  if (d.media === "video") return <Video className={cls} />;
   return d.direction === "outgoing" ? <PhoneOutgoing className={cls} /> : <PhoneIncoming className={cls} />;
 };
 

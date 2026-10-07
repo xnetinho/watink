@@ -16,18 +16,22 @@ func callMessageID(callID string) string { return "call:" + callID }
 
 // callBody é o texto curto que aparece no preview do ticket.
 func callBody(l *models.CallLog) string {
+	kind := "Chamada de voz"
+	if l.Media == "video" {
+		kind = "Videochamada"
+	}
 	switch l.Status {
 	case StatusMissed:
-		return "Chamada de voz perdida"
+		return kind + " perdida"
 	case StatusRejected:
-		return "Chamada de voz recusada"
+		return kind + " recusada"
 	case StatusFailed, StatusInterrupted:
-		return "Chamada de voz interrompida"
+		return kind + " interrompida"
 	}
 	if l.Direction == "outgoing" {
-		return "Chamada de voz realizada"
+		return kind + " realizada"
 	}
-	return "Chamada de voz recebida"
+	return kind + " recebida"
 }
 
 // writeSystemMessage grava no ticket a mensagem de sistema da chamada
@@ -38,7 +42,7 @@ func (s *Service) writeSystemMessage(ctx context.Context, tenantID uuid.UUID, l 
 		return
 	}
 	payload := map[string]interface{}{
-		"callId": l.CallID, "direction": l.Direction, "status": l.Status, "endReason": l.EndReason,
+		"callId": l.CallID, "direction": l.Direction, "media": mediaOf(l.Media), "status": l.Status, "endReason": l.EndReason,
 		"durationSec": l.DurationSec, "recordingStatus": l.RecordingStatus, "mosEstimated": l.MosEstimated,
 	}
 	if l.HandledByUserID != nil {

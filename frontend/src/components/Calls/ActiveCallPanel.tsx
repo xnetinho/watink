@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Circle, Mic, MicOff, PhoneOff, ShieldAlert, TriangleAlert, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Circle, Mic, MicOff, PhoneOff, ShieldAlert, TriangleAlert, VideoOff, X } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -49,8 +49,18 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
   recordingAvailable = false,
   recordingMode = "off",
 }) => {
-  const { active, end, setMuted, startRecording, stopRecording, dismiss } = useCalls();
+  const { active, end, setMuted, startRecording, stopRecording, dismiss, videoSink } = useCalls();
   const [now, setNow] = useState(() => Date.now());
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // O vídeo é desenhado direto no canvas pelo sink (sem re-render por quadro). Só existe em
+  // videochamada ainda não encerrada e quando o navegador decodifica H.264.
+  const showVideo = !!active && active.media === "video" && active.phase !== "ended" && videoSink.supported;
+  useEffect(() => {
+    if (!showVideo) return undefined;
+    videoSink.attach(canvasRef.current);
+    return () => videoSink.attach(null);
+  }, [showVideo, videoSink]);
 
   // Depende só de a chamada estar ativa, NÃO do objeto `active`: a telemetria troca esse objeto a
   // cada ~1 s, e recriar o intervalo a cada troca cancelava o tick antes de disparar (relógio
@@ -70,6 +80,7 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
   const canMute = active.phase === "active" || active.phase === "connecting";
   const canRecord = recordingAvailable && recordingMode === "optional" && active.phase === "active";
   const failure = active.failure ? t(FAILURE_KEY[active.failure] ?? "calls.active.socketLost") : null;
+  const videoUnsupported = active.media === "video" && !ended && !videoSink.supported;
 
   return (
     <div
@@ -93,6 +104,22 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
           </Button>
         )}
       </div>
+
+      {showVideo && (
+        <canvas
+          ref={canvasRef}
+          className="aspect-[4/3] w-full rounded-xl bg-black object-contain"
+          data-testid="call-video"
+          aria-label={t("calls.active.videoOf")}
+        />
+      )}
+
+      {videoUnsupported && (
+        <p className="flex items-start gap-1.5 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground" data-testid="video-unsupported">
+          <VideoOff className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{t("calls.active.videoUnsupported")}</span>
+        </p>
+      )}
 
       {active.recording && (
         <div className="flex items-center gap-2 rounded-md bg-status-error-bg px-3 py-1.5 text-xs font-medium text-status-error-text" data-testid="recording-indicator">

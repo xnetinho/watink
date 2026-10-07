@@ -4,6 +4,7 @@ import { CallsContext, type CallsContextValue } from "@/context/Calls/CallsConte
 import { initialCallsState } from "@/context/Calls/callReducer";
 import type { ActiveCall, CallQuality } from "@/context/Calls/types";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { VideoSink } from "@/lib/calls/videoSink";
 import { i18n } from "@/translate/i18n";
 
 // Os testes de componente rodam sempre em português, independente do idioma do
@@ -13,6 +14,7 @@ void i18n.changeLanguage("pt");
 export const baseCall = (over: Partial<ActiveCall> = {}): ActiveCall => ({
   callId: "C1",
   direction: "incoming",
+  media: "audio",
   phase: "ringing",
   whatsappId: 1,
   contact: { name: "Maria Souza", number: "5511999990001" },
@@ -60,6 +62,7 @@ export function makeCtx(over: Partial<CallsContextValue> = {}): CallsContextValu
     stopRecording: vi.fn(async () => undefined),
     dismiss: vi.fn(),
     audioLevels: { tx: 0, rx: 0 },
+    videoSink: new VideoSink(undefined, undefined),
     ...over,
   };
 }
