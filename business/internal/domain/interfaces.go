@@ -202,14 +202,6 @@ type PresenceEngine interface {
 	SendPresence(ctx context.Context, w models.Whatsapp, to, state string) error
 }
 
-// Channel Adapter Interface
-type ChannelAdapter interface {
-	SendMessage(ctx context.Context, ticket Ticket, message Message) error
-	StartSession(ctx context.Context, session ChannelSession) error
-	StopSession(ctx context.Context, sessionID int) error
-	DeleteSession(ctx context.Context, sessionID int) error
-}
-
 // EventBus Interface
 type EventBus interface {
 	Publish(ctx context.Context, event DomainEvent) error

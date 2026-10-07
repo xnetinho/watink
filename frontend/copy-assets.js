@@ -8,9 +8,7 @@ const filesToCopy = [
     { src: 'fundo.png', dest: 'login-background.png' },
     { src: 'watink-sf.png', dest: 'logo.png' },
     { src: 'favicon.png', dest: 'favicon.png' },
-    { src: 'favicon.png', dest: 'favicon.ico' },
-    { src: 'logo-completa.png', dest: 'logo-full.png' },
-    { src: 'watink-logo-letras.png', dest: 'logo-text.png' }
+    { src: 'favicon.png', dest: 'favicon.ico' }
 ];
 
 fs.mkdirSync(publicDir, { recursive: true });

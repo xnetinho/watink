@@ -11,7 +11,7 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
                                                ↕ AMQP
                                           RabbitMQ ←── Engine Go (whatsmeow) → WhatsApp
                                                ↕
-                                   Plugin Manager · Marketplace Hub
+                          Plugin Manager · Marketplace Hub (ambos fora deste repo)
 ```
 
 ## Status Atual (jun/2026)
@@ -76,9 +76,6 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
 | Engine Go | `engine-go/` | Go 1.24 / whatsmeow | — |
 | Frontend | `frontend/` | React 18 / Vite / TypeScript / shadcn+Tailwind v4 | 3000 |
 | Plugin Manager (proprietário) | repo privado `alltomatos/watink-plugin-manager` → imagem GHCR | Go / gorilla-mux | 8081 |
-| Marketplace Hub | `marketplace-hub/` | Node/Express | 8090 |
-| Backend Node (legacy) | `legacy/backend/` | Node/Express/Sequelize | 8080 |
-| Engine Node (legacy) | `legacy/engine-standard/` | Node/whaileys | — |
 
 ## Commands
 
@@ -568,7 +565,7 @@ técnicas (BOM) e tabelas de preço extras via licença do Marketplace.
 
 **Responsabilidade:** Ativação **opt-in por tenant** de features (plugins) via Marketplace, com gating real de licença para as pagas. O core é **cliente** do licenciamento; a autoridade de catálogo/licença é o **Watink Hub** (`watink-ecosistema/hub`), alcançado sempre pelo `plugin-manager` local — nunca direto. Substitui o modelo "flag no banco" (ADR 0024, supera 0003).
 
-**Fronteira core vs plugin:** é plugin o que precisa ser **ativado via Marketplace** (`free` ou `pro`); é core o que está sempre-ligado (atendimento, Clientes, Pipeline, FlowBuilder, RAG). Por isso Clientes virou core (ADR 0023) e o `saas-plugin` foi **removido** (control plane é o `watink-saas`). Plugins reais restantes: `helpdesk`, `webchat`.
+**Fronteira core vs plugin:** é plugin o que precisa ser **ativado via Marketplace** (`free` ou `pro`); é core o que está sempre-ligado (atendimento, Clientes, Pipeline, FlowBuilder, RAG). Por isso Clientes virou core (ADR 0023) e o `saas-plugin` foi **removido** (control plane é o `watink-saas`). Plugins embarcados hoje: `helpdesk`, `webchat`, `assistant`, `groups` e `inventory-advanced` (conferido no log de boot do `business`).
 
 **Invariants:**
 - Sempre `auth.GetScoped(c, "Plugins")` — nunca `c.Get("tenantId")` bruto; escritas/agregações em `Session(NewDB:true)`.

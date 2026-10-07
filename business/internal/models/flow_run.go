@@ -23,7 +23,6 @@ const (
 const (
 	FlowRunSubjectTicket  = "ticket"
 	FlowRunSubjectContact = "contact"
-	FlowRunSubjectNone    = "none"
 )
 
 // FlowRun is the unified runtime instance of a flow graph in progress.

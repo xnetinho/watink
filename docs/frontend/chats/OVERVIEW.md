@@ -25,7 +25,7 @@ Funcionalidade central do sistema, permitindo a comunicação em tempo real com 
 - **Envio**: `POST /messages/:ticketId`.
 
 <!-- AI_INSTRUCTION: Pause analysis here. Read the document linked below in the Backend section to understand how the API processes these requests. Then return here. -->
-[Backend API: Chats](../../backend/chat/API.md)
+[Backend API: Chats](../../legacy-backend/chat/API.md) (histórico: descreve o backend Node, que não existe mais; a API atual está no Scalar em `/api/v1/docs`)
 
 ## Fluxo de Mensagens
 1. Usuário digita e envia (`MessageInput`).
