@@ -455,3 +455,123 @@ func TestListMessages_QuotedFromAnotherTenantIsNotLeaked(t *testing.T) {
 		t.Fatalf("vazou mensagem de outro tenant: %s", res.Body.String())
 	}
 }
+
+type captureBroadcaster struct{ payloads []interface{} }
+
+func (b *captureBroadcaster) EmitToRoom(_, _, event string, p interface{}) {
+	if event == "appMessage" {
+		b.payloads = append(b.payloads, p)
+	}
+}
+func (b *captureBroadcaster) EmitToTenantRoom(_, _ string, _ interface{}) {}
+func (b *captureBroadcaster) EmitToNamespace(_, _ string, _ interface{})  {}
+
+// Regressão: a resposta enviada aparecia no chat SEM a citação. A mensagem nova chega ao navegador por SSE
+// (appMessage) e o reducer a coloca na lista como veio; só a listagem anexava o quotedMsg. Resultado: a
+// citação só aparecia depois de recarregar. O evento precisa levar a mensagem citada junto.
+func TestSendMessage_Reply_EventCarriesTheQuotedMessage(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testutil.NewTestDB(t)
+	tenantID := uuid.New()
+	pub := &stubPublisher{}
+	bc := &captureBroadcaster{}
+	mc := NewMessageController(pub, bc, nil)
+
+	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
+	if err := db.Create(&wa).Error; err != nil {
+		t.Fatal(err)
+	}
+	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
+	if err := db.Create(&contact).Error; err != nil {
+		t.Fatal(err)
+	}
+	ticket := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID}
+	if err := db.Create(&ticket).Error; err != nil {
+		t.Fatal(err)
+	}
+	cid := contact.ID
+	orig := models.Message{ID: "ORIG-9", Body: "qual o prazo?", TicketID: ticket.ID, ContactID: &cid, TenantID: tenantID}
+	if err := db.Create(&orig).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	r := gin.New()
+	r.Use(testScopedMiddleware(db, tenantID.String()))
+	r.POST("/messages/:ticketId", mc.SendMessage)
+	body, _ := json.Marshal(map[string]interface{}{"body": "5 dias", "quotedMsg": map[string]interface{}{"id": "ORIG-9"}})
+	req := httptest.NewRequest(http.MethodPost, "/messages/"+strconv.Itoa(ticket.ID), bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+	r.ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("esperava 200, veio %d: %s", res.Code, res.Body.String())
+	}
+
+	if len(bc.payloads) != 1 {
+		t.Fatalf("esperava 1 appMessage, veio %d", len(bc.payloads))
+	}
+	sent := bc.payloads[0].(map[string]interface{})["message"].(models.Message)
+	if sent.QuotedMsg == nil || sent.QuotedMsg.ID != "ORIG-9" || sent.QuotedMsg.Body != "qual o prazo?" {
+		t.Fatalf("o evento da resposta não leva a mensagem citada: %+v", sent.QuotedMsg)
+	}
+}
+
+// O contato tem LID: o chat é por LID, mas a mensagem recebida foi gravada com o número em Participant (log real).
+// A citação precisa usar o endereço do chat, e levar o texto citado para o celular desenhar a caixa.
+func TestSendMessage_Reply_OneToOneUsesChatAddressAndQuotedText(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testutil.NewTestDB(t)
+	tenantID := uuid.New()
+	pub := &stubPublisher{}
+	mc := NewMessageController(pub, nil, nil)
+
+	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
+	if err := db.Create(&wa).Error; err != nil {
+		t.Fatal(err)
+	}
+	lid := "217407117332513@lid"
+	contact := models.Contact{Name: "C", Number: "558398060007", Lid: &lid, TenantID: tenantID}
+	if err := db.Create(&contact).Error; err != nil {
+		t.Fatal(err)
+	}
+	ticket := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID}
+	if err := db.Create(&ticket).Error; err != nil {
+		t.Fatal(err)
+	}
+	cid := contact.ID
+	orig := models.Message{ID: "ORIG-LID", Body: "Sim", TicketID: ticket.ID, ContactID: &cid, TenantID: tenantID, Participant: "558398060007@s.whatsapp.net"}
+	if err := db.Create(&orig).Error; err != nil {
+		t.Fatal(err)
+	}
+	photo := models.Message{ID: "FOTO-1", Body: "", MediaType: "image", MediaUrl: "/public/media/x.jpg", TicketID: ticket.ID, ContactID: &cid, TenantID: tenantID}
+	if err := db.Create(&photo).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	r := gin.New()
+	r.Use(testScopedMiddleware(db, tenantID.String()))
+	r.POST("/messages/:ticketId", mc.SendMessage)
+	post := func(quoted string) map[string]interface{} {
+		pub.calls = nil
+		body, _ := json.Marshal(map[string]interface{}{"body": "resp", "quotedMsg": map[string]interface{}{"id": quoted}})
+		req := httptest.NewRequest(http.MethodPost, "/messages/"+strconv.Itoa(ticket.ID), bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		res := httptest.NewRecorder()
+		r.ServeHTTP(res, req)
+		if res.Code != http.StatusOK {
+			t.Fatalf("esperava 200, veio %d: %s", res.Code, res.Body.String())
+		}
+		return pub.calls[0]["payload"].(map[string]interface{})["payload"].(map[string]interface{})
+	}
+
+	p := post("ORIG-LID")
+	if p["quotedJid"] != lid {
+		t.Fatalf("quotedJid = %v, esperado o endereço do chat %s (não o número gravado em Participant)", p["quotedJid"], lid)
+	}
+	if p["quotedBody"] != "Sim" {
+		t.Fatalf("quotedBody = %v", p["quotedBody"])
+	}
+	if p := post("FOTO-1"); p["quotedBody"] != "📷 Foto" {
+		t.Fatalf("citar foto sem legenda deve mandar o rótulo, veio %v", p["quotedBody"])
+	}
+}

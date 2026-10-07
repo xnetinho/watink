@@ -88,3 +88,19 @@ describe("messagesReducer — sortByDate", () => {
     expect(state.map((m) => m.id)).toEqual([1, 2]);
   });
 });
+
+describe("messagesReducer — resposta enviada", () => {
+  it("ADD_MESSAGE mantém o quotedMsg que veio no evento, para a citação aparecer na hora", () => {
+    const reply = {
+      ...msg(10, "2026-10-07T11:00:00.000Z"),
+      fromMe: true,
+      body: "5 dias",
+      quotedMsg: { ...msg(9, "2026-10-07T10:59:00.000Z"), body: "qual o prazo?" },
+    } as Message;
+
+    const state = messagesReducer([msg(9, "2026-10-07T10:59:00.000Z")], { type: "ADD_MESSAGE", payload: reply });
+
+    const added = state.find((m) => m.id === 10);
+    expect(added?.quotedMsg?.body).toBe("qual o prazo?");
+  });
+});

@@ -9,6 +9,7 @@ type TextCommandPayload struct {
 	Body        string   `json:"body"`
 	QuotedMsgID string   `json:"quotedMsgId,omitempty"`
 	QuotedJID   string   `json:"quotedJid,omitempty"`
+	QuotedBody  string   `json:"quotedBody,omitempty"`
 	Mentions    []string `json:"mentions,omitempty"`
 }
 
@@ -24,6 +25,7 @@ type MediaCommandPayload struct {
 	MediaData   string   `json:"mediaData"`
 	QuotedMsgID string   `json:"quotedMsgId,omitempty"`
 	QuotedJID   string   `json:"quotedJid,omitempty"`
+	QuotedBody  string   `json:"quotedBody,omitempty"`
 	Mentions    []string `json:"mentions,omitempty"`
 }
 

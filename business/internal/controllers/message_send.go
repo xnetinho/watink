@@ -32,6 +32,27 @@ func newWAMessageID() string {
 // contactJID builds the destination JID for a contact. Groups use the "@g.us"
 // server. LID contacts use the full "@lid" JID stored in the Lid field.
 // Regular users are sent bare (the engine appends "@s.whatsapp.net").
+// quotedPreviewText é o texto que o celular do contato mostra na caixa de citação. Mídia sem legenda vira o
+// rótulo do tipo, como o próprio WhatsApp faz.
+func quotedPreviewText(q models.Message) string {
+	if q.Body != "" && q.MediaType != "call" && q.MediaType != "view_once" {
+		return q.Body
+	}
+	switch q.MediaType {
+	case "image":
+		return "📷 Foto"
+	case "video":
+		return "🎥 Vídeo"
+	case "audio":
+		return "🎵 Áudio"
+	case "document":
+		return "📄 Documento"
+	case "sticker":
+		return "Figurinha"
+	}
+	return q.Body
+}
+
 func contactJID(contact models.Contact) string {
 	if contact.IsGroup {
 		return contact.Number + "@g.us"
@@ -150,16 +171,21 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	// Só cita uma mensagem que existe NESTE ticket e tenant: o id vem do cliente e o engine
 	// o usaria como StanzaID. quotedParticipant é quem escreveu a original (obrigatório em
 	// grupo; em chat 1:1 é o próprio contato, ou nós mesmos se citamos algo que enviamos).
-	var quotedParticipant string
+	var quotedParticipant, quotedBody string
 	if quotedID != "" {
 		var q models.Message
 		if err := db.Session(&gorm.Session{NewDB: true}).
 			Where(`id = ? AND "ticketId" = ? AND "tenantId" = ?`, quotedID, ticketID, tenantID).First(&q).Error; err != nil {
 			quotedID = ""
-		} else if !q.FromMe {
-			quotedParticipant = q.Participant
-			if quotedParticipant == "" {
-				quotedParticipant = to
+		} else {
+			quotedBody = quotedPreviewText(q)
+			if !q.FromMe {
+				quotedParticipant = q.Participant
+				// 1:1: o autor da citada é o próprio contato, no endereçamento do chat. O Participant gravado
+				// pode ser o número (PN) enquanto o chat é por LID, e o celular não casa os dois.
+				if quotedParticipant == "" || !contact.IsGroup {
+					quotedParticipant = to
+				}
 			}
 		}
 	}
@@ -215,6 +241,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		if quotedID != "" {
 			cmdPayload := command["payload"].(map[string]interface{})
 			cmdPayload["quotedMsgId"] = quotedID
+			cmdPayload["quotedBody"] = quotedBody
 			if quotedParticipant != "" {
 				cmdPayload["quotedJid"] = quotedParticipant
 			}
@@ -259,6 +286,13 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	}
 	if err := writeDB.Create(&outgoing).Error; err != nil {
 		log.Printf("[SendMessage] persist outgoing message failed (ticket %d): %v", ticketID, err)
+	}
+	// O evento SSE abaixo é o que o navegador exibe na hora; só a listagem anexava a citação, então a
+	// resposta aparecia sem ela até recarregar o chat.
+	if quotedID != "" {
+		one := []models.Message{outgoing}
+		attachQuotedMessages(db, tenantID, one)
+		outgoing.QuotedMsg = one[0].QuotedMsg
 	}
 
 	lastMessage := body
