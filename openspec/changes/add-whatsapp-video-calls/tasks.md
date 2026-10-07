@@ -9,23 +9,25 @@
 
 ## 0. Base de sinalização e mídia (sem UI)
 
-- [ ] 0.1 Trocar o `<video>` do `offer`/`accept`/`preaccept` de `vp8` para H.264 (`enc="h.264" dec="H264"
+- [x] 0.1 Trocar o `<video>` do `offer`/`accept`/`preaccept` de `vp8` para H.264 (`enc="h.264" dec="H264"
       screen_width/height device_orientation`), sem o atributo `orientation`; capability de vídeo já adotada; teste
       de ordem dos filhos do `offer` e dos atributos, provado por mutação
-- [ ] 0.2 `OfferHasVideo` e propagar `video=true` até o `preaccept`/`accept`; teste com oferta com e sem `<video>`
-- [ ] 0.3 Portar `rtp/h264.go` da meowcaller: `SplitAnnexB`, `AUHasIDR`, `PackageH264NALU` (AU como um NAL, FU-A,
+- [x] 0.2 `OfferHasVideo` e propagar `video=true` até o `preaccept`/`accept`; teste com oferta com e sem `<video>`
+- [x] 0.3 Portar `rtp/h264.go` da meowcaller: `SplitAnnexB`, `AUHasIDR`, `PackageH264NALU` (AU como um NAL, FU-A,
       payload 800), depacketizador e `H264AccessUnitAssembler` com recuperação de IDR; trazer os vetores de teste
-- [ ] 0.4 Cabeçalho RTP de vídeo com extensão `0xDEBE` (`MediaFrameInfo` 0x08/0x20, `FrameNumber`,
+- [x] 0.4 Cabeçalho RTP de vídeo com extensão `0xDEBE` (`MediaFrameInfo` 0x08/0x20, `FrameNumber`,
       `TransportSequence`) e `VideoRtpStream`; testes com os bytes das capturas (`rtp_test.go:89-212`)
 - [ ] 0.5 SSRC de vídeo com slot 2 e subscrição no relay junto do áudio; teste cruzado do `GenerateSecureSsrc`
 - [ ] 0.6 SRTP do vídeo: mesmo `callKey`/HKDF por JID, ROC e replay **independentes por SSRC**; teste de
       round-trip de vídeo e de que um pacote de vídeo repetido é rejeitado sem afetar o áudio
 - [ ] 0.7 **`rxLockedSsrc` por tipo de mídia**: o dedup de relay não pode travar no SSRC do áudio e descartar o
       vídeo; teste com áudio e vídeo chegando por 3 relays
-- [ ] 0.8 Interceptar `<call><video>` no engine e responder `<ack class="call" type="video">`; avaliar um ponto
-      de extensão do whatsmeow antes de reflection+unsafe; teste de que todo estado recebido é reconhecido
-- [ ] 0.9 Estados in-call `0,1,3,4,5,6,8,11`: construtores e parser com os testes da meowcaller
-      (`video_test.go`), mais a máquina de estados (`engine_lifecycle_test.go`)
+- [ ] 0.8 **Adiado para a fase 4.** O ack tipado `<ack class="call" type="video">` só importa no upgrade no meio da
+      chamada: o changelog da meowcaller diz que "from-start video calls are unaffected" (o vídeo é negociado no
+      offer/accept). Exige interceptar o `<call>` por reflection+unsafe no `nodeHandlers` do whatsmeow (marcado NOT
+      VALIDATED por ela); não vale o risco para receber e iniciar. O construtor `BuildVideoAck` já existe e está testado
+- [ ] 0.9 Estados in-call `0,1,3,4,5,6,8,11`: **construtores prontos e testados** (`signaling/video.go`); a máquina de
+      estados (`engine_lifecycle_test.go`) fica para a fase 4
 
 ## 1. Receber vídeo
 

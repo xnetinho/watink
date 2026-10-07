@@ -77,6 +77,8 @@ func (m *CallManager) HandleCallOffer(ctx context.Context, node *waBinary.Node, 
 	m.selfSsrc = media.GenerateSecureSsrc(callID, sj, 0)
 	m.rtpSession = media.NewWhatsAppOpusSession(m.selfSsrc)
 	m.peerSsrcs = []uint32{media.GenerateSecureSsrc(callID, peerJid.String(), 0)}
+	m.deriveVideoSsrcsLocked(sj, peerJid.String())
+	m.applyVideoSsrcsLocked()
 	m.initCodec()
 	m.mu.Unlock()
 
@@ -125,7 +127,9 @@ func (m *CallManager) HandleCallAccept(ctx context.Context, node *waBinary.Node,
 	if m.peerSsrcs == nil || !m.actualPeerSet {
 		peerDeviceJid := ensureDeviceJid(peerJid.String())
 		m.peerSsrcs = []uint32{media.GenerateSecureSsrc(call.CallID, peerDeviceJid, 0)}
+		m.deriveVideoSsrcsLocked("", peerDeviceJid)
 	}
+	m.applyVideoSsrcsLocked()
 	m.relay.SetSubscriptionSsrc(firstSsrc(m.peerSsrcs))
 	m.initSrtpKeysLocked()
 	hasConn := m.relay.HasConnection()
@@ -236,9 +240,13 @@ func (m *CallManager) HandleCallAck(ctx context.Context, node *waBinary.Node) {
 			m.selfSsrc = newSelf
 			m.rtpSession = media.NewWhatsAppOpusSession(newSelf)
 		}
+		peerDevice := ""
 		if peer := firstPeerDevice(parsed.ParticipantJids, ourBase); peer != "" {
-			m.peerSsrcs = []uint32{media.GenerateSecureSsrc(call.CallID, ensureDeviceJid(peer), 0)}
+			peerDevice = ensureDeviceJid(peer)
+			m.peerSsrcs = []uint32{media.GenerateSecureSsrc(call.CallID, peerDevice, 0)}
 		}
+		m.deriveVideoSsrcsLocked(ourDeviceJid, peerDevice)
+		m.applyVideoSsrcsLocked()
 		if call.EncryptionKey != nil {
 			m.initSrtpKeysLocked()
 		}

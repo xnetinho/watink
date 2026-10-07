@@ -31,6 +31,11 @@ type CallManager struct {
 	peerSsrcs     []uint32
 	actualPeerSet bool
 
+	// Vídeo (fases 0/1 do plano add-whatsapp-video-calls). O contato fala em um SSRC próprio, derivado
+	// com o slot 2 do mesmo HKDF do áudio; sem ele na alocação do relay o vídeo dele não chega.
+	videoSelfSsrc uint32
+	videoPeerSsrc uint32
+
 	firstPacketSent       bool
 	initialTransportSent  bool
 	outgoingPreacceptSent bool
@@ -116,6 +121,8 @@ func (m *CallManager) StartCall(ctx context.Context, callID string, peerJid type
 	m.selfSsrc = media.GenerateSecureSsrc(callID, selfJid, 0)
 	m.rtpSession = media.NewWhatsAppOpusSession(m.selfSsrc)
 	m.peerSsrcs = []uint32{media.GenerateSecureSsrc(callID, resolved.String(), 0)}
+	m.deriveVideoSsrcsLocked(selfJid, resolved.String())
+	m.applyVideoSsrcsLocked()
 	m.initCodec()
 	m.mu.Unlock()
 
@@ -190,11 +197,15 @@ func (m *CallManager) setupIncomingMedia(call *CallInfo, relayData *core.RelayDa
 			m.selfSsrc = newSelf
 			m.rtpSession = media.NewWhatsAppOpusSession(newSelf)
 		}
+		peerDevice := ""
 		if peer := firstPeerDevice(relayData.ParticipantJids, ourBase); peer != "" {
-			m.peerSsrcs = []uint32{media.GenerateSecureSsrc(call.CallID, ensureDeviceJid(peer), 0)}
+			peerDevice = ensureDeviceJid(peer)
+			m.peerSsrcs = []uint32{media.GenerateSecureSsrc(call.CallID, peerDevice, 0)}
 			m.actualPeerSet = true
 		}
+		m.deriveVideoSsrcsLocked(ourDeviceJid, peerDevice)
 	}
+	m.applyVideoSsrcsLocked()
 	m.relay.SetSubscriptionSsrc(firstSsrc(m.peerSsrcs))
 	m.initSrtpKeysLocked()
 }

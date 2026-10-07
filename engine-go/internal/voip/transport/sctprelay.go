@@ -56,6 +56,10 @@ type SctpRelayManager struct {
 
 	audioSsrc        uint32
 	subscriptionSsrc uint32
+	// extraSelfSsrcs e extraPeerSsrcs são os SSRCs que acompanham o de áudio na alocação do relay
+	// (hoje o de vídeo). Vazios = comportamento só de áudio, igual ao de antes.
+	extraSelfSsrcs []uint32
+	extraPeerSsrcs []uint32
 
 	onConnected func(ip string, port int)
 
@@ -75,6 +79,15 @@ func NewSctpRelayManager(log *slog.Logger) *SctpRelayManager {
 func (m *SctpRelayManager) SetSsrc(ssrc uint32) { m.audioSsrc = ssrc }
 
 func (m *SctpRelayManager) SetSubscriptionSsrc(ssrc uint32) { m.subscriptionSsrc = ssrc }
+
+// SetExtraSsrcs define os SSRCs de mídia além do áudio (o de vídeo, nosso e do contato) que entram na
+// alocação do relay. Sem o SSRC de vídeo do contato aí, o relay não encaminha o vídeo dele.
+func (m *SctpRelayManager) SetExtraSsrcs(self, peer []uint32) {
+	m.mu.Lock()
+	m.extraSelfSsrcs = append([]uint32(nil), self...)
+	m.extraPeerSsrcs = append([]uint32(nil), peer...)
+	m.mu.Unlock()
+}
 
 func (m *SctpRelayManager) SetOnConnected(fn func(ip string, port int)) { m.onConnected = fn }
 
@@ -286,11 +299,9 @@ func (m *SctpRelayManager) sendStunRegistration(conn *relayConnection) {
 		m.sendRaw(conn, BuildBindingRequestWithSubs(nil, nil, subs, false, false))
 
 		if len(info.RawToken) > 0 {
-			var peerSsrcs []uint32
-			if m.subscriptionSsrc != 0 {
-				peerSsrcs = []uint32{m.subscriptionSsrc}
-			}
-			ssrcList := BuildSSRCSubscriptionList([]uint32{m.audioSsrc}, peerSsrcs, 0, 0)
+			m.mu.Lock()
+			ssrcList := m.allocationSsrcList()
+			m.mu.Unlock()
 			m.sendRaw(conn, BuildAllocateForRelay(info.RawToken, ssrcList, hmacKey, info.IP, info.Port))
 		}
 	}
@@ -428,8 +439,22 @@ func (m *SctpRelayManager) Cleanup() {
 	m.connections = map[string]*relayConnection{}
 	m.audioSsrc = 0
 	m.subscriptionSsrc = 0
+	m.extraSelfSsrcs = nil
+	m.extraPeerSsrcs = nil
 	m.mu.Unlock()
 	for _, c := range conns {
 		m.teardown(c)
 	}
+}
+
+// allocationSsrcList monta a lista de SSRCs da alocação do relay: o de áudio e o do contato, mais os
+// extras (vídeo). Precisa estar com m.mu travado.
+func (m *SctpRelayManager) allocationSsrcList() []byte {
+	selfSsrcs := append([]uint32{m.audioSsrc}, m.extraSelfSsrcs...)
+	var peerSsrcs []uint32
+	if m.subscriptionSsrc != 0 {
+		peerSsrcs = append(peerSsrcs, m.subscriptionSsrc)
+	}
+	peerSsrcs = append(peerSsrcs, m.extraPeerSsrcs...)
+	return BuildSSRCSubscriptionList(selfSsrcs, peerSsrcs, 0, 0)
 }
