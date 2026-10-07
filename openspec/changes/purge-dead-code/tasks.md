@@ -46,17 +46,16 @@
 
 ## PR C: business (`chore/purge-business-dead-code`)
 
-- [ ] C.1 `internal/models/user_queue.go` (struct sem uso; a tabela `user_queues` é criada pela tag `many2many` e
-      **continua**) e símbolos de ocorrência única: `checkoutRequest`, `ChannelAdapter`, `ErrNoRecordingFile`,
-      `FlowRunSubjectNone`, `GroupCampaignRunStatusFailed`; conferir `otelTraceParent`/`otelTraceState`
-- [ ] C.2 `go.mod`: `go-mp3` de `// indirect` para direto (`go mod tidy`); corrigir o comentário obsoleto de
+- [x] C.1 `internal/models/user_queue.go` (struct sem uso; a tabela `user_queues` é criada pela tag `many2many` e
+      **continua**) e símbolos de ocorrência única: `checkoutRequest`, `ChannelAdapter`, `FlowRunSubjectNone`, `GroupCampaignRunStatusFailed`; `otelTraceParent`/`otelTraceState` também saíram (propagação nunca ligada). `ErrNoRecordingFile` já não existia.
+- [x] C.2 `go.mod`: `go mod tidy` não mudou nada (o `go-mp3` já está certo nesta base); corrigir o comentário obsoleto de
       `domain/broadcaster.go:4`
-- [ ] C.3 **`fetch_url_crawl.go` FICA** (decisão do dono): documentar em `docs/agents/knowledge-base.md` (o que faz,
+- [x] C.3 **`fetch_url_crawl.go` FICA** (decisão do dono): documentar em `docs/agents/knowledge-base.md` (o que faz,
       limites, estado "implementado, não ligado", como ligar) e registrar no `ORCHESTRATOR-ROADMAP.md` como épico
       "Crawl de site na Base de Conhecimento"
-- [ ] C.4 **Ficam** (documentado): helpers que só testes usam (`calls`, `pluginlicense`, `plugins.NewPluginManager`),
+- [x] C.4 **Ficam** (documentado): helpers que só testes usam (`calls`, `pluginlicense`, `plugins.NewPluginManager`),
       `internal/testutil` e o vendor `recording/shine`
-- [ ] C.5 `go build`, `go vet`, testes dos pacotes tocados; PR, CI verde, merge
+- [x] C.5 `go build`, `go vet`, testes dos pacotes tocados; PR, CI verde, merge
 
 ## Engine
 
