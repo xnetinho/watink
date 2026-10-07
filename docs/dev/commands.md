@@ -82,6 +82,21 @@ docker compose -f docker-compose.dev.yml logs --tail=100 watink-rabbitmq
 
 > O `docker-compose.dev.yml` fica na raiz do repositório. Sempre execute os comandos Docker a partir da raiz.
 
+## Log do banco (`DB_LOG_LEVEL`)
+
+O `business` imprime o log do GORM no nível `warn` por padrão: só erro real de SQL e consulta lenta (> 200 ms).
+"Registro não encontrado" não é impresso, e o **valor dos parâmetros nunca é impresso** (aparece `$1`), em
+nenhum nível, porque ele carrega texto de mensagens de clientes.
+
+```bash
+DB_LOG_LEVEL=info     # mostra toda consulta, sem os valores: para depurar
+DB_LOG_LEVEL=warn     # padrão
+DB_LOG_LEVEL=error    # só erros
+DB_LOG_LEVEL=silent   # nada
+```
+
+Valor ausente ou inválido cai em `warn`.
+
 ## PM2 (stack local sem Docker)
 
 ```bash

@@ -10,7 +10,6 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -26,7 +25,7 @@ func Connect() {
 
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: newGormLogger(),
 	})
 
 	if err != nil {

@@ -87,6 +87,7 @@ services:
       - PROXY_ENC_KEY=${PROXY_ENC_KEY:?defina PROXY_ENC_KEY no .env}
       - INTERNAL_TOKEN=${INTERNAL_TOKEN:?defina INTERNAL_TOKEN no .env}
       - DOCS_PUBLIC=false
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
     depends_on:
       postgres:
         condition: service_healthy
