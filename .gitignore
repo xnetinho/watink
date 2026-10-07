@@ -24,16 +24,11 @@ node_modules/
 # Go compiled server binaries (never commit — build outputs)
 business/server.exe
 business/server
+# bundle estale do frontend (o embed real vem de internal/web/build)
+business/web/
 business/watink-core
 business/cmd/server/server
 *.exe
-
-# --- Python artifacts (watink-knowledge) ---
-__pycache__/
-**/__pycache__/
-*.pyc
-.pytest_cache/
-.ruff_cache/
 
 dist/
 **/dist/
@@ -55,8 +50,6 @@ business/backend-go
 business/watink-core
 business/watink-business
 business/server
-plugin-manager/plugin-manager
-plugin-manager/plugin-manager.exe
 
 # --- Runtime State Files ---
 business/.instance_id
@@ -76,13 +69,6 @@ test-results/
 
 # --- Dev Container Lock ---
 .devcontainer/devcontainer-lock.json
-
-# --- Frozen / Quarantined Code ---
-legacy/
-marketplace-hub/
-
-# --- Stub Plugins ---
-plugins/saas-plugin/
 
 # --- Orphan Scripts (zero references) ---
 script_package_plugins.js

@@ -35,34 +35,11 @@ cd frontend && npm run lint       # ESLint
 cd frontend && npm run typecheck  # TypeScript sem emitir arquivos
 ```
 
-## Plugin Manager (`plugin-manager/`)
+## Plugin Manager
 
-```bash
-cd plugin-manager && go fmt ./...
-cd plugin-manager && go build ./...
-cd plugin-manager && go run cmd/server/main.go
-cd plugin-manager && go test ./...
-```
-
-## Backend Node legacy (`legacy/backend/`)
-
-```bash
-cd legacy/backend && npm install
-cd legacy/backend && npm run dev          # ts-node-dev com respawn
-cd legacy/backend && npm run build        # tsc
-cd legacy/backend && npm run db:migrate   # sequelize migrations
-cd legacy/backend && npm run db:seed      # sequelize seeds
-cd legacy/backend && npm run test         # jest (NODE_ENV=test)
-```
-
-## Engine Node legacy (`legacy/engine-standard/`)
-
-```bash
-cd legacy/engine-standard && npm install
-cd legacy/engine-standard && npm run dev
-cd legacy/engine-standard && npm run build
-cd legacy/engine-standard && npm run lint
-```
+O fonte do `plugin-manager` **não está neste repositório**: é proprietário e vive no repo privado
+`alltomatos/watink-plugin-manager`, distribuído como imagem `ghcr.io/alltomatos/watink-plugin-manager` (os composes
+usam `image:`, nunca `build:`). Ver `docs/agents/plugins.md`.
 
 ## Docker (desenvolvimento local)
 
@@ -108,14 +85,6 @@ DB_LOG_LEVEL=silent   # nada
 
 Valor ausente ou inválido cai em `warn`.
 
-## PM2 (stack local sem Docker)
-
-```bash
-pm2 start ecosystem.config.js    # sobe todos os serviços
-```
-
-Variáveis de ambiente necessárias: `DB_PASS`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AMQP_URL`, `REDIS_URL`.
-
 ## Smoke Test
 
 ```bash
@@ -133,4 +102,4 @@ node scripts/playwright-smoke.js
 | Docs desatualizados no Scalar | `cd business && go run github.com/swaggo/swag/cmd/swag@latest init -g cmd/server/main.go -o docs/` |
 | Engine não conecta | Logs de `watink-engine` e `watink-rabbitmq` juntos — race condition de startup |
 | Frontend com erro de build | `cd frontend && npm run build` para ver erros detalhados do Vite |
-| Migrations falhando | `cd legacy/backend && npm run db:migrate` com `NODE_ENV=development` |
+| Migrations falhando | O `business` migra no boot (`database.Migrate()`, GORM `AutoMigrate`): veja `docker compose logs watink-business` logo após a subida |
