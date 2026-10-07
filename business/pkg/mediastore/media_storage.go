@@ -84,6 +84,19 @@ func SaveMediaReader(r io.Reader, mimeType string) (string, error) {
 	return "/public/media/" + filename, nil
 }
 
+// ReadLocal devolve os bytes de uma URL "/public/media/<arquivo>" gravada por SaveMedia*. ok=false quando a
+// URL não é local (externa/vazia): quem chama a repassa como está. Só o nome do arquivo conta, então nada
+// escapa da pasta de mídia. O engine roda em outro container sem esse disco: mandar só o caminho a ele
+// falha com "no such file", então o business envia os bytes.
+func ReadLocal(url string) (data []byte, ok bool, err error) {
+	const prefix = "/public/media/"
+	if !strings.HasPrefix(url, prefix) {
+		return nil, false, nil
+	}
+	data, err = os.ReadFile(filepath.Join(mediaPublicDir, filepath.Base(strings.TrimPrefix(url, prefix))))
+	return data, true, err
+}
+
 // safeExt ensures ext matches `\.[a-z0-9]{1,10}` to prevent path traversal
 // via user-supplied MIME types. Any non-conforming value is replaced with ".bin".
 func safeExt(ext string) string {

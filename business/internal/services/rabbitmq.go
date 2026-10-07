@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
 	"github.com/streadway/amqp"
 	"go.opentelemetry.io/otel"
 )
@@ -107,7 +109,39 @@ func (s *RabbitMQService) setupExchanges() error {
 }
 
 func (s *RabbitMQService) PublishCommand(routingKey string, payload interface{}) error {
+	if cmd, ok := payload.(map[string]interface{}); ok {
+		if err := inlineLocalMedia(routingKey, cmd); err != nil {
+			return err
+		}
+	}
 	return s.publishWithTrace("wbot.commands", routingKey, payload)
+}
+
+// inlineLocalMedia anexa os bytes (base64, em mediaData) de uma mídia que só existe no disco do business.
+// O engine roda em outro container: com só "/public/media/x.png" o envio falhava com "no such file" e a
+// mensagem ficava no relógio. Só message.send.media; URL externa passa intacta; mediaData já informado
+// (áudio do Assistant) não é sobrescrito. Arquivo local ausente é erro aqui, antes de enfileirar.
+func inlineLocalMedia(routingKey string, cmd map[string]interface{}) error {
+	if cmd["type"] != "message.send.media" {
+		return nil
+	}
+	p, ok := cmd["payload"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	if d, _ := p["mediaData"].(string); d != "" {
+		return nil
+	}
+	url, _ := p["mediaUrl"].(string)
+	data, local, err := mediastore.ReadLocal(url)
+	if !local {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("mídia local indisponível para %s: %w", routingKey, err)
+	}
+	p["mediaData"] = base64.StdEncoding.EncodeToString(data)
+	return nil
 }
 
 func (s *RabbitMQService) PublishEvent(routingKey string, payload interface{}) error {
