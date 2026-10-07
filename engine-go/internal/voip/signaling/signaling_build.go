@@ -57,10 +57,7 @@ func BuildOfferStanza(ctx context.Context, sock core.VoipSocket, callID string, 
 		waBinary.Node{Tag: "audio", Attrs: waBinary.Attrs{"enc": "opus", "rate": "16000"}},
 	)
 	if isVideo {
-		offerContent = append(offerContent, waBinary.Node{Tag: "video", Attrs: waBinary.Attrs{
-			"enc": "vp8", "dec": "vp8", "orientation": "0",
-			"screen_width": "1920", "screen_height": "1080", "device_orientation": "0",
-		}})
+		offerContent = append(offerContent, VideoOfferNode())
 	}
 	offerContent = append(offerContent,
 		waBinary.Node{Tag: "net", Attrs: waBinary.Attrs{"medium": "3"}},
@@ -100,19 +97,19 @@ func BuildAcceptStanza(ctx context.Context, sock core.VoipSocket, callID string,
 		return waBinary.Node{}, fmt.Errorf("no enc node produced for accept")
 	}
 
-	acceptContent := []waBinary.Node{
-		{Tag: "audio", Attrs: waBinary.Attrs{"enc": "opus", "rate": "16000"}},
-		{Tag: "net", Attrs: waBinary.Attrs{"medium": "3"}},
-		*encNode,
-		{Tag: "encopt", Attrs: waBinary.Attrs{"keygen": "2"}},
+	acceptContent := []waBinary.Node{{Tag: "audio", Attrs: waBinary.Attrs{"enc": "opus", "rate": "16000"}}}
+	if isVideo {
+		acceptContent = append(acceptContent, VideoAcceptNode())
 	}
+	acceptContent = append(acceptContent,
+		waBinary.Node{Tag: "net", Attrs: waBinary.Attrs{"medium": "3"}},
+		*encNode,
+		waBinary.Node{Tag: "encopt", Attrs: waBinary.Attrs{"keygen": "2"}},
+	)
 	if includeDeviceIdentity {
 		if di, ok := sock.AccountDeviceIdentityNode(); ok {
 			acceptContent = append(acceptContent, di)
 		}
-	}
-	if isVideo {
-		acceptContent = append(acceptContent, waBinary.Node{Tag: "video", Attrs: waBinary.Attrs{"enc": "vp8"}})
 	}
 
 	return waBinary.Node{
@@ -156,18 +153,24 @@ func BuildRejectStanza(peerJid types.JID, callID string, callCreator types.JID) 
 	})
 }
 
-func BuildPreacceptStanza(peerJid types.JID, callID string, callCreator types.JID) waBinary.Node {
+func BuildPreacceptStanza(peerJid types.JID, callID string, callCreator types.JID, isVideo bool) waBinary.Node {
+	content := []waBinary.Node{{Tag: "audio", Attrs: waBinary.Attrs{"enc": "opus", "rate": "16000"}}}
+	capability := capabilityPreaccept
+	if isVideo {
+		content = append(content, VideoPreacceptNode())
+		capability = capabilityOffer
+	}
+	content = append(content,
+		waBinary.Node{Tag: "encopt", Attrs: waBinary.Attrs{"keygen": "2"}},
+		waBinary.Node{Tag: "capability", Attrs: waBinary.Attrs{"ver": "1"}, Content: capability},
+	)
 	return waBinary.Node{
 		Tag:   "call",
 		Attrs: waBinary.Attrs{"to": peerJid, "id": GenerateCallStanzaID()},
 		Content: []waBinary.Node{{
-			Tag:   "preaccept",
-			Attrs: waBinary.Attrs{"call-id": callID, "call-creator": callCreator},
-			Content: []waBinary.Node{
-				{Tag: "audio", Attrs: waBinary.Attrs{"enc": "opus", "rate": "16000"}},
-				{Tag: "encopt", Attrs: waBinary.Attrs{"keygen": "2"}},
-				{Tag: "capability", Attrs: waBinary.Attrs{"ver": "1"}, Content: capabilityPreaccept},
-			},
+			Tag:     "preaccept",
+			Attrs:   waBinary.Attrs{"call-id": callID, "call-creator": callCreator},
+			Content: content,
 		}},
 	}
 }

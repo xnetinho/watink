@@ -80,7 +80,7 @@ func TestOfferCapability(t *testing.T) {
 
 func TestPreacceptCapability(t *testing.T) {
 	peer := types.NewJID("5511999990001", types.DefaultUserServer)
-	n := BuildPreacceptStanza(peer, "CALL1", peer)
+	n := BuildPreacceptStanza(peer, "CALL1", peer, false)
 	if got := capabilityOf(t, n, "preaccept"); !bytes.Equal(got, wantPreaccept) {
 		t.Fatalf("capability do preaccept = %x, esperado %x", got, wantPreaccept)
 	}

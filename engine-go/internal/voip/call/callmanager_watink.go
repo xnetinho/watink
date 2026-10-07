@@ -20,7 +20,7 @@ func (m *CallManager) SendPreaccept(ctx context.Context) error {
 		m.mu.Unlock()
 		return nil
 	}
-	node := signaling.BuildPreacceptStanza(wanode.MustJID(call.PeerJid), call.CallID, wanode.MustJID(call.CallCreator))
+	node := signaling.BuildPreacceptStanza(wanode.MustJID(call.PeerJid), call.CallID, wanode.MustJID(call.CallCreator), call.MediaType == core.CallMediaTypeVideo)
 	m.mu.Unlock()
 	return m.sock.SendNode(ctx, node)
 }
