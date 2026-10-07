@@ -155,7 +155,7 @@ func main() {
 	// fila de eventos PRÓPRIA. A presença vem do mesmo SSEHub do stream de eventos.
 	callService := container.Calls.WithRecording(calls.NewRecording(s3Store, os.TempDir()))
 
-	if err := rabbitMQ.Connect(); err == nil {
+	startRabbitConsumers := func() {
 		services.StartEventListener(rabbitMQ, eventListener)
 		if err := callService.Start(rabbitMQ); err != nil {
 			log.Printf("[calls] event consumer: %v", err)
@@ -178,9 +178,8 @@ func main() {
 		if err := knowledgeStatus.Start(rabbitMQ); err != nil {
 			log.Printf("[knowledge] status listener: %v", err)
 		}
-	} else {
-		log.Printf("⚠️ Warning: RabbitMQ connection failed: %v", err)
 	}
+	rabbitMQ.ConnectWithRetry(startRabbitConsumers)
 
 	r.Static("/public/media", "public/media")
 

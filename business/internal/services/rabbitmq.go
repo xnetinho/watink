@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,6 +15,10 @@ import (
 	"github.com/streadway/amqp"
 	"go.opentelemetry.io/otel"
 )
+
+// ErrRabbitMQNotConnected é devolvido quando se publica sem nunca ter conectado ao broker. Antes o canal nil
+// virava um nil pointer dereference (panic recuperado pelo Gin = HTTP 500 sem corpo, e nada era enviado).
+var ErrRabbitMQNotConnected = errors.New("rabbitmq: sem conexão com o broker")
 
 type RabbitMQService struct {
 	conn    *amqp.Connection
@@ -75,6 +80,31 @@ func (s *RabbitMQService) Connect() error {
 
 	log.Println("[RabbitMQ] Connected successfully")
 	return nil
+}
+
+// ConnectWithRetry tenta conectar e, se o broker estiver fora do ar na subida, segue tentando em segundo
+// plano. O Connect() só arma a reconexão automática depois de conectar uma vez; sem isto, um RabbitMQ que
+// subisse depois do business deixava o canal nil para sempre, até alguém reiniciar o serviço. onConnected
+// roda quando a conexão enfim sai (consumidores, workers). Devolve se conectou de primeira.
+func (s *RabbitMQService) ConnectWithRetry(onConnected func()) bool {
+	if err := s.Connect(); err == nil {
+		onConnected()
+		return true
+	} else {
+		log.Printf("⚠️ Warning: RabbitMQ connection failed: %v — tentando de novo em segundo plano", err)
+	}
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			if err := s.Connect(); err != nil {
+				log.Printf("[RabbitMQ] ainda sem conexão: %v", err)
+				continue
+			}
+			onConnected()
+			return
+		}
+	}()
+	return false
 }
 
 // currentConn returns the live connection under lock — Connect() replaces
@@ -176,6 +206,9 @@ func (s *RabbitMQService) publishWithTrace(exchange, routingKey string, payload 
 	s.mu.Lock()
 	ch := s.channel
 	s.mu.Unlock()
+	if ch == nil {
+		return ErrRabbitMQNotConnected
+	}
 
 	return ch.Publish(
 		exchange, routingKey, false, false,
