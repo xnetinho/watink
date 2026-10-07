@@ -35,6 +35,9 @@ type CallManager struct {
 	// com o slot 2 do mesmo HKDF do áudio; sem ele na alocação do relay o vídeo dele não chega.
 	videoSelfSsrc uint32
 	videoPeerSsrc uint32
+	// videoRx remonta as access units do contato; recebe os pacotes na ordem em que chegam.
+	videoRx          media.H264AccessUnitAssembler
+	videoLastPLI time.Time
 
 	firstPacketSent       bool
 	initialTransportSent  bool
@@ -57,6 +60,12 @@ type CallManager struct {
 	OnIncoming    func(*CallInfo)
 	OnEnded       func(*CallInfo)
 	OnPeerAudio   func([]float32)
+
+	// OnPeerVideo (vídeo, fase 1) recebe cada access unit H.264 completa do contato, em Annex-B, e se
+	// ela é um quadro-chave. Roda na goroutine do relay: NÃO pode bloquear.
+	OnPeerVideo func(accessUnit []byte, keyframe bool)
+	// OnVideoKeyframeNeeded avisa que um pacote se perdeu e o contato precisa mandar um quadro-chave.
+	OnVideoKeyframeNeeded func()
 
 	// OnPeerRtp (alteração Watink) recebe sequência, timestamp e tamanho do payload
 	// de cada pacote RTP do contato já autenticado, para medir perda, jitter e taxa.

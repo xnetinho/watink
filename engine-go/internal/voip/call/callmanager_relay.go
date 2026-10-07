@@ -1,7 +1,10 @@
 package call
 
 import (
+	"time"
+
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
+	"github.com/alltomatos/watinkdev/engine-go/internal/voip/media"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/transport"
 )
 
@@ -93,6 +96,8 @@ func (m *CallManager) cleanupMedia() {
 	m.actualPeerSet = false
 	m.videoSelfSsrc = 0
 	m.videoPeerSsrc = 0
+	m.videoRx = media.H264AccessUnitAssembler{}
+	m.videoLastPLI = time.Time{}
 	m.encodeBuf = nil
 	m.encodeBufPos = 0
 	m.mu.Unlock()

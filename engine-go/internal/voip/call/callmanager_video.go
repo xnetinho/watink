@@ -1,6 +1,8 @@
 package call
 
 import (
+	"time"
+
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/media"
 )
@@ -40,4 +42,47 @@ func (m *CallManager) applyVideoSsrcsLocked() {
 		peer = append(peer, m.videoPeerSsrc)
 	}
 	m.relay.SetExtraSsrcs(self, peer)
+}
+
+// videoPLIInterval limita os pedidos de quadro-chave: uma rajada de perda não pode inundar o contato.
+const videoPLIInterval = 300 * time.Millisecond
+
+// onVideoRtp trata um pacote RTP de vídeo (PT 97) vindo do relay: autentica e decifra com o contexto
+// SRTP do SSRC de vídeo, remonta a access unit e a entrega. Em lacuna de sequência descarta o quadro
+// incompleto, pede um quadro-chave (com intervalo mínimo) e só volta a entregar a partir de um IDR.
+// Não toca na subscrição de áudio (peerSsrcs/actualPeerSet): vídeo e áudio têm fluxos separados.
+func (m *CallManager) onVideoRtp(data []byte, ssrc uint32) {
+	m.mu.Lock()
+	if m.srtpSession == nil || !m.isVideoCallLocked() || ssrc == m.videoSelfSsrc {
+		m.mu.Unlock()
+		return
+	}
+	srtp := m.srtpSession
+	m.mu.Unlock()
+
+	pkt, err := srtp.Unprotect(data)
+	if err != nil {
+		m.log.Debug("srtp video unprotect error", "err", err)
+		return
+	}
+	if len(pkt.Payload) == 0 || pkt.Header == nil {
+		return
+	}
+
+	m.mu.Lock()
+	au, ok, recovery := m.videoRx.Push(pkt.Header.SequenceNumber, pkt.Header.Marker, pkt.Payload)
+	needPLI := false
+	if recovery && time.Since(m.videoLastPLI) >= videoPLIInterval {
+		m.videoLastPLI = time.Now()
+		needPLI = true
+	}
+	onVideo, onPLI := m.OnPeerVideo, m.OnVideoKeyframeNeeded
+	m.mu.Unlock()
+
+	if needPLI && onPLI != nil {
+		onPLI()
+	}
+	if ok && onVideo != nil {
+		onVideo(au, media.AUHasIDR(au))
+	}
 }

@@ -14,14 +14,17 @@ O navegador é quem codifica e decodifica (WebCodecs). Mesmo desenho do áudio P
 
 ## Decisões
 
-1. **Transporte do vídeo: WebSocket binário no mesmo canal do áudio** (`/api/v1/calls/:id/audio`), com um
-   byte de tipo no início de cada mensagem binária (áudio PCM = `0x01`, vídeo = `0x02`) em vez de um segundo
-   WebSocket. Um só canal mantém a autorização, o limite de um canal por chamada e o watchdog que já existem.
-   Os forks usam DataChannel WebRTC; aqui não, porque o servidor não termina WebRTC.
-2. **Formato de mensagem de vídeo (navegador ↔ business ↔ engine):** `[0x02][flags 1B][ts90k 4B BE][AnnexB…]`.
-   `flags`: bit0 = keyframe, bits1-2 = rotação (quartos de volta). Mensagem de controle servidor→navegador de
-   1 byte `0x03` = "gere um keyframe agora" (pedido de PLI/FIR do contato). Derivado do `videoframe.go` do
-   `fabriciosprj`, que é o protocolo mais completo dos forks.
+1. **Transporte do vídeo: o mesmo WebSocket do áudio** (`/api/v1/calls/:id/audio`), sem segundo canal: mantém
+   a autorização, o limite de um canal por chamada e o watchdog que já existem. Os forks usam DataChannel
+   WebRTC; aqui não, porque o servidor não termina WebRTC.
+2. **Como distinguir áudio de vídeo SEM mudar o áudio** (revisado na implementação): o áudio PCM é sempre
+   **640 bytes** por mensagem binária, e hoje o business trata toda mensagem binária como PCM. Em vez de pôr
+   um byte de tipo no áudio (que quebraria quem só fala áudio), o vídeo ganha um **prefixo mágico** de 4 bytes
+   (`0xFF 'V' 'D' 0x01`), e o receptor trata como vídeo só o que começa com ele. Um quadro PCM de 640 B nunca
+   começa com `FF 56 44 01` por acaso de forma ambígua porque o tamanho é diferente: PCM tem tamanho fixo e
+   o vídeo é detectado por tamanho **e** prefixo. Formato: `[FF 56 44 01][flags 1B][ts90k 4B BE][AnnexB…]`.
+   `flags`: bit0 = keyframe, bits1-2 = rotação. Controle servidor→navegador **em texto JSON** (o canal já
+   carrega telemetria assim): `{"type":"keyframe"}` = "gere um quadro-chave agora".
 3. **Codec:** H.264 Constrained Baseline nível 3.1 (`avc1.42E01F`), `avc:{format:"annexb"}`,
    `latencyMode:"realtime"`, 640×480 a 15-20 fps, 600 kbps. Keyframe a cada 2 s e sob pedido. O nível 3.1
    limita a 1280×720; resolução maior é rejeitada pelo `VideoEncoder`.
@@ -38,11 +41,16 @@ O navegador é quem codifica e decodifica (WebCodecs). Mesmo desenho do áudio P
    cabeçalho. O contexto SRTP é **por SSRC** (o IV inclui o SSRC), então a mesma `SrtpSession` serve, mas o
    ROC/replay do vídeo é independente do áudio. O nosso HKDF com sal nulo é idêntico ao sal de 32 zeros da
    meowcaller (verificado por teste).
-6. **Recepção:** demux por payload type 97, `H264AccessUnitAssembler` com recuperação de keyframe: em lacuna de
+6. **Pedido de quadro-chave ao contato (PLI) fica fora da fase 1.** O PLI é um RTCP que precisa ir cifrado
+   por SRTCP com chaves e índices próprios (`UnprotectSrtcp`/`ProtectSrtcp`, tag de 10 B), que nosso engine
+   ainda não tem. Na fase 1 o engine **descarta o quadro quebrado e só volta a entregar a partir do próximo IDR**
+   que o próprio contato mandar (celulares mandam IDR periodicamente), e o gancho `OnVideoKeyframeNeeded`
+   já existe para ligar o PLI na fase 2, quando o SRTCP for implementado para o SR+SDES.
+7. **Recepção:** demux por payload type 97, `H264AccessUnitAssembler` com recuperação de keyframe: em lacuna de
    sequência descarta a AU e exige novo IDR, devolvendo `recoveryNeeded` → o engine envia PLI e o business
    avisa o navegador que descarte até o próximo keyframe. **O `rxLockedSsrc` do dedup de relay precisa ser
    por tipo de mídia (por PT)**: hoje ele trava no primeiro SSRC que decifra (o áudio) e descartaria o vídeo.
-7. **Sinalização (referência: meowcaller `signaling/video.go` e `stanza.go`):**
+8. **Sinalização (referência: meowcaller `signaling/video.go` e `stanza.go`):**
    - `offer` com vídeo: `<video enc="h.264" dec="H264" screen_width="1920" screen_height="1080"
      device_orientation="0"/>`, sem o atributo legado `orientation`; capability `…e0 fa 13` (já adotada).
      O `vp8` atual do `signaling_build.go` **deixa de existir**: o iPhone testado ignora.
@@ -56,21 +64,21 @@ O navegador é quem codifica e decodifica (WebCodecs). Mesmo desenho do áudio P
      engine (a meowcaller usa reflection+unsafe no `nodeHandlers` privado, marcado NOT VALIDATED por ela).
    - **Ordem dos filhos do `offer` é carga estrutural** (o servidor devolve erro 439 se errar): `privacy →
      audio 8k → audio 16k → video → net → capability → destination → encopt → device-identity`.
-8. **Feedback:** PLI/FIR do contato chega por SRTCP autenticado (`RtcpRequestsKeyframe`); o engine marca
+9. **Feedback:** PLI/FIR do contato chega por SRTCP autenticado (`RtcpRequestsKeyframe`); o engine marca
    `keyframeRequired`, descarta deltas até o próximo IDR e avisa o navegador. Para o vídeo do **chamador**
    começar a fluir é necessário enviar **SR+SDES** periódico (74 bytes protegido). REMB, NACK e
    retransmissão ficam **fora** (o fabriciosprj os tem, mas admite não conseguir autenticar o NACK de entrada).
-9. **Orientação:** só pelo atributo `device_orientation` do stanza (como a meowcaller). O CVO nos bits 0-1 do
+10. **Orientação:** só pelo atributo `device_orientation` do stanza (como a meowcaller). O CVO nos bits 0-1 do
    `MediaFrameInfo` fica fora; o navegador envia sempre na orientação do `VideoEncoder`.
-10. **Gravação do vídeo (decisão do dono):** o áudio segue em MP3, com o gatilho único `call.state active`. O
+11. **Gravação do vídeo (decisão do dono):** o áudio segue em MP3, com o gatilho único `call.state active`. O
     **vídeo H.264 bruto (Annex-B) vai a um arquivo `.h264` à parte** no S3, `{tenantId}/calls/{callId}.h264`,
     sem muxar e sem timestamps de reprodução; serve só para auditoria. Mesma regra de modo e aceite da voz,
     mesmo `recordingKey` ganha um irmão `videoRecordingKey`. Exclusão apaga os dois. **Custo de
     armazenamento**: a 600 kbps são ~270 MB/hora por chamada. O administrador precisa saber disso antes de
     ligar o modo automático.
-11. **Permissões:** as mesmas da voz. `calls:receive` atende com vídeo, `calls:place` liga com vídeo. Sem
+12. **Permissões:** as mesmas da voz. `calls:receive` atende com vídeo, `calls:place` liga com vídeo. Sem
     permissão nova. Conexão com proxy segue sem chamada (mídia por UDP direto do host).
-12. **Navegador:** só Chromium (`MediaStreamTrackProcessor`/`Generator`). Outros navegadores caem em voz, e o
+13. **Navegador:** só Chromium (`MediaStreamTrackProcessor`/`Generator`). Outros navegadores caem em voz, e o
     botão de vídeo fica oculto, com o motivo explicado.
 
 ## Fases (com teste real obrigatório entre elas)

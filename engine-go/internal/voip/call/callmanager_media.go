@@ -120,6 +120,10 @@ func (m *CallManager) onRelayData(data []byte) {
 		return
 	}
 	pt := data[1] & 0x7f
+	if pt == media.PayloadTypeH264 {
+		m.onVideoRtp(data, uint32(data[8])<<24|uint32(data[9])<<16|uint32(data[10])<<8|uint32(data[11]))
+		return
+	}
 	if pt != core.PayloadTypeWhatsAppOpus {
 		return
 	}
