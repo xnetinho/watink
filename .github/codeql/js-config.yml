@@ -5,5 +5,3 @@ path-filtering:
     - frontend/src/**
   paths-ignore:
     - frontend/build/**
-    - legacy/**
-    - marketplace-hub/**

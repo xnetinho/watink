@@ -1,3 +1,6 @@
+> **Documento histórico.** Descreve o engine Node/whaileys, que **não existe mais neste repositório** (substituído pelo `engine-go`, em Go). Mantido só como
+> referência da migração (ADR 0004). Não use como fonte de verdade: veja `CLAUDE.md` e `docs/agents/`.
+
 # Arquitetura do Engine
 
 ## Componentes Principais
