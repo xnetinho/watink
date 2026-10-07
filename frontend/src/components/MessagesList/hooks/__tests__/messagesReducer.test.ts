@@ -104,3 +104,36 @@ describe("messagesReducer — resposta enviada", () => {
     expect(added?.quotedMsg?.body).toBe("qual o prazo?");
   });
 });
+
+// Regressão: a citação aparecia na hora e SUMIA logo depois. Ack, mídia, reação e revogação reemitem a
+// mensagem lida do banco (sem quotedMsg, que só a listagem e o envio anexam), e o UPDATE_MESSAGE trocava o
+// objeto inteiro. A citação só voltava ao recarregar a página.
+describe("messagesReducer — update não apaga a citação", () => {
+  const quoted = { ...msg(9, "2026-10-07T10:59:00.000Z"), body: "qual o prazo?" } as Message;
+  const reply = { ...msg(10, "2026-10-07T11:00:00.000Z"), fromMe: true, body: "5 dias", ack: 0, quotedMsg: quoted } as Message;
+
+  it("o ack (sem quotedMsg) atualiza o ack e mantém a citação", () => {
+    const ack = { ...msg(10, "2026-10-07T11:00:00.000Z"), fromMe: true, body: "5 dias", ack: 2 } as Message;
+    const state = messagesReducer([reply], { type: "UPDATE_MESSAGE", payload: ack });
+    expect(state[0].ack).toBe(2);
+    expect(state[0].quotedMsg?.body).toBe("qual o prazo?");
+  });
+
+  it("um update que TRAZ quotedMsg continua valendo", () => {
+    const other = { ...quoted, body: "editada" } as Message;
+    const state = messagesReducer([reply], { type: "UPDATE_MESSAGE", payload: { ...reply, quotedMsg: other } as Message });
+    expect(state[0].quotedMsg?.body).toBe("editada");
+  });
+
+  it("ADD_MESSAGE repetido (re-entrega) também não apaga a citação", () => {
+    const again = { ...msg(10, "2026-10-07T11:00:00.000Z"), fromMe: true, body: "5 dias" } as Message;
+    const state = messagesReducer([reply], { type: "ADD_MESSAGE", payload: again });
+    expect(state[0].quotedMsg?.body).toBe("qual o prazo?");
+  });
+
+  it("mensagem sem citação continua sem citação", () => {
+    const plain = msg(11, "2026-10-07T11:01:00.000Z");
+    const state = messagesReducer([plain], { type: "UPDATE_MESSAGE", payload: { ...plain, ack: 1 } as Message });
+    expect(state[0].quotedMsg).toBeUndefined();
+  });
+});
