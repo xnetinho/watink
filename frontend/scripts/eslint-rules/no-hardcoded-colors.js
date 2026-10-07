@@ -12,7 +12,7 @@
  * - var(--token-name)               → CSS variable (reactive, correct)
  * - primitives reference (p.xxx)    → only inside theme/tokens/ directory
  * - Comments                        → ignored
- * - Data format strings (ColorPicker) → exempted via color-data-exempt marker comment.
+ * - Data format strings → exempted via color-data-exempt marker comment.
  *
  * Blocked patterns:
  * - #fff, #007AFF, #333333          → hex literals
@@ -33,7 +33,6 @@ const EXEMPT_PATTERNS = [
 	/theme\/bridge\.js/,         // Bridge needs hex for MUI palette
 	/theme\/loader\.js/,         // Loader applies token values
 	/scripts\//,                 // Build/migration scripts
-	/ColorPicker/,               // ColorPicker hex is data format
 	/node_modules\//,            // Dependencies
 	/\.test\./,                  // Test files
 	/\.spec\./,                  // Spec files

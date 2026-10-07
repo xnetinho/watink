@@ -22,40 +22,40 @@
 - [x] A.8 `CLAUDE.md`: tirar da tabela de Services `Marketplace Hub`, `Backend Node (legacy)` e `Engine Node (legacy)`;
       corrigir a lista de plugins; remover a contradição sobre `marketplace-hub`
 - [x] A.9 ADR 0018 `Superseded by 0028`; corrigir o link quebrado de `docs/frontend/chats/OVERVIEW.md`; aviso de
-      "histórico" em `docs/legacy-backend/` e `docs/legacy-engine/`. **`ESTADO_ORQUESTRATOR.md` fica na raiz**: o
-      `.claude/config.json` (`"state"`) e dois docs o referenciam; movê-lo muda a configuração da ferramenta, não é higiene
-- [ ] A.10 PR contra `develop`, CI verde (workflows só se validam na CI), merge
+      "histórico" em `docs/legacy-backend/` e `docs/legacy-engine/`; `ESTADO_ORQUESTRATOR.md` para `docs/`
+- [x] A.10 PR #4 contra `develop`, CI verde (workflows só se validam na CI), merge
 
 ## PR B: frontend (`chore/purge-frontend-dead-code`)
 
-- [ ] B.1 Cadeia órfã do chat: `MessageListContainer.tsx`, `MessageItem.tsx`, `MessageItem.spec.tsx`,
+- [x] B.1 Cadeia órfã do chat: `MessageListContainer.tsx`, `MessageItem.tsx`, `MessageItem.spec.tsx`,
       `MessagesList/MessageMedia.tsx`; remover o `declare module '@virtuoso.dev/message-list'` de `global.d.ts`
-- [ ] B.2 Páginas e modais sem rota: `pages/Tenants/`, `components/TenantModal/`, `components/PermissionTransferList/`
-- [ ] B.3 Componentes soltos: `ColorPicker`, `InfoCard`, `Title` e `ui/title`, `layout/header`, `ComingSoonItem`,
+- [x] B.2 Páginas e modais sem rota: `pages/Tenants/`, `components/TenantModal/`, `components/PermissionTransferList/`
+- [x] B.3 Componentes soltos: `ColorPicker`, `InfoCard`, `Title` e `ui/title`, `layout/header`, `ComingSoonItem`,
       `NewTicketModal/index.tsx`, `useTicket`, `useTicketsQuery`, `AdminSectionDivider`, `ConnectionIcon`,
       `FlowBuilder/ContentModal`, `FlowBuilder/StartNodeModal`, `Helpdesk/ProtocolDrawer`, `rules.ts`
-- [ ] B.4 Dependências sem uso: `react-virtuoso`, `@testing-library/user-event`, `@radix-ui/react-avatar`,
+- [x] B.4 Dependências sem uso: `react-virtuoso`, `@testing-library/user-event`, `@radix-ui/react-avatar`,
       `react-color`. **Ficam** `express`/`express-rate-limit` (`frontend/server.js`), plugins do ESLint, `@testing-library/dom`
-- [ ] B.5 PNGs e assets sem uso (decisão do dono): `public/logo-full.png`, `logo-text.png`, `apple-touch-icon.png`,
+- [x] B.5 PNGs e assets sem uso (decisão do dono): `public/logo-full.png`, `logo-text.png`, `apple-touch-icon.png`,
       `favicon-16x16.png`, `favicon-32x32.png`, `mstile-150x150.png`, `src/assets/sound.ogg`, e as fontes
       `logo-completa.png` / `watink-logo-letras.png` com suas linhas no `copy-assets.js`. **Ficam** `fundo.png`
-      (alimenta `login-background.png`), `watink-sf.png` (alimenta `logo.png`), `favicon.png`
-- [ ] B.6 `theme/index.ts` + `typography.ts` e exports mortos **só os provados**
-- [ ] B.7 `tsc`, `eslint`, `vitest` e `vite build` (comparar o tamanho do build); PR, CI verde, merge
+      (alimenta `login-background.png`), `watink-sf.png` (alimenta `logo.png`), `favicon.png`. Também saiu
+      `public/index.html` (resto do CRA com `%PUBLIC_URL%`, nunca usado: o Vite usa o `index.html` da raiz)
+- [x] B.6 `theme/index.ts` + `typography.ts` (saíram com o grupo). Exports mortos isolados **ficam**: o `knip` aponta
+      75, mas quase todos são shadcn/`ui/*` e tokens (ruído); remover sem prova individual arrisca quebrar
+- [x] B.7 `tsc`, `eslint`, `vitest` e `vite build` (comparar o tamanho do build); PR, CI verde, merge
 
 ## PR C: business (`chore/purge-business-dead-code`)
 
-- [ ] C.1 `internal/models/user_queue.go` (struct sem uso; a tabela `user_queues` é criada pela tag `many2many` e
-      **continua**) e símbolos de ocorrência única: `checkoutRequest`, `ChannelAdapter`, `ErrNoRecordingFile`,
-      `FlowRunSubjectNone`, `GroupCampaignRunStatusFailed`; conferir `otelTraceParent`/`otelTraceState`
-- [ ] C.2 `go.mod`: `go-mp3` de `// indirect` para direto (`go mod tidy`); corrigir o comentário obsoleto de
+- [x] C.1 `internal/models/user_queue.go` (struct sem uso; a tabela `user_queues` é criada pela tag `many2many` e
+      **continua**) e símbolos de ocorrência única: `checkoutRequest`, `ChannelAdapter`, `FlowRunSubjectNone`, `GroupCampaignRunStatusFailed`; `otelTraceParent`/`otelTraceState` também saíram (propagação nunca ligada). `ErrNoRecordingFile` já não existia.
+- [x] C.2 `go.mod`: `go mod tidy` não mudou nada (o `go-mp3` já está certo nesta base); corrigir o comentário obsoleto de
       `domain/broadcaster.go:4`
-- [ ] C.3 **`fetch_url_crawl.go` FICA** (decisão do dono): documentar em `docs/agents/knowledge-base.md` (o que faz,
+- [x] C.3 **`fetch_url_crawl.go` FICA** (decisão do dono): documentar em `docs/agents/knowledge-base.md` (o que faz,
       limites, estado "implementado, não ligado", como ligar) e registrar no `ORCHESTRATOR-ROADMAP.md` como épico
       "Crawl de site na Base de Conhecimento"
-- [ ] C.4 **Ficam** (documentado): helpers que só testes usam (`calls`, `pluginlicense`, `plugins.NewPluginManager`),
+- [x] C.4 **Ficam** (documentado): helpers que só testes usam (`calls`, `pluginlicense`, `plugins.NewPluginManager`),
       `internal/testutil` e o vendor `recording/shine`
-- [ ] C.5 `go build`, `go vet`, testes dos pacotes tocados; PR, CI verde, merge
+- [x] C.5 `go build`, `go vet`, testes dos pacotes tocados; PR, CI verde, merge
 
 ## Engine
 

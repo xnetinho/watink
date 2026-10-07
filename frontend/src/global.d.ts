@@ -1,5 +1,4 @@
 declare module 'qrcode.react';
-declare module 'react-color';
 declare module 'react-modal-image';
 declare module 'react-dom/client';
 declare module 'react-signature-canvas' {
@@ -39,4 +38,3 @@ declare module 'mic-recorder-to-mp3' {
 }
 declare module '*.png';
 declare module '*.mp3';
-declare module '@virtuoso.dev/message-list';
