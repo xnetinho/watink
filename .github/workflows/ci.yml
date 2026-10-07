@@ -135,6 +135,10 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Build não publica mapas de fonte
+        working-directory: frontend
+        run: npx vitest run src/buildSourcemap.test.ts build-sourcemap.build.test.mjs
+
   build-engine-go:
     runs-on: ubuntu-latest
     steps:

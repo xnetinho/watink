@@ -82,6 +82,17 @@ docker compose -f docker-compose.dev.yml logs --tail=100 watink-rabbitmq
 
 > O `docker-compose.dev.yml` fica na raiz do repositório. Sempre execute os comandos Docker a partir da raiz.
 
+## Mapas de fonte do frontend (`VITE_SOURCEMAP`)
+
+O build de produção **não publica mapas de fonte**: o `business` serve tudo de `/assets/` e um `.map` público deixa
+qualquer visitante ler o TypeScript original no F12. Para depurar um erro de produção, gere um build pontual:
+
+```bash
+cd frontend && VITE_SOURCEMAP=true npm run build   # só esse valor liga; ture, 1, yes continuam desligados
+```
+
+Não publique essa imagem. O teste `src/buildSourcemap.test.ts` roda o build real e falha se algum `.map` aparecer.
+
 ## Log do banco (`DB_LOG_LEVEL`)
 
 O `business` imprime o log do GORM no nível `warn` por padrão: só erro real de SQL e consulta lenta (> 200 ms).
