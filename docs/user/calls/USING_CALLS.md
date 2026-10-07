@@ -126,8 +126,9 @@ Use chamadas com moderação nos números que a empresa não pode perder.
 
 ## Videochamada (em implantação)
 
-> **Esta parte ainda não foi testada com chamadas reais.** Ela está em fases e só a primeira (receber) está
-> pronta. Use com esse aviso.
+> Esta parte é entregue em fases. **Receber** videochamada já foi testado com chamada real (contato liga, o
+> operador atende e vê a imagem). A correção de **orientação** do vídeo (celular na vertical) ainda aguarda teste
+> em aparelho. O restante (enviar sua câmera, ligar como vídeo, trocar no meio da chamada) ainda não existe.
 
 - **Receber:** quando o contato liga **por vídeo**, o toque diz **“Videochamada recebida”**. Ao atender, você vê a
   imagem do contato na tela da chamada e ouve o áudio como sempre.

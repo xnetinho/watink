@@ -48,7 +48,7 @@
       keyframe, reconstrói o decoder em erro; detecção de suporte e mensagem em navegador sem WebCodecs
 - [x] 1.5 Frontend: painel de videochamada (vídeo do contato, controles, indicador de qualidade já existente)
 - [x] 1.6 Toque indica videochamada; atender sem suporte de vídeo atende só com voz e avisa
-- [ ] 1.7 **Teste real com dois números: o contato liga por vídeo, o operador atende e vê a imagem**
+- [x] 1.7 **Teste real com dois números: o contato liga por vídeo, o operador atende e vê a imagem**
 
 ## 2. Enviar a câmera
 
