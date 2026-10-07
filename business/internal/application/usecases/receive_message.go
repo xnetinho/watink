@@ -212,9 +212,14 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		createdAt = time.Now()
 	}
 
+	body := input.Body
+	if mediaType == "view_once" && body == "" {
+		body = viewOnceNotice
+	}
+
 	msg := &domain.Message{
 		ID:          input.ID,
-		Body:        input.Body,
+		Body:        body,
 		TicketID:    ticket.ID,
 		ContactID:   &contact.ID,
 		FromMe:      input.FromMe,
@@ -242,6 +247,9 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 	}
 
 	lastMsg := msg.Body
+	if mediaType == "view_once" {
+		lastMsg = "👁 Visualização única"
+	}
 	if lastMsg == "" {
 		lastMsg = mimeTypeLabel(input.Mimetype)
 	}

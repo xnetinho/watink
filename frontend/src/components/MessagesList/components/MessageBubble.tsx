@@ -34,6 +34,7 @@ const MEDIA_BUBBLE_TYPES = [
   "vcard",
   "carousel",
   "call",
+  "view_once",
 ];
 export const hasMediaBubble = (m: Message): boolean =>
   !!m.mediaUrl || MEDIA_BUBBLE_TYPES.includes(m.mediaType ?? "");

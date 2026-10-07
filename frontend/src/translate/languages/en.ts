@@ -453,6 +453,10 @@ const messages = {
         success: "User saved successfully.",
       },
       chat: {
+        viewOnce: {
+          title: "View once",
+          hint: "WhatsApp only delivers this content to the phone. Open it there.",
+        },
         noTicketMessage: "Select a ticket to start chatting.",
       },
       ticketsManager: {

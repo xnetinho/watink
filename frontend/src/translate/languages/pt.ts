@@ -575,6 +575,10 @@ const messages = {
         success: "Usuário salvo com sucesso.",
       },
       chat: {
+        viewOnce: {
+          title: "Visualização única",
+          hint: "O WhatsApp só entrega esse conteúdo no celular. Veja nele.",
+        },
         noTicketMessage: "Selecione um ticket para começar a conversar.",
       },
       ticketsManager: {

@@ -456,6 +456,10 @@ const messages = {
         success: "Usuario guardado satisfactoriamente.",
       },
       chat: {
+        viewOnce: {
+          title: "Ver una vez",
+          hint: "WhatsApp solo entrega este contenido en el teléfono. Ábralo allí.",
+        },
         noTicketMessage: "Selecciona un ticket para empezar a chatear.",
       },
       ticketsManager: {

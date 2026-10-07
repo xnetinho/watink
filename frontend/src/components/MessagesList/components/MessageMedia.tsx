@@ -10,6 +10,8 @@ import OnDemandMediaPreview from "./OnDemandMediaPreview";
 import AudioTranscribeButton from "./AudioTranscribeButton";
 import { Message } from "../types";
 import CallMessage from "../../Calls/CallMessage";
+import { t } from "../../../lib/calls/t";
+import { EyeOff } from "lucide-react";
 
 interface Props {
   message: Message;
@@ -28,6 +30,22 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
   // Mensagem de sistema de uma chamada de voz (direção, resultado, duração, gravação).
   if (message.mediaType === "call") {
     return <CallMessage dataJson={message.dataJson} body={message.body} />;
+  }
+
+  // Visualização única: o WhatsApp não entrega o conteúdo a aparelhos vinculados. Só avisa que chegou.
+  if (message.mediaType === "view_once") {
+    return (
+      <div
+        className="flex max-w-[300px] items-start gap-2 rounded-lg bg-[var(--bg-surface)] px-3 py-2 text-sm"
+        data-testid="view-once-notice"
+      >
+        <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+        <div>
+          <p className="font-medium">{t("chat.viewOnce.title")}</p>
+          <p className="text-xs text-[var(--text-muted)]">{t("chat.viewOnce.hint")}</p>
+        </div>
+      </div>
+    );
   }
 
   // Pending media: a downloadable type with no stored URL yet → show the blurred

@@ -19,6 +19,8 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 	switch v := evt.(type) {
 	case *events.Message:
 		s.handleMessageEvent(client, id, tenantID, v)
+	case *events.UndecryptableMessage:
+		s.handleUndecryptable(client, id, tenantID, v)
 	case *events.Receipt:
 		s.handleReceiptEvent(id, tenantID, v)
 	case *events.Connected:
