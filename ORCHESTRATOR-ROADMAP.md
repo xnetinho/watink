@@ -33,6 +33,14 @@
 | M11 | ESLint governance — 298 → 70 erros (-77%) | ✅ jun/2026 |
 | M12 | Docs cleanup — CLAUDE.md, docs/dev/, docs/ legado | ✅ jun/2026 |
 
+## Roadmap de produto (próximos épicos)
+
+- [ ] **Epic 8**: Crawl de site na Base de Conhecimento: indexar um site inteiro a partir de uma URL (sitemap ou BFS no
+  mesmo domínio). O núcleo já existe e é testado (`business/internal/knowledge/fetch_url_crawl.go`, `CrawlSite`), mas
+  não está ligado ao worker nem à UI. Falta: uma Source filha por página (citação por URL), opção na UI com
+  `maxPages`/`maxDepth` e cota por tenant, `robots.txt` e intervalo entre requisições, filtro de domínio também no
+  sitemap e suporte a `sitemapindex`. | 📋 Planejada: ver "Crawl de site" em `docs/agents/knowledge-base.md`
+
 ## Próximo Epic — Backend Go DI & Packages
 
 **Branch**: `refactor/backend-di-packages`

@@ -61,9 +61,52 @@ implementação responde.
 | `text` | payload direto, persistido em `KnowledgeBaseSources.rawContent` | ✅ |
 | `file` | download do S3 → parse (pdf/docx/txt/csv/xlsx/md) | ✅ |
 | `url`  | `FetchURL` (HTTP + readability), 1 página | ✅ |
-| crawl de site | `CrawlSite` (sitemap ou BFS same-domain, limite de páginas/profundidade) | implementado, ainda não exposto na UI como opção de fonte |
+| crawl de site | `CrawlSite` (sitemap ou BFS same-domain, limite de páginas/profundidade) | **implementado e testado, mas não ligado** (nem ao worker nem à UI): ver "Crawl de site" abaixo |
 | JS-heavy (headless) | — | fora da v1; texto vazio/curto falha com mensagem clara em vez de indexar lixo |
 | `git` | — | não planejado |
+
+### Crawl de site (`CrawlSite`): implementado, ainda não ligado
+
+`business/internal/knowledge/fetch_url_crawl.go`. Decisão do dono (out/2026): **mantém-se** e entra no roadmap
+(épico "Crawl de site na Base de Conhecimento"). Hoje a fonte `url` indexa **uma única página**; o crawl indexaria um
+site inteiro a partir de uma URL inicial.
+
+**O que faz**
+
+```go
+docs, err := CrawlSite(ctx, "https://exemplo.com/ajuda", CrawlOptions{MaxPages: 30, MaxDepth: 2})
+```
+
+1. Tenta `{scheme}://{host}/sitemap.xml` e, se existir, busca as URLs listadas (até `MaxPages`).
+2. Sem sitemap, faz **BFS no mesmo domínio**: segue os `<a href>` da página, até `MaxDepth` níveis e `MaxPages` páginas.
+3. Cada página passa pelo mesmo `FetchURL` (retry, readability, SSRF guard). Uma página que falha é **pulada**, não aborta
+   o rastreio.
+
+Limites padrão: `crawlMaxPages = 30`, `crawlMaxDepth = 2`; zero em `CrawlOptions` usa os padrões. Devolve `[]Document`
+(`URL`, `Title`, `Text`), um por página. Cobertura: `fetch_url_crawl_test.go` (BFS no mesmo domínio, respeito ao
+`MaxPages`, uso do sitemap).
+
+**Por que não está ligado: o que falta para ligar**
+
+- **Forma do worker:** `fetchContent` (`ingest_worker.go`) devolve **um texto por fonte**, e a Source tem 1 hash de
+  conteúdo. Um crawl devolve N documentos; é preciso decidir entre (a) concatenar tudo numa Source (perde a citação por
+  página), (b) **uma Source filha por página** (recomendado: cada chunk cita a URL certa e o hash pula o que não mudou).
+- **UI e API:** opção "site inteiro" ao criar a fonte `url`, com `maxPages`/`maxDepth` e um teto por tenant.
+- **Custo:** até 30 páginas × 3 tentativas × 2 requisições por página (o BFS baixa o HTML duas vezes) + embedding de
+  cada chunk. Precisa de cota por tenant e de limite de tempo do job (o TTL do reconciler hoje marca como `error`).
+- **Educação com o dono do site:** sem `robots.txt`, sem `User-Agent` identificável e sem espera entre páginas. Antes
+  de expor ao usuário, respeitar `robots.txt` e adicionar um intervalo entre requisições.
+
+**Ressalvas conhecidas (corrigir ao ligar)**
+
+- O filtro de mesmo domínio (`sameHost`) vale **só no BFS**. Um `sitemap.xml` que liste URLs de **outro** domínio é
+  seguido sem filtro (o SSRF guard ainda bloqueia IP interno, mas não o domínio externo).
+- `sitemap.xml` com `<sitemapindex>` (índice de sitemaps) não é suportado: só o formato `<urlset>`.
+- `sameHost` compara só o **nome** do host: outra **porta** do mesmo host conta como "mesmo domínio".
+- O BFS não normaliza `#fragmento` nem `?query`, então a mesma página pode ser baixada mais de uma vez.
+- Cada uma dessas ressalvas tem um teste `..._KnownLimitation` em `fetch_url_crawl_test.go` que registra o
+  comportamento **atual**; ao corrigir, inverta a asserção do teste correspondente.
+- Site com JavaScript pesado falha por página (texto abaixo de 200 caracteres), como na fonte `url`.
 
 ### Fonte `url`
 
