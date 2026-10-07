@@ -273,29 +273,99 @@ func (c *SrtpContext) computeAuthTag(data []byte, roc uint32, tagLen int) []byte
 	return sum[:tagLen]
 }
 
+// SrtpSession protege e desprotege os fluxos de uma chamada com as MESMAS chaves, mas com estado de
+// sequência, ROC e janela anti-replay SEPARADO por SSRC (RFC 3711: o contexto criptográfico é por fluxo).
+// Áudio e vídeo contam a sequência de formas independentes; num estado único o vídeo empurrava a janela
+// do áudio e o derrubava.
 type SrtpSession struct {
-	sendCtx *SrtpContext
-	recvCtx *SrtpContext
+	mu          sync.Mutex
+	sendKeying  core.SrtpKeyingMaterial
+	recvKeying  core.SrtpKeyingMaterial
+	sendAuthLen int
+	recvAuthLen int
+	sendCtx     map[uint32]*SrtpContext
+	recvCtx     map[uint32]*SrtpContext
+	sendAuthKM  *core.SrtpKeyingMaterial
 }
 
 func NewSrtpSession(sendKey, recvKey core.SrtpKeyingMaterial, sendAuthLen, recvAuthLen int) (*SrtpSession, error) {
-	sc, err := NewSrtpContext(sendKey, sendAuthLen)
-	if err != nil {
+	// Valida as chaves já na criação (e deixa o erro como antes), criando o contexto "sem SSRC".
+	if _, err := NewSrtpContext(sendKey, sendAuthLen); err != nil {
 		return nil, err
 	}
-	rc, err := NewSrtpContext(recvKey, recvAuthLen)
-	if err != nil {
+	if _, err := NewSrtpContext(recvKey, recvAuthLen); err != nil {
 		return nil, err
 	}
-	return &SrtpSession{sendCtx: sc, recvCtx: rc}, nil
+	return &SrtpSession{
+		sendKeying: sendKey, recvKeying: recvKey, sendAuthLen: sendAuthLen, recvAuthLen: recvAuthLen,
+		sendCtx: map[uint32]*SrtpContext{}, recvCtx: map[uint32]*SrtpContext{},
+	}, nil
 }
 
-func (s *SrtpSession) Protect(packet *RtpPacket) ([]byte, error) { return s.sendCtx.Protect(packet) }
+func (s *SrtpSession) sendFor(ssrc uint32) (*SrtpContext, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if c, ok := s.sendCtx[ssrc]; ok {
+		return c, nil
+	}
+	c, err := NewSrtpContext(s.sendKeying, s.sendAuthLen)
+	if err != nil {
+		return nil, err
+	}
+	if s.sendAuthKM != nil {
+		if err := c.SetAuthKeying(*s.sendAuthKM); err != nil {
+			return nil, err
+		}
+	}
+	s.sendCtx[ssrc] = c
+	return c, nil
+}
 
-func (s *SrtpSession) Unprotect(data []byte) (*RtpPacket, error) { return s.recvCtx.Unprotect(data) }
+func (s *SrtpSession) recvFor(ssrc uint32) (*SrtpContext, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if c, ok := s.recvCtx[ssrc]; ok {
+		return c, nil
+	}
+	c, err := NewSrtpContext(s.recvKeying, s.recvAuthLen)
+	if err != nil {
+		return nil, err
+	}
+	s.recvCtx[ssrc] = c
+	return c, nil
+}
+
+func (s *SrtpSession) Protect(packet *RtpPacket) ([]byte, error) {
+	c, err := s.sendFor(packet.Header.Ssrc)
+	if err != nil {
+		return nil, &SrtpError{SrtpErrEncryption, err.Error()}
+	}
+	return c.Protect(packet)
+}
+
+// Unprotect lê o SSRC do cabeçalho (bytes 8-11, ainda em claro) para escolher o contexto do fluxo.
+func (s *SrtpSession) Unprotect(data []byte) (*RtpPacket, error) {
+	if len(data) < 12 {
+		return nil, &SrtpError{SrtpErrPacketTooShort, fmt.Sprintf("packet too short: %d bytes", len(data))}
+	}
+	ssrc := binary.BigEndian.Uint32(data[8:12])
+	c, err := s.recvFor(ssrc)
+	if err != nil {
+		return nil, &SrtpError{SrtpErrDecryption, err.Error()}
+	}
+	return c.Unprotect(data)
+}
 
 func (s *SrtpSession) SetSendAuthKeying(keying core.SrtpKeyingMaterial) error {
-	return s.sendCtx.SetAuthKeying(keying)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sendAuthKM = &keying
+	for _, c := range s.sendCtx {
+		if err := c.SetAuthKeying(keying); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func deriveSrtpKey(masterKey, masterSalt []byte, label byte, length int) ([]byte, error) {
