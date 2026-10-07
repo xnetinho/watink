@@ -138,10 +138,17 @@ func TestNewGormLogger_ReadsDBLogLevelFromEnvironment(t *testing.T) {
 		}
 		old := os.Stdout
 		os.Stdout = w
+		restore := func() { os.Stdout = old }
+		defer restore()
 		db.Session(&gorm.Session{Logger: newGormLogger()}).Exec("SELECT 1")
-		w.Close()
-		os.Stdout = old
-		b, _ := io.ReadAll(r)
+		restore()
+		if err := w.Close(); err != nil {
+			t.Fatal(err)
+		}
+		b, err := io.ReadAll(r)
+		if err != nil {
+			t.Fatal(err)
+		}
 		return string(b)
 	}
 	if out := run("info"); !strings.Contains(out, "SELECT 1") {
