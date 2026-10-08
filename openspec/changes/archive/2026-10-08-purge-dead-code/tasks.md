@@ -57,13 +57,15 @@
       `internal/testutil` e o vendor `recording/shine`
 - [x] C.5 `go build`, `go vet`, testes dos pacotes tocados; PR, CI verde, merge
 
-## Engine
+## Engine (adiado: follow-up no roadmap)
 
-- [ ] E.1 Nada agora. Reavaliar as funções que só testes usam (`mlow`, `signaling`) quando `add-whatsapp-video-calls` fechar
+Nada foi removido do engine nesta change, de propósito. As ~30 funções de `voip/` e `calls/` que só testes usam são
+portagem de feature em andamento (`add-whatsapp-video-calls`, ~21 tarefas abertas). A reavaliação ficou registrada
+como **Epic 9** em `ORCHESTRATOR-ROADMAP.md`, com a condição para retomar.
 
 ## Fechamento
 
-- [ ] F.1 Publicar `:test` e validar na stack do dono (a imagem encolhe: `business/web` e os assets saem do repositório)
-- [ ] F.2 `/qa-analyst` sobre a DAG concluída
-- [ ] F.3 `openspec validate purge-dead-code --strict`
-- [ ] F.4 Remover os recursos de teste da sessão (`wb-test-pg`, `wb-test-mq`, `wb-test-redis`, banco `repro`)
+- [x] F.1 Publicar `:test` e validar na stack do dono (a imagem encolhe: `business/web` e os assets saem do repositório); validado pelo dono
+- [x] F.2 `/qa-analyst` sobre a DAG concluída: spec x implementação x testes, sem achados bloqueantes (ver `design.md`, "QA")
+- [x] F.3 `openspec validate purge-dead-code --strict`
+- [x] F.4 Remover os recursos de teste da sessão (`wb-test-pg`, `wb-test-mq`, `wb-test-redis`, banco `repro`)

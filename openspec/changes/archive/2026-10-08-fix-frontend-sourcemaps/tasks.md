@@ -20,5 +20,5 @@
 ## 3. Verificação e entrega
 
 - [x] 3.1 `tsc`, `eslint` e `vitest` completos; `vite build` (6,7 MB contra 18,1 MB antes)
-- [ ] 3.2 Ao vivo na imagem publicada: o `.map` deixa de existir e o F12 não mostra `src/`
+- [x] 3.2 Ao vivo na imagem publicada: o `.map` deixa de existir e o F12 não mostra `src/` (validado pelo dono)
 - [x] 3.3 `openspec validate fix-frontend-sourcemaps --strict`; commit; PR contra `develop`

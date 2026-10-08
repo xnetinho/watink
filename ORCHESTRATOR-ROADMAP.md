@@ -41,6 +41,14 @@
   `maxPages`/`maxDepth` e cota por tenant, `robots.txt` e intervalo entre requisições, filtro de domínio também no
   sitemap e suporte a `sitemapindex`. | 📋 Planejada: ver "Crawl de site" em `docs/agents/knowledge-base.md`
 
+- [ ] **Epic 9**: Reavaliar código do engine que só testes usam (follow-up de `purge-dead-code`). ~15 funções de `voip/` e
+  `calls/` só são chamadas por testes (`IsVideoFrame`, `DecodeVideoFrame`, `PackageH264NALU`/`STAPA`, `NewVideoRtpStream`,
+  `BuildVideoAck`, `OfferHasVideo`, partes de `mlow/rangecoder.go`, `ParseStunResponse`, ...) e ~15 não têm uso nenhum
+  (`mlow/logging.go`, `signaling/callkey.go` `padRandomMax16`, `signaling_build.go` `CreateCallAck`/`BuildTransportStanza`,
+  `stun.go` `FormatStunResponse`/`ClassifyPacket`, ...). São portagem de chamadas de voz/vídeo, **não lixo**: só retomar
+  depois que `add-whatsapp-video-calls` fechar, decidindo caso a caso entre ligar (fases 2 a 5) e remover. | ⏳ Bloqueada
+  por `add-whatsapp-video-calls`
+
 ## Próximo Epic — Backend Go DI & Packages
 
 **Branch**: `refactor/backend-di-packages`
