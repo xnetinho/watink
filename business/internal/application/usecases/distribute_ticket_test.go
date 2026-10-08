@@ -88,7 +88,7 @@ func (m *mockContactRepo) BulkDelete(_ context.Context, _ []int, _ uuid.UUID) (i
 	return 0, nil
 }
 func (m *mockContactRepo) DeleteAll(_ context.Context, _ uuid.UUID) (int64, error) { return 0, nil }
-func (m *mockContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, _ string, _, _ bool, _ string) (*domain.Contact, error) {
+func (m *mockContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, _ string, _, _ bool, _, _ string) (*domain.Contact, error) {
 	return nil, nil
 }
 

@@ -9,7 +9,11 @@ import (
 type Contact struct {
 	ID            int       `gorm:"primaryKey" json:"id"`
 	Name          string    `gorm:"not null" json:"name"`
-	Number        string    `gorm:"unique" json:"number"`
+	// number e lid são únicos POR TENANT (idx_contacts_tenant_number e
+	// idx_contacts_tenant_lid, criados em database.addCustomIndexes). O unique
+	// global antigo (uni_Contacts_number/uni_Contacts_lid) impedia dois tenants
+	// de terem o mesmo contato e transformava a duplicata em erro 500.
+	Number        string    `json:"number"`
 	ProfilePicUrl string    `gorm:"column:profilePicUrl" json:"profilePicUrl"`
 	Email         string    `gorm:"not null;default:''" json:"email"`
 	IsGroup       bool      `gorm:"column:isGroup;not null;default:false" json:"isGroup"`
@@ -21,7 +25,7 @@ type Contact struct {
 	// recebida, sem passar pelo plugin Grupos ainda).
 	GroupParticipantCount *int `gorm:"column:groupParticipantCount" json:"groupParticipantCount,omitempty"`
 	TenantID      uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
-	Lid           *string   `gorm:"unique" json:"lid"`
+	Lid           *string   `json:"lid"`
 	WalletUserID  *int      `gorm:"column:walletUserId" json:"walletUserId"`
 	// ClientID is nullable — a Contact can exist and generate Tickets without
 	// ever being linked to a Client (someone messages in without being

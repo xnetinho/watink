@@ -216,14 +216,14 @@ func TestGORMContactRepo_FindOrCreate_TenantIsolation(t *testing.T) {
 	ctx := context.Background()
 
 	// FindOrCreate com novo número → deve criar no tenant correto
-	created, err := repo.FindOrCreate(ctx, tenantA, "5599993333", "New Contact", "", false, false, "")
+	created, err := repo.FindOrCreate(ctx, tenantA, "5599993333", "New Contact", "", false, false, "", "")
 	assert.NoError(t, err)
 	assert.NotNil(t, created, "FindOrCreate deveria retornar o contato criado")
 	assert.Equal(t, "New Contact", created.Name)
 	assert.Equal(t, tenantA, created.TenantID)
 
 	// FindOrCreate com mesmo número e tenantA → deve retornar existente
-	found, err := repo.FindOrCreate(ctx, tenantA, "5599993333", "Other Name", "", false, false, "")
+	found, err := repo.FindOrCreate(ctx, tenantA, "5599993333", "Other Name", "", false, false, "", "")
 	assert.NoError(t, err)
 	assert.NotNil(t, found)
 	assert.Equal(t, created.ID, found.ID, "FindOrCreate deveria retornar o mesmo contato")
@@ -235,13 +235,13 @@ func TestGORMContactRepo_FindOrCreate_RefreshesExpiredProfilePicUrl(t *testing.T
 	repo := NewGORMContactRepo(db)
 	ctx := context.Background()
 
-	created, err := repo.FindOrCreate(ctx, tenantA, "5599994444", "Ana", "https://cdn.example.com/old.jpg", false, false, "")
+	created, err := repo.FindOrCreate(ctx, tenantA, "5599994444", "Ana", "https://cdn.example.com/old.jpg", false, false, "", "")
 	require.NoError(t, err)
 	require.Equal(t, "https://cdn.example.com/old.jpg", created.ProfilePicUrl)
 
 	// URL da CDN expirou e uma nova chega -- deve substituir a antiga, não
 	// ficar travada porque o campo já estava preenchido.
-	updated, err := repo.FindOrCreate(ctx, tenantA, "5599994444", "Ana", "https://cdn.example.com/new.jpg", false, false, "")
+	updated, err := repo.FindOrCreate(ctx, tenantA, "5599994444", "Ana", "https://cdn.example.com/new.jpg", false, false, "", "")
 	require.NoError(t, err)
 	assert.Equal(t, "https://cdn.example.com/new.jpg", updated.ProfilePicUrl)
 }
@@ -277,19 +277,62 @@ func TestGORMContactRepo_Delete_CascadesTicketsAndMessages(t *testing.T) {
 	assert.Zero(t, msgCount, "mensagem vinculada deveria ter sido removida em cascata")
 }
 
+// Em produção as tabelas dependentes têm chave estrangeira real (NO ACTION); o helper de testes
+// as desliga. Sem recriá-las, o teste de cascata passa mesmo quando a exclusão falha no deploy
+// ("DELETE /contacts/all" devolvia 500 por violar fk_TicketLogs_ticket).
+func TestGORMContactRepo_DeleteAll_CascadesEveryDependentTable(t *testing.T) {
+	db := setupContactTestDB(t)
+	tenantID, _, contactA, _ := seedTwoTenantsContacts(t, db)
+	repo := NewGORMContactRepo(db)
+	ctx := context.Background()
+
+	for _, fk := range []string{
+		`ALTER TABLE "TicketLogs" ADD CONSTRAINT zz_fk_ticketlogs FOREIGN KEY ("ticketId") REFERENCES "Tickets"(id)`,
+		`ALTER TABLE "AssistantGroups" ADD CONSTRAINT zz_fk_assistantgroups FOREIGN KEY ("contactId") REFERENCES "Contacts"(id)`,
+		`ALTER TABLE "Activities" ADD CONSTRAINT zz_fk_activities FOREIGN KEY ("protocolId") REFERENCES "Protocols"(id)`,
+		`ALTER TABLE "Protocols" ADD CONSTRAINT zz_fk_protocols FOREIGN KEY ("contactId") REFERENCES "Contacts"(id)`,
+		`ALTER TABLE "Deals" ADD CONSTRAINT zz_fk_deals FOREIGN KEY ("contactId") REFERENCES "Contacts"(id)`,
+		`ALTER TABLE "Tickets" ADD CONSTRAINT zz_fk_tickets FOREIGN KEY ("contactId") REFERENCES "Contacts"(id)`,
+		`ALTER TABLE "Messages" ADD CONSTRAINT zz_fk_messages FOREIGN KEY ("ticketId") REFERENCES "Tickets"(id)`,
+	} {
+		require.NoError(t, db.Exec(fk).Error, fk)
+	}
+
+	wa := models.Whatsapp{Name: "wa-1", TenantID: tenantID}
+	require.NoError(t, db.Create(&wa).Error)
+	ticket := models.Ticket{ContactID: contactA.ID, WhatsappID: wa.ID, TenantID: tenantID}
+	require.NoError(t, db.Create(&ticket).Error)
+	require.NoError(t, db.Create(&models.Message{ID: "m-all-1", Body: "oi", TicketID: ticket.ID, TenantID: tenantID}).Error)
+	require.NoError(t, db.Exec(`INSERT INTO "TicketLogs"("ticketId","tenantId",type,"createdAt") VALUES (?,?,'create',now())`, ticket.ID, tenantID).Error)
+	require.NoError(t, db.Exec(`INSERT INTO "Deals"(name,"contactId","tenantId","createdAt","updatedAt") VALUES ('d',?,?,now(),now())`, contactA.ID, tenantID).Error)
+	var protocolID int
+	require.NoError(t, db.Raw(`INSERT INTO "Protocols"("contactId","tenantId","protocolNumber",subject,token,"createdAt","updatedAt") VALUES (?,?,'P1','s','tok1',now(),now()) RETURNING id`, contactA.ID, tenantID).Scan(&protocolID).Error)
+	require.NoError(t, db.Exec(`INSERT INTO "Activities"("tenantId",title,"protocolId","lastActivityAt","createdAt","updatedAt") VALUES (?,'os',?,now(),now(),now())`, tenantID, protocolID).Error)
+
+	n, err := repo.DeleteAll(ctx, tenantID)
+	require.NoError(t, err, "DeleteAll não pode violar chave estrangeira de tabela filha")
+	assert.EqualValues(t, 1, n)
+
+	for _, tbl := range []string{"Contacts", "Tickets", "Messages", "TicketLogs", "Deals", "Protocols", "Activities"} {
+		var c int64
+		require.NoError(t, db.Raw(`SELECT count(*) FROM "`+tbl+`" WHERE "tenantId" = ?`, tenantID).Scan(&c).Error)
+		assert.Zerof(t, c, "%s deveria estar vazia depois de DeleteAll", tbl)
+	}
+}
+
 func TestGORMContactRepo_FindOrCreate_NeverErasesProfilePicUrlWithEmpty(t *testing.T) {
 	db := setupContactTestDB(t)
 	tenantA, _, _, _ := seedTwoTenantsContacts(t, db)
 	repo := NewGORMContactRepo(db)
 	ctx := context.Background()
 
-	created, err := repo.FindOrCreate(ctx, tenantA, "5599995555", "Bruno", "https://cdn.example.com/pic.jpg", false, false, "")
+	created, err := repo.FindOrCreate(ctx, tenantA, "5599995555", "Bruno", "https://cdn.example.com/pic.jpg", false, false, "", "")
 	require.NoError(t, err)
 	require.Equal(t, "https://cdn.example.com/pic.jpg", created.ProfilePicUrl)
 
 	// Falha transitória de busca de foto chega como string vazia -- nunca
 	// deve apagar a URL já persistida.
-	updated, err := repo.FindOrCreate(ctx, tenantA, "5599995555", "Bruno", "", false, false, "")
+	updated, err := repo.FindOrCreate(ctx, tenantA, "5599995555", "Bruno", "", false, false, "", "")
 	require.NoError(t, err)
 	assert.Equal(t, "https://cdn.example.com/pic.jpg", updated.ProfilePicUrl)
 }
@@ -313,4 +356,108 @@ func TestGORMContactRepo_Create_FillsGeneratedFields(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, got, "o ID devolvido deve apontar para a linha criada")
 	assert.Equal(t, "Novo", got.Name)
+}
+
+// ── Identidade do contato: telefone x LID (mesma pessoa, dois endereços) ─────
+
+func countContacts(t *testing.T, db *gorm.DB, tenantID uuid.UUID) int64 {
+	t.Helper()
+	var n int64
+	require.NoError(t, db.Model(&models.Contact{}).Where(`"tenantId" = ?`, tenantID).Count(&n).Error)
+	return n
+}
+
+// Caso real: o atendente cadastrou o contato pelo NÚMERO (agenda) e iniciou a
+// conversa; a pessoa respondeu e o WhatsApp entregou o remetente como @lid.
+// Sem unificar, nascia um segundo contato (com o LID no campo number) e um
+// segundo ticket.
+func TestGORMContactRepo_FindOrCreate_LIDReplyReusesAgendaContactByPhone(t *testing.T) {
+	db := setupContactTestDB(t)
+	tenant := uuid.New()
+	repo := NewGORMContactRepo(db)
+	ctx := context.Background()
+
+	agenda := &domain.Contact{Name: "Fulano da Agenda", Number: "558382341576", TenantID: tenant}
+	require.NoError(t, repo.Create(ctx, agenda))
+
+	got, err := repo.FindOrCreate(ctx, tenant, "163423740493865", "Fulano", "", false, true, "163423740493865@lid", "558382341576")
+	require.NoError(t, err)
+
+	assert.Equal(t, agenda.ID, got.ID, "deve reaproveitar o contato da agenda, não criar outro")
+	require.NotNil(t, got.Lid)
+	assert.Equal(t, "163423740493865@lid", *got.Lid, "o LID passa a ficar gravado no contato existente")
+	assert.Equal(t, "558382341576", got.Number, "o número da agenda não pode ser trocado pelo LID")
+	assert.Equal(t, "Fulano da Agenda", got.Name, "o nome que o atendente deu não é sobrescrito")
+	assert.Equal(t, int64(1), countContacts(t, db, tenant))
+}
+
+func TestGORMContactRepo_FindOrCreate_NextLIDMessageFindsItByLID(t *testing.T) {
+	db := setupContactTestDB(t)
+	tenant := uuid.New()
+	repo := NewGORMContactRepo(db)
+	ctx := context.Background()
+
+	agenda := &domain.Contact{Name: "Fulano", Number: "558382341576", TenantID: tenant}
+	require.NoError(t, repo.Create(ctx, agenda))
+	first, err := repo.FindOrCreate(ctx, tenant, "163423740493865", "", "", false, true, "163423740493865@lid", "558382341576")
+	require.NoError(t, err)
+
+	// Próxima mensagem: o telefone pode nem vir mais; o LID já está gravado.
+	second, err := repo.FindOrCreate(ctx, tenant, "163423740493865", "", "", false, true, "163423740493865@lid", "")
+	require.NoError(t, err)
+	assert.Equal(t, first.ID, second.ID)
+	assert.Equal(t, int64(1), countContacts(t, db, tenant))
+}
+
+func TestGORMContactRepo_FindOrCreate_LIDWithoutKnownPhoneStillCreatesLIDContact(t *testing.T) {
+	db := setupContactTestDB(t)
+	tenant := uuid.New()
+	repo := NewGORMContactRepo(db)
+
+	got, err := repo.FindOrCreate(context.Background(), tenant, "999888777", "Anônimo", "", false, true, "999888777@lid", "")
+	require.NoError(t, err)
+	require.NotNil(t, got.Lid)
+	assert.Equal(t, "999888777@lid", *got.Lid)
+	assert.Equal(t, int64(1), countContacts(t, db, tenant))
+}
+
+func TestGORMContactRepo_FindOrCreate_KnownPhoneButNoContactYetCreatesWithRealPhone(t *testing.T) {
+	db := setupContactTestDB(t)
+	tenant := uuid.New()
+	repo := NewGORMContactRepo(db)
+
+	got, err := repo.FindOrCreate(context.Background(), tenant, "163423740493865", "Beltrano", "", false, true, "163423740493865@lid", "558382341576")
+	require.NoError(t, err)
+	assert.Equal(t, "558382341576", got.Number, "com o telefone conhecido, number guarda o telefone (não o LID)")
+	require.NotNil(t, got.Lid)
+	assert.Equal(t, "163423740493865@lid", *got.Lid)
+}
+
+func TestGORMContactRepo_FindOrCreate_PhoneMatchNeverCrossesTenants(t *testing.T) {
+	db := setupContactTestDB(t)
+	tenantA, tenantB := uuid.New(), uuid.New()
+	repo := NewGORMContactRepo(db)
+	ctx := context.Background()
+
+	require.NoError(t, repo.Create(ctx, &domain.Contact{Name: "Do A", Number: "558382341576", TenantID: tenantA}))
+	got, err := repo.FindOrCreate(ctx, tenantB, "163423740493865", "Do B", "", false, true, "163423740493865@lid", "558382341576")
+	require.NoError(t, err)
+
+	assert.Equal(t, tenantB, got.TenantID, "o contato do tenant A não pode ser reaproveitado pelo B")
+	assert.Equal(t, int64(1), countContacts(t, db, tenantA))
+}
+
+func TestGORMContactRepo_FindOrCreate_PhoneMatchedContactAlreadyHasOtherLIDIsNotOverwritten(t *testing.T) {
+	db := setupContactTestDB(t)
+	tenant := uuid.New()
+	repo := NewGORMContactRepo(db)
+	ctx := context.Background()
+
+	other := "111111111111@lid"
+	require.NoError(t, repo.Create(ctx, &domain.Contact{Name: "X", Number: "558382341576", TenantID: tenant, Lid: &other}))
+
+	got, err := repo.FindOrCreate(ctx, tenant, "222222222222", "Y", "", false, true, "222222222222@lid", "558382341576")
+	require.NoError(t, err)
+	require.NotNil(t, got.Lid)
+	assert.Equal(t, "111111111111@lid", *got.Lid, "não troca silenciosamente o LID de um contato que já tem outro")
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -46,7 +47,7 @@ func (mc *MessageController) WithTranscription(db *gorm.DB, mediaWaiter *mediawa
 // @Security     BearerAuth
 // @Router       /messages/{ticketId} [get]
 func (mc *MessageController) ListMessages(c *gin.Context) {
-	db, _, ok := auth.GetScoped(c, "Messages")
+	db, tenantID, ok := auth.GetScoped(c, "Messages")
 	if !ok {
 		return
 	}
@@ -80,6 +81,8 @@ func (mc *MessageController) ListMessages(c *gin.Context) {
 		messages[i], messages[j] = messages[j], messages[i]
 	}
 
+	attachQuotedMessages(db, tenantID, messages)
+
 	var count int64
 	if err := db.Model(&models.Message{}).Where("\"ticketId\" = ?", ticketID).Count(&count).Error; err != nil {
 		count = int64(len(messages))
@@ -90,4 +93,35 @@ func (mc *MessageController) ListMessages(c *gin.Context) {
 		"count":    count,
 		"hasMore":  int64(offset+pageSize) < count,
 	})
+}
+
+// attachQuotedMessages preenche QuotedMsg das respostas com UMA consulta (sem N+1). A citada pode
+// estar numa página mais antiga, por isso não basta procurar na própria lista. Sempre por tenant:
+// o RLS é inerte aqui, então o filtro é manual.
+func attachQuotedMessages(db *gorm.DB, tenantID uuid.UUID, messages []models.Message) {
+	ids := make([]string, 0)
+	seen := map[string]bool{}
+	for _, m := range messages {
+		if m.QuotedMsgID != nil && *m.QuotedMsgID != "" && !seen[*m.QuotedMsgID] {
+			seen[*m.QuotedMsgID] = true
+			ids = append(ids, *m.QuotedMsgID)
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	var quoted []models.Message
+	if err := db.Session(&gorm.Session{NewDB: true}).
+		Where(`id IN ? AND "tenantId" = ?`, ids, tenantID).Find(&quoted).Error; err != nil {
+		return
+	}
+	byID := make(map[string]*models.Message, len(quoted))
+	for i := range quoted {
+		byID[quoted[i].ID] = &quoted[i]
+	}
+	for i := range messages {
+		if messages[i].QuotedMsgID != nil {
+			messages[i].QuotedMsg = byID[*messages[i].QuotedMsgID]
+		}
+	}
 }

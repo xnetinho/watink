@@ -79,6 +79,7 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 	oldClient, hadOld := s.clients[id]
 
 	s.clients[id] = client
+	s.resetCalls(id, tenantID, client, proxyURL != "")
 	client.AddEventHandler(func(evt interface{}) {
 		s.handleEvent(id, tenantID, evt)
 	})
@@ -159,6 +160,7 @@ func (s *WhatsAppService) StopClient(id int) error {
 	}
 	client.Disconnect()
 	delete(s.clients, id)
+	s.dropCalls(id)
 	return nil
 }
 
@@ -170,6 +172,7 @@ func (s *WhatsAppService) ForceLogout(id int) error {
 		_ = client.Logout(context.Background())
 		delete(s.clients, id)
 	}
+	s.dropCalls(id)
 	return nil
 }
 

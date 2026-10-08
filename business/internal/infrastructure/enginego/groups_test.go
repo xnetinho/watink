@@ -38,12 +38,14 @@ func setupGroupsTestServer(t *testing.T, handler http.HandlerFunc) {
 	t.Helper()
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
-	t.Setenv("GROUPS_API_URL", srv.URL)
+	prev := groupsBaseURL
+	groupsBaseURL = func() string { return srv.URL }
+	t.Cleanup(func() { groupsBaseURL = prev })
 	t.Setenv("GROUPS_API_TOKEN", "test-internal-token")
 }
 
 func TestGroupsAPIConfig_MissingEnv_ReturnsFriendlyError(t *testing.T) {
-	t.Setenv("GROUPS_API_URL", "")
+	t.Setenv("ENGINE_HOST", "")
 	t.Setenv("GROUPS_API_TOKEN", "")
 	_, _, err := groupsAPIConfig()
 	require.Error(t, err)

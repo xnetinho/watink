@@ -1,0 +1,401 @@
+package calls
+
+import (
+	"encoding/json"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// ringing cria uma chamada recebida tocando para dois operadores elegíveis.
+func ringing(t *testing.T, r *rig, callID string) {
+	t.Helper()
+	r.grant(t, "da_fila_A", "receive")
+	r.grant(t, "setor_fila_A", "receive")
+	r.online("da_fila_A", "setor_fila_A")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incoming(callID, r.waA.ID, "5511999990010@s.whatsapp.net", "5511999990010")))
+}
+
+// 6.5: dois atendimentos concorrentes → só um vence, o outro recebe "já atendida".
+func TestAccept_ConcurrentOnlyOneWins(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "ACC-1")
+	a, b := r.users["da_fila_A"].ID, r.users["setor_fila_A"].ID
+
+	var wg sync.WaitGroup
+	errs := make([]error, 2)
+	start := make(chan struct{})
+	for i, uid := range []int{a, b} {
+		wg.Add(1)
+		go func(i, uid int) {
+			defer wg.Done()
+			<-start
+			_, errs[i] = r.svc.Accept(ctx, r.tenant, uid, "ACC-1")
+		}(i, uid)
+	}
+	close(start)
+	wg.Wait()
+
+	wins, lost := 0, 0
+	for _, e := range errs {
+		switch e {
+		case nil:
+			wins++
+		case ErrAlreadyAnswered:
+			lost++
+		default:
+			t.Fatalf("erro inesperado: %v", e)
+		}
+	}
+	assert.Equal(t, 1, wins, "exatamente um atendimento vence")
+	assert.Equal(t, 1, lost, "o outro recebe 'já atendida'")
+	assert.Len(t, r.pub.cmds("call.accept"), 1, "o engine é mandado atender uma única vez")
+
+	l := r.log(t, "ACC-1")
+	require.NotNil(t, l.HandledByUserID)
+	assert.Contains(t, []int{a, b}, *l.HandledByUserID)
+	assert.NotNil(t, l.AnsweredAt)
+}
+
+func TestAccept_UnknownCallAndOtherTenant(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "ACC-2")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "NAO-EXISTE")
+	assert.Equal(t, ErrNotFound, err)
+	_, err = r.svc.Accept(ctx, r.other, r.users["de_outra_empresa"].ID, "ACC-2")
+	assert.Equal(t, ErrNotFound, err, "outra empresa nunca enxerga a chamada")
+	assert.Empty(t, r.pub.cmds("call.accept"))
+}
+
+func TestAccept_UserAlreadyInCallIsDenied(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "ACC-3")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "ACC-3")
+	require.NoError(t, err)
+
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incoming("ACC-4", r.waA.ID, "5511999990011@s.whatsapp.net", "5511999990011")))
+	_, err = r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "ACC-4")
+	assert.Equal(t, ErrUserBusy, err, "quem já está em chamada não atende outra")
+	assert.Equal(t, "ACC-3", func() string { return r.log(t, "ACC-3").CallID }(), "a chamada atual segue intacta")
+	assert.Nil(t, r.log(t, "ACC-4").HandledByUserID)
+}
+
+func TestAccept_EngineFailureRollsAssignmentBack(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "ACC-5")
+	r.pub.err = assertErr("amqp fora")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "ACC-5")
+	assert.Error(t, err)
+	assert.Nil(t, r.log(t, "ACC-5").HandledByUserID, "sem confirmar ao engine, a chamada volta a ficar disponível")
+	r.pub.err = nil
+	_, err = r.svc.Accept(ctx, r.tenant, r.users["setor_fila_A"].ID, "ACC-5")
+	assert.NoError(t, err, "outro operador ainda consegue atender")
+}
+
+func TestReject_EndsAndOnlyOnceAndCommandsEngine(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "REJ-1")
+	require.NoError(t, r.svc.Reject(ctx, r.tenant, r.users["da_fila_A"].ID, "REJ-1"))
+
+	l := r.log(t, "REJ-1")
+	assert.Equal(t, StatusRejected, l.Status)
+	assert.Equal(t, "declined", l.EndReason)
+	assert.Len(t, r.pub.cmds("call.reject"), 1, "o reject só sai por comando do operador")
+	assert.Equal(t, 1, r.bc.to("tenant:"+r.tenant.String(), "call.ended"), "o toque some para todos")
+
+	assert.Equal(t, ErrAlreadyAnswered, r.svc.Reject(ctx, r.tenant, r.users["setor_fila_A"].ID, "REJ-1"))
+	assert.Len(t, r.pub.cmds("call.reject"), 1)
+}
+
+func TestReject_AfterAnsweredIsDenied(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "REJ-2")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "REJ-2")
+	require.NoError(t, err)
+	assert.Equal(t, ErrAlreadyAnswered, r.svc.Reject(ctx, r.tenant, r.users["setor_fila_A"].ID, "REJ-2"))
+	assert.Empty(t, r.pub.cmds("call.reject"))
+}
+
+func TestEnd_OnlyTheHandlingOperator(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "END-1")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "END-1")
+	require.NoError(t, err)
+
+	assert.Equal(t, ErrNotActive, r.svc.End(ctx, r.tenant, r.users["setor_fila_A"].ID, "END-1"), "outro operador não encerra")
+	assert.Empty(t, r.pub.cmds("call.end"))
+	require.NoError(t, r.svc.End(ctx, r.tenant, r.users["da_fila_A"].ID, "END-1"))
+	assert.Len(t, r.pub.cmds("call.end"), 1)
+}
+
+func ended(callID, reason string, secs int) json.RawMessage {
+	b, _ := json.Marshal(map[string]interface{}{"callId": callID, "endReason": reason, "durationSecs": secs, "direction": "incoming"})
+	return b
+}
+
+// 6.6: ao encerrar, duração real + resumo de qualidade + mensagem de sistema no ticket.
+func TestHandleEnded_FinalizesWithDurationQualityAndMessage(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "FIN-1")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "FIN-1")
+	require.NoError(t, err)
+
+	rtt := 100.0
+	for i := 0; i < 3; i++ {
+		raw, _ := json.Marshal(map[string]interface{}{"callId": "FIN-1", "rttMs": rtt, "lossPct": float64(i), "jitterMs": 10.0})
+		require.NoError(t, r.svc.HandleQuality(ctx, r.tenant, raw))
+	}
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("FIN-1", "user_ended", 73)))
+
+	l := r.log(t, "FIN-1")
+	assert.Equal(t, StatusEnded, l.Status)
+	assert.Equal(t, 73, l.DurationSec)
+	assert.NotNil(t, l.EndedAt)
+	require.NotNil(t, l.LossMax)
+	assert.InDelta(t, 2.0, *l.LossMax, 0.05)
+	assert.InDelta(t, 1.0, *l.LossAvg, 0.05)
+	assert.InDelta(t, 100.0, *l.RttAvg, 0.05)
+	require.NotNil(t, l.MosEstimated)
+	assert.Equal(t, 3, l.QualitySamples)
+
+	var msgs []models.Message
+	require.NoError(t, r.db.Where(`"ticketId" = ? AND "mediaType" = 'call'`, *l.TicketID).Find(&msgs).Error)
+	require.Len(t, msgs, 1)
+	assert.Equal(t, "Chamada de voz recebida", msgs[0].Body)
+	var data map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(msgs[0].DataJson), &data))
+	assert.EqualValues(t, 73, data["durationSec"])
+	assert.Equal(t, "FIN-1", data["callId"])
+	assert.Equal(t, 1, r.bc.to("chat:"+itoa(*l.TicketID), "appMessage"))
+}
+
+func TestHandleEnded_IsIdempotent(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "FIN-2")
+	_, _ = r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "FIN-2")
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("FIN-2", "user_ended", 10)))
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("FIN-2", "user_ended", 99)))
+
+	assert.Equal(t, 10, r.log(t, "FIN-2").DurationSec, "a segunda entrega não sobrescreve")
+	var n int64
+	r.db.Model(&models.Message{}).Where(`id = ?`, callMessageID("FIN-2")).Count(&n)
+	assert.EqualValues(t, 1, n, "uma única mensagem no ticket")
+	assert.Equal(t, 1, r.bc.to("tenant:"+r.tenant.String(), "call.ended"))
+}
+
+func TestHandleEnded_UnansweredBecomesMissed(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "FIN-3")
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("FIN-3", "timeout", 0)))
+	assert.Equal(t, StatusMissed, r.log(t, "FIN-3").Status, "ninguém atendeu → perdida")
+}
+
+func TestHandleEnded_FailureAndUnknownCall(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "FIN-4")
+	_, _ = r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "FIN-4")
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("FIN-4", "failed", 5)))
+	assert.Equal(t, StatusFailed, r.log(t, "FIN-4").Status)
+	assert.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("NAO-EXISTE", "user_ended", 1)), "chamada desconhecida não é erro")
+}
+
+// 6.8: engine reiniciou a sessão → toda chamada aberta daquela conexão vira interrompida.
+func TestHandleReset_InterruptsOpenCallsOfThatConnectionOnly(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "RST-1")
+	r.grant(t, "da_fila_B", "receive")
+	r.online("da_fila_B")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incoming("RST-OTHER", r.waB.ID, "5511999990012@s.whatsapp.net", "5511999990012")))
+	require.Equal(t, StatusRinging, r.log(t, "RST-OTHER").Status, "pré-condição: a outra conexão também está tocando")
+
+	raw, _ := json.Marshal(map[string]interface{}{"sessionId": itoa(r.waA.ID)})
+	require.NoError(t, r.svc.HandleReset(ctx, r.tenant, raw))
+
+	l := r.log(t, "RST-1")
+	assert.Equal(t, StatusInterrupted, l.Status)
+	assert.Equal(t, "interrupted", l.EndReason)
+	assert.NotNil(t, l.EndedAt)
+	assert.Equal(t, 1, r.bc.to("tenant:"+r.tenant.String(), "call.ended"), "o toque some dos operadores")
+	assert.NotEqual(t, StatusInterrupted, r.log(t, "RST-OTHER").Status, "outra conexão não é afetada")
+
+	require.NoError(t, r.svc.HandleReset(ctx, r.tenant, raw))
+	assert.Equal(t, 1, r.bc.to("tenant:"+r.tenant.String(), "call.ended"), "reset repetido não reemite")
+}
+
+func TestHandleEnded_InterruptedReasonMarksInterrupted(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "RST-2")
+	_, _ = r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "RST-2")
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("RST-2", "interrupted", 4)))
+	assert.Equal(t, StatusInterrupted, r.log(t, "RST-2").Status)
+}
+
+// Telemetria: só o operador que assumiu a chamada a recebe.
+func TestHandleQuality_DeliveredOnlyToTheHandlingOperator(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "Q-1")
+	raw := func(loss float64) json.RawMessage {
+		b, _ := json.Marshal(map[string]interface{}{"callId": "Q-1", "rttMs": 50.0, "lossPct": loss, "jitterMs": 5.0})
+		return b
+	}
+	require.NoError(t, r.svc.HandleQuality(ctx, r.tenant, raw(0)))
+	assert.Zero(t, r.bc.to(UserRoom(r.tenant, r.users["da_fila_A"].ID), "call.quality"), "antes de alguém assumir não se entrega")
+
+	_, _ = r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "Q-1")
+	require.NoError(t, r.svc.HandleQuality(ctx, r.tenant, raw(7)))
+	assert.Equal(t, 1, r.bc.to(UserRoom(r.tenant, r.users["da_fila_A"].ID), "call.quality"))
+	assert.Zero(t, r.bc.to(UserRoom(r.tenant, r.users["setor_fila_A"].ID), "call.quality"), "outro operador não recebe")
+	assert.Zero(t, r.bc.to("tenant:"+r.tenant.String(), "call.quality"), "e a empresa toda também não")
+
+	var got map[string]interface{}
+	r.bc.mu.Lock()
+	for _, e := range r.bc.evs {
+		if e.event == "call.quality" {
+			got = e.payload.(map[string]interface{})
+		}
+	}
+	r.bc.mu.Unlock()
+	assert.Equal(t, LevelPoor, got["level"], "perda de 7% é nível ruim")
+	assert.Contains(t, got["alerts"], AlertLoss)
+	assert.NotNil(t, got["mosEstimated"])
+}
+
+func TestSystemMessage_CarriesOperatorNameAndCallFields(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "MSG-1")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "MSG-1")
+	require.NoError(t, err)
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("MSG-1", "user_ended", 42)))
+
+	var m models.Message
+	require.NoError(t, r.db.Where(`id = ?`, callMessageID("MSG-1")).First(&m).Error)
+	var d map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(m.DataJson), &d))
+	assert.Equal(t, "filaA", d["handledByName"], "o histórico mostra quem atendeu")
+	assert.EqualValues(t, r.users["da_fila_A"].ID, d["handledByUserId"])
+	assert.EqualValues(t, 42, d["durationSec"])
+	assert.Equal(t, "ended", d["status"])
+	assert.Equal(t, "incoming", d["direction"])
+}
+
+func TestSystemMessage_MissedCallHasNoOperator(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "MSG-2")
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("MSG-2", "timeout", 0)))
+	var m models.Message
+	require.NoError(t, r.db.Where(`id = ?`, callMessageID("MSG-2")).First(&m).Error)
+	var d map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(m.DataJson), &d))
+	assert.NotContains(t, d, "handledByName", "ninguém atendeu")
+	assert.Equal(t, "missed", d["status"])
+}
+
+// O áudio nunca conectou (saída UDP do servidor bloqueada): a chamada foi atendida mas
+// termina como FALHA, com o motivo preservado para o operador e o administrador.
+func TestHandleEnded_MediaTimeoutIsAFailureWithItsReason(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "MED-1")
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "MED-1")
+	require.NoError(t, err)
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("MED-1", "media_timeout", 0)))
+
+	l := r.log(t, "MED-1")
+	assert.Equal(t, StatusFailed, l.Status)
+	assert.Equal(t, "media_timeout", l.EndReason, "o motivo chega ao histórico")
+	assert.Equal(t, "Chamada de voz interrompida", callBody(&l))
+}
+
+// Bug real: na chamada de SAÍDA o answeredAt nunca era gravado (só Accept, que é de chamada
+// recebida, o grava). Atendida e encerrada direito, ela aparecia como "perdida" no histórico.
+func placeOutgoing(t *testing.T, r *rig, callID string) {
+	t.Helper()
+	r.grant(t, "da_fila_A", "place")
+	contact := models.Contact{Name: "Diomedes", Number: "5511999990020", TenantID: r.tenant}
+	require.NoError(t, r.db.Create(&contact).Error)
+	uid := r.users["da_fila_A"].ID
+	require.NoError(t, r.db.Create(&models.CallLog{
+		TenantID: r.tenant, CallID: callID, WhatsappID: r.waA.ID, ContactID: &contact.ID, Direction: "outgoing",
+		Status: StatusRinging, PeerJid: "5511999990020@s.whatsapp.net", CallerPn: "5511999990020", StartedAt: time.Now(),
+		HandledByUserID: &uid,
+	}).Error)
+}
+
+func stateEvent(callID, state string) json.RawMessage {
+	b, _ := json.Marshal(map[string]interface{}{"callId": callID, "state": state, "direction": "outgoing"})
+	return b
+}
+
+func TestOutgoingCall_AnsweredIsEndedWithDuration_NotMissed(t *testing.T) {
+	r := newRig(t)
+	placeOutgoing(t, r, "OUT-1")
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("OUT-1", "active")))
+	l := r.log(t, "OUT-1")
+	assert.Equal(t, StatusActive, l.Status)
+	require.NotNil(t, l.AnsweredAt, "o contato atendeu: o instante tem de ficar gravado")
+
+	raw, _ := json.Marshal(map[string]interface{}{"callId": "OUT-1", "endReason": "user_ended", "durationSecs": 41, "direction": "outgoing"})
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, raw))
+	l = r.log(t, "OUT-1")
+	assert.Equal(t, StatusEnded, l.Status, "atendida e encerrada não é perdida")
+	assert.Equal(t, 41, l.DurationSec)
+}
+
+func TestOutgoingCall_NeverAnsweredStaysMissed(t *testing.T) {
+	r := newRig(t)
+	placeOutgoing(t, r, "OUT-2")
+	raw, _ := json.Marshal(map[string]interface{}{"callId": "OUT-2", "endReason": "timeout", "durationSecs": 0, "direction": "outgoing"})
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, raw))
+	assert.Equal(t, StatusMissed, r.log(t, "OUT-2").Status)
+}
+
+// answeredAt vale do PRIMEIRO active: um segundo call.state active (reentrega) não o move.
+func TestHandleState_AnsweredAtIsSetOnce(t *testing.T) {
+	r := newRig(t)
+	placeOutgoing(t, r, "OUT-3")
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("OUT-3", "active")))
+	old := time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
+	require.NoError(t, r.db.Model(&models.CallLog{}).Where(`"callId" = ?`, "OUT-3").Update("answeredAt", old).Error)
+	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("OUT-3", "active")))
+	got := *r.log(t, "OUT-3").AnsweredAt
+	assert.True(t, old.Equal(got.UTC()), "a reentrega moveu o instante: %s -> %s", old, got)
+}
+
+// O registro do chat precisa saber que foi videochamada: o frontend mostra o ícone e o título certos.
+func TestSystemMessage_CarriesMediaAndBody(t *testing.T) {
+	r := newRig(t)
+	r.grant(t, "da_fila_A", "receive")
+	r.online("da_fila_A")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incomingMedia("SM-V", r.waA.ID, "video")))
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "SM-V")
+	require.NoError(t, err)
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("SM-V", "user_ended", 42)))
+
+	l := r.log(t, "SM-V")
+	var msg models.Message
+	require.NoError(t, r.db.Where(`"ticketId" = ? AND "mediaType" = 'call'`, *l.TicketID).First(&msg).Error)
+	assert.Equal(t, "Videochamada recebida", msg.Body)
+	var data map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(msg.DataJson), &data))
+	assert.Equal(t, "video", data["media"])
+}
+
+func TestSystemMessage_VoiceStaysVoice(t *testing.T) {
+	r := newRig(t)
+	r.grant(t, "da_fila_A", "receive")
+	r.online("da_fila_A")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incomingMedia("SM-A", r.waA.ID, "audio")))
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "SM-A")
+	require.NoError(t, err)
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("SM-A", "user_ended", 10)))
+	l := r.log(t, "SM-A")
+	var msg models.Message
+	require.NoError(t, r.db.Where(`"ticketId" = ? AND "mediaType" = 'call'`, *l.TicketID).First(&msg).Error)
+	assert.Equal(t, "Chamada de voz recebida", msg.Body)
+	var data map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(msg.DataJson), &data))
+	assert.Equal(t, "audio", data["media"])
+}

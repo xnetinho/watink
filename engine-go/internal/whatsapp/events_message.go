@@ -128,6 +128,7 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 			"senderPicUrl":  senderPic,
 			"isLid":         v.Info.Sender.Server == types.HiddenUserServer,
 			"participant":   resolvedSender,
+			"chatPn":        resolveChatPN(client, v.Info),
 			"isGroup":       isGroup,
 			"isCommunity":   isCommunity,
 			"isSubGroup":    isSubGroup,

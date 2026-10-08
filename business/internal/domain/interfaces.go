@@ -62,7 +62,11 @@ type ContactRepository interface {
 	Delete(ctx context.Context, id int, tenantID uuid.UUID) error
 	BulkDelete(ctx context.Context, ids []int, tenantID uuid.UUID) (int64, error)
 	DeleteAll(ctx context.Context, tenantID uuid.UUID) (int64, error)
-	FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLID bool, from string) (*Contact, error)
+	// FindOrCreate acha ou cria o contato de uma conversa. Para conversas 1:1 que
+	// o WhatsApp entregou como LID, `knownNumber` é o telefone resolvido (vazio se
+	// desconhecido): se já existe um contato com esse número (ex.: cadastrado pela
+	// agenda), o LID é gravado NELE em vez de criar um segundo contato.
+	FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLID bool, from string, knownNumber string) (*Contact, error)
 }
 
 type UserRepository interface {
@@ -227,6 +231,9 @@ type ObjectStore interface {
 	// header Authorization — usada pelo módulo Activities para servir fotos
 	// de checklist (ADR 0029). TTL curto; nunca cachear a URL além dele.
 	PresignedGetURL(ctx context.Context, key string, ttl time.Duration) (string, error)
+	// Delete remove o objeto (usado pela exclusão de gravações de chamadas).
+	// Apagar uma chave inexistente não é erro.
+	Delete(ctx context.Context, key string) error
 	// Describe returns the non-sensitive store configuration (no credentials).
 	Describe() map[string]any
 }

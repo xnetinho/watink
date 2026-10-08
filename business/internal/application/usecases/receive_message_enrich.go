@@ -23,6 +23,10 @@ func contactDisplayName(pushName, groupName string, isGroup bool) string {
 
 // mimeTypeLabel returns a human-readable fallback label for a media message when
 // no text body is present.
+// viewOnceNotice é o texto do aviso de visualização única. O WhatsApp não entrega esse conteúdo a aparelhos
+// vinculados, então o chat só registra que ela chegou e orienta a ver no celular.
+const viewOnceNotice = "👁 Visualização única (o conteúdo só pode ser visto no celular)"
+
 func mimeTypeLabel(mimetype string) string {
 	switch {
 	case strings.HasPrefix(mimetype, "image/"):

@@ -14,6 +14,9 @@ type UpdateTicketInput struct {
 	Status   string
 	UserID   *int
 	QueueID  *int
+	// MarkRead zera o contador de não lidas (a conversa foi lida). Só zera: quem incrementa é o
+	// recebimento de mensagem, nunca o cliente.
+	MarkRead bool
 	// Audit
 	PerformedBy *int
 }
@@ -65,6 +68,9 @@ func (uc *UpdateTicketUseCase) Execute(ctx context.Context, input UpdateTicketIn
 	}
 	if input.QueueID != nil {
 		fields["queueId"] = *input.QueueID
+	}
+	if input.MarkRead {
+		fields["unreadMessages"] = 0
 	}
 
 	if len(fields) == 0 {

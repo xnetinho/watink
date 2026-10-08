@@ -5,6 +5,12 @@ run:
   tests: true
 
 linters:
+  # Código de terceiros (cópia do shine-mp3, LGPL v2) não é lintado: editá-lo para satisfazer o linter
+  # quebraria a garantia de que a cópia difere da origem só pela alteração documentada
+  # (TestVendoredDiffIsOnlyBitrate, internal/recording/shine/NOTICE.md).
+  exclusions:
+    paths:
+      - internal/recording/shine
   default: none
   enable:
     - errcheck

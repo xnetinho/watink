@@ -131,7 +131,7 @@ func handleContactImport(ctx context.Context, contacts domain.ContactRepository,
 		if name == "" {
 			name = c.PushName
 		}
-		if _, err := contacts.FindOrCreate(ctx, tenantID, c.Number, name, "", false, false, ""); err != nil {
+		if _, err := contacts.FindOrCreate(ctx, tenantID, c.Number, name, "", false, false, "", ""); err != nil {
 			log.Printf("[ContactImport] failed to upsert contact %s: %v", c.Number, err)
 			continue
 		}

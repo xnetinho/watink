@@ -64,6 +64,18 @@ func NewTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("testutil.NewTestDB: AutoMigrate: %v", err)
 	}
 
+	// Índices únicos de Contacts: em produção vêm de database.addCustomIndexes
+	// (que o AutoMigrate não executa). Sem essas regras os testes rodariam sem a regra
+	// real de unicidade por tenant.
+	for _, ddl := range []string{
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
+	} {
+		if err := db.Exec(ddl).Error; err != nil {
+			t.Fatalf("testutil.NewTestDB: %s: %v", ddl, err)
+		}
+	}
+
 	// PluginInstallations now has a real GORM model (models.PluginInstallation,
 	// ADR 0024) migrated via allModels() above — no more manual CREATE TABLE
 	// fixup needed here.
@@ -114,6 +126,8 @@ func allModels() []interface{} {
 		&models.Protocol{},
 		&models.ProtocolLog{},
 		&models.ProtocolAttachment{},
+		&models.CallLog{},
+		&models.CallRecordingAccess{},
 		&models.Activity{},
 		&models.ActivityAssignee{},
 		&models.ActivityChecklistItem{},

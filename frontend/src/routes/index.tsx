@@ -26,6 +26,7 @@ const UserProfile = lazy(() => import("../pages/UserProfile"));
 const ResetPassword = lazy(() => import("../pages/ResetPassword"));
 const MyActivities = lazy(() => import("../pages/MyActivities"));
 const Activities = lazy(() => import("../pages/Activities"));
+const Calls = lazy(() => import("../pages/Calls"));
 const Contacts = lazy(() => import("../pages/Contacts"));
 const QuickAnswers = lazy(() => import("../pages/QuickAnswers"));
 const QuickAnswerEditor = lazy(() => import("../pages/QuickAnswers/QuickAnswerEditor"));
@@ -91,6 +92,7 @@ const PrivateRoutes = () => {
      <Route path="/reset-password" element={<PrivateRoute isPrivate><ResetPassword /></PrivateRoute>} />
      <Route path="/my-activities" element={<PrivateRoute isPrivate><MyActivities /></PrivateRoute>} />
      <Route path="/activities" element={<PrivateRoute isPrivate><Activities /></PrivateRoute>} />
+     <Route path="/calls" element={<PrivateRoute isPrivate><Calls /></PrivateRoute>} />
      <Route path="/quickAnswers" element={<PrivateRoute isPrivate><QuickAnswers /></PrivateRoute>} />
      <Route path="/quick-answers" element={<PrivateRoute isPrivate><QuickAnswers /></PrivateRoute>} />
      <Route path="/quick-answers/new" element={<PrivateRoute isPrivate><QuickAnswerEditor /></PrivateRoute>} />

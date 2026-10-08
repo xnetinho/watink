@@ -70,6 +70,10 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 	}
 
 	if err := cc.contactRepo.Create(c.Request.Context(), contact); err != nil {
+		if isContactUniqueViolation(err) {
+			respondContactExists(c)
+			return
+		}
 		utils.RespondWithInternalError(c, err, "CreateContact")
 		return
 	}
@@ -152,6 +156,10 @@ func (cc *ContactController) UpdateContact(c *gin.Context) {
 	}
 
 	if err := cc.contactRepo.Update(c.Request.Context(), contact, fields); err != nil {
+		if isContactUniqueViolation(err) {
+			respondContactExists(c)
+			return
+		}
 		utils.RespondWithInternalError(c, err, "UpdateContact")
 		return
 	}

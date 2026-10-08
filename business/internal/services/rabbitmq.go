@@ -2,16 +2,23 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
 	"github.com/streadway/amqp"
 	"go.opentelemetry.io/otel"
 )
+
+// ErrRabbitMQNotConnected é devolvido quando se publica sem nunca ter conectado ao broker. Antes o canal nil
+// virava um nil pointer dereference (panic recuperado pelo Gin = HTTP 500 sem corpo, e nada era enviado).
+var ErrRabbitMQNotConnected = errors.New("rabbitmq: sem conexão com o broker")
 
 type RabbitMQService struct {
 	conn    *amqp.Connection
@@ -41,7 +48,7 @@ func (s *RabbitMQService) Connect() error {
 
 	ch, err := conn.Channel()
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return fmt.Errorf("failed to open a channel: %v", err)
 	}
 
@@ -73,6 +80,31 @@ func (s *RabbitMQService) Connect() error {
 
 	log.Println("[RabbitMQ] Connected successfully")
 	return nil
+}
+
+// ConnectWithRetry tenta conectar e, se o broker estiver fora do ar na subida, segue tentando em segundo
+// plano. O Connect() só arma a reconexão automática depois de conectar uma vez; sem isto, um RabbitMQ que
+// subisse depois do business deixava o canal nil para sempre, até alguém reiniciar o serviço. onConnected
+// roda quando a conexão enfim sai (consumidores, workers). Devolve se conectou de primeira.
+func (s *RabbitMQService) ConnectWithRetry(onConnected func()) bool {
+	if err := s.Connect(); err == nil {
+		onConnected()
+		return true
+	} else {
+		log.Printf("⚠️ Warning: RabbitMQ connection failed: %v — tentando de novo em segundo plano", err)
+	}
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			if err := s.Connect(); err != nil {
+				log.Printf("[RabbitMQ] ainda sem conexão: %v", err)
+				continue
+			}
+			onConnected()
+			return
+		}
+	}()
+	return false
 }
 
 // currentConn returns the live connection under lock — Connect() replaces
@@ -107,7 +139,39 @@ func (s *RabbitMQService) setupExchanges() error {
 }
 
 func (s *RabbitMQService) PublishCommand(routingKey string, payload interface{}) error {
+	if cmd, ok := payload.(map[string]interface{}); ok {
+		if err := inlineLocalMedia(routingKey, cmd); err != nil {
+			return err
+		}
+	}
 	return s.publishWithTrace("wbot.commands", routingKey, payload)
+}
+
+// inlineLocalMedia anexa os bytes (base64, em mediaData) de uma mídia que só existe no disco do business.
+// O engine roda em outro container: com só "/public/media/x.png" o envio falhava com "no such file" e a
+// mensagem ficava no relógio. Só message.send.media; URL externa passa intacta; mediaData já informado
+// (áudio do Assistant) não é sobrescrito. Arquivo local ausente é erro aqui, antes de enfileirar.
+func inlineLocalMedia(routingKey string, cmd map[string]interface{}) error {
+	if cmd["type"] != "message.send.media" {
+		return nil
+	}
+	p, ok := cmd["payload"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	if d, _ := p["mediaData"].(string); d != "" {
+		return nil
+	}
+	url, _ := p["mediaUrl"].(string)
+	data, local, err := mediastore.ReadLocal(url)
+	if !local {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("mídia local indisponível para %s: %w", routingKey, err)
+	}
+	p["mediaData"] = base64.StdEncoding.EncodeToString(data)
+	return nil
 }
 
 func (s *RabbitMQService) PublishEvent(routingKey string, payload interface{}) error {
@@ -142,6 +206,9 @@ func (s *RabbitMQService) publishWithTrace(exchange, routingKey string, payload 
 	s.mu.Lock()
 	ch := s.channel
 	s.mu.Unlock()
+	if ch == nil {
+		return ErrRabbitMQNotConnected
+	}
 
 	return ch.Publish(
 		exchange, routingKey, false, false,
@@ -218,7 +285,7 @@ func (s *RabbitMQService) openConsumerChannel(exchange, queueName string, routin
 	}
 
 	if err := declareQueueWithDLQ(ch, queueName, exchange, routingKeys); err != nil {
-		ch.Close()
+		_ = ch.Close()
 		return nil, err
 	}
 
@@ -239,7 +306,7 @@ func (s *RabbitMQService) runConsumerLoop(ch *amqp.Channel, exchange, queueName 
 		msgs, err := ch.Consume(queueName, "", false, false, false, false, nil)
 		if err != nil {
 			log.Printf("[RabbitMQ] Consume failed for queue %q: %v", queueName, err)
-			ch.Close()
+			_ = ch.Close()
 		} else {
 			closeNotify := ch.NotifyClose(make(chan *amqp.Error, 1))
 
@@ -284,7 +351,7 @@ func (s *RabbitMQService) Close() error {
 	s.mu.Unlock()
 
 	if ch != nil {
-		ch.Close()
+		_ = ch.Close()
 	}
 	if conn != nil {
 		return conn.Close()

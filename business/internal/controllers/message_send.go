@@ -32,6 +32,27 @@ func newWAMessageID() string {
 // contactJID builds the destination JID for a contact. Groups use the "@g.us"
 // server. LID contacts use the full "@lid" JID stored in the Lid field.
 // Regular users are sent bare (the engine appends "@s.whatsapp.net").
+// quotedPreviewText é o texto que o celular do contato mostra na caixa de citação. Mídia sem legenda vira o
+// rótulo do tipo, como o próprio WhatsApp faz.
+func quotedPreviewText(q models.Message) string {
+	if q.Body != "" && q.MediaType != "call" && q.MediaType != "view_once" {
+		return q.Body
+	}
+	switch q.MediaType {
+	case "image":
+		return "📷 Foto"
+	case "video":
+		return "🎥 Vídeo"
+	case "audio":
+		return "🎵 Áudio"
+	case "document":
+		return "📄 Documento"
+	case "sticker":
+		return "Figurinha"
+	}
+	return q.Body
+}
+
 func contactJID(contact models.Contact) string {
 	if contact.IsGroup {
 		return contact.Number + "@g.us"
@@ -87,13 +108,16 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	}
 
 	ct := c.ContentType()
-	var body, mediaType, mediaURL, mimeType string
+	var body, mediaType, mediaURL, mimeType, quotedID string
 
 	if ct == "application/json" || ct == "" {
 		var input struct {
 			Body      string `json:"body"`
 			MediaType string `json:"mediaType"`
 			MediaUrl  string `json:"mediaUrl"`
+			QuotedMsg *struct {
+				ID string `json:"id"`
+			} `json:"quotedMsg"`
 		}
 		if err := c.ShouldBindJSON(&input); err != nil {
 			utils.RespondWithBindError(c, err)
@@ -114,9 +138,13 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		body = input.Body
 		mediaType = input.MediaType
 		mediaURL = input.MediaUrl
+		if input.QuotedMsg != nil {
+			quotedID = input.QuotedMsg.ID
+		}
 	} else {
 		// multipart/form-data: arquivo(s) de mídia
 		body = c.PostForm("body")
+		quotedID = c.PostForm("quotedMsgId")
 		file, header, err := c.Request.FormFile("medias")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "medias file required for multipart"})
@@ -140,6 +168,28 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	messageID := newWAMessageID()
 	to := contactJID(contact)
 
+	// Só cita uma mensagem que existe NESTE ticket e tenant: o id vem do cliente e o engine
+	// o usaria como StanzaID. quotedParticipant é quem escreveu a original (obrigatório em
+	// grupo; em chat 1:1 é o próprio contato, ou nós mesmos se citamos algo que enviamos).
+	var quotedParticipant, quotedBody string
+	if quotedID != "" {
+		var q models.Message
+		if err := db.Session(&gorm.Session{NewDB: true}).
+			Where(`id = ? AND "ticketId" = ? AND "tenantId" = ?`, quotedID, ticketID, tenantID).First(&q).Error; err != nil {
+			quotedID = ""
+		} else {
+			quotedBody = quotedPreviewText(q)
+			if !q.FromMe {
+				quotedParticipant = q.Participant
+				// 1:1: quem escreveu a citada é o próprio contato, no endereçamento do chat. O Participant gravado
+				// pode ser o número (PN) enquanto o chat é por LID, e o celular não casa os dois.
+				if quotedParticipant == "" || !contact.IsGroup {
+					quotedParticipant = to
+				}
+			}
+		}
+	}
+
 	var whatsapp models.Whatsapp
 	if err := db.Session(&gorm.Session{NewDB: true}).
 		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
@@ -159,6 +209,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			utils.RespondWithInternalError(c, err, "SendMessage")
 			return
 		}
+		// (izapia: a API não expõe citação; a resposta sai como mensagem comum.)
 		if mediaURL != "" {
 			_, err = engine.SendMedia(c.Request.Context(), whatsapp, to, messageID, mediaType, mediaURL, mimeType)
 		} else {
@@ -186,6 +237,14 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 				"mediaUrl":  mediaURL,
 				"mimeType":  mimeType,
 			},
+		}
+		if quotedID != "" {
+			cmdPayload := command["payload"].(map[string]interface{})
+			cmdPayload["quotedMsgId"] = quotedID
+			cmdPayload["quotedBody"] = quotedBody
+			if quotedParticipant != "" {
+				cmdPayload["quotedJid"] = quotedParticipant
+			}
 		}
 
 		// The engine dispatches by routing-key segment (wbot.<tenant>.<session>.<cmd>),
@@ -222,8 +281,18 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
+	if quotedID != "" {
+		outgoing.QuotedMsgID = &quotedID
+	}
 	if err := writeDB.Create(&outgoing).Error; err != nil {
 		log.Printf("[SendMessage] persist outgoing message failed (ticket %d): %v", ticketID, err)
+	}
+	// O evento SSE abaixo é o que o navegador exibe na hora; só a listagem anexava a citação, então a
+	// resposta aparecia sem ela até recarregar o chat.
+	if quotedID != "" {
+		one := []models.Message{outgoing}
+		attachQuotedMessages(db, tenantID, one)
+		outgoing.QuotedMsg = one[0].QuotedMsg
 	}
 
 	lastMessage := body

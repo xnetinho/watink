@@ -102,14 +102,13 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 	// isGroup=false → only individual tickets (explicit)
 	// isGroup absent → default to individual tickets (exclude groups from status-based tabs)
 	isGroup := c.Query("isGroup")
-	if isGroup == "true" {
+	switch isGroup {
+	case "true":
 		query = query.Where("\"Tickets\".\"isGroup\" = ?", true)
 		// Groups are informal chats — status filter doesn't apply.
 		query = query.Where("status IS NOT NULL") // no-op but keeps query uniform
-	} else if isGroup == "false" {
-		query = query.Where("\"Tickets\".\"isGroup\" = ?", false)
-	} else {
-		// Default: exclude groups so status-based tabs never mix individual and group tickets.
+	default:
+		// "false" or absent: exclude groups so status-based tabs never mix individual and group tickets.
 		query = query.Where("\"Tickets\".\"isGroup\" = ?", false)
 	}
 

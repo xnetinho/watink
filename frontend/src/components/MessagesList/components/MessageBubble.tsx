@@ -1,8 +1,9 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useContext } from "react";
 import { isSameDay, parseISO } from "date-fns";
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
 import api from "../../../services/api";
+import { ReplyMessageContext } from "../../../context/ReplyingMessage/ReplyingMessageContext";
 
 import MarkdownWrapper from "../../MarkdownWrapper";
 import { Avatar } from "../../ui/avatar";
@@ -32,8 +33,10 @@ const MEDIA_BUBBLE_TYPES = [
   "location",
   "vcard",
   "carousel",
+  "call",
+  "view_once",
 ];
-const hasMediaBubble = (m: Message): boolean =>
+export const hasMediaBubble = (m: Message): boolean =>
   !!m.mediaUrl || MEDIA_BUBBLE_TYPES.includes(m.mediaType ?? "");
 import MessageReactions from "./MessageReactions";
 import MessageInteractive from "./MessageInteractive";
@@ -67,6 +70,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   colorCache,
   onOpenOptions,
 }) => {
+  const { setReplyingMessage } = useContext(ReplyMessageContext);
+
+  // Duplo clique no balão responde à mensagem (como no WhatsApp Web). Não vale para mensagem
+  // apagada nem para registro de chamada, e não pode roubar o duplo clique de links, botões,
+  // players e imagens, que têm ação própria.
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (message.isDeleted || message.mediaType === "call") return;
+      if ((e.target as HTMLElement).closest("a, button, audio, video, img, input, textarea, [role='button']")) return;
+      window.getSelection()?.removeAllRanges();
+      setReplyingMessage(message as unknown as Parameters<typeof setReplyingMessage>[0]);
+    },
+    [message, setReplyingMessage]
+  );
+
   const handleRetry = useCallback(async () => {
     const ticketId = (message as Record<string, unknown>).ticketId;
     if (!ticketId) return;
@@ -177,6 +195,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               "group"
             )}
             style={{ marginTop, maxWidth: maxW }}
+            onDoubleClick={handleDoubleClick}
           >
             {actionsButton}
             {showGroupInfo && (
@@ -215,6 +234,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           "group"
         )}
         style={{ marginTop, maxWidth: maxW }}
+            onDoubleClick={handleDoubleClick}
       >
         {actionsButton}
         {hasMediaBubble(message) && <MessageMedia message={message} />}

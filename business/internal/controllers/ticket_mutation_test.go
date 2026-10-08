@@ -122,6 +122,78 @@ func TestUpdateTicket(t *testing.T) {
 	})
 }
 
+// O frontend zera o contador de não lidas com PUT /tickets/:id {"unreadMessages": 0}. O handler só lia
+// status/userId/queueId e descartava o campo: o contador nunca zerava, mesmo lendo a conversa.
+func TestUpdateTicket_ResetsUnreadMessages(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testutil.NewTestDB(t)
+	tenantID, otherTenant := uuid.New(), uuid.New()
+	ticketRepo := repository.NewGORMTicketRepo(db)
+	updateUC := usecases.NewUpdateTicketUseCase(ticketRepo, &stubEventBus{}, nil, nil)
+	tc := NewTicketController(updateUC, nil, &stubMessageRepo{}, &stubPublisher{})
+
+	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
+	_ = db.Create(&wa).Error
+	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
+	_ = db.Create(&contact).Error
+	mine := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID, UnreadMessages: 5}
+	_ = db.Create(&mine).Error
+	other := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID, UnreadMessages: 7}
+	_ = db.Create(&other).Error
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("db", db)
+		c.Set("tenantId", tenantID)
+		c.Set("alcance", "tenant")
+		c.Set("userId", float64(1))
+		c.Next()
+	})
+	r.PUT("/tickets/:ticketId", tc.UpdateTicket)
+	put := func(id int, payload map[string]interface{}) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(payload)
+		req := httptest.NewRequest(http.MethodPut, "/tickets/"+strconv.Itoa(id), bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		res := httptest.NewRecorder()
+		r.ServeHTTP(res, req)
+		return res
+	}
+	unread := func(id int) int {
+		var n int
+		db.Raw(`SELECT "unreadMessages" FROM "Tickets" WHERE id = ?`, id).Scan(&n)
+		return n
+	}
+
+	if res := put(mine.ID, map[string]interface{}{"unreadMessages": 0}); res.Code != http.StatusOK {
+		t.Fatalf("esperava 200, veio %d: %s", res.Code, res.Body.String())
+	}
+	if got := unread(mine.ID); got != 0 {
+		t.Fatalf("o contador devia zerar, ficou %d", got)
+	}
+	if got := unread(other.ID); got != 7 {
+		t.Fatalf("zerar um ticket não pode mexer em outro: %d", got)
+	}
+
+	t.Run("só aceita zerar: um valor positivo vindo do cliente é ignorado", func(t *testing.T) {
+		_ = db.Model(&models.Ticket{}).Where("id = ?", mine.ID).Update("unreadMessages", 3).Error
+		put(mine.ID, map[string]interface{}{"unreadMessages": 99})
+		if got := unread(mine.ID); got != 3 {
+			t.Fatalf("o cliente não define o contador: %d", got)
+		}
+	})
+
+	t.Run("zerar não atinge ticket de outro tenant", func(t *testing.T) {
+		foreign := models.Ticket{Status: "open", TenantID: otherTenant, ContactID: contact.ID, WhatsappID: wa.ID, UnreadMessages: 4}
+		_ = db.Create(&foreign).Error
+		if res := put(foreign.ID, map[string]interface{}{"unreadMessages": 0}); res.Code != http.StatusNotFound {
+			t.Fatalf("esperava 404, veio %d", res.Code)
+		}
+		if got := unread(foreign.ID); got != 4 {
+			t.Fatalf("ticket de outro tenant foi alterado: %d", got)
+		}
+	})
+}
+
 // DeleteTicket had no backend route at all (issue #413) — the frontend
 // already called DELETE /tickets/:ticketId, which 404'd unconditionally.
 func TestDeleteTicket(t *testing.T) {

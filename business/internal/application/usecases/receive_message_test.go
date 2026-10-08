@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -35,7 +37,7 @@ func (m *mockRcvContactRepo) BulkDelete(_ context.Context, _ []int, _ uuid.UUID)
 	return 0, nil
 }
 func (m *mockRcvContactRepo) DeleteAll(_ context.Context, _ uuid.UUID) (int64, error) { return 0, nil }
-func (m *mockRcvContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _ string, _ string, _ string, _ bool, _ bool, _ string) (*domain.Contact, error) {
+func (m *mockRcvContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _ string, _ string, _ string, _ bool, _ bool, _ string, _ string) (*domain.Contact, error) {
 	return m.contact, m.findOrCreateErr
 }
 
@@ -67,6 +69,13 @@ type receiveTicketRepo struct {
 	mockTicketRepo
 	openTicket    *domain.Ticket
 	openTicketErr error
+	// lastUpdate guarda os campos do último Update (o mock compartilhado os descarta).
+	lastUpdate map[string]interface{}
+}
+
+func (m *receiveTicketRepo) Update(ctx context.Context, t *domain.Ticket, fields map[string]interface{}) error {
+	m.lastUpdate = fields
+	return m.mockTicketRepo.Update(ctx, t, fields)
 }
 
 func (m *receiveTicketRepo) FindOpenByContact(_ context.Context, _ uuid.UUID, _ int, _ int) (*domain.Ticket, error) {
@@ -426,7 +435,7 @@ type capturingContactRepo struct {
 	capturedProfilePicURL string
 }
 
-func (m *capturingContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, profilePicURL string, _ bool, _ bool, _ string) (*domain.Contact, error) {
+func (m *capturingContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, profilePicURL string, _ bool, _ bool, _ string, _ string) (*domain.Contact, error) {
 	m.capturedProfilePicURL = profilePicURL
 	return m.contact, m.findOrCreateErr
 }
@@ -515,5 +524,67 @@ func TestJidNumber(t *testing.T) {
 		if got != c.want {
 			t.Errorf("jidNumber(%q) = %q, want %q", c.jid, got, c.want)
 		}
+	}
+}
+
+// Visualização única: o WhatsApp não entrega o conteúdo a aparelhos vinculados. O engine manda um aviso
+// type=view_once, sem mídia. O chat precisa registrá-lo (antes nada aparecia), sem oferecer um download que
+// nunca funcionaria, e o preview do ticket deve dizer o que chegou.
+func TestReceiveMessage_ViewOnce_IsStoredAsANoticeWithNothingToDownload(t *testing.T) {
+	tenantID := uuid.New()
+	existingTicket := &domain.Ticket{ID: 5, ContactID: 1, TenantID: tenantID}
+	cr := &mockRcvContactRepo{contact: defaultContact()}
+	mr := &mockMessageRepo{}
+	tr := &receiveTicketRepo{openTicket: existingTicket}
+	eb := &mockEventBus{}
+
+	input := defaultInput(tenantID)
+	input.Type = "view_once"
+	input.Body = ""
+
+	uc := newReceiveUC(cr, tr, mr, eb)
+	result, err := uc.Execute(context.Background(), input)
+	if err != nil {
+		t.Fatalf("erro: %v", err)
+	}
+	if result.Message.MediaType != "view_once" {
+		t.Fatalf("mediaType = %q, esperado view_once", result.Message.MediaType)
+	}
+	if !strings.Contains(result.Message.Body, "só pode ser visto no celular") {
+		t.Fatalf("o corpo do aviso tem de orientar a ver no celular: %q", result.Message.Body)
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result.Message.DataJson), &data); err != nil {
+		t.Fatal(err)
+	}
+	if data["mediaStatus"] == "pending" {
+		t.Fatal("não há mídia para baixar: mediaStatus não pode ser pending (o botão de download nunca funcionaria)")
+	}
+	// O preview da lista é CURTO: o aviso inteiro (com a orientação) só cabe no balão do chat.
+	if got := fmt.Sprint(tr.lastUpdate["lastMessage"]); got != "👁 Visualização única" {
+		t.Fatalf("preview do ticket = %q, esperado o texto curto", got)
+	}
+}
+
+// O conteúdo de uma imagem comum continua como sempre (regressão).
+func TestReceiveMessage_RegularImage_StillPending(t *testing.T) {
+	tenantID := uuid.New()
+	existingTicket := &domain.Ticket{ID: 5, ContactID: 1, TenantID: tenantID}
+	cr := &mockRcvContactRepo{contact: defaultContact()}
+	mr := &mockMessageRepo{}
+	tr := &receiveTicketRepo{openTicket: existingTicket}
+	input := defaultInput(tenantID)
+	input.Type = "image"
+	input.Mimetype = "image/jpeg"
+	input.MediaProto = "UFJPVE8="
+	uc := newReceiveUC(cr, tr, mr, &mockEventBus{})
+	result, err := uc.Execute(context.Background(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var data map[string]interface{}
+	_ = json.Unmarshal([]byte(result.Message.DataJson), &data)
+	if data["mediaStatus"] != "pending" {
+		t.Fatalf("imagem comum deve continuar pending: %v", data["mediaStatus"])
 	}
 }

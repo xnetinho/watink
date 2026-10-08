@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func buildTextMessage(body, quotedMsgID, quotedJID string, mentions []string) *waProto.Message {
+func buildTextMessage(body, quotedMsgID, quotedJID, quotedBody string, mentions []string) *waProto.Message {
 	if quotedMsgID == "" && len(mentions) == 0 {
 		return &waProto.Message{Conversation: proto.String(body)}
 	}
@@ -27,6 +27,7 @@ func buildTextMessage(body, quotedMsgID, quotedJID string, mentions []string) *w
 			ctx.Participant = proto.String(quotedJID)
 			ctx.RemoteJID = proto.String(quotedJID)
 		}
+		ctx.QuotedMessage = quotedContent(quotedBody)
 	}
 	if len(mentions) > 0 {
 		ctx.MentionedJID = mentions
@@ -38,6 +39,15 @@ func buildTextMessage(body, quotedMsgID, quotedJID string, mentions []string) *w
 			ContextInfo: ctx,
 		},
 	}
+}
+
+// quotedContent é o conteúdo da mensagem citada que o celular usa para desenhar a caixa de citação. Só o
+// texto: citar mídia mostra a legenda (ou o rótulo que o business mandou). nil sem corpo — cita só pelo id.
+func quotedContent(body string) *waProto.Message {
+	if body == "" {
+		return nil
+	}
+	return &waProto.Message{Conversation: proto.String(body)}
 }
 
 func resolveMediaBytes(payload MediaCommandPayload) ([]byte, error) {
@@ -111,6 +121,7 @@ func buildMediaMessage(payload MediaCommandPayload, uploaded whatsmeow.UploadRes
 				ctx.Participant = proto.String(payload.QuotedJID)
 				ctx.RemoteJID = proto.String(payload.QuotedJID)
 			}
+			ctx.QuotedMessage = quotedContent(payload.QuotedBody)
 		}
 		if len(payload.Mentions) > 0 {
 			ctx.MentionedJID = payload.Mentions
