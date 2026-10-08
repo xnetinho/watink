@@ -1,7 +1,11 @@
 # --- Secrets & Credentials ---
 .env
 *.env
+.env.local
+.env.*.local
 !.env.example
+!.env.local.example
+!.env.production.example
 ssl/
 
 # --- Runtime Data ---

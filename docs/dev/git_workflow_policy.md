@@ -64,10 +64,12 @@ O merge flow de branches acima roda dentro de um pipeline de **três estágios c
 1. DEV LOCAL         implementa na branch por convenção (feat/ fix/ ...)
       │
       ▼
-2. VALIDAÇÃO LOCAL   ⟵ PORTÃO 1
+2. VALIDAÇÃO LOCAL   ⟵ PORTÃO 1   (detalhes em local-verification.md)
+      │              lint completo com o MESMO linter da CI (golangci-lint v2.12.2)
       │              go build ./... && go test ./...   (business, engine-go)
       │              npm run build / typecheck / lint  (frontend)
-      │              rodar o app e conferir o comportamento
+      │              construir as imagens e subir o stack local; exercitar o fluxo
+      │              (opcional) túnel Cloudflare para validação humana
       ▼
 3. HOMOLOGAÇÃO       PR → develop → deploy AUTOMÁTICO no ambiente de homologação
       │              ambiente: homolog.watink.com
@@ -92,4 +94,8 @@ O merge flow de branches acima roda dentro de um pipeline de **três estágios c
   do repo — o mesmo arquivo serve os dois ambientes, diferenciados só pelo
   `.env`/`.env.prod` e pelo project name do Compose (`-p watink-homolog` vs
   `-p watink-prod`).
+- **Não há branch longa de teste.** Não se mantém uma branch paralela (como foi `test/ghcr-images`) que publica imagens a
+  cada push: ela acumulou 69 commits sem passar pela CI por 3 semanas. Cada mudança vive numa branch de feature
+  curta, é verificada localmente (portão 1), vira PR contra `develop` e só então ganha imagem. Publicar uma imagem
+  `:test` é **sob demanda** (`workflow_dispatch`), ver `local-verification.md`.
 - Reportar honestamente o resultado de cada portão (build/testes/homologação) — não marcar "aprovado" sem evidência.
