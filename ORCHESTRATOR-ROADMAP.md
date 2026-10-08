@@ -49,6 +49,13 @@
   depois que `add-whatsapp-video-calls` fechar, decidindo caso a caso entre ligar (fases 2 a 5) e remover. | ⏳ Bloqueada
   por `add-whatsapp-video-calls`
 
+- [ ] **Epic 10**: Canais agnósticos: Telegram, Mercado Livre, OLX, Instagram e TikTok além do WhatsApp (ADR 0033, planejado).
+  Fundação: `add-channel-abstraction` (interface `Channel`, `ContactIdentity`, `conversationKey`, `ChannelConnection`, entrada
+  única, regra de resposta no servidor, UX de conexões/composer; **aditiva, o WhatsApp não regride**). Depois, uma change por
+  canal, na ordem **Telegram → Mercado Livre → Instagram → OLX → TikTok**: `add-channel-telegram`, `add-channel-mercadolivre`,
+  `add-channel-instagram`, `add-channel-olx`, `add-channel-tiktok`. **Aprovações externas devem começar já** (Instagram App
+  Review + Business Verification; TikTok DSPR; OLX registro de aplicação), porque definem o prazo. | 📋 Planejada
+
 ## Próximo Epic — Backend Go DI & Packages
 
 **Branch**: `refactor/backend-di-packages`
