@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Circle, Mic, MicOff, PhoneOff, ShieldAlert, TriangleAlert, VideoOff, X } from "lucide-react";
+import { Circle, Mic, MicOff, PhoneOff, ShieldAlert, TriangleAlert, Video, VideoOff, X } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,12 @@ const FAILURE_KEY: Record<string, string> = {
   audio_unavailable: "calls.active.audioUnavailable",
 };
 
+const CAMERA_FAILURE_KEY: Record<string, string> = {
+  denied: "calls.active.cameraDenied",
+  unavailable: "calls.active.cameraUnavailable",
+  encoder: "calls.active.cameraEncoder",
+};
+
 /**
  * Tela da chamada em curso, fixa no canto, visível em qualquer página. O
  * cronômetro parte do instante em que a mídia conectou de verdade (não do toque).
@@ -49,7 +55,7 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
   recordingAvailable = false,
   recordingMode = "off",
 }) => {
-  const { active, end, setMuted, startRecording, stopRecording, dismiss, videoSink } = useCalls();
+  const { active, end, setMuted, setCamera, canSendVideo, startRecording, stopRecording, dismiss, videoSink } = useCalls();
   const [now, setNow] = useState(() => Date.now());
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -81,6 +87,10 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
   const canRecord = recordingAvailable && recordingMode === "optional" && active.phase === "active";
   const failure = active.failure ? t(FAILURE_KEY[active.failure] ?? "calls.active.socketLost") : null;
   const videoUnsupported = active.media === "video" && !ended && !videoSink.supported;
+  const isVideoCall = active.media === "video" && !ended;
+  const canCamera = isVideoCall && canSendVideo && (active.phase === "active" || active.phase === "connecting");
+  const cameraFailure = active.cameraFailure ? t(CAMERA_FAILURE_KEY[active.cameraFailure] ?? "calls.active.cameraUnavailable") : null;
+  const cameraUnsupported = isVideoCall && !canSendVideo;
 
   return (
     <div
@@ -119,6 +129,20 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
           <VideoOff className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{t("calls.active.videoUnsupported")}</span>
         </p>
+      )}
+
+      {cameraUnsupported && (
+        <p className="flex items-start gap-1.5 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground" data-testid="camera-unsupported">
+          <VideoOff className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{t("calls.active.cameraUnsupported")}</span>
+        </p>
+      )}
+
+      {cameraFailure && (
+        <div role="alert" className="flex items-start gap-2 rounded-md bg-status-error-bg px-3 py-2 text-xs text-status-error-text" data-testid="camera-failure">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{cameraFailure}</span>
+        </div>
       )}
 
       {active.recording && (
@@ -161,6 +185,19 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
           >
             {active.muted ? <MicOff /> : <Mic />}
           </Button>
+          {isVideoCall && (
+            <Button
+              variant="secondary"
+              size="icon"
+              disabled={!canCamera}
+              onClick={() => void setCamera(!active.camera)}
+              aria-pressed={active.camera}
+              aria-label={active.camera ? t("calls.active.cameraOff") : t("calls.active.cameraOn")}
+              data-testid="toggle-camera"
+            >
+              {active.camera ? <Video /> : <VideoOff />}
+            </Button>
+          )}
           {canRecord && (
             <Button
               variant="secondary"

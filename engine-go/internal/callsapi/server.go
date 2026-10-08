@@ -18,6 +18,9 @@ import (
 	"github.com/coder/websocket"
 )
 
+// maxClientMessage cobre um quadro-chave de câmera (o PCM tem 640 B): 512 KB, o mesmo teto do business.
+const maxClientMessage = 512 * 1024
+
 var callIDPattern = regexp.MustCompile(`^[A-F0-9]{32}$`)
 
 // Backend é o que o servidor precisa do engine.
@@ -81,7 +84,7 @@ func serveAudio(w http.ResponseWriter, r *http.Request, b Backend) {
 		return
 	}
 	defer c.CloseNow()
-	c.SetReadLimit(64 * 1024)
+	c.SetReadLimit(maxClientMessage)
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -93,8 +96,15 @@ func serveAudio(w http.ResponseWriter, r *http.Request, b Backend) {
 			if err != nil {
 				return
 			}
-			if typ == websocket.MessageBinary {
-				pipe.WritePCM(data)
+			switch typ {
+			case websocket.MessageBinary:
+				if calls.IsVideoFrame(data) {
+					pipe.WriteVideo(data)
+				} else {
+					pipe.WritePCM(data)
+				}
+			case websocket.MessageText:
+				handleCommand(ctx, pipe, data)
 			}
 		}
 	}()
@@ -119,12 +129,38 @@ func serveAudio(w http.ResponseWriter, r *http.Request, b Backend) {
 			if !write(ctx, c, websocket.MessageBinary, calls.EncodeVideoFrame(videoTs, v.Keyframe, v.Rotation, v.AccessUnit)) {
 				return
 			}
+		case ctl := <-pipe.Control():
+			raw, _ := json.Marshal(ctl)
+			if !write(ctx, c, websocket.MessageText, raw) {
+				return
+			}
 		case t := <-pipe.Telemetry():
 			raw, _ := json.Marshal(t)
 			if !write(ctx, c, websocket.MessageText, raw) {
 				return
 			}
 		}
+	}
+}
+
+// command é o comando de texto que o business manda no mesmo WebSocket do áudio.
+type command struct {
+	Type        string `json:"type"`
+	On          bool   `json:"on"`
+	Orientation int    `json:"orientation"`
+}
+
+// handleCommand trata um comando de controle do business. Hoje só "camera" (liga/desliga com a
+// orientação); qualquer outra coisa é ignorada.
+func handleCommand(ctx context.Context, pipe *calls.AudioPipe, raw []byte) {
+	var c command
+	if json.Unmarshal(raw, &c) != nil || c.Type != "camera" {
+		return
+	}
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := pipe.SetCamera(cctx, c.On, c.Orientation); err != nil {
+		log.Printf("[callsapi] camera on=%v: %v", c.On, err)
 	}
 }
 

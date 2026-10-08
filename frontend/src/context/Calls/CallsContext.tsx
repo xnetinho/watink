@@ -7,6 +7,8 @@ import { callsReducer, initialCallsState, type CallsState } from "./callReducer"
 import type { ActiveCall, CallEventPayload, CallQuality } from "./types";
 import { useCallAudio, type AudioFailure, type CallTelemetry } from "../../lib/calls/useCallAudio";
 import { VideoSink } from "../../lib/calls/videoSink";
+import { CameraSender, browserCameraDeps, type CameraFailure } from "../../lib/calls/cameraSender";
+import { detectVideoSupport } from "../../lib/calls/videoSupport";
 import type { VideoFrame } from "../../lib/calls/videoFrame";
 import { notify } from "../../lib/notify";
 import { t } from "../../lib/calls/t";
@@ -25,6 +27,10 @@ export interface CallsContextValue {
   place: (ticketId: number) => Promise<void>;
   end: () => Promise<void>;
   setMuted: (muted: boolean) => void;
+  /** Liga/desliga a câmera do operador na videochamada (só Chromium: `canSendVideo`). */
+  setCamera: (on: boolean) => Promise<void>;
+  /** O navegador consegue ENVIAR a câmera (WebCodecs + MediaStreamTrackProcessor). */
+  canSendVideo: boolean;
   setPaused: (paused: boolean) => void;
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<void>;
@@ -48,6 +54,8 @@ export const CallsContext = createContext<CallsContextValue>({
   place: noop,
   end: noop,
   setMuted: () => undefined,
+  setCamera: noop,
+  canSendVideo: false,
   setPaused: () => undefined,
   startRecording: noop,
   stopRecording: noop,
@@ -259,6 +267,20 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [videoSink]);
   const onVideoFrame = useCallback((f: VideoFrame) => videoSink.push(f), [videoSink]);
 
+  // A câmera do operador: um CameraSender por chamada. O contato pede quadro-chave (PLI) pelo canal.
+  const cameraRef = useRef<CameraSender | null>(null);
+  const audioApiRef = useRef<{ sendBinary: (m: Uint8Array) => boolean; sendCameraCommand: (on: boolean, o?: number) => boolean } | null>(null);
+  const canSendVideo = useMemo(() => detectVideoSupport().canSend, []);
+  const onKeyframeRequested = useCallback(() => cameraRef.current?.requestKeyframe(), []);
+  const stopCamera = useCallback(() => {
+    const cam = cameraRef.current;
+    cameraRef.current = null;
+    if (cam?.active) {
+      cam.stop();
+      audioApiRef.current?.sendCameraCommand(false);
+    }
+  }, []);
+
   const audio = useCallAudio({
     callId: active?.callId ?? null,
     enabled: !!active && (active.phase === "connecting" || active.phase === "active" || active.phase === "calling"),
@@ -266,7 +288,50 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     onFailure,
     onTelemetry,
     onVideoFrame,
+    onKeyframeRequested,
   });
+  audioApiRef.current = audio;
+
+  const callId = active?.callId ?? null;
+  const phase = active?.phase ?? null;
+  // A câmera morre com a chamada, ao sair de connecting/active ou quando o canal cai.
+  useEffect(() => {
+    if (phase !== "active" && phase !== "connecting") stopCamera();
+  }, [phase, callId, stopCamera]);
+  useEffect(() => () => {
+    cameraRef.current?.stop();
+    cameraRef.current = null;
+  }, [callId]);
+
+  const setCamera = useCallback(
+    async (on: boolean) => {
+      const a = stateRef.current.active;
+      if (!a || a.media !== "video") return;
+      if (!on) {
+        stopCamera();
+        dispatch({ type: "camera", on: false });
+        return;
+      }
+      if (cameraRef.current?.active || !canSendVideo) return;
+      const cam = new CameraSender({
+        deps: browserCameraDeps(),
+        send: (m) => { audioApiRef.current?.sendBinary(m); },
+        onFailure: (reason: CameraFailure) => {
+          cameraRef.current = null;
+          audioApiRef.current?.sendCameraCommand(false);
+          dispatch({ type: "camera", on: false, failure: reason });
+        },
+      });
+      cameraRef.current = cam;
+      if (await cam.start()) {
+        if (cameraRef.current !== cam) { cam.stop(); return; }
+        audioApiRef.current?.sendCameraCommand(true, 0);
+        dispatch({ type: "camera", on: true });
+      }
+    },
+    [canSendVideo, stopCamera],
+  );
+
 
   const value = useMemo<CallsContextValue>(
     () => ({
@@ -281,6 +346,8 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       place,
       end,
       setMuted,
+      setCamera,
+      canSendVideo,
       setPaused,
       startRecording,
       stopRecording,
@@ -288,7 +355,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       audioLevels: audio.levels,
       videoSink,
     }),
-    [state, canReceive, canPlace, active, accept, reject, place, end, setMuted, setPaused, startRecording, stopRecording, dismiss, audio.levels, videoSink],
+    [state, canReceive, canPlace, active, accept, reject, place, end, setMuted, setCamera, canSendVideo, setPaused, startRecording, stopRecording, dismiss, audio.levels, videoSink],
   );
 
   return <CallsContext.Provider value={value}>{children}</CallsContext.Provider>;

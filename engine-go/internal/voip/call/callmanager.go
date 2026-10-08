@@ -41,6 +41,22 @@ type CallManager struct {
 	// videoOrientation é a última rotação anunciada pelo contato (-1 = ainda desconhecida).
 	videoOrientation int
 
+	// Envio de vídeo (fase 2): a câmera do operador. Ver callmanager_video_tx.go.
+	videoTx      *media.VideoRtpStream
+	videoTxSsrc  uint32
+	videoTxOn    bool
+	videoNeedIDR bool
+	videoPackets uint32
+	videoOctets  uint32
+	videoLastTs  uint32
+	srtcpSend    *media.SrtcpKeys
+	srtcpRecv    *media.SrtcpKeys
+	srtcpIndex   uint32
+	rtcpCname    [media.RtcpCnameLen]byte
+	rtcpStop     chan struct{}
+	rtcpInSeen   bool
+	rtcpAuthFail bool
+
 	firstPacketSent       bool
 	initialTransportSent  bool
 	outgoingPreacceptSent bool
@@ -73,6 +89,9 @@ type CallManager struct {
 	OnPeerVideoOrientation func(orientation int)
 	// OnVideoKeyframeNeeded avisa que um pacote se perdeu e o contato precisa mandar um quadro-chave.
 	OnVideoKeyframeNeeded func()
+	// OnVideoKeyframeRequested avisa que o CONTATO pediu um quadro-chave do nosso vídeo (PLI/FIR): o
+	// codificador da câmera precisa gerar um IDR agora. Roda na goroutine do relay: NÃO pode bloquear.
+	OnVideoKeyframeRequested func()
 
 	// OnPeerRtp (alteração Watink) recebe sequência, timestamp e tamanho do payload
 	// de cada pacote RTP do contato já autenticado, para medir perda, jitter e taxa.

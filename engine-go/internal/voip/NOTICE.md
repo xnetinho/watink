@@ -46,3 +46,6 @@ O tratamento de `accept` vindo de outro aparelho já existe em `internal/calls`.
 Reaplique o porte a partir de um commit novo da origem, rode
 `go test ./internal/voip/...` e atualize o commit acima. Não edite estes arquivos
 para regras do Watink: as regras ficam em `internal/calls`, que usa esta pilha.
+
+| `media/srtcp.go`, `media/rtcp.go` (+ testes): SRTCP (rótulos 3/4/5, tag de 10 B), Sender Report + SDES, PLI/FIR | `purpshell/meowcaller` `srtp/e2e.go` e `rtp/rtcp.go` (MIT, Rajeh Taher) | Reescritos sobre o nosso `SrtpContext`/`deriveSrtpKey`, sem a camada de logging. Os vetores de teste são os dela: chaves SRTCP a partir de um segredo conhecido, o SR de 28 bytes do `kats.json`, o SR+SDES de 60 bytes (74 protegido) e o PLI de 12 bytes. |
+| `media/h264.go` `PackAccessUnit`, `media/h264_rtp.go` `SetTimestampStride`, `call/callmanager_video_tx.go` (envio de vídeo) | `purpshell/meowcaller` `engine_media.go` (`videoSender.protectAccessUnitLocked`) | A AU inteira vira um só NAL em FU-A, com a extensão 0xDEBE, como ela faz. O gate de IDR (descarta delta até o primeiro IDR e após cada PLI) e o laço de SR+SDES a cada 1,5 s seguem a dela. **Nenhuma das bases provou o caminho de envio ao vivo** (a própria meowcaller o marca NOT VALIDATED). |

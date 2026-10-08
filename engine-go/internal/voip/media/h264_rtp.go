@@ -131,6 +131,13 @@ func NewVideoRtpStream(ssrc, tsStride uint32) *VideoRtpStream {
 	return &VideoRtpStream{ssrc: ssrc, seq: 1, tsStride: tsStride, frameNumber: 1, firstPacket: true}
 }
 
+// SetTimestampStride muda o avanço do timestamp a partir do próximo quadro (duração real do anterior).
+func (s *VideoRtpStream) SetTimestampStride(stride uint32) {
+	if stride != 0 {
+		s.tsStride = stride
+	}
+}
+
 // NextPacket devolve o cabeçalho do próximo pacote e a extensão que o acompanha.
 func (s *VideoRtpStream) NextPacket(lastInAccessUnit bool, mediaFrameInfo uint8) (*RtpHeader, *VideoRtpExtension) {
 	var frameNumber *uint16

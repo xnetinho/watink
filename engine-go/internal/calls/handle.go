@@ -3,6 +3,7 @@ package calls
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/call"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
@@ -75,8 +76,13 @@ func (h *managerHandle) SetMedia(k MediaHooks) {
 	h.m.OnSentRtp = k.OnSentRtp
 	h.m.OnPeerVideo = k.OnPeerVideo
 	h.m.OnPeerVideoFrame = k.OnPeerVideoFrame
+	h.m.OnVideoKeyframeRequested = k.OnKeyframeRequested
 }
-func (h *managerHandle) FeedPCM(pcm []float32)   { h.m.FeedCapturedPCM(pcm) }
+func (h *managerHandle) FeedPCM(pcm []float32)                { h.m.FeedCapturedPCM(pcm) }
+func (h *managerHandle) SendVideo(au []byte, d time.Duration) { h.m.SendVideoFrame(au, d) }
+func (h *managerHandle) SetCamera(ctx context.Context, on bool, orientation int) error {
+	return h.m.SetLocalVideo(ctx, on, orientation)
+}
 func (h *managerHandle) RelayRTTMs() (int, bool) { return h.m.RelayRTTMs() }
 func (h *managerHandle) RelayConnected() bool    { return h.m.RelayConnected() }
 func (h *managerHandle) Abandon(reason string)   { h.m.AbandonCall(core.EndCallReason(reason)) }

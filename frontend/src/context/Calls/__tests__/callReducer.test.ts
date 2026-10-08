@@ -210,4 +210,23 @@ describe("callsReducer", () => {
     s = callsReducer(s, { type: "ended", callId: "A" });
     expect(Object.keys(s.ringing)).toEqual(["B"]);
   });
+
+  it("a câmera liga limpando a falha e, ao falhar, desliga guardando o motivo", () => {
+    let s = callsReducer(initialCallsState(), { type: "accepted", payload: incoming() });
+    expect(s.active?.camera).toBe(false);
+    s = callsReducer(s, { type: "camera", on: false, failure: "denied" });
+    expect(s.active?.camera).toBe(false);
+    expect(s.active?.cameraFailure).toBe("denied");
+    s = callsReducer(s, { type: "camera", on: true });
+    expect(s.active?.camera).toBe(true);
+    expect(s.active?.cameraFailure).toBeNull();
+    s = callsReducer(s, { type: "camera", on: false });
+    expect(s.active?.camera).toBe(false);
+    expect(s.active?.cameraFailure).toBeNull();
+  });
+
+  it("sem chamada ativa o evento de câmera não faz nada", () => {
+    const s = callsReducer(initialCallsState(), { type: "camera", on: true });
+    expect(s.active).toBeNull();
+  });
 });

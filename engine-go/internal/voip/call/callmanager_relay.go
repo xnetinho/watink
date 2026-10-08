@@ -99,6 +99,7 @@ func (m *CallManager) cleanupMedia() {
 	m.videoRx = media.H264AccessUnitAssembler{}
 	m.videoLastPLI = time.Time{}
 	m.videoOrientation = -1
+	m.resetVideoTxLocked()
 	m.encodeBuf = nil
 	m.encodeBufPos = 0
 	m.mu.Unlock()
