@@ -41,6 +41,15 @@ O fonte do `plugin-manager` **não está neste repositório**: é proprietário 
 `alltomatos/watink-plugin-manager`, distribuído como imagem `ghcr.io/alltomatos/watink-plugin-manager` (os composes
 usam `image:`, nunca `build:`). Ver `docs/agents/plugins.md`.
 
+## Verificação local antes do push
+
+Lint com o linter da CI, testes, build das imagens e stack local: ver [`local-verification.md`](local-verification.md).
+
+```bash
+cd business && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run ./...
+docker compose -p lt -f docker-compose.yml -f docker-compose.local.yml --env-file .env.local up -d --build
+```
+
 ## Docker (desenvolvimento local)
 
 ```bash

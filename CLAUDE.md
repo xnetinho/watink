@@ -136,6 +136,16 @@ SMOKE_BASE_URL=http://localhost:3000 SMOKE_EMAIL=admin@test.com SMOKE_PASS=test1
   - `docs/<tema>` — documentação
   - `hotfix/<tema>` — urgência em produção
 - **Merge flow**: `feat/*` → `develop` → `main`; `hotfix/*` → `main` → back-merge `develop`
+- **Verificação local ANTES do push** (portão 1, [`docs/dev/local-verification.md`](docs/dev/local-verification.md)): lint
+  completo com o **mesmo linter da CI** (`golangci-lint` v2.12.2, via `GOTOOLCHAIN=auto`), testes, build das imagens e stack
+  local (`docker-compose.local.yml`, projeto `lt`, segredos descartáveis de `.env.local`). Só sobe para o GitHub o que já
+  foi construído e exercitado; a CI do GitHub é o árbitro final do PR, não o primeiro lugar onde o código compila.
+- **Sem branch longa de teste.** `test/ghcr-images` (que publicava imagens a cada push) deixou 69 commits sem CI por 3
+  semanas e custou 58 achados de lint de uma vez. Branches de feature curtas e PRs pequenos; imagem `:test` só **sob
+  demanda** (`workflow_dispatch`).
+- **Validação humana por túnel Cloudflare** contra o stack local, com **número de WhatsApp exclusivo de teste** (nunca o de
+  produção: a sessão fica no Postgres do stack local). **Chamadas** (UDP do host do engine) só se validam de fato na
+  homologação: o stack local prova que funcionam, não a qualidade na rede real.
 - **PR checklist**: resumo técnico, risco/impacto, evidência de teste, plano de rollback
 
 ## Core Engineering Rules

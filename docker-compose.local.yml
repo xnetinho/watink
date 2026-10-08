@@ -1,0 +1,33 @@
+# Watink: stack de VERIFICACAO LOCAL (portao 1 do pipeline, docs/dev/local-verification.md).
+#
+# Constroi as imagens DESTE checkout (nao usa as do Docker Hub/GHCR) e sobe o stack minimo em rede e
+# volumes proprios (projeto "lt"), sem tocar em nada de homologacao ou producao.
+#
+#   cp .env.local.example .env.local          # segredos DESCARTAVEIS, so para teste
+#   docker compose -p lt -f docker-compose.yml -f docker-compose.local.yml --env-file .env.local up -d --build
+#
+# Combina com o docker-compose.yml: este arquivo so troca as imagens (incl. o postgres, que o compose oficial puxa de um
+# registry) por builds locais e renomeia os containers.
+services:
+  postgres:
+    image: local/watink-postgres:dev
+    container_name: lt-postgres
+    build:
+      context: ./infra/postgres
+      dockerfile: Dockerfile
+  redis:
+    container_name: lt-redis
+  rabbitmq:
+    container_name: lt-rabbitmq
+  watink-business:
+    image: local/watink-business:dev
+    container_name: lt-business
+    build:
+      context: .
+      dockerfile: Dockerfile.business
+  watink-engine:
+    image: local/watink-engine:dev
+    container_name: lt-engine
+    build:
+      context: ./engine-go
+      dockerfile: Dockerfile
