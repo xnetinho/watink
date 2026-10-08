@@ -141,3 +141,20 @@ func TestWatchdog_StopsOnContextCancel(t *testing.T) {
 		t.Fatal("o watchdog não parou com o contexto cancelado (vazamento de goroutine)")
 	}
 }
+
+// Causa do teste instável TestServeAudio_VideoNeverReachesTheAudioRecorder: a fila entre o engine e o navegador
+// guarda no máximo bridgeQueue quadros e, cheia, DESCARTA o mais antigo (de propósito: atraso acumulado é pior que
+// perda). Um teste que escreve MAIS que bridgeQueue quadros e depois espera ler TODOS depende de o consumidor
+// esvaziar a fila a tempo: com um consumidor lento, o excedente é descartado e a leitura trava. Aqui o comportamento
+// é provado sem depender de agendamento: com ninguém consumindo, só os bridgeQueue mais recentes sobram.
+func TestPipe_OverCapacityKeepsOnlyTheMostRecent_NeverAllOfThem(t *testing.T) {
+	p := newPipe()
+	over := bridgeQueue + 10
+	for i := 0; i < over; i++ {
+		p.Push(frame(byte(i)))
+	}
+	assert.Equal(t, bridgeQueue, p.Len(), "a fila nunca guarda mais que o limite")
+	assert.Equal(t, int64(over-bridgeQueue), p.Dropped(), "o excedente é descartado, não enfileirado")
+	first := <-p.Out()
+	assert.Equal(t, byte(over-bridgeQueue), first[0], "o primeiro que sobra é o mais antigo DENTRO da janela, não o quadro 0")
+}
