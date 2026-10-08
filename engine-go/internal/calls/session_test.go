@@ -61,6 +61,10 @@ type fakeHandle struct {
 	fed     []float32
 	rtt     int
 	relayUp bool
+
+	videoIn   []videoIn
+	camera    []cameraCmd
+	cameraErr error
 }
 
 func (h *fakeHandle) rec(s string) {
@@ -125,6 +129,17 @@ func (h *fakeHandle) FeedPCM(p []float32) {
 	h.fed = append(h.fed, p...)
 	h.mu.Unlock()
 }
+func (h *fakeHandle) SendVideo(au []byte, d time.Duration) {
+	h.mu.Lock()
+	h.videoIn = append(h.videoIn, videoIn{append([]byte(nil), au...), d})
+	h.mu.Unlock()
+}
+func (h *fakeHandle) SetCamera(_ context.Context, on bool, orientation int) error {
+	h.mu.Lock()
+	h.camera = append(h.camera, cameraCmd{on, orientation})
+	h.mu.Unlock()
+	return h.cameraErr
+}
 func (h *fakeHandle) RelayRTTMs() (int, bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -138,6 +153,16 @@ func (h *fakeHandle) RelayConnected() bool {
 func (h *fakeHandle) Abandon(reason string) {
 	h.rec("abandon:" + reason)
 	h.hooks.OnEnded(State{EndReason: reason})
+}
+
+type videoIn struct {
+	au []byte
+	d  time.Duration
+}
+
+type cameraCmd struct {
+	on          bool
+	orientation int
 }
 
 type published struct {

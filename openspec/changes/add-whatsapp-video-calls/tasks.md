@@ -52,12 +52,22 @@
 
 ## 2. Enviar a câmera
 
-- [ ] 2.1 Engine: `videoSender` com gate de IDR (descarta delta até o primeiro IDR e após cada PLI),
-      empacotamento, SRTP e envio; **SR+SDES periódico** do vídeo; teste de vetor do relatório (74 bytes)
-- [ ] 2.2 Frontend: `getUserMedia` → `MediaStreamTrackProcessor` → `VideoEncoder` (`annexb`, realtime, 15-20 fps,
-      600 kbps), keyframe a cada 2 s e sob pedido; permissão de câmera com mensagem clara; liga/desliga câmera
-- [ ] 2.3 `device_orientation` anunciado pelo estado 1 quando o navegador girar
-- [ ] 2.4 **Teste real: o contato vê a câmera do operador** (a parte que ninguém validou; capturar com o diag)
+- [x] 2.1 Engine: SRTCP (`media/srtcp.go`, rótulos 3/4/5, tag de 10 B), `media/rtcp.go` (SR+SDES, PLI, FIR), emissor no
+      `CallManager` (`callmanager_video_tx.go`: gate de IDR que descarta delta até o 1º IDR e após cada PLI, AU inteira em
+      um NAL FU-A, extensão 0xDEBE, SRTP do SSRC de vídeo), SR+SDES a cada 1,5 s, PLI/FIR do contato autenticado por SRTCP,
+      PLI nosso quando o vídeo do contato perde pacote. Vetores de teste da meowcaller; 18 mutações do engine pegas
+- [x] 2.1b Fio: o navegador sobe o vídeo no mesmo WebSocket (fila **própria** de ~2 s no business, fora do gravador e sem
+      empurrar o PCM); comando de texto `camera` validado e reserializado no business; `{"type":"keyframe"}` volta ao
+      navegador; teto de leitura de 512 KB nas duas pontas (um quadro-chave passa de 32 KB, o padrão do WebSocket)
+- [x] 2.2 Frontend: `CameraSender` (`getUserMedia` → `MediaStreamTrackProcessor` → `VideoEncoder` annexb/realtime, 640×480,
+      15 fps, 600 kbps, quadro-chave a cada 2 s e sob pedido, descarta quando o codificador atrasa); botão de câmera no
+      painel; permissão negada / câmera ausente / erro do codificador com mensagem própria; só Chromium, com o motivo na tela
+- [ ] 2.3 `device_orientation` anunciado pelo estado 1 quando o navegador girar. **Adiado:** o comando de câmera já leva a
+      orientação (hoje sempre 0, a do `VideoEncoder`); detectar a rotação do aparelho/janela e reanunciar exige o estado 1
+      de novo e só faz sentido depois de ver o que o contato mostra
+- [ ] 2.4 **Teste real: o contato vê a câmera do operador** (a parte que ninguém validou; capturar com o diag). **NÃO feito:
+      nenhum resultado ao vivo foi observado.** O que existe é: tudo decifra, remonta e responde a PLI contra um contato
+      simulado que usa as mesmas chaves
 
 ## 3. Iniciar chamada de vídeo
 

@@ -119,6 +119,10 @@ func (m *CallManager) onRelayData(data []byte) {
 	if len(data) < 12 {
 		return
 	}
+	if data[1] >= 192 && data[1] <= 223 {
+		m.onRtcp(data)
+		return
+	}
 	pt := data[1] & 0x7f
 	if pt == media.PayloadTypeH264 {
 		m.onVideoRtp(data, uint32(data[8])<<24|uint32(data[9])<<16|uint32(data[10])<<8|uint32(data[11]))

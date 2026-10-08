@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import ActiveCallPanel, { phaseLabel } from "../ActiveCallPanel";
 import { baseCall, makeCtx, quality, withCalls } from "./helpers";
@@ -151,5 +151,62 @@ describe("ActiveCallPanel — aviso de risco permanente", () => {
     render(withCalls(makeCtx({ active: baseCall({ phase, connectedAt: phase === "active" ? Date.now() : null }) }), <ActiveCallPanel />));
     expect(screen.getByTestId("risk-notice")).toHaveTextContent("risco de bloqueio do número");
     expect(screen.getByTestId("risk-notice")).toHaveTextContent("Esse risco é da empresa");
+  });
+});
+
+describe("ActiveCallPanel — câmera do operador", () => {
+  it("numa chamada de voz não há botão de câmera", () => {
+    render(withCalls(makeCtx({ active: baseCall({ phase: "active", media: "audio", connectedAt: 1 }) }), <ActiveCallPanel />));
+    expect(screen.queryByTestId("toggle-camera")).toBeNull();
+    expect(screen.queryByTestId("camera-unsupported")).toBeNull();
+  });
+
+  it("na videochamada ativa o botão liga a câmera e, ligada, desliga", () => {
+    const setCamera = vi.fn(async () => undefined);
+    const { rerender } = render(
+      withCalls(makeCtx({ setCamera, active: baseCall({ phase: "active", media: "video", connectedAt: 1 }) }), <ActiveCallPanel />),
+    );
+    const btn = screen.getByTestId("toggle-camera");
+    expect(btn).toBeEnabled();
+    expect(btn).toHaveAttribute("aria-label", "Ligar câmera");
+    fireEvent.click(btn);
+    expect(setCamera).toHaveBeenLastCalledWith(true);
+
+    rerender(withCalls(makeCtx({ setCamera, active: baseCall({ phase: "active", media: "video", connectedAt: 1, camera: true }) }), <ActiveCallPanel />));
+    const on = screen.getByTestId("toggle-camera");
+    expect(on).toHaveAttribute("aria-label", "Desligar câmera");
+    expect(on).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(on);
+    expect(setCamera).toHaveBeenLastCalledWith(false);
+  });
+
+  it("enquanto a chamada ainda toca o botão fica desabilitado", () => {
+    render(withCalls(makeCtx({ active: baseCall({ phase: "calling", media: "video" }) }), <ActiveCallPanel />));
+    expect(screen.getByTestId("toggle-camera")).toBeDisabled();
+  });
+
+  it("navegador sem WebCodecs de envio explica o motivo e não deixa ligar", () => {
+    render(withCalls(makeCtx({ canSendVideo: false, active: baseCall({ phase: "active", media: "video", connectedAt: 1 }) }), <ActiveCallPanel />));
+    expect(screen.getByTestId("camera-unsupported")).toHaveTextContent(/Chrome, o Edge ou o Brave/);
+    expect(screen.getByTestId("toggle-camera")).toBeDisabled();
+  });
+
+  it("câmera bloqueada mostra a causa e como resolver", () => {
+    render(withCalls(makeCtx({ active: baseCall({ phase: "active", media: "video", connectedAt: 1, cameraFailure: "denied" }) }), <ActiveCallPanel />));
+    expect(screen.getByTestId("camera-failure")).toHaveTextContent(/bloqueada pelo navegador/);
+  });
+
+  it("câmera ausente e erro do codificador têm mensagens próprias", () => {
+    const { rerender } = render(
+      withCalls(makeCtx({ active: baseCall({ phase: "active", media: "video", connectedAt: 1, cameraFailure: "unavailable" }) }), <ActiveCallPanel />),
+    );
+    expect(screen.getByTestId("camera-failure")).toHaveTextContent(/não existe ou está em uso/);
+    rerender(withCalls(makeCtx({ active: baseCall({ phase: "active", media: "video", connectedAt: 1, cameraFailure: "encoder" }) }), <ActiveCallPanel />));
+    expect(screen.getByTestId("camera-failure")).toHaveTextContent(/codificar o vídeo/);
+  });
+
+  it("chamada encerrada não mostra controle de câmera", () => {
+    render(withCalls(makeCtx({ active: baseCall({ phase: "ended", media: "video", endReason: "user_ended" }) }), <ActiveCallPanel />));
+    expect(screen.queryByTestId("toggle-camera")).toBeNull();
   });
 });

@@ -24,6 +24,7 @@ export type CallsAction =
   | { type: "state"; callId: string; state: string }
   | { type: "quality"; callId: string; quality: CallQuality }
   | { type: "mute"; muted: boolean }
+  | { type: "camera"; on: boolean; failure?: string }
   | { type: "recording"; callId: string; recording: boolean }
   | { type: "failure"; callId: string; reason: string }
   | { type: "endRequested"; callId: string }
@@ -41,6 +42,8 @@ function fromPayload(p: CallEventPayload, phase: CallPhase): ActiveCall {
     ticketId: p.ticketId ?? null,
     connectedAt: null,
     muted: false,
+    camera: false,
+    cameraFailure: null,
     recording: false,
     quality: null,
     endReason: null,
@@ -104,6 +107,11 @@ export function callsReducer(state: CallsState, action: CallsAction): CallsState
 
     case "mute":
       return state.active ? { ...state, active: { ...state.active, muted: action.muted } } : state;
+
+    case "camera":
+      return state.active
+        ? { ...state, active: { ...state.active, camera: action.on, cameraFailure: action.failure ?? null } }
+        : state;
 
     case "recording": {
       if (!state.active || state.active.callId !== action.callId) return state;

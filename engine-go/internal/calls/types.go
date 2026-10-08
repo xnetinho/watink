@@ -76,6 +76,12 @@ type Handle interface {
 
 	SetMedia(MediaHooks)
 	FeedPCM(pcm []float32)
+	// SendVideo envia uma access unit H.264 (Annex-B) da câmera do operador; duration é o tempo que o
+	// quadro representa (0 = o padrão de 15 fps). Nunca bloqueia.
+	SendVideo(accessUnit []byte, duration time.Duration)
+	// SetCamera liga ou desliga a câmera do operador: avisa o contato e passa a aceitar ou descartar
+	// quadros. orientation vai de 0 a 3 (quartos de volta horários).
+	SetCamera(ctx context.Context, on bool, orientation int) error
 	RelayRTTMs() (int, bool)
 	RelayConnected() bool
 }
@@ -90,6 +96,9 @@ type MediaHooks struct {
 	OnPeerVideo func(accessUnit []byte, keyframe bool)
 	// OnPeerVideoFrame é como OnPeerVideo, com a rotação (0..3) anunciada pelo aparelho do contato.
 	OnPeerVideoFrame func(accessUnit []byte, keyframe bool, rotation int)
+	// OnKeyframeRequested avisa que o contato pediu um quadro-chave do vídeo do operador: o codificador
+	// da câmera precisa gerar um IDR agora. Roda na goroutine do relay: nunca pode bloquear.
+	OnKeyframeRequested func()
 }
 
 // NewHandleFunc cria o gerenciador de uma chamada sobre o socket da sessão.

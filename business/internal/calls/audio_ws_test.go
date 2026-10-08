@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,6 +22,8 @@ type fakeEngine struct {
 	srv      *httptest.Server
 	mu       sync.Mutex
 	gotAudio [][]byte
+	gotVideo [][]byte
+	gotText  [][]byte
 	conn     chan *websocket.Conn
 	hits     int
 }
@@ -36,17 +39,23 @@ func newFakeEngine(t *testing.T) *fakeEngine {
 		if err != nil {
 			return
 		}
+		c.SetReadLimit(maxVideoMessage)
 		f.conn <- c
 		for {
 			typ, data, err := c.Read(r.Context())
 			if err != nil {
 				return
 			}
-			if typ == websocket.MessageBinary {
-				f.mu.Lock()
+			f.mu.Lock()
+			switch {
+			case typ == websocket.MessageText:
+				f.gotText = append(f.gotText, data)
+			case IsVideoFrame(data):
+				f.gotVideo = append(f.gotVideo, data)
+			case typ == websocket.MessageBinary:
 				f.gotAudio = append(f.gotAudio, data)
-				f.mu.Unlock()
 			}
+			f.mu.Unlock()
 		}
 	}))
 	t.Cleanup(f.srv.Close)
@@ -54,6 +63,18 @@ func newFakeEngine(t *testing.T) *fakeEngine {
 }
 
 func (f *fakeEngine) base() string { return "ws" + strings.TrimPrefix(f.srv.URL, "http") }
+
+func (f *fakeEngine) video() [][]byte {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([][]byte(nil), f.gotVideo...)
+}
+
+func (f *fakeEngine) text() [][]byte {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([][]byte(nil), f.gotText...)
+}
 
 func (f *fakeEngine) audio() [][]byte {
 	f.mu.Lock()
@@ -332,8 +353,8 @@ func TestServeAudio_VideoNeverReachesTheAudioRecorder(t *testing.T) {
 	assert.Zero(t, r.log(t, "VID-2").RecordingDurationSec, "o vídeo não pode virar áudio gravado")
 }
 
-// O vídeo e o PCM não se misturam: PCM do operador continua indo ao engine, e um quadro de vídeo vindo do
-// NAVEGADOR (fase 2, ainda não suportada) é descartado em vez de ser entregue como se fosse áudio.
+// O vídeo e o PCM não se misturam: o PCM do operador continua indo ao engine como áudio, e o quadro de
+// vídeo da câmera vai pela fila própria (nunca é entregue como se fosse áudio).
 func TestServeAudio_VideoFromBrowserIsNotForwardedAsAudio(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "VID-3")
@@ -347,5 +368,104 @@ func TestServeAudio_VideoFromBrowserIsNotForwardedAsAudio(t *testing.T) {
 	pcm := make([]byte, FrameBytes)
 	require.NoError(t, browser.Write(ctx, websocket.MessageBinary, pcm))
 	assert.Eventually(t, func() bool { return len(eng.audio()) == 1 }, 2*time.Second, 10*time.Millisecond)
-	assert.Len(t, eng.audio(), 1, "só o PCM chegou ao engine; o vídeo do navegador não vira áudio")
+	assert.Len(t, eng.audio(), 1, "só o PCM chegou como áudio; o vídeo do navegador não vira áudio")
+	assert.Eventually(t, func() bool { return len(eng.video()) == 1 }, 2*time.Second, 10*time.Millisecond,
+		"o quadro de vídeo da câmera chega ao engine")
+}
+
+// A câmera do operador chega ao engine íntegra, mesmo um quadro-chave bem maior que o PCM.
+func TestServeAudio_CameraFrameReachesEngineIntact(t *testing.T) {
+	r := newRig(t)
+	uid := answeredCall(t, r, "CAM-1")
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "CAM-1")
+	require.NoError(t, err)
+	defer func() { _ = browser.CloseNow() }()
+	<-eng.conn
+
+	big := videoMsg(true, bytes.Repeat([]byte{0xAB}, 200*1024))
+	require.NoError(t, browser.Write(ctx, websocket.MessageBinary, big))
+	assert.Eventually(t, func() bool { v := eng.video(); return len(v) == 1 && bytes.Equal(v[0], big) }, 3*time.Second, 10*time.Millisecond,
+		"um quadro-chave de 200 KB passa sem corte nem alteração")
+}
+
+// O vídeo pode ter rajada, mas a fila é limitada e descarta o mais antigo; o produtor nunca trava.
+func TestBridge_VideoQueueIsBoundedAndSeparateFromAudio(t *testing.T) {
+	a := NewAudio()
+	b, err := a.Open("CAM-2")
+	require.NoError(t, err)
+	for i := 0; i < 1000; i++ {
+		b.FromBrowser(videoMsg(false, []byte{byte(i)}))
+	}
+	b.FromBrowser(frame(7))
+	assert.LessOrEqual(t, b.VideoToEngine.Len(), videoQueue, "a fila de vídeo nunca passa do limite")
+	assert.Equal(t, 1, b.ToEngine.Len(), "o PCM não é empurrado para fora pelo vídeo")
+	last := videoMsg(false, []byte{byte(999 % 256)})
+	var got []byte
+	for b.VideoToEngine.Len() > 0 {
+		got = <-b.VideoToEngine.Out()
+	}
+	assert.Equal(t, last, got, "sobra o quadro mais recente")
+}
+
+func TestBridge_CameraVideoNeverEntersTheRecorderTap(t *testing.T) {
+	a := NewAudio()
+	b, err := a.Open("CAM-3")
+	require.NoError(t, err)
+	var taps int32
+	b.Tap = func(bool, []byte) { atomic.AddInt32(&taps, 1) }
+	b.FromBrowser(videoMsg(true, bytes.Repeat([]byte{1}, 300)))
+	assert.Zero(t, atomic.LoadInt32(&taps), "o gravador é só de áudio")
+	b.FromBrowser(frame(1))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&taps))
+}
+
+// O comando de câmera é validado e reserializado: texto de outro tipo nunca chega ao engine, e a orientação
+// é saneada.
+func TestServeAudio_CameraCommandIsSanitizedAndForwarded(t *testing.T) {
+	r := newRig(t)
+	uid := answeredCall(t, r, "CAM-4")
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "CAM-4")
+	require.NoError(t, err)
+	defer func() { _ = browser.CloseNow() }()
+	<-eng.conn
+
+	for _, raw := range []string{
+		`{"type":"camera","on":true,"orientation":2}`,
+		`{"type":"camera","on":true,"orientation":99}`,
+		`{"type":"camera","on":false}`,
+		`{"type":"quality","callId":"x","lossPct":99}`,
+		`{"type":"camera","on":true,"extra":"nao deve passar"}`,
+		`isto nao e json`,
+	} {
+		require.NoError(t, browser.Write(ctx, websocket.MessageText, []byte(raw)))
+	}
+	assert.Eventually(t, func() bool { return len(eng.text()) == 4 }, 2*time.Second, 10*time.Millisecond)
+	time.Sleep(150 * time.Millisecond)
+	got := eng.text()
+	require.Len(t, got, 4, "só os 4 comandos de câmera válidos passam; telemetria falsa e lixo são descartados")
+	assert.JSONEq(t, `{"type":"camera","on":true,"orientation":2}`, string(got[0]))
+	assert.JSONEq(t, `{"type":"camera","on":true,"orientation":0}`, string(got[1]), "orientação fora de 0..3 vira 0")
+	assert.JSONEq(t, `{"type":"camera","on":false,"orientation":0}`, string(got[2]))
+	assert.JSONEq(t, `{"type":"camera","on":true,"orientation":0}`, string(got[3]), "campos extras não atravessam")
+}
+
+// O pedido de quadro-chave do engine vai ao navegador e NÃO é tratado como telemetria.
+func TestServeAudio_KeyframeRequestGoesToBrowser(t *testing.T) {
+	r := newRig(t)
+	uid := answeredCall(t, r, "CAM-5")
+	eng := newFakeEngine(t)
+	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "CAM-5")
+	require.NoError(t, err)
+	defer func() { _ = browser.CloseNow() }()
+	engConn := <-eng.conn
+
+	require.NoError(t, engConn.Write(ctx, websocket.MessageText, []byte(`{"type":"keyframe"}`)))
+	rctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	typ, msg, err := browser.Read(rctx)
+	require.NoError(t, err)
+	assert.Equal(t, websocket.MessageText, typ)
+	assert.JSONEq(t, `{"type":"keyframe"}`, string(msg))
 }

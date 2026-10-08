@@ -58,12 +58,31 @@ type AudioPipe struct {
 	ac        *activeCall
 	out       chan []byte
 	video     chan VideoFrame
+	control   chan Control
 	tel       chan Telemetry
 	done      chan struct{}
 	once      sync.Once
 	dropped   atomic.Int64
 	tickEvery time.Duration
+
+	camMu     sync.Mutex
+	camLastTs uint32
+	camHasTs  bool
 }
+
+// Control é uma mensagem de controle engine → navegador, em texto JSON no mesmo WebSocket.
+type Control struct {
+	Type string `json:"type"`
+}
+
+const (
+	// controlKeyframe pede ao codificador da câmera um quadro-chave agora (o contato perdeu o vídeo).
+	controlKeyframe = "keyframe"
+	// minVideoStep e maxVideoStep limitam a duração deduzida entre dois quadros da câmera: fora disso o
+	// relógio do navegador não é confiável e vale o padrão.
+	minVideoStep = 10 * time.Millisecond
+	maxVideoStep = 500 * time.Millisecond
+)
 
 // VideoFrame é uma access unit H.264 (Annex-B) completa do contato.
 type VideoFrame struct {
@@ -76,6 +95,7 @@ type VideoFrame struct {
 func (p *AudioPipe) Out() <-chan []byte          { return p.out }
 func (p *AudioPipe) Video() <-chan VideoFrame    { return p.video }
 func (p *AudioPipe) Telemetry() <-chan Telemetry { return p.tel }
+func (p *AudioPipe) Control() <-chan Control     { return p.control }
 func (p *AudioPipe) Done() <-chan struct{}       { return p.done }
 func (p *AudioPipe) QueueLen() int               { return len(p.out) }
 
@@ -144,6 +164,50 @@ func (p *AudioPipe) WritePCM(b []byte) {
 	p.ac.h.FeedPCM(pcm)
 }
 
+// WriteVideo recebe um quadro de vídeo do operador (formato do videowire) e o entrega ao contato. A
+// duração do quadro sai da diferença dos timestamps de 90 kHz que o navegador manda; fora da faixa
+// plausível vale o padrão. Lixo e quadro vazio são ignorados.
+func (p *AudioPipe) WriteVideo(msg []byte) {
+	ts, _, _, au, err := DecodeVideoFrame(msg)
+	if err != nil || len(au) == 0 {
+		return
+	}
+	p.camMu.Lock()
+	var d time.Duration
+	if p.camHasTs {
+		d = time.Duration(int64(ts-p.camLastTs)) * time.Second / 90000
+		if d < minVideoStep || d > maxVideoStep {
+			d = 0
+		}
+	}
+	p.camLastTs, p.camHasTs = ts, true
+	p.camMu.Unlock()
+	p.ac.h.SendVideo(au, d)
+}
+
+// SetCamera liga ou desliga a câmera do operador na chamada.
+func (p *AudioPipe) SetCamera(ctx context.Context, on bool, orientation int) error {
+	if !on {
+		p.camMu.Lock()
+		p.camHasTs = false
+		p.camMu.Unlock()
+	}
+	return p.ac.h.SetCamera(ctx, on, orientation)
+}
+
+// pushControl entrega um controle ao navegador sem nunca bloquear; um controle igual pendente basta.
+func (p *AudioPipe) pushControl(c Control) {
+	select {
+	case <-p.done:
+		return
+	default:
+	}
+	select {
+	case p.control <- c:
+	default:
+	}
+}
+
 // Close libera o canal (idempotente). Se a chamada continua atendida, arma a
 // rede de segurança de audioGrace.
 func (p *AudioPipe) Close() {
@@ -190,7 +254,7 @@ func (s *Session) OpenAudio(callID string) (*AudioPipe, error) {
 		s.mu.Unlock()
 		return nil, ErrAudioInUse
 	}
-	p := &AudioPipe{s: s, ac: ac, out: make(chan []byte, outQueueFrames), video: make(chan VideoFrame, videoQueueFrames), tel: make(chan Telemetry, 4),
+	p := &AudioPipe{s: s, ac: ac, out: make(chan []byte, outQueueFrames), video: make(chan VideoFrame, videoQueueFrames), control: make(chan Control, 1), tel: make(chan Telemetry, 4),
 		done: make(chan struct{}), tickEvery: s.tickEvery}
 	ac.pipe = p
 	if ac.grace != nil {
@@ -246,6 +310,14 @@ func (s *Session) wireMedia(ac *activeCall) {
 			s.mu.Unlock()
 			if p != nil {
 				p.pushPeerVideo(au, keyframe, rotation)
+			}
+		},
+		OnKeyframeRequested: func() {
+			s.mu.Lock()
+			p := ac.pipe
+			s.mu.Unlock()
+			if p != nil {
+				p.pushControl(Control{Type: controlKeyframe})
 			}
 		},
 	})

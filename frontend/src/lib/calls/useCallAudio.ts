@@ -42,6 +42,8 @@ export interface UseCallAudioOptions {
   onTelemetry?: (t: CallTelemetry) => void;
   /** Recebe cada quadro de vídeo do contato. Sem isto o vídeo é ignorado (chamada de voz). */
   onVideoFrame?: (frame: VideoFrame) => void;
+  /** O contato perdeu o vídeo do operador (PLI): a câmera precisa gerar um quadro-chave agora. */
+  onKeyframeRequested?: () => void;
 }
 
 function getToken(): string {
@@ -71,11 +73,13 @@ export function classifyMicError(err: unknown): AudioFailure {
  * 16 kHz mono Int16 com quadros de 20 ms, e reproduz o que chega com um jitter
  * buffer de ~60 ms. Encerra tudo ao desmontar ou quando `enabled` volta a falso.
  */
-export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, onVideoFrame }: UseCallAudioOptions) {
+export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, onVideoFrame, onKeyframeRequested }: UseCallAudioOptions) {
   const mutedRef = useRef(muted);
   const failureRef = useRef(onFailure);
   const telemetryRef = useRef(onTelemetry);
   const videoRef = useRef(onVideoFrame);
+  const keyframeRef = useRef(onKeyframeRequested);
+  const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [levels, setLevels] = useState({ tx: 0, rx: 0 });
 
@@ -86,7 +90,8 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
     failureRef.current = onFailure;
     telemetryRef.current = onTelemetry;
     videoRef.current = onVideoFrame;
-  }, [onFailure, onTelemetry, onVideoFrame]);
+    keyframeRef.current = onKeyframeRequested;
+  }, [onFailure, onTelemetry, onVideoFrame, onKeyframeRequested]);
 
   const cleanupRef = useRef<(() => void) | null>(null);
   const teardown = useCallback(() => {
@@ -116,6 +121,7 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
       disposed = true;
       if (playTimer) clearInterval(playTimer);
       try { ws?.close(); } catch { /* já fechado */ }
+      wsRef.current = null;
       stream?.getTracks().forEach((t) => t.stop());
       void ctx?.close().catch(() => undefined);
     };
@@ -148,6 +154,7 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
       playback.connect(ctx.destination);
 
       ws = new WebSocket(audioUrl(callId));
+      wsRef.current = ws;
       ws.binaryType = "arraybuffer";
       ws.onopen = () => { if (!disposed) setConnected(true); };
       ws.onerror = () => { if (!disposed) failureRef.current("socket"); };
@@ -155,8 +162,9 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
       ws.onmessage = (ev) => {
         if (typeof ev.data === "string") {
           try {
-            const t = JSON.parse(ev.data) as CallTelemetry;
+            const t = JSON.parse(ev.data) as CallTelemetry | { type: "keyframe" };
             if (t.type === "quality") telemetryRef.current?.(t);
+            else if (t.type === "keyframe") keyframeRef.current?.();
           } catch { /* mensagem de controle inválida: ignora */ }
           return;
         }
@@ -197,5 +205,21 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
     };
   }, [enabled, callId]);
 
-  return { connected, levels, stop: teardown };
+  /** Manda uma mensagem binária (quadro da câmera) se o canal estiver aberto. Devolve se foi enviada. */
+  const sendBinary = useCallback((msg: Uint8Array): boolean => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    ws.send(msg);
+    return true;
+  }, []);
+
+  /** Liga/desliga a câmera no contato (o business valida e repassa ao engine). */
+  const sendCameraCommand = useCallback((on: boolean, orientation = 0): boolean => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    ws.send(JSON.stringify({ type: "camera", on, orientation }));
+    return true;
+  }, []);
+
+  return { connected, levels, stop: teardown, sendBinary, sendCameraCommand };
 }
