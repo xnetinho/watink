@@ -66,7 +66,7 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
 | Plugins — Grupos e Comunidades (slug `groups`, `pro`): API interna de grupos no engine-go, providers `enginego`/`izapia`, plugin embarcado, frontend, catálogo do Hub (plano em `docs/agents/plugin-grupos-comunidades.md`) | ✅ Concluída (código+testes; issues #515-#524) — catálogo do Hub em `status: draft`, preço pendente de definição pelo dono antes de publicar |
 | Plugins — Campanhas de Grupo (4ª aba do plugin Grupos, ADR 0030): modelos+scheduler+drain+captura de resposta no backend, editor+relatório completos no frontend | ✅ Concluída (código+testes contra Postgres real; issues #590-#602) — texto do aviso de risco na UI marcado como pendente de aval do dono do produto (issue #600); tipos Botões/Lista ainda não validados manualmente em grupo real |
 | Atividades (Ordens de Serviço) — entidade core (ADR 0029): model+migration+RBAC+backfill, SLA real (não placeholder como o Helpdesk), CRUD+execução+evidência S3+KPIs, listagem redesenhada + tela de gestão (lista/criar/editar/atribuir/checklist) | ✅ Fase 0 concluída (código+testes contra Postgres real+verificação manual no browser; issues #527-#537) — ✅ Fase 1 concluída (`sdk.WatinkCoreActivities` + Helpdesk cria Activity ao abrir Protocol; issues #538/#541/#542/#543) — Fase 2 (Pipeline/Deal) não iniciada |
-| Chamadas de voz do WhatsApp no navegador (ADR 0031): porte do WaCalls no engine, fila dedicada, WebSocket PCM, gravação MP3 no business, telemetria, permissões `calls:*` | 🔧 Implementado e testado (engine `-race`, business contra Postgres/RabbitMQ reais, frontend vitest) — **pendente validação com dois números reais** (roteiro em `openspec/changes/add-whatsapp-voice-calls/tasks.md` 10.4) e deploy `:test` |
+| Chamadas de voz do WhatsApp no navegador (ADR 0031): porte do WaCalls no engine, fila dedicada, WebSocket PCM, gravação MP3 no business, telemetria, permissões `calls:*` | ✅ Implementado, testado (engine `-race`, business contra Postgres/RabbitMQ reais, frontend vitest) e **validado ao vivo em chamadas reais com dois números (out/2026)**; 8 defeitos achados e corrigidos. **Sem prova ao vivo**: atender em outro aparelho, grupo, proxy, permissões com usuários reais, falhas de rede/UDP, carga; perguntas abertas (qualidade do áudio, ban após N chamadas, NAT estrito) |
 
 ## Services & Ports
 
@@ -519,7 +519,7 @@ era uma condição de exibição de menu, nunca uma dependência arquitetural re
 - Não tratar `media_timeout` como erro do usuário (costuma ser saída UDP bloqueada); não criar uma segunda sessão do WhatsApp para chamadas.
 - Não confundir com `Campaign`/`CampaignRecipient` do FlowBuilder.
 
-**Pendente:** nunca houve chamada real — sinalização WhatsApp, relay UDP, codec MLow ponta a ponta, `c2r_rtt` e a qualidade do áudio dependem do teste manual com dois números.
+**Validado ao vivo (out/2026):** sinalização WhatsApp, relay UDP e codec MLow ponta a ponta funcionam em chamadas reais com dois números. **Ainda sem prova:** `c2r_rtt` em carga, nota de qualidade do áudio, comportamento em NAT estrito e o efeito das chamadas no risco de ban (ADR 0016); o roteiro de 47 passos não foi preenchido item a item.
 
 **Referência:** [`docs/agents/calls.md`](docs/agents/calls.md) · ADR 0031 · [`docs/user/calls/`](docs/user/calls/)
 

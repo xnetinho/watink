@@ -4,8 +4,11 @@
 a sinalização de chamada, o relay UDP, o codec MLow ponta a ponta, a qualidade percebida do áudio e
 a medição de RTT. Tudo o mais já tem teste automatizado (ver "O que já está provado" no fim).
 
-> **Estado em 2026-10-06:** nenhuma chamada real foi feita. Este roteiro **não foi executado**.
-> Cada passo abaixo tem um campo **Resultado** em branco para você preencher.
+> **Estado em 2026-10-08:** a voz foi **validada ao vivo pelo dono do produto** em chamadas reais com dois números
+> (receber, atender, áudio nos dois sentidos, encerrar, chamada de saída, gravação, mensagem no ticket), na stack
+> dele, com as imagens `:test`. **Este roteiro de 47 passos NÃO foi preenchido item a item**, então os campos
+> **Resultado** abaixo continuam em branco de propósito: não se registra resultado que ninguém anotou. O que ficou
+> **sem prova ao vivo** está listado em "Cobertura ao vivo" no fim. Use o roteiro para regressão.
 
 ## 0. Pré-requisitos
 
@@ -140,6 +143,28 @@ filas dedicadas (um comando de chamada não espera o consumidor de mensagens), �
 dois sentidos, descarte com consumidor lento, gravação MP3 decodificada por decodificador
 independente, aceite de responsabilidade, auditoria, exclusão, timeouts (3 s, 45 s, 25 s, 10 s),
 telemetria só ao operador, fluxo completo com RabbitMQ real (`e2e_flow_test.go`).
+
+## Cobertura ao vivo (fechamento, 2026-10-08)
+
+**Validado ao vivo** (relato do dono + logs do engine nas chamadas reais; as falhas achadas foram corrigidas e
+revalidadas): receber e atender (1.1 a 1.3), encerrar (1.7), mensagem da chamada no ticket (1.8), chamada de saída
+(4.1 e 4.2), o timer de 45 s e o estado `answeredAt` (4.5), gravação só quando atendida (8.5), armazenamento S3/B2.
+Também chamada de **vídeo recebida**, com a rotação da imagem em Android e iPhone (change `add-whatsapp-video-calls`).
+
+**Achados corrigidos por causa do teste real** (todos com teste de regressão): o toque de 45 s derrubava a chamada
+de saída atendida; `reject` do contato aparecia como `user_ended`; o cronômetro congelava ou nunca iniciava; a
+mensagem da chamada mostrava relógio e ack; mensagem de erro genérica ("a conexão de áudio caiu") escondia quem
+encerrou; a gravação automática disparava no clique, não no atendimento.
+
+**SEM prova ao vivo** (só teste automatizado): recusar, perder e desistir (2.x, com exceção do `declined` corrigido);
+atender em outro aparelho (3.1); chamada em grupo e conexão desconectada (4.6, 4.7); proxy fail-closed (5.x);
+permissões com usuários reais (6.x); falhas de rede, microfone, UDP bloqueado, reinício do engine e modo avião
+(7.x); os três modos de gravação item a item, auditoria, exclusão e S3 fora do ar (8.1 a 8.4, 8.6 a 8.9); carga,
+duas conexões, isolamento entre empresas e LID (9.x).
+
+**Perguntas da seção 10 NÃO respondidas:** nota de qualidade do áudio, valor real de RTT, confiabilidade do
+`ping`→`pong`, **aviso ou restrição do WhatsApp ao número após N chamadas** (risco de ban, ADR 0016) e
+comportamento em NAT estrito. Continuam abertas e devem ser registradas quando alguém as observar.
 
 ## Critério final
 

@@ -79,8 +79,12 @@ Navegador ──WSS PCM──► business ──WS interno──► engine ─�
 
 ## Validação
 Coberto por testes: engine (`-race`, RabbitMQ real), business (Postgres real, WebSockets reais), frontend
-(`vitest`). **Não coberto sem WhatsApp real**: sinalização, relay UDP, codec MLow ponta a ponta, qualidade
-do áudio, `c2r_rtt`/`ping`→`pong`. Roteiro em `openspec/changes/add-whatsapp-voice-calls/tasks.md` (10.4).
+(`vitest`). **Validado ao vivo (out/2026)** em chamadas reais com dois números: receber, atender, áudio nos dois
+sentidos, encerrar, chamada de saída, gravação e mensagem no ticket; o teste real achou e corrigiu 8 defeitos.
+**Sem prova ao vivo**: atender em outro aparelho, grupo, proxy fail-closed, permissões com usuários reais, falhas
+(rede, microfone, UDP bloqueado, reinício do engine), carga e isolamento entre empresas; e as perguntas abertas
+(nota de qualidade do áudio, `c2r_rtt` em carga, `ping`→`pong`, NAT estrito, efeito no risco de ban). O roteiro de
+47 passos continua em `openspec/changes/archive/2026-10-08-add-whatsapp-voice-calls/manual-test-script.md`, para regressão.
 
 ## Referências
 ADR 0031 · [`docs/user/calls/`](../user/calls/) · ADRs 0016, 0019, 0021, 0022 ·

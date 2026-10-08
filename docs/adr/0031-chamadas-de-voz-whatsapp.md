@@ -1,6 +1,6 @@
 # ADR 0031 — Chamadas de voz do WhatsApp no navegador
 
-**Status:** Accepted (implementado; **validação com dois números reais pendente**, ver §Pendências)
+**Status:** Accepted (implementado e **validado ao vivo em out/2026**; resta uma lista curta de itens sem prova, ver §Pendências)
 **Data:** 2026-10-06
 
 ## Contexto
@@ -83,9 +83,15 @@ Registradas porque o teste mostrou que o plano estava errado ou incompleto:
 
 ## Pendências (honestas)
 
-- **Nunca foi feita uma chamada real.** Tudo está coberto por testes com fakes, RabbitMQ e Postgres
-  reais, e WebSockets reais, mas a sinalização WhatsApp, o relay UDP, o codec MLow ponta a ponta e a
-  qualidade do áudio **dependem do teste manual com dois números** (tarefa 10.4 do plano).
+- **Validado ao vivo (2026-10-06 a 2026-10-08):** o dono do produto fez chamadas reais com dois números, em recebimento e
+  em saída, com áudio nos dois sentidos, gravação e mensagem no ticket. A sinalização WhatsApp, o relay UDP e o codec
+  MLow ponta a ponta **funcionam**. O teste real achou 8 defeitos que os testes automatizados não pegavam (toque de
+  45 s derrubando chamada atendida, `reject` lido como `user_ended`, cronômetro, gatilho da gravação, entre outros),
+  todos corrigidos com teste de regressão.
+- **Ainda sem prova ao vivo:** o roteiro de 47 passos não foi preenchido item a item. Sem prova: atender em outro
+  aparelho, chamada em grupo, proxy fail-closed e permissões com usuários reais, falhas (rede, microfone, UDP
+  bloqueado, reinício do engine), carga e isolamento entre empresas. **Perguntas abertas:** nota de qualidade do
+  áudio, `c2r_rtt` em carga, confiabilidade do `ping`→`pong`, comportamento em NAT estrito.
 - O risco de ban é o do ADR 0016 (fingerprint estrutural do `whatsmeow`); chamadas somam sinal novo
   que não foi medido.
 - Rotear a mídia por proxy (SOCKS5 UDP ASSOCIATE) é trabalho futuro e exige validação com um proxy real.
