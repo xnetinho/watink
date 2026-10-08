@@ -295,8 +295,12 @@ func TestServeAudio_VideoFromEngineReachesBrowserUnchanged(t *testing.T) {
 	assert.Equal(t, msg, got, "o quadro de vídeo chega inteiro ao navegador")
 }
 
-// O gravador de ÁUDIO nunca pode receber bytes de vídeo: o Tap é só de PCM. 60 quadros de vídeo de 6 KB
-// somam ~360 KB; lidos como PCM seriam ~11 s de "áudio" (32 KB/s), e a duração gravada sairia > 0.
+// O gravador de ÁUDIO nunca pode receber bytes de vídeo: o Tap é só de PCM. 24 quadros de vídeo de 16 KB
+// somam ~384 KB; lidos como PCM seriam ~12 s de "áudio" (32 KB/s), e a duração gravada sairia > 0.
+//
+// O número de quadros fica ABAIXO de bridgeQueue de propósito: a fila do bridge descarta o mais antigo quando
+// enche, e o teste lê TODOS os quadros no navegador. Com 60 (> bridgeQueue=50) ele dependia de o consumidor
+// esvaziar a fila a tempo e falhava ~4% das vezes (18% com 100). Ver TestPipe_OverCapacityKeepsOnlyTheMostRecent.
 func TestServeAudio_VideoNeverReachesTheAudioRecorder(t *testing.T) {
 	r := newRig(t)
 	r.withRecording(t, newMemStore())
@@ -310,9 +314,10 @@ func TestServeAudio_VideoNeverReachesTheAudioRecorder(t *testing.T) {
 	engConn := <-eng.conn
 	require.True(t, r.svc.Recording().Active(r.tenant, "VID-2"))
 
-	const n = 60
+	const n = bridgeQueue / 2
+	require.Less(t, n, bridgeQueue, "n tem de caber na fila, senão o descarte (de propósito) faz a leitura travar")
 	for i := 0; i < n; i++ {
-		require.NoError(t, engConn.Write(ctx, websocket.MessageBinary, videoMsg(i == 0, bytes.Repeat([]byte{0x41}, 6000))))
+		require.NoError(t, engConn.Write(ctx, websocket.MessageBinary, videoMsg(i == 0, bytes.Repeat([]byte{0x41}, 16000))))
 	}
 	rctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
