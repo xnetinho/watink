@@ -55,7 +55,7 @@ func TestAllowedExtraRooms_ChatOfInvisibleTicketIsDropped(t *testing.T) {
 func TestAllowedExtraRooms_EmptyAndDuplicates(t *testing.T) {
 	assert.Empty(t, allowedExtraRooms("", uuid.New(), 1, func(int) bool { return true }))
 	got := allowedExtraRooms("helpdesk-kanban,helpdesk-kanban,chat:1,chat:1", uuid.New(), 1, func(int) bool { return true })
-	assert.Equal(t, []string{"helpdesk-kanban", "chat:1"}, got, "sem duplicatas")
+	assert.Equal(t, []string{"helpdesk-kanban", "chat:1"}, got, "sem repetições")
 }
 
 func TestAllowedExtraRooms_StatusMustBeKnown(t *testing.T) {

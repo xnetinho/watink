@@ -65,7 +65,7 @@ func (s *Service) AuthorizeAudio(tenantID uuid.UUID, userID int, callID string) 
 // lados cair ou a chamada acabar. Quando o navegador cai, arma o watchdog: sem
 // voltar em DropGrace a chamada é encerrada (o engine desconecta o contato).
 func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, browser *websocket.Conn, tenantID uuid.UUID, userID int, callID string) {
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	br, err := a.Open(callID)
 	if err != nil {
 		_ = browser.Close(websocket.StatusPolicyViolation, "canal de áudio já aberto")
@@ -90,7 +90,7 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 		_ = s.End(ctx, tenantID, userID, callID)
 		return
 	}
-	defer eng.CloseNow()
+	defer func() { _ = eng.CloseNow() }()
 	eng.SetReadLimit(1 << 20)
 	browser.SetReadLimit(64 * 1024)
 

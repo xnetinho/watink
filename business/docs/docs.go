@@ -6263,7 +6263,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devolve as configurações do tenant. Valores secretos (chaves de API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais recebem um placeholder.",
+                "description": "Devolve as configurações do tenant. Valores sigilosos (chaves de API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais recebem um placeholder.",
                 "produces": [
                     "application/json"
                 ],
@@ -8294,6 +8294,10 @@ const docTemplate = `{
                 "lossMax": {
                     "type": "number"
                 },
+                "media": {
+                    "description": "Media: audio | video. Ausente (registros anteriores ao vídeo) vale audio.",
+                    "type": "string"
+                },
                 "mosEstimated": {
                     "type": "number"
                 },
@@ -8603,7 +8607,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "quotedMsg": {
-                    "description": "QuotedMsg é a mensagem citada, preenchida só na listagem (GET /messages/:ticketId) para o\nbalão mostrar \"respondendo a…\". Não é coluna.",
+                    "description": "QuotedMsg é a mensagem citada, preenchida só na listagem (GET /messages/:ticketId) para o\nbalão mostrar \"em resposta a…\". Não é coluna.",
                     "allOf": [
                         {
                             "$ref": "#/definitions/models.Message"

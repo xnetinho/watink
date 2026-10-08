@@ -65,7 +65,7 @@ func NewTestDB(t *testing.T) *gorm.DB {
 	}
 
 	// Índices únicos de Contacts: em produção vêm de database.addCustomIndexes
-	// (que o AutoMigrate não executa). Sem eles os testes rodariam sem a regra
+	// (que o AutoMigrate não executa). Sem essas regras os testes rodariam sem a regra
 	// real de unicidade por tenant.
 	for _, ddl := range []string{
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number)`,

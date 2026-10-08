@@ -110,11 +110,9 @@ func TestCallPermissions_SeedDoesNotAttachToExistingCargos(t *testing.T) {
 	t.Cleanup(func() { DB = prev })
 
 	tenant := uuid.New()
-	var cargos []models.Cargo
 	for _, name := range []string{"Atendente", "Gestor", "Gerente Geral", "Administrador", "Customizado"} {
 		c := models.Cargo{Name: name, TenantID: tenant}
 		require.NoError(t, db.Create(&c).Error)
-		cargos = append(cargos, c)
 	}
 	Seed()
 

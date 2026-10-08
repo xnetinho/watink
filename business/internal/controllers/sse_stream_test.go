@@ -47,7 +47,7 @@ func openStream(t *testing.T, db *gorm.DB, hub *services.SSEHub, tenantID uuid.U
 	}
 	resp, err := http.Get(url)
 	require.NoError(t, err)
-	t.Cleanup(func() { resp.Body.Close() })
+	t.Cleanup(func() { _ = resp.Body.Close() })
 
 	c := &sseClient{resp: resp, events: make(chan string, 32)}
 	go func() {
@@ -151,7 +151,7 @@ func TestStream_ChatRoomRespectsTicketVisibility(t *testing.T) {
 	bc.EmitToRoom("/", "chat:"+strconv.Itoa(foreign.ID), "foreign", nil)
 
 	assert.True(t, c.gotWithin("mine", time.Second), "ticket atribuído ao usuário é assinável")
-	assert.False(t, c.gotWithin("theirs", 300*time.Millisecond), "ticket sem relação com o usuário não é assinável")
+	assert.False(t, c.gotWithin("theirs", 300*time.Millisecond), "ticket sem vínculo com o usuário não é assinável")
 	assert.False(t, c.gotWithin("foreign", 300*time.Millisecond), "ticket de outra empresa nunca é assinável")
 }
 

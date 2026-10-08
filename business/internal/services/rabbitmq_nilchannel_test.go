@@ -45,7 +45,7 @@ func TestConnectWithRetry_BrokerAppearsLater(t *testing.T) {
 		t.Fatal(err)
 	}
 	addr := probe.Addr().String()
-	probe.Close()
+	_ = probe.Close()
 
 	svc := NewRabbitMQProvider("amqp://guest:guest@" + addr + "/")
 	started := make(chan struct{}, 4)
@@ -63,7 +63,7 @@ func TestConnectWithRetry_BrokerAppearsLater(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 	go func() {
 		for {
 			c, err := ln.Accept()
@@ -73,13 +73,13 @@ func TestConnectWithRetry_BrokerAppearsLater(t *testing.T) {
 			go func() {
 				up, err := net.Dial("tcp", real)
 				if err != nil {
-					c.Close()
+					_ = c.Close()
 					return
 				}
-				go io.Copy(up, c)
-				io.Copy(c, up)
-				c.Close()
-				up.Close()
+				go func() { _, _ = io.Copy(up, c) }()
+				_, _ = io.Copy(c, up)
+				_ = c.Close()
+				_ = up.Close()
 			}()
 		}
 	}()

@@ -181,7 +181,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			quotedBody = quotedPreviewText(q)
 			if !q.FromMe {
 				quotedParticipant = q.Participant
-				// 1:1: o autor da citada é o próprio contato, no endereçamento do chat. O Participant gravado
+				// 1:1: quem escreveu a citada é o próprio contato, no endereçamento do chat. O Participant gravado
 				// pode ser o número (PN) enquanto o chat é por LID, e o celular não casa os dois.
 				if quotedParticipant == "" || !contact.IsGroup {
 					quotedParticipant = to

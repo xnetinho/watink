@@ -59,7 +59,7 @@ func finish(t *testing.T, r *Recorder) ([]byte, float64) {
 	t.Helper()
 	f, dur, err := r.Finish()
 	require.NoError(t, err)
-	defer func() { name := f.Name(); f.Close(); os.Remove(name) }()
+	defer func() { name := f.Name(); _ = f.Close(); _ = os.Remove(name) }()
 	data, err := io.ReadAll(f)
 	require.NoError(t, err)
 	return data, dur.Seconds()
@@ -237,7 +237,7 @@ func TestRecorder_ClosedRefusesAndDiscardRemovesFile(t *testing.T) {
 	f, _, err := r.Finish()
 	require.NoError(t, err)
 	name := f.Name()
-	f.Close()
+	_ = f.Close()
 
 	_, _, err = r.Finish()
 	assert.Equal(t, ErrClosed, err, "não encerra duas vezes")

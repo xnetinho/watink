@@ -100,7 +100,7 @@ func TestServeAudio_BytesArriveIntactBothWays(t *testing.T) {
 
 	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-1")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
 
 	up := make([]byte, FrameBytes)
@@ -128,7 +128,7 @@ func TestServeAudio_TelemetryGoesToHandlingOperatorOnly(t *testing.T) {
 	a := NewAudio()
 	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-2")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
 
 	tel, _ := json.Marshal(map[string]interface{}{"type": "quality", "callId": "AU-2", "rttMs": 40.0, "lossPct": 7.0, "jitterMs": 5.0})
@@ -164,12 +164,12 @@ func TestServeAudio_SecondBrowserIsRejected(t *testing.T) {
 	a := NewAudio()
 	first, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-5")
 	require.NoError(t, err)
-	defer first.CloseNow()
+	defer func() { _ = first.CloseNow() }()
 	<-eng.conn
 
 	second, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-5")
 	require.NoError(t, err)
-	defer second.CloseNow()
+	defer func() { _ = second.CloseNow() }()
 	rctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	_, _, err = second.Read(rctx)
@@ -185,7 +185,7 @@ func TestServeAudio_EngineUnavailableClosesAndEndsCall(t *testing.T) {
 	bad := NewEngineDialer("ws://127.0.0.1:1")
 	browser, _, err := browserEndpoint(t, r, a, bad, uid, "AU-6")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	rctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	_, _, err = browser.Read(rctx)
@@ -214,7 +214,7 @@ func TestServeAudio_BrowserDropEndsCallAfterGrace(t *testing.T) {
 	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-7")
 	require.NoError(t, err)
 	<-eng.conn
-	browser.CloseNow()
+	_ = browser.CloseNow()
 
 	assert.Eventually(t, func() bool { return len(r.pub.cmds("call.end")) == 1 }, 3*time.Second, 20*time.Millisecond,
 		"sem o canal além do prazo, o business manda o engine desligar")
@@ -233,7 +233,7 @@ func TestServeAudio_SlowBrowserNeverBlocksEngineAndQueueStaysBounded(t *testing.
 
 	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-8")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
 	var bridge *Bridge
 	require.Eventually(t, func() bool {
@@ -281,7 +281,7 @@ func TestServeAudio_VideoFromEngineReachesBrowserUnchanged(t *testing.T) {
 	eng := newFakeEngine(t)
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "VID-1")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
 
 	au := bytes.Repeat([]byte{0x65, 0xAB}, 1500) // 3000 B: bem maior que um quadro de PCM
@@ -310,7 +310,7 @@ func TestServeAudio_VideoNeverReachesTheAudioRecorder(t *testing.T) {
 	eng := newFakeEngine(t)
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "VID-2")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
 	require.True(t, r.svc.Recording().Active(r.tenant, "VID-2"))
 
@@ -340,7 +340,7 @@ func TestServeAudio_VideoFromBrowserIsNotForwardedAsAudio(t *testing.T) {
 	eng := newFakeEngine(t)
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "VID-3")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 
 	require.NoError(t, browser.Write(ctx, websocket.MessageBinary, videoMsg(true, bytes.Repeat([]byte{1}, 500))))

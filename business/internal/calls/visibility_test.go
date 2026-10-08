@@ -21,7 +21,7 @@ type world struct {
 	tenant uuid.UUID
 	other  uuid.UUID
 	waA    models.Whatsapp // conexão A (vai receber a chamada)
-	waB    models.Whatsapp // conexão B (sem relação)
+	waB    models.Whatsapp // conexão B (sem vínculo)
 	waX    models.Whatsapp // conexão de OUTRA empresa
 	users  map[string]models.User
 }

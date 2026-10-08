@@ -30,7 +30,7 @@ type Message struct {
 	UpdatedAt     time.Time `gorm:"column:updatedAt" json:"updatedAt"`
 
 	// QuotedMsg é a mensagem citada, preenchida só na listagem (GET /messages/:ticketId) para o
-	// balão mostrar "respondendo a…". Não é coluna.
+	// balão mostrar "em resposta a…". Não é coluna.
 	QuotedMsg *Message `gorm:"-" json:"quotedMsg,omitempty"`
 
 	// Relations

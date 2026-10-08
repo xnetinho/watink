@@ -345,7 +345,7 @@ func addCustomIndexes() error {
 	// Migração multi-tenant: Contacts.number/lid eram unique GLOBAL
 	// (uni_Contacts_number/uni_Contacts_lid), então dois tenants não podiam ter o
 	// mesmo contato e a duplicata virava erro 500. Passam a ser únicos por tenant.
-	// Contatos de grupo e individuais compartilham a coluna number, mas o par
+	// Contatos de grupo e de conversa 1:1 compartilham a coluna number, mas o par
 	// (tenant, number) continua identificando um contato só.
 	for _, ddl := range []string{
 		`ALTER TABLE "Contacts" DROP CONSTRAINT IF EXISTS "uni_Contacts_number"`,

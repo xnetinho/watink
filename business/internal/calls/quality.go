@@ -13,7 +13,7 @@ const (
 )
 
 // Limites de alerta (decisão de produto, ajustáveis aqui sem mexer no engine).
-// Acima de qualquer um deles o nível cai para o estágio correspondente.
+// Acima de qualquer um deles o nível cai para o estágio equivalente.
 const (
 	RttFairMs, RttPoorMs       = 200.0, 400.0
 	LossFairPct, LossPoorPct   = 2.0, 5.0

@@ -310,7 +310,7 @@ func TestGORMContactRepo_DeleteAll_CascadesEveryDependentTable(t *testing.T) {
 	require.NoError(t, db.Exec(`INSERT INTO "Activities"("tenantId",title,"protocolId","lastActivityAt","createdAt","updatedAt") VALUES (?,'os',?,now(),now(),now())`, tenantID, protocolID).Error)
 
 	n, err := repo.DeleteAll(ctx, tenantID)
-	require.NoError(t, err, "DeleteAll não pode violar chave estrangeira de tabela dependente")
+	require.NoError(t, err, "DeleteAll não pode violar chave estrangeira de tabela filha")
 	assert.EqualValues(t, 1, n)
 
 	for _, tbl := range []string{"Contacts", "Tickets", "Messages", "TicketLogs", "Deals", "Protocols", "Activities"} {

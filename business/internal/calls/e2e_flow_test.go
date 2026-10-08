@@ -52,7 +52,7 @@ func TestE2E_FullCallFlowOverRealRabbitMQ(t *testing.T) {
 	t.Setenv("AMQP_URL", url)
 	bus := services.NewRabbitMQProvider(url)
 	require.NoError(t, bus.Connect())
-	defer bus.Close()
+	defer func() { _ = bus.Close() }()
 	svc := NewService(r.db, repository.NewGORMContactRepo(r.db), repository.NewGORMTicketRepo(r.db),
 		repository.NewGORMQueueRepo(r.db), bus, r.bc, r.pres).WithRecording(NewRecording(store, t.TempDir()))
 	svc.now = time.Now
@@ -65,7 +65,7 @@ func TestE2E_FullCallFlowOverRealRabbitMQ(t *testing.T) {
 	// --- engine simulado: cliente AMQP real ---
 	conn, err := amqp.Dial(url)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	ch, err := conn.Channel()
 	require.NoError(t, err)
 	var cmdMu sync.Mutex
@@ -164,7 +164,7 @@ func TestE2E_FullCallFlowOverRealRabbitMQ(t *testing.T) {
 	defer cancel()
 	browser, _, err := websocket.Dial(dctx, "ws"+strings.TrimPrefix(browserSrv.URL, "http"), nil)
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	var engineConn *websocket.Conn
 	select {
 	case engineConn = <-engineConnCh:

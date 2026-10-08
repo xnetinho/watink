@@ -26,7 +26,7 @@ func statusForEnd(l *models.CallLog, reason string) string {
 
 // HandleEnded trata call.ended: fecha o registro com a duração real e o resumo
 // de qualidade, escreve a mensagem de sistema no ticket e avisa os navegadores.
-// Idempotente: só a primeira entrega fecha (UPDATE condicional em endedAt).
+// Idempotente: só a primeira entrega fecha (UPDATE com condição em endedAt).
 func (s *Service) HandleEnded(ctx context.Context, tenantID uuid.UUID, raw json.RawMessage) error {
 	var ev EndedEvent
 	if err := json.Unmarshal(raw, &ev); err != nil {

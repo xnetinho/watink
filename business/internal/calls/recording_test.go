@@ -244,7 +244,7 @@ func TestServeAudio_AutoModeStartsRecordingOnActive(t *testing.T) {
 
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-1")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 	time.Sleep(200 * time.Millisecond)
 	require.False(t, r.svc.Recording().Active(r.tenant, "AUTO-1"), "conectar o áudio sozinho não inicia a gravação")
@@ -270,7 +270,7 @@ func TestAutoRecording_Incoming_StartsOnActiveNotOnAccept(t *testing.T) {
 
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-ACT")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 	time.Sleep(300 * time.Millisecond)
 	assert.False(t, r.svc.Recording().Active(r.tenant, "IN-ACT"),
@@ -291,7 +291,7 @@ func TestAutoRecording_Incoming_MediaNeverConnectsLeavesNoRecording(t *testing.T
 	eng := newFakeEngine(t)
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-NOMEDIA")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 
 	raw, _ := json.Marshal(map[string]interface{}{"callId": "IN-NOMEDIA", "endReason": "media_timeout", "durationSecs": 0, "direction": "incoming"})
@@ -318,7 +318,7 @@ func TestAutoRecording_ActiveBeforeBrowserAudioStillRecords(t *testing.T) {
 	eng := newFakeEngine(t)
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-EARLY")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 	require.NoError(t, browser.Write(ctx, websocket.MessageBinary, make([]byte, 640)))
 	time.Sleep(200 * time.Millisecond)
@@ -338,7 +338,7 @@ func TestAutoRecording_ReconnectingAudioKeepsRecording(t *testing.T) {
 	eng := newFakeEngine(t)
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-RECON")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 	time.Sleep(200 * time.Millisecond)
 	assert.True(t, r.svc.Recording().Active(r.tenant, "IN-RECON"))
@@ -358,7 +358,7 @@ func TestServeAudio_AutoMode_OutgoingStillRingingDoesNotRecord(t *testing.T) {
 
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-RING")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 	time.Sleep(300 * time.Millisecond)
 
@@ -377,7 +377,7 @@ func TestServeAudio_AutoMode_OutgoingStartsRecordingWhenAnswered(t *testing.T) {
 
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-ANS")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 	require.False(t, r.svc.Recording().Active(r.tenant, "AUTO-ANS"))
 
@@ -398,7 +398,7 @@ func TestServeAudio_AutoMode_OutgoingNeverAnsweredLeavesNoRecording(t *testing.T
 	eng := newFakeEngine(t)
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-NONE")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 
 	raw, _ := json.Marshal(map[string]interface{}{"callId": "AUTO-NONE", "endReason": "declined", "durationSecs": 0, "direction": "outgoing"})
@@ -419,7 +419,7 @@ func TestServeAudio_OffModeConnectingAudioDoesNotRecord(t *testing.T) {
 	eng := newFakeEngine(t)
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-2")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 	time.Sleep(300 * time.Millisecond)
 	assert.False(t, r.svc.Recording().Active(r.tenant, "AUTO-2"), "modo off (padrão) nunca grava")
@@ -434,7 +434,7 @@ func TestServeAudio_AutoModeWithoutS3RecordsNothingAndCallContinues(t *testing.T
 	eng := newFakeEngine(t)
 	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-3")
 	require.NoError(t, err)
-	defer browser.CloseNow()
+	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
 	time.Sleep(300 * time.Millisecond)
 	assert.False(t, r.svc.Recording().Active(r.tenant, "AUTO-3"), "sem S3 não grava")

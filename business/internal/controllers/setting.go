@@ -23,7 +23,7 @@ func NewSettingController(settingRepo domain.SettingRepository, broadcast domain
 }
 
 // @Summary      Listar configurações
-// @Description  Devolve as configurações do tenant. Valores secretos (chaves de API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais recebem um placeholder.
+// @Description  Devolve as configurações do tenant. Valores sigilosos (chaves de API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais recebem um placeholder.
 // @Tags         settings
 // @Produce      json
 // @Success      200  {array}   map[string]interface{}

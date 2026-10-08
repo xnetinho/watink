@@ -63,7 +63,7 @@ func main() {
 	if err != nil {
 		log.Printf("Warning: OTel init failed: %v", err)
 	} else {
-		defer shutdown(context.Background())
+		defer func() { _ = shutdown(context.Background()) }()
 	}
 
 	log.Println("Watink Business starting...")
@@ -266,7 +266,7 @@ func main() {
 
 		f, err := publicFS.Open(strings.TrimPrefix(path, "/"))
 		if err == nil {
-			f.Close()
+			_ = f.Close()
 			if strings.HasPrefix(path, "/assets/") {
 				c.Header("Cache-Control", "public, max-age=31536000, immutable")
 			}

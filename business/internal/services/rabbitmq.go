@@ -48,7 +48,7 @@ func (s *RabbitMQService) Connect() error {
 
 	ch, err := conn.Channel()
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return fmt.Errorf("failed to open a channel: %v", err)
 	}
 
@@ -285,7 +285,7 @@ func (s *RabbitMQService) openConsumerChannel(exchange, queueName string, routin
 	}
 
 	if err := declareQueueWithDLQ(ch, queueName, exchange, routingKeys); err != nil {
-		ch.Close()
+		_ = ch.Close()
 		return nil, err
 	}
 
@@ -306,7 +306,7 @@ func (s *RabbitMQService) runConsumerLoop(ch *amqp.Channel, exchange, queueName 
 		msgs, err := ch.Consume(queueName, "", false, false, false, false, nil)
 		if err != nil {
 			log.Printf("[RabbitMQ] Consume failed for queue %q: %v", queueName, err)
-			ch.Close()
+			_ = ch.Close()
 		} else {
 			closeNotify := ch.NotifyClose(make(chan *amqp.Error, 1))
 
@@ -351,7 +351,7 @@ func (s *RabbitMQService) Close() error {
 	s.mu.Unlock()
 
 	if ch != nil {
-		ch.Close()
+		_ = ch.Close()
 	}
 	if conn != nil {
 		return conn.Close()

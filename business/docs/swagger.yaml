@@ -420,6 +420,10 @@ definitions:
         type: number
       lossMax:
         type: number
+      media:
+        description: 'Media: audio | video. Ausente (registros anteriores ao vídeo)
+          vale audio.'
+        type: string
       mosEstimated:
         type: number
       peerJid:
@@ -663,7 +667,7 @@ definitions:
         - $ref: '#/definitions/models.Message'
         description: |-
           QuotedMsg é a mensagem citada, preenchida só na listagem (GET /messages/:ticketId) para o
-          balão mostrar "respondendo a…". Não é coluna.
+          balão mostrar "em resposta a…". Não é coluna.
       quotedMsgId:
         type: string
       reactions:
@@ -5091,7 +5095,7 @@ paths:
       - setores
   /settings:
     get:
-      description: Devolve as configurações do tenant. Valores secretos (chaves de
+      description: Devolve as configurações do tenant. Valores sigilosos (chaves de
         API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais
         recebem um placeholder.
       produces:

@@ -110,7 +110,7 @@ func TestAudioStream_OwnerWithoutEngineGetsClosedCleanly(t *testing.T) {
 
 	c, _, err := a.dial("A2", audioToken(t, owner, a.w.tenant), nil)
 	require.NoError(t, err, "autorizado: o handshake passa")
-	defer c.CloseNow()
+	defer func() { _ = c.CloseNow() }()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	_, _, err = c.Read(ctx)
@@ -124,7 +124,7 @@ func TestAudioStream_PlaceOnlyOperatorMayOpen(t *testing.T) {
 	a.answered(t, "A3", caller)
 	c, _, err := a.dial("A3", audioToken(t, caller, a.w.tenant), nil)
 	require.NoError(t, err, "quem liga (só calls:place) também abre o áudio")
-	c.CloseNow()
+	_ = c.CloseNow()
 }
 
 func TestAudioOrigins_FromEnv(t *testing.T) {
@@ -149,5 +149,5 @@ func TestAudioStream_CrossOriginIsRejectedUnlessAllowed(t *testing.T) {
 	t.Setenv("CALLS_AUDIO_ORIGINS", "https://app.exemplo.com")
 	c, _, err := a.dial("A4", tok, http.Header{"Origin": []string{"https://app.exemplo.com"}})
 	require.NoError(t, err, "origem permitida por configuração passa")
-	c.CloseNow()
+	_ = c.CloseNow()
 }

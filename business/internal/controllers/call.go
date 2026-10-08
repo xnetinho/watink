@@ -99,7 +99,7 @@ func (cc *CallController) Place(c *gin.Context) {
 		return
 	}
 	if ticket.IsGroup || ticket.IsCommunity || ticket.IsSubGroup || ticket.Contact.IsGroup {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "chamadas só estão disponíveis em conversas individuais", "code": "NOT_INDIVIDUAL"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "chamadas só estão disponíveis em conversas com um contato (não em grupos)", "code": "NOT_INDIVIDUAL"})
 		return
 	}
 	var wa models.Whatsapp

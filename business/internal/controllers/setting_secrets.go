@@ -28,7 +28,7 @@ func isSecretSettingKey(key string) bool {
 	return false
 }
 
-// maskSecretSettings devolve uma cópia da lista com os valores secretos
+// maskSecretSettings devolve uma cópia da lista com os valores sigilosos
 // substituídos por um placeholder (e só quando há valor: setting vazia continua
 // vazia, para a UI distinguir "não configurado" de "configurado").
 func maskSecretSettings(in []models.Setting) []models.Setting {

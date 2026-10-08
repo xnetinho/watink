@@ -36,7 +36,7 @@ func (s *Service) userInCall(tenantID uuid.UUID, userID int) (bool, error) {
 	return n > 0, err
 }
 
-// Accept atribui a chamada ao operador. A atribuição é um UPDATE condicional com
+// Accept atribui a chamada ao operador. A atribuição é um UPDATE com condição, com
 // checagem de RowsAffected: com dois atendimentos ao mesmo tempo, só o primeiro
 // vence e o segundo recebe ErrAlreadyAnswered. Só então o engine é mandado
 // atender.
