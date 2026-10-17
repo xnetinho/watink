@@ -48,7 +48,7 @@
       keyframe, reconstrói o decoder em erro; detecção de suporte e mensagem em navegador sem WebCodecs
 - [x] 1.5 Frontend: painel de videochamada (vídeo do contato, controles, indicador de qualidade já existente)
 - [x] 1.6 Toque indica videochamada; atender sem suporte de vídeo atende só com voz e avisa
-- [x] 1.7 **Teste real com dois números: o contato liga por vídeo, o operador atende e vê a imagem**
+- [x] 1.7 **Teste real com dois números: o contato liga por vídeo, o operador atende e vê a imagem** (revalidado em homologação, out/2026)
 
 ## 2. Enviar a câmera
 
@@ -65,9 +65,12 @@
 - [ ] 2.3 `device_orientation` anunciado pelo estado 1 quando o navegador girar. **Adiado:** o comando de câmera já leva a
       orientação (hoje sempre 0, a do `VideoEncoder`); detectar a rotação do aparelho/janela e reanunciar exige o estado 1
       de novo e só faz sentido depois de ver o que o contato mostra
-- [ ] 2.4 **Teste real: o contato vê a câmera do operador** (a parte que ninguém validou; capturar com o diag). **NÃO feito:
-      nenhum resultado ao vivo foi observado.** O que existe é: tudo decifra, remonta e responde a PLI contra um contato
-      simulado que usa as mesmas chaves
+- [ ] 2.4 **Teste real: o contato vê a câmera do operador** (capturar com o diag). Tentativa ao vivo em 17/out/2026:
+      **não validou o envio**. O operador não viu o botão de câmera nem prompt de permissão. Diagnóstico: no evento real o
+      `<video>` fica aninhado em `offer/destination/to/video`; a detecção anterior só examinava filhos diretos, classificava a
+      chamada como voz e o painel escondia o botão. A busca da mídia agora percorre os wrappers e tem regressão com essa
+      árvore real; o stack da tentativa ainda não foi reconstruído/retestado após o fix. Portanto não há evidência ao vivo
+      de quadro enviado/recebido. O que existia antes: decifra, remonta e responde a PLI contra contato simulado.
 
 ## 3. Iniciar chamada de vídeo
 

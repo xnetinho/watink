@@ -56,6 +56,19 @@
   `add-channel-instagram`, `add-channel-olx`, `add-channel-tiktok`. **Aprovações externas devem começar já** (Instagram App
   Review + Business Verification; TikTok DSPR; OLX registro de aplicação), porque definem o prazo. | 📋 Planejada
 
+- [ ] **Epic 11**: Visualização de mídia de mensagem de visualização única, sob ação explícita do operador. Hoje o WhatsApp
+  entrega aos aparelhos vinculados só um marcador indisponível; o CRM registra o aviso, mas não recebe a mídia (ver
+  `engine-go/internal/whatsapp/events_unavailable.go`). Investigar primeiro o caminho assistido pelo celular principal:
+  antes de abrir a mídia, o operador responde/cita a mensagem nesse aparelho; se a mensagem sincronizada trouxer metadados
+  completos de mídia, o core poderá usar o download padrão do WhatsApp e exibir o arquivo no ticket. **Hipótese, não garantia**:
+  resposta automática pelo sistema, miniatura, identificador citado ou simples reconexão não provam que o conteúdo esteja
+  disponível. Só habilitar visualização se houver payload completo e download íntegro; nunca tentar recuperar por ID ou
+  miniatura isolados. Não abrir nem baixar automaticamente: a ação manual do operador no celular é o opt-in; no CRM, exibir
+  somente após ação explícita, respeitando as regras de retenção e acesso à mídia. Não configurar identidade Android/Business
+  na sessão vinculada nesta fase: isso exige novo pareamento, altera a identidade de plataforma e traz risco de compatibilidade
+  e de política sem resolver a incerteza do fluxo principal. Validar em aparelho e conta de teste, sem mídia real de clientes;
+  confirmar sincronização, campos disponíveis e download completo antes de desenhar API/UI. | 📋 Planejada — validar viabilidade
+
 ## Próximo Epic — Backend Go DI & Packages
 
 **Branch**: `refactor/backend-di-packages`

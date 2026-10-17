@@ -342,7 +342,10 @@ func TestUnsupportedTypes_GroupIsIgnored(t *testing.T) {
 func TestVideoOffer_RingsAsVideoCall(t *testing.T) {
 	r := newRig(t, false, nil)
 	video := offer(callA, pn("5511999990001"))
-	video.Data = &waBinary.Node{Tag: "offer", Content: []waBinary.Node{{Tag: "video"}}}
+	video.Data = &waBinary.Node{Tag: "offer", Content: []waBinary.Node{{
+		Tag:     "destination",
+		Content: []waBinary.Node{{Tag: "to", Content: []waBinary.Node{{Tag: "video"}}}},
+	}}}
 	r.s.OnOffer(context.Background(), video)
 
 	if len(r.evs("call.missed")) != 0 {
@@ -350,10 +353,24 @@ func TestVideoOffer_RingsAsVideoCall(t *testing.T) {
 	}
 	in := r.evs("call.incoming")
 	if len(in) != 1 || in[0]["media"] != "video" {
-		t.Fatalf("call.incoming deveria anunciar media=video: %v", in)
+		t.Fatalf("call.incoming deveria anunciar media=video para a forma real destination/to/video: %v", in)
 	}
 	if r.nHandles() != 1 {
 		t.Fatalf("a videochamada precisa de gerenciador: %d", r.nHandles())
+	}
+}
+
+func TestVideoOffer_NestedInDestinationIsAnnouncedAsVideo(t *testing.T) {
+	r := newRig(t, false, nil)
+	video := offer(callA, pn("5511999990001"))
+	video.Data = &waBinary.Node{Tag: "offer", Content: []waBinary.Node{{
+		Tag:     "destination",
+		Content: []waBinary.Node{{Tag: "to", Content: []waBinary.Node{{Tag: "video"}}}},
+	}}}
+	r.s.OnOffer(context.Background(), video)
+	in := r.evs("call.incoming")
+	if len(in) != 1 || in[0]["media"] != "video" {
+		t.Fatalf("vídeo aninhado no payload real deve anunciar media=video: %v", in)
 	}
 }
 

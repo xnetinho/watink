@@ -215,7 +215,7 @@ func hasChild(n *waBinary.Node, tag string) bool {
 	}
 	kids, _ := n.Content.([]waBinary.Node)
 	for i := range kids {
-		if kids[i].Tag == tag {
+		if kids[i].Tag == tag || hasChild(&kids[i], tag) {
 			return true
 		}
 	}

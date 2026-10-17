@@ -139,6 +139,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           callId,
           whatsappId: data.whatsappId,
           direction: "incoming",
+          media: stateRef.current.ringing[callId]?.media,
           ticketId: data.ticketId ?? null,
           contact: stateRef.current.ringing[callId]?.contact,
         },

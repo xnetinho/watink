@@ -81,6 +81,19 @@ describe("IncomingCallModal", () => {
     expect(screen.getByTestId("incoming-call")).toHaveAttribute("data-media", "video");
   });
 
+  it("a chamada em vídeo mantém o rótulo na janela depois de Atender", () => {
+    const ringing = baseCall({ callId: "VC-NESTED", media: "video" });
+    const accept = vi.fn();
+    const { rerender } = render(withCalls(makeCtx({ ringing: [ringing], accept }), <IncomingCallModal />));
+
+    expect(screen.getByTestId("incoming-call")).toHaveAttribute("data-media", "video");
+    fireEvent.click(screen.getByTestId("accept-call"));
+    expect(accept).toHaveBeenCalledWith("VC-NESTED");
+
+    rerender(withCalls(makeCtx({ active: { ...ringing, phase: "connecting" } }), <IncomingCallModal />));
+    expect(screen.queryByTestId("incoming-call")).not.toBeInTheDocument();
+  });
+
   it("chamada de voz continua sem a palavra videochamada", () => {
     render(withCalls(makeCtx({ ringing: [baseCall({ media: "audio" })] }), <IncomingCallModal />));
     expect(screen.getByTestId("incoming-call")).not.toHaveTextContent("Videochamada");
