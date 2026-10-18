@@ -17,6 +17,9 @@ import { decodeVideoFrame, isVideoFrame, type VideoFrame } from "./videoFrame";
 
 export type AudioFailure = "mic_denied" | "mic_unavailable" | "socket" | "unsupported" | "audio_unavailable";
 
+/** Acima disto o WebSocket do navegador está atrasado: descartar o quadro é melhor que enfileirá-lo. */
+const MAX_SEND_BACKLOG = 1 << 20;
+
 export interface CallTelemetry {
   type: "quality";
   callId: string;
@@ -209,6 +212,9 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
   const sendBinary = useCallback((msg: Uint8Array): boolean => {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    // O WebSocket do navegador não tem contrapressão: com o acumulado alto, enfileirar só aumenta o atraso
+    // do vídeo. Quadro é descartável — o próximo já traz a imagem de agora.
+    if (ws.bufferedAmount > MAX_SEND_BACKLOG) return false;
     ws.send(msg);
     return true;
   }, []);

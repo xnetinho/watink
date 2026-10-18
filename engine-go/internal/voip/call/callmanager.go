@@ -49,6 +49,9 @@ type CallManager struct {
 	videoPackets uint32
 	videoOctets  uint32
 	videoLastTs  uint32
+	// videoTxStride é o avanço de 90 kHz usado no último quadro (15 fps = 6000); sai no log de diagnóstico.
+	videoTxStride uint32
+	videoStats    videoTxStats
 	srtcpSend    *media.SrtcpKeys
 	srtcpRecv    *media.SrtcpKeys
 	srtcpIndex   uint32

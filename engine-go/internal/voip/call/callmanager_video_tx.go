@@ -26,7 +26,33 @@ const (
 	videoSRInterval = 1500 * time.Millisecond
 	// videoDefaultStride é o avanço do relógio de 90 kHz quando não se sabe a duração do quadro (15 fps).
 	videoDefaultStride = 6000
+	// videoStatsEverySR: a cada quantos Sender Reports sai o resumo de diagnóstico (~4,5 s). O envio de
+	// vídeo é o único caminho sem referência validada; sem estes números não se sabe onde ele trava.
+	videoStatsEverySR = 3
 )
+
+// videoTxStats conta, por janela, o que chega do navegador e o que sai para o contato. É a única forma
+// de separar "o navegador não mandou" de "o engine descartou" de "o contato não deu conta".
+type videoTxStats struct {
+	auIn       uint32
+	auNotReady uint32
+	auGated    uint32
+	auSent     uint32
+	plis       uint32
+	sr         int
+}
+
+// logVideoStatsLocked emite o resumo e zera a janela. Precisa estar com m.mu travado.
+func (m *CallManager) logVideoStatsLocked() {
+	s := &m.videoStats
+	if s.auIn == 0 && s.auSent == 0 && s.plis == 0 {
+		return
+	}
+	m.log.Info("video tx",
+		"au_in", s.auIn, "au_sent", s.auSent, "au_gated", s.auGated, "au_not_ready", s.auNotReady,
+		"pli", s.plis, "need_idr", m.videoNeedIDR, "stride", m.videoTxStride)
+	s.auIn, s.auNotReady, s.auGated, s.auSent, s.plis = 0, 0, 0, 0, 0
+}
 
 var errNoVideoCall = errors.New("a chamada não tem vídeo")
 
@@ -52,6 +78,8 @@ func (m *CallManager) resetVideoTxLocked() {
 	m.videoTx, m.videoTxSsrc = nil, 0
 	m.videoTxOn, m.videoNeedIDR = false, false
 	m.videoPackets, m.videoOctets, m.videoLastTs = 0, 0, 0
+	m.videoTxStride = 0
+	m.videoStats = videoTxStats{}
 	m.srtcpSend, m.srtcpRecv, m.srtcpIndex = nil, nil, 0
 	m.rtcpInSeen, m.rtcpAuthFail = false, false
 }
@@ -73,12 +101,15 @@ func videoStride(d time.Duration) uint32 {
 func (m *CallManager) SendVideoFrame(au []byte, duration time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.videoStats.auIn++
 	if !m.videoTxOn || !m.isVideoCallLocked() || m.srtpSession == nil || m.srtcpSend == nil ||
 		m.videoSelfSsrc == 0 || !m.relay.HasConnection() {
+		m.videoStats.auNotReady++
 		return
 	}
 	idr := media.AUHasIDR(au)
 	if m.videoNeedIDR && !idr {
+		m.videoStats.auGated++
 		return
 	}
 	packed := media.PackAccessUnit(au)
@@ -88,7 +119,8 @@ func (m *CallManager) SendVideoFrame(au []byte, duration time.Duration) {
 	if m.videoTx == nil || m.videoTxSsrc != m.videoSelfSsrc {
 		m.videoTx, m.videoTxSsrc = media.NewVideoRtpStream(m.videoSelfSsrc, videoDefaultStride), m.videoSelfSsrc
 	}
-	m.videoTx.SetTimestampStride(videoStride(duration))
+	m.videoTxStride = videoStride(duration)
+	m.videoTx.SetTimestampStride(m.videoTxStride)
 	info := media.VideoFrameInfoDelta
 	if idr {
 		info = media.VideoFrameInfoIDR
@@ -111,6 +143,7 @@ func (m *CallManager) SendVideoFrame(au []byte, duration time.Duration) {
 	if sent == 0 {
 		return
 	}
+	m.videoStats.auSent++
 	if m.videoPackets == uint32(sent) {
 		m.log.Info("first video frame sent", "bytes", len(au), "idr", idr, "packets", sent, "ssrc", m.videoSelfSsrc)
 		m.startVideoRtcpLocked()
@@ -149,6 +182,10 @@ func (m *CallManager) sendVideoSenderReport(now time.Time) {
 	if m.srtcpSend == nil || m.videoPackets == 0 || m.videoSelfSsrc == 0 || !m.relay.HasConnection() {
 		m.mu.Unlock()
 		return
+	}
+	m.videoStats.sr++
+	if m.videoStats.sr%videoStatsEverySR == 0 {
+		m.logVideoStatsLocked()
 	}
 	stats := media.RtcpSenderStats{PacketsSent: m.videoPackets, OctetsSent: m.videoOctets, RtpTimestamp: m.videoLastTs}
 	plain := media.BuildSenderReportWithSdes(m.videoSelfSsrc, stats, uint64(now.UnixMilli()), &m.rtcpCname, true)
@@ -217,6 +254,7 @@ func (m *CallManager) onRtcp(data []byte) {
 	}
 	m.mu.Lock()
 	m.videoNeedIDR = true
+	m.videoStats.plis++
 	m.mu.Unlock()
 	m.log.Debug("peer requested a video keyframe", "video_ssrc", own)
 	if cb != nil {
