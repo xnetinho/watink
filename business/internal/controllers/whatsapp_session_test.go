@@ -6,12 +6,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/internal/testutil"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -140,6 +143,47 @@ func TestSessionController_RestartAllSessions_FetchError(t *testing.T) {
 	ctrl.RestartAllSessions(c)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// noopCommandPublisher/busyLockRedis são dublês mínimos só para exercitar o controller com um
+// WhatsAppSessionService REAL (não mockado), provando o status HTTP de ponta a ponta — um mock do
+// service esconderia justamente o bug deste caso (500 em vez de 409).
+type noopCommandPublisher struct{}
+
+func (noopCommandPublisher) PublishCommand(string, interface{}) error { return nil }
+
+type busyLockRedis struct{}
+
+func (busyLockRedis) SetLock(string, string, time.Duration) (bool, error) { return false, nil }
+func (busyLockRedis) DelLock(string) error                                { return nil }
+func (busyLockRedis) Subscribe(context.Context, string) *redis.PubSub     { return nil }
+func (busyLockRedis) Publish(context.Context, string, interface{}) error  { return nil }
+func (busyLockRedis) Ping(context.Context) error                          { return nil }
+func (busyLockRedis) Get(context.Context, string) (string, error)         { return "", nil }
+
+// TestSessionController_StartSession_LockBusy_Returns409NotInternalError é o teste de regressão do
+// bug real: clique duplo (ou outra aba) em "Iniciar sessão" batia no lock Redis ocupado e o
+// controller devolvia 500 "Internal server error" — porque o erro de lock não era um
+// *utils.FriendlyError, e RespondWithFriendlyOrInternalError caía no genérico. O caso é um
+// conflito esperado, não uma falha do servidor: a resposta certa é 409.
+func TestSessionController_StartSession_LockBusy_Returns409NotInternalError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	tenantID := uuid.New()
+	db := newSessionTestDB(t)
+
+	sess := &domain.ChannelSession{ID: 1, Name: "zap-teste", TenantID: tenantID, EngineType: "whatsmeow"}
+	repo := &mockChannelSessionRepo{session: sess}
+	broadcast := services.NewRedisBroadcast(busyLockRedis{}, nil)
+	wss := services.NewWhatsAppSessionService(db, noopCommandPublisher{}, busyLockRedis{}, broadcast)
+	ctrl := NewSessionController(repo, broadcast, wss)
+
+	c, w := setupSessionGinContext(tenantID, "POST", "/whatsappsession/1", db)
+	c.Params = gin.Params{{Key: "whatsappId", Value: "1"}}
+
+	ctrl.StartSession(c)
+
+	assert.Equal(t, http.StatusConflict, w.Code, "lock ocupado é conflito (409), não erro de servidor (500): body=%s", w.Body.String())
+	assert.NotContains(t, w.Body.String(), "Internal server error")
 }
 
 // TestChannelSessionToModel_PreservesWid prova o invariante: channelSessionToModel

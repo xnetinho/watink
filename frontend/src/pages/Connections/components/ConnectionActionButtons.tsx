@@ -1,5 +1,5 @@
 import React from "react";
-import { Edit, Trash2, RefreshCw, QrCode, MoreVertical } from "lucide-react";
+import { Edit, Trash2, RefreshCw, QrCode, MoreVertical, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +12,8 @@ import type { ConnectionSession } from "../connectionsTypes";
 
 interface ConnectionActionButtonsProps {
   whatsApp: ConnectionSession;
+  /** Um start já está em voo para esta conexão (lock de 10s no backend). */
+  pending?: boolean;
   onConnect: (id: number) => void;
   onDisconnect: (id: number) => void;
   onRequestQrCode: (id: number) => void;
@@ -22,6 +24,7 @@ interface ConnectionActionButtonsProps {
 
 export const ConnectionActionButtons: React.FC<ConnectionActionButtonsProps> = ({
   whatsApp,
+  pending = false,
   onConnect,
   onDisconnect,
   onRequestQrCode,
@@ -29,10 +32,12 @@ export const ConnectionActionButtons: React.FC<ConnectionActionButtonsProps> = (
   onDelete,
   onConfigure,
 }) => {
+  const disconnected = whatsApp.status === "DISCONNECTED" || whatsApp.status === "TIMEOUT";
   return (
     <div className="flex gap-2">
-      {(whatsApp.status === "DISCONNECTED" || whatsApp.status === "TIMEOUT") && (
-        <Button size="sm" variant="default" onClick={() => onConnect(whatsApp.id)}>
+      {disconnected && (
+        <Button size="sm" variant="default" disabled={pending} onClick={() => onConnect(whatsApp.id)}>
+          {pending ? <Loader2 size={14} className="mr-1 animate-spin" /> : null}
           Conectar
         </Button>
       )}
@@ -61,9 +66,13 @@ export const ConnectionActionButtons: React.FC<ConnectionActionButtonsProps> = (
           <DropdownMenuItem onClick={() => onConfigure(whatsApp.id)}>
             <QrCode className="mr-2 h-4 w-4" /> Configurar
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onRequestQrCode(whatsApp.id)}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Reiniciar Sessão
-          </DropdownMenuItem>
+          {/* Com a sessão já desconectada, "Conectar" (acima) cobre o mesmo caminho — mostrar os
+              dois é a redundância que levava a um segundo POST/PUT batendo no lock do backend. */}
+          {!disconnected && (
+            <DropdownMenuItem disabled={pending} onClick={() => onRequestQrCode(whatsApp.id)}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Reiniciar Sessão
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => onEdit(whatsApp)}>
             <Edit className="mr-2 h-4 w-4" /> Editar
           </DropdownMenuItem>
