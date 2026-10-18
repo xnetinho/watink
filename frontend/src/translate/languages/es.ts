@@ -31,6 +31,7 @@ const messages = {
           },
           hangUp: "Finalizar",
           videoOf: "Video del contacto",
+          videoPaused: "El contacto desactivó la cámara",
           videoUnsupported: "Para ver el video, use Chrome, Edge o Brave. La llamada continúa solo con audio.",
           cameraOn: "Encender cámara",
           cameraOff: "Apagar cámara",

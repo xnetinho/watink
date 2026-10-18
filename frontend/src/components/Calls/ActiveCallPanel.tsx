@@ -68,6 +68,15 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
     return () => videoSink.attach(null);
   }, [showVideo, videoSink]);
 
+  // Nada no canal avisa que o contato desligou a câmera: sem quadro novo, o canvas congela a última
+  // imagem e mente. A checagem é por tempo (o sink marca quando recebeu o último quadro).
+  const [receivingVideo, setReceivingVideo] = useState(() => videoSink.isReceivingVideo());
+  useEffect(() => {
+    if (!showVideo) return undefined;
+    const id = setInterval(() => setReceivingVideo(videoSink.isReceivingVideo()), 500);
+    return () => clearInterval(id);
+  }, [showVideo, videoSink]);
+
   // Depende só de a chamada estar ativa, NÃO do objeto `active`: a telemetria troca esse objeto a
   // cada ~1 s, e recriar o intervalo a cada troca cancelava o tick antes de disparar (relógio
   // congelado e depois pulando para o horário real).
@@ -91,6 +100,8 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
   const canCamera = isVideoCall && canSendVideo && (active.phase === "active" || active.phase === "connecting");
   const cameraFailure = active.cameraFailure ? t(CAMERA_FAILURE_KEY[active.cameraFailure] ?? "calls.active.cameraUnavailable") : null;
   const cameraUnsupported = isVideoCall && !canSendVideo;
+  // Os primeiros segundos não contam: o quadro-chave do contato ainda está a caminho.
+  const videoPaused = showVideo && active.phase === "active" && !receivingVideo && now - (active.connectedAt ?? now) > 4000;
 
   return (
     <div
@@ -116,12 +127,23 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
       </div>
 
       {showVideo && (
-        <canvas
-          ref={canvasRef}
-          className="max-h-80 w-full rounded-xl bg-black object-contain"
-          data-testid="call-video"
-          aria-label={t("calls.active.videoOf")}
-        />
+        <div className="relative">
+          <canvas
+            ref={canvasRef}
+            className={cn("max-h-80 w-full rounded-xl bg-black object-contain", videoPaused && "opacity-25")}
+            data-testid="call-video"
+            aria-label={t("calls.active.videoOf")}
+          />
+          {videoPaused && (
+            <p
+              className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-4 text-center text-xs font-medium text-white"
+              data-testid="video-paused"
+            >
+              <VideoOff className="h-5 w-5" />
+              {t("calls.active.videoPaused")}
+            </p>
+          )}
+        </div>
       )}
 
       {videoUnsupported && (
