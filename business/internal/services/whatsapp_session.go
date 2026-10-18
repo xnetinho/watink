@@ -21,7 +21,7 @@ var _ domain.WhatsAppEngineResolver = (*WhatsAppSessionService)(nil)
 // WhatsAppSessionService is the transport-agnostic session lifecycle
 // dispatcher: it owns the start lock, status/broadcast bookkeeping shared by
 // every engine, and resolves the concrete domain.WhatsAppEngine
-// (whatsmeow/engine-go, izapia, ...) by Whatsapp.EngineType.
+// (whatsmeow/engine-go is the only one registered today) by Whatsapp.EngineType.
 type WhatsAppSessionService struct {
 	db        *gorm.DB
 	publisher domain.CommandPublisher
@@ -32,8 +32,8 @@ type WhatsAppSessionService struct {
 
 // NewWhatsAppSessionService wires the dispatcher via constructor DI. The
 // whatsmeow/engine-go engine is always registered; extraEngines (optional)
-// lets callers add further engines (e.g. izapia) without breaking existing
-// 4-arg call sites/tests.
+// lets callers add further engines without breaking existing 4-arg call
+// sites/tests.
 func NewWhatsAppSessionService(db *gorm.DB, pub domain.CommandPublisher, redisSvc domain.RedisService, broadcast domain.Broadcaster, extraEngines ...map[string]domain.WhatsAppEngine) *WhatsAppSessionService {
 	engines := map[string]domain.WhatsAppEngine{
 		defaultEngineType: enginego.New(db, pub),

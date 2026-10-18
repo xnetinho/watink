@@ -63,7 +63,7 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
 | Plugins — Marketplace respeita instância gerida por Watink SaaS (ADR 0026; ADRs irmãos: Hub ADR 0005, watink-saas ADR 0008) | ✅ Concluída — `InstancePolicy`+rota, `marketplaceMode()` resolver, gates no `Activate` (ordem + 4 mensagens 402), reconciliação de desativação no downgrade ([alltomatos/watink#624](https://github.com/alltomatos/watink/pull/624), issues #618–#623) |
 | Control plane Watink SaaS — API interna `/internal/saas/*` + enforcement (Onda 2 do watink-saas, `docs/integration-core.md`) | ✅ Concluída — Trilha A completa: rotas internas (A.1–A.2), `TenantStatusGate` com bypass de logout (A.3), `PlanLimitService.CheckLimit` real para users/connections/queues (A.4), tela "Conta suspensa" + toast de limite de plano (A.5) — [alltomatos/watink#625](https://github.com/alltomatos/watink/pull/625) |
 | Frontend — Redesign corporativo: paleta, componentes compartilhados (DataTable/EmptyState/ErrorState/FormField/notify), telas de referência | ✅ Concluída (PRs #507-#510) — rollout das ~25 páginas restantes é trabalho incremental futuro, ver [`docs/frontend/design-system.md`](docs/frontend/design-system.md) |
-| Plugins — Grupos e Comunidades (slug `groups`, `pro`): API interna de grupos no engine-go, providers `enginego`/`izapia`, plugin embarcado, frontend, catálogo do Hub (plano em `docs/agents/plugin-grupos-comunidades.md`) | ✅ Concluída (código+testes; issues #515-#524) — catálogo do Hub em `status: draft`, preço pendente de definição pelo dono antes de publicar |
+| Plugins — Grupos e Comunidades (slug `groups`, `pro`): API interna de grupos no engine-go, provider `enginego`, plugin embarcado, frontend, catálogo do Hub (plano em `docs/agents/plugin-grupos-comunidades.md`) | ✅ Concluída (código+testes; issues #515-#524) — catálogo do Hub em `status: draft`, preço pendente de definição pelo dono antes de publicar. Provider alternativo izapia removido (SaaS externo descontinuado, 2026-10) |
 | Plugins — Campanhas de Grupo (4ª aba do plugin Grupos, ADR 0030): modelos+scheduler+drain+captura de resposta no backend, editor+relatório completos no frontend | ✅ Concluída (código+testes contra Postgres real; issues #590-#602) — texto do aviso de risco na UI marcado como pendente de aval do dono do produto (issue #600); tipos Botões/Lista ainda não validados manualmente em grupo real |
 | Atividades (Ordens de Serviço) — entidade core (ADR 0029): model+migration+RBAC+backfill, SLA real (não placeholder como o Helpdesk), CRUD+execução+evidência S3+KPIs, listagem redesenhada + tela de gestão (lista/criar/editar/atribuir/checklist) | ✅ Fase 0 concluída (código+testes contra Postgres real+verificação manual no browser; issues #527-#537) — ✅ Fase 1 concluída (`sdk.WatinkCoreActivities` + Helpdesk cria Activity ao abrir Protocol; issues #538/#541/#542/#543) — Fase 2 (Pipeline/Deal) não iniciada |
 | Chamadas de voz do WhatsApp no navegador (ADR 0031): porte do WaCalls no engine, fila dedicada, WebSocket PCM, gravação MP3 no business, telemetria, permissões `calls:*` | ✅ Implementado, testado (engine `-race`, business contra Postgres/RabbitMQ reais, frontend vitest) e **validado ao vivo em chamadas reais com dois números (out/2026)**; 8 defeitos achados e corrigidos. **Sem prova ao vivo**: atender em outro aparelho, grupo, proxy, permissões com usuários reais, falhas de rede/UDP, carga; perguntas abertas (qualidade do áudio, ban após N chamadas, NAT estrito) |
@@ -620,17 +620,19 @@ técnicas (BOM) e tabelas de preço extras via licença do Marketplace.
 ## Módulo: Grupos e Comunidades
 
 **Responsabilidade:** Plugin `pro` (slug `groups`) de gestão ativa de grupos/comunidades
-WhatsApp — CRUD de grupo, participantes, convite, configurações, comunidades — funcionando
-nos dois providers de conexão (`enginego` via API HTTP interna nova no engine-go, `izapia` via
-API HTTP já existente). Catálogo do Hub em `status: draft` — preço ainda não definido pelo
-dono, plugin não aparece no Marketplace até ser publicado.
+WhatsApp — CRUD de grupo, participantes, convite, configurações, comunidades — via `enginego`
+(API HTTP interna no engine-go). Catálogo do Hub em `status: draft` — preço ainda não definido
+pelo dono, plugin não aparece no Marketplace até ser publicado.
 
 **Arquitetura:** `domain.GroupEngine` (`business/internal/domain/group_engine.go`) é uma
 extensão opcional de `domain.WhatsAppEngine`, mesmo padrão de `RichMessageEngine` —
 type-assertion sobre o engine resolvido, nunca método novo na interface base.
-`enginego.Provider`/`izapia.Provider` implementam a interface contra transportes distintos
-(HTTP interno docker-only vs HTTP público da izapia), e o plugin (`internal/plugins/groups*.go`)
-resolve o provider da conexão e devolve 501 claro quando ele não suporta grupos.
+`enginego.Provider` implementa a interface; o plugin (`internal/plugins/groups*.go`) resolve o
+provider da conexão e devolve 501 claro quando ele não suporta grupos. A interface continua
+provider-neutra de propósito (não foi colapsada num acoplamento direto ao `enginego`) para
+acomodar um futuro segundo provider sem reabrir este desenho — o motor alternativo `izapia`
+(SaaS externo do mesmo time) que motivou esse desenho original foi **removido do código**
+(ver "Histórico de Decisões"); hoje `enginego` é o único provider registrado.
 
 **Invariants:**
 - Recurso RBAC `whatsappGroups` (ações `read`|`manage`|`admin`) — não `groups`, que colidiria
@@ -638,20 +640,15 @@ resolve o provider da conexão e devolve 501 claro quando ele não suporta grupo
 - Grupo/comunidade identificado pelo **JID completo** ponta a ponta — nunca um ID numérico
   próprio do Watink.
 - **Dois limitadores de taxa, não um**: o principal (`groups_throttle.go`, no plugin) cobre
-  **ambos** os providers; o do engine-go (`internal/groupsapi/throttle.go`) só vê tráfego
+  **qualquer** provider; o do engine-go (`internal/groupsapi/throttle.go`) só vê tráfego
   `enginego` — é defesa em profundidade, não o limitador de referência. Os dois são in-memory
   por processo — em deploy multi-nó o teto efetivo é `nós × limite` (dívida conhecida,
   documentada no código; o SDK de plugins não expõe Redis).
 - `PUT /groups/:id` é um único payload com todos os campos de configuração alterados — não uma
   rota por campo (desenho inicial revisado durante a implementação, ver
   `engine-go/docs/groups-api.md`).
-- A resposta real da izapia para grupo/comunidade **não** inclui `announce`/`locked`/
-  `memberAddMode`/`joinApprovalMode`/`pictureURL`, e o detalhe de comunidade não tem
-  `subject`/`owner`/`description` nem participantes com nome/admin — confirmado ao vivo contra
-  a API, documentado em `engine-go/docs/groups-api.md`. Não é bug de mapeamento.
 - `GET /communities` deriva de `ListGroups()` filtrado por `isCommunity` (não existe
-  `ListCommunities` na interface) — funciona em conexões `enginego`, fica sempre vazio em
-  `izapia` pelo motivo acima.
+  `ListCommunities` na interface).
 
 **Campanhas de grupo (4ª aba, ADR 0030, issues #589-#602):** postar uma mensagem programada em
 vários grupos de uma vez. Entidade própria (`GroupCampaign`/`GroupCampaignVariant`/`Target`/
@@ -683,8 +680,6 @@ vários grupos de uma vez. Entidade própria (`GroupCampaign`/`GroupCampaignVari
   `TagGroup` do core.
 - Não tratar `PluginInstallations.active` como prova de licença (mesma regra do resto do
   sistema de plugins).
-- Não assumir que os campos ausentes na resposta da izapia (ver invariants) são um bug a
-  corrigir sem antes checar se a própria API de origem os retorna.
 - Não confundir `GroupCampaign` com `Campaign`/`CampaignRecipient` do FlowBuilder — são
   entidades e ADRs distintos (0030 vs 0016), apesar do risco estrutural de ban ser o mesmo.
 - Não rotacionar a conexão de uma campanha de grupo entre múltiplos chips — decisão permanente

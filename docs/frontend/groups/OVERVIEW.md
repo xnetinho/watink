@@ -30,10 +30,8 @@ plugin ser implementado).
 - **Estados de erro dedicados** (`GroupsErrorState.tsx`): 402 (plugin bloqueado) → CTA para o
   Marketplace; 429 (throttle) → mensagem de proteção contra banimento, não erro de sistema; 501
   (provider sem suporte) → indica a conexão. Nenhum desses vira toast genérico.
-- **Gap conhecido**: `GET /communities` no backend deriva a lista filtrando `ListGroups()` por
-  `isCommunity` — em conexões `izapia` isso fica sempre vazio (a API da izapia não retorna esse
-  campo nos endpoints de grupo, ver `engine-go/docs/groups-api.md`). Funciona normalmente em
-  conexões `enginego`.
+- **Comunidades**: `GET /communities` no backend deriva a lista filtrando `ListGroups()` por
+  `isCommunity` (não existe uma operação separada no motor).
 
 Ver [`COMPONENTS.md`](COMPONENTS.md) para a estrutura de arquivos e responsabilidade de cada
 componente.

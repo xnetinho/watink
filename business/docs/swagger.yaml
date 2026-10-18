@@ -181,13 +181,6 @@ definitions:
     required:
     - clientSignature
     type: object
-  controllers.izapiaConfigResponse:
-    properties:
-      baseUrl:
-        type: string
-      hasApiKey:
-        type: boolean
-    type: object
   controllers.pauseRequest:
     properties:
       paused:
@@ -964,11 +957,6 @@ definitions:
         type: integer
       isDefault:
         type: boolean
-      izapiaSessionId:
-        description: |-
-          IzapiaSessionID is the session id assigned by the izapia API (distinct from
-          this row's own ID). Only set when EngineType == "izapia".
-        type: string
       keepAlive:
         type: boolean
       lastConnectedAt:
@@ -2606,8 +2594,7 @@ paths:
       - contacts
   /contacts/{contactId}/sync:
     post:
-      description: Busca a foto de perfil atualizada do contato. Para conexões izapia,
-        roda de forma síncrona e responde 200; para engine-go, publica a mensagem
+      description: Busca a foto de perfil atualizada do contato; publica a mensagem
         assíncrona via AMQP e responde 202.
       parameters:
       - description: ID do contato
@@ -2618,12 +2605,6 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
         "202":
           description: Accepted
           schema:
@@ -3400,36 +3381,6 @@ paths:
       summary: Atualizar produto
       tags:
       - inventory
-  /izapia-config:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controllers.izapiaConfigResponse'
-      security:
-      - BearerAuth: []
-      summary: Consultar credencial izapia do tenant
-      tags:
-      - izapia
-    put:
-      consumes:
-      - application/json
-      description: Só recebe a API key — a base URL é sempre api.izapia.com.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controllers.izapiaConfigResponse'
-      security:
-      - BearerAuth: []
-      summary: Salvar a API key izapia do tenant
-      tags:
-      - izapia
   /knowledge-bases:
     get:
       produces:
@@ -5737,29 +5688,6 @@ paths:
       summary: Atualizar usuário
       tags:
       - users
-  /webhooks/izapia/{sessionId}:
-    post:
-      consumes:
-      - application/json
-      description: Recebe eventos de mensagem/status da sessão izapia. Autenticado
-        por assinatura HMAC (X-izapia-Signature), não por JWT.
-      parameters:
-      - description: ID da conexão (Whatsapps.id)
-        in: path
-        name: sessionId
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Webhook izapia (inbound)
-      tags:
-      - izapia
   /whatsapp:
     get:
       produces:

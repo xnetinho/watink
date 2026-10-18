@@ -363,7 +363,7 @@ func (qac *QuickAnswerController) Send(c *gin.Context) {
 	}
 
 	if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
-		// Non-AMQP engines (e.g. izapia) are dispatched via domain.WhatsAppEngine.
+		// Non-AMQP engines are dispatched via domain.WhatsAppEngine.
 		// text/media go through SendText/SendMedia; rich types (interactive/
 		// list/poll/carousel/pix) go through RichMessageEngine when the engine
 		// implements it. An engine with neither fails loud instead of silently

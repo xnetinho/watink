@@ -76,7 +76,6 @@ func Migrate() {
 		&models.PollResult{},
 		&models.Proxy{},
 		&models.ProxyGroup{},
-		&models.IzapiaConfig{},
 		&models.ConnectionGroup{},
 		&models.PluginInstallation{},
 		&models.Protocol{},
@@ -118,6 +117,10 @@ func Migrate() {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
+	if err := dropIzapiaSchema(DB); err != nil {
+		log.Fatalf("Failed to drop retired izapia schema: %v", err)
+	}
+
 	if err := applyRLS(); err != nil {
 		log.Printf("Warning: failed to apply RLS policies: %v", err)
 	}
@@ -134,6 +137,28 @@ func Migrate() {
 
 	fmt.Println("Database migration completed")
 	Seed()
+}
+
+// dropIzapiaSchema normalizes any legacy engineType marker and removes the tables/columns that
+// belonged to the retired external izapia engine. Active izapia connections were confirmed absent
+// from production/homologation before this idempotent startup cleanup was approved.
+// AutoMigrate does not drop removed model fields, hence the explicit DDL.
+func dropIzapiaSchema(db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(`UPDATE "Whatsapps" SET "engineType" = 'whatsmeow' WHERE "engineType" = 'izapia'`).Error; err != nil {
+			return err
+		}
+		for _, ddl := range []string{
+			`DROP TABLE IF EXISTS "IzapiaConfigs"`,
+			`ALTER TABLE "Whatsapps" DROP COLUMN IF EXISTS "izapiaSessionId"`,
+			`ALTER TABLE "Whatsapps" DROP COLUMN IF EXISTS "izapiaWebhookSecretEnc"`,
+		} {
+			if err := tx.Exec(ddl).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // addClientAddressGeography adds the PostGIS spatial column backing

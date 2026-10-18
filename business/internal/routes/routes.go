@@ -48,7 +48,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	registerController := controllers.NewRegisterController(saasclient.NewFromEnv(), saasclient.NewCaptchaVerifierFromEnv())
 	userController := controllers.NewUserController(container.UserRepo, container.PlanLimitSvc)
 	queueController := controllers.NewQueueController()
-	contactController := controllers.NewContactController(container.ContactRepo, container.ChannelSessionRepo, rabbitMQ, container.Broadcast, container.IzapiaProvider)
+	contactController := controllers.NewContactController(container.ContactRepo, container.ChannelSessionRepo, rabbitMQ, container.Broadcast)
 	clientController := controllers.NewClientController()
 	inventoryService := services.NewInventoryService(db, container.Broadcast)
 	inventoryController := controllers.NewInventoryController(inventoryService)
@@ -60,7 +60,6 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	whatsappController := controllers.NewWhatsappController(container.ChannelSessionRepo, container.PlanLimitSvc, container.Broadcast, container.SessionService)
 	proxyController := controllers.NewProxyController()
 	proxyGroupController := controllers.NewProxyGroupController()
-	izapiaConfigController := controllers.NewIzapiaConfigController()
 	connectionGroupController := controllers.NewConnectionGroupController()
 	setorController := controllers.NewSetorController()
 	cargoController := controllers.NewCargoController()
@@ -264,10 +263,6 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.POST("/proxies/:id/isolate", auth.RequirePermission("connections", "update"), proxyController.Isolate)
 		protected.POST("/proxies/:id/activate", auth.RequirePermission("connections", "update"), proxyController.Activate)
 		protected.POST("/proxies/:id/test", auth.RequirePermission("connections", "update"), proxyController.Test)
-
-		// Credencial izapia do tenant — mesmo domínio de acesso das conexões.
-		protected.GET("/izapia-config", auth.RequirePermission("connections", "read"), izapiaConfigController.Get)
-		protected.PUT("/izapia-config", auth.RequirePermission("connections", "update"), izapiaConfigController.Save)
 
 		// Grupos de proxy (pool com rotação) e grupos de conexões — idem gate.
 		protected.GET("/proxy-groups", auth.RequirePermission("connections", "read"), proxyGroupController.List)

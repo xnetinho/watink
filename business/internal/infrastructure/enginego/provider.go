@@ -2,7 +2,7 @@
 // engine-go dumb executor over AMQP (routing key
 // wbot.<tenant>.<session>.<cmd>). It owns proxy resolution/composition
 // (anti-ban egress IP, ADR 0016/0021) — that concern is specific to the
-// whatsmeow engine; other engines (e.g. izapia) manage their own proxy.
+// whatsmeow engine; any future externally hosted engine manages its own proxy.
 package enginego
 
 import (

@@ -12,8 +12,7 @@ import (
 // decodeBase64Image decodes the base64-encoded image payload sent by the
 // business side for group photo updates — GroupSettingsPatch.PictureURL is
 // named after the READ-side field (a CDN URL, once whatsmeow uploads it),
-// but on WRITE it carries the raw image as base64 (same convention as the
-// izapia provider's client_groups.go SetGroupPhoto "image" field).
+// but on WRITE it carries the raw image as base64.
 func decodeBase64Image(encoded string) ([]byte, error) {
 	raw, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
@@ -97,8 +96,7 @@ type UpdateGroupSettingsPayload struct {
 
 // UpdateGroupSettings applies every non-nil field of payload, in a fixed
 // order. Stops at the first failure — the caller (HTTP handler) sees
-// exactly which field failed via the wrapped error, same contract as
-// izapia.Provider.UpdateGroupSettings on the business side.
+// exactly which field failed via the wrapped error.
 func (s *WhatsAppService) UpdateGroupSettings(sessionID int, tenantID, groupJID string, payload UpdateGroupSettingsPayload) error {
 	client, err := s.getConnectedClient(sessionID)
 	if err != nil {

@@ -19,9 +19,9 @@ import (
 )
 
 // ownIDEngine is a fake domain.WhatsAppEngine that assigns its OWN message
-// id, ignoring whatever the caller requested -- reproduces izapia's real
-// behavior (client.SendText/SendMedia return a server-generated message_id)
-// without depending on the actual izapia HTTP client.
+// id, ignoring whatever the caller requested -- reproduces a non-whatsmeow
+// engine's server-generated message_id behavior without depending on a
+// real HTTP client.
 type ownIDEngine struct {
 	nonGroupEngine
 	assignedID string
@@ -203,20 +203,20 @@ func TestSendOne_PublishFailureMarksMessageUndelivered(t *testing.T) {
 	assert.True(t, msg.IsDeleted, "mensagem não confirmada no publish deve ficar soft-deleted")
 }
 
-// TestSendOne_NonWhatsmeowEngineRenamesMessageToRealID reproduces the izapia
-// bug: the engine assigns its OWN message id (never the one we requested),
-// so sendOne must rename the just-persisted Message row (and
+// TestSendOne_NonWhatsmeowEngineRenamesMessageToRealID covers a non-whatsmeow
+// domain.WhatsAppEngine that assigns its OWN message id (never the one we
+// requested), so sendOne must rename the just-persisted Message row (and
 // GroupCampaignSend.MessageID) to that real id -- otherwise a later reply
 // citing the message can never be found by QuotedMsgID (issue #598's
 // correlation query matches on GroupCampaignSend.MessageID).
 func TestSendOne_NonWhatsmeowEngineRenamesMessageToRealID(t *testing.T) {
 	db := setupPluginTestDB(t)
 	w, c := campaignFixture(t, db, "CONNECTED")
-	require.NoError(t, db.Model(&w).Update("engineType", "izapia").Error)
+	require.NoError(t, db.Model(&w).Update("engineType", "custom-engine").Error)
 	run := runWithSnapshot(t, db, c, []variantSnapshotEntry{{ID: 1, Type: "text", Message: "oi"}})
 	send := sendFixtureWithVariant(t, db, w, c, run, "120363000000000014@g.us", 0)
 
-	realID := "izapia-real-id-xyz"
+	realID := "custom-engine-real-id-xyz"
 	pub := &sendFakePublisher{}
 	adapter := flow.NewWhatsAppAdapter(pub, newSendFakeRedis(), flow.WhatsAppAdapterDeps{
 		DB:      db,

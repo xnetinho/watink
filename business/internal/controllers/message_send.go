@@ -198,7 +198,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	}
 
 	if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
-		// Non-AMQP engines (e.g. izapia) are dispatched via domain.WhatsAppEngine
+		// Non-AMQP engines are dispatched via domain.WhatsAppEngine
 		// instead of the raw wbot.<tenant>.<session>.<cmd> command below.
 		if mc.engines == nil {
 			utils.RespondWithInternalError(c, fmt.Errorf("no engine resolver configured"), "SendMessage")
@@ -209,7 +209,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			utils.RespondWithInternalError(c, err, "SendMessage")
 			return
 		}
-		// (izapia: a API não expõe citação; a resposta sai como mensagem comum.)
+		// (a API não expõe citação; a resposta sai como mensagem comum.)
 		if mediaURL != "" {
 			_, err = engine.SendMedia(c.Request.Context(), whatsapp, to, messageID, mediaType, mediaURL, mimeType)
 		} else {

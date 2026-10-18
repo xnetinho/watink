@@ -8,10 +8,10 @@ O Watink nasceu como plataforma de atendimento no **WhatsApp** e o código assum
 **Telegram, Mercado Livre, OLX, Instagram e TikTok**, e cada um traria um acoplamento novo se o sistema continuasse
 WhatsApp-cêntrico.
 
-O precedente mais próximo, o **izapia** (segundo "engine" de WhatsApp), mostrou o custo de encaixar um segundo canal
-sem abstração: colunas próprias na tabela `Whatsapps`, um webhook que traduz o payload para o vocabulário de JID
-(`@g.us`), e um `if EngineType != "whatsmeow"` repetido em 5 pontos de envio. Funciona porque o izapia *continua sendo
-WhatsApp*. Um canal sem JID (Telegram `chat_id`, Instagram IGSID, ML `pack_id`) **não se encaixa nesse caminho**.
+O precedente histórico mais próximo foi a izapia (segundo "engine" de WhatsApp, removido em 2026-10), que mostrou o custo
+de encaixar um segundo canal sem abstração: colunas próprias na tabela `Whatsapps`, um webhook que traduz payload para o
+vocabulário de JID (`@g.us`), e `if EngineType != "whatsmeow"` repetidos em pontos de envio. Funcionou por continuar sendo
+WhatsApp. Um canal sem JID (Telegram `chat_id`, Instagram IGSID, ML `pack_id`) **não se encaixa nesse caminho**.
 
 Esta change planeja a **fundação comum**: uma interface de canal, uma identidade de contato por canal e uma UX de
 conexões que não presuma WhatsApp. As cinco integrações são changes próprias que dependem desta.

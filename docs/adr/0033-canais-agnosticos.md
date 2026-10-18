@@ -4,6 +4,9 @@
 `add-channel-*`)
 **Data:** 2026-10-08
 
+> **Nota histórica (2026-10-18):** o provider izapia citado como precedente neste ADR foi removido e o SaaS externo
+> descontinuado; as menções abaixo descrevem a experiência passada, não uma dependência ou integração ativa.
+
 ## Contexto
 
 O Watink é WhatsApp-cêntrico: 318 arquivos Go e 141 TS/TSX citam "whatsapp"; o contato é identificado por `number`/`lid`
