@@ -341,3 +341,4 @@ func TestRxSummary_ListsOnlyThePayloadTypesSeen(t *testing.T) {
 		t.Fatalf("sem pacotes o resumo é vazio: %q", got)
 	}
 }
+

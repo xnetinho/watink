@@ -16,6 +16,7 @@ import (
 )
 
 type CallManager struct {
+	peerEstimatedBitrate uint32
 	sock core.VoipSocket
 	log  *slog.Logger
 

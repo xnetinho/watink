@@ -139,3 +139,39 @@ func RtcpRequestsKeyframe(data []byte, localVideoSsrc uint32) bool {
 	}
 	return false
 }
+
+// ParseRembBitrate extrai o bitrate estimado em bps de um pacote RTCP PSFB contendo REMB (FCI "REMB").
+func ParseRembBitrate(data []byte) uint32 {
+	for off := 0; off+4 <= len(data); {
+		if (data[off]>>6)&0x03 != 2 {
+			return 0
+		}
+		n := (int(binary.BigEndian.Uint16(data[off+2:off+4])) + 1) * 4
+		if n < 8 || off+n > len(data) {
+			return 0
+		}
+		p := data[off : off+n]
+		if p[1] == rtcpPtPsfb && len(p) >= 20 {
+			if string(p[12:16]) == "REMB" {
+				numSsrc := int(p[16])
+				// Cada SSRC tem 4 bytes. O bloco REMB começa após numSsrc (1 byte) + 3 bytes de padding/cabeçalho ou diretamente no offset 17/20.
+				// Formato padrão libjingle/WebRTC REMB FCI:
+				// [4 bytes: "REMB"] [1 byte: num_ssrc] [3 bytes: exp(6) + mantissa(18)] [4 bytes * num_ssrc: SSRC entries]
+				if len(p) >= 20 {
+					b17 := uint32(p[17])
+					b18 := uint32(p[18])
+					b19 := uint32(p[19])
+					exp := b17 >> 2
+					mantissa := ((b17 & 0x03) << 16) | (b18 << 8) | b19
+					bitrate := mantissa << exp
+					if bitrate > 0 {
+						return bitrate
+					}
+				}
+				_ = numSsrc
+			}
+		}
+		off += n
+	}
+	return 0
+}
