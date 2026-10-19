@@ -272,6 +272,22 @@ func (m *CallManager) onRtcp(data []byte) {
 	if first {
 		m.log.Info("first authenticated peer SRTCP received", "ssrc", sender, "index", index)
 	}
+	if bitrate := media.ParseRembBitrate(plain); bitrate > 0 {
+		m.mu.Lock()
+		m.peerEstimatedBitrate = bitrate
+		m.mu.Unlock()
+		m.log.Debug("peer estimated bitrate (REMB)", "bitrate_bps", bitrate)
+	}
+	if bitrate := media.ParseRembBitrate(plain); bitrate > 0 {
+		m.mu.Lock()
+		m.peerEstimatedBitrate = bitrate
+		cb := m.OnEstimatedBitrateChanged
+		m.mu.Unlock()
+		m.log.Debug("peer estimated bitrate (REMB)", "bitrate_bps", bitrate)
+		if cb != nil {
+			cb(bitrate)
+		}
+	}
 	if own == 0 || !media.RtcpRequestsKeyframe(plain, own) {
 		return
 	}
@@ -312,4 +328,11 @@ func (m *CallManager) SetLocalVideo(ctx context.Context, on bool, orientation in
 	}
 	m.mu.Unlock()
 	return m.sock.SendNode(ctx, signaling.BuildVideoStateWithParams(params))
+}
+
+// PeerEstimatedBitrate devolve o último bitrate estimado pelo contato via REMB (0 se não recebido).
+func (m *CallManager) PeerEstimatedBitrate() uint32 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.peerEstimatedBitrate
 }

@@ -99,6 +99,7 @@ type MediaHooks struct {
 	// OnKeyframeRequested avisa que o contato pediu um quadro-chave do vídeo do operador: o codificador
 	// da câmera precisa gerar um IDR agora. Roda na goroutine do relay: nunca pode bloquear.
 	OnKeyframeRequested func()
+	OnEstimatedBitrateChanged func(uint32)
 }
 
 // NewHandleFunc cria o gerenciador de uma chamada sobre o socket da sessão.

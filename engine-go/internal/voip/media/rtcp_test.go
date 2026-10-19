@@ -68,3 +68,23 @@ func TestRtcpRequestsKeyframeFIRAndCompound(t *testing.T) {
 		t.Fatal("comprimento inválido não pode ser lido além do pacote")
 	}
 }
+
+func TestParseRembBitrate(t *testing.T) {
+	// FCI REMB: "REMB" (4 bytes), num_ssrc=1 (1 byte), b17=(exp 10 << 2 | mantissa high 0), b18=1 (mantissa mid), b19=68 (mantissa low -> mantissa 324 REMB test)
+	pkt := []byte{
+		0x8f, 206, 0, 5,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+		'R', 'E', 'M', 'B',
+		1,
+		(10 << 2),
+		1,
+		68,
+		0, 0, 0, 0,
+	}
+	// mantissa = (0 << 16) | (1 << 8) | 68 = 324. exp = 10 -> 324 * 1024 = 331776 bps
+	got := ParseRembBitrate(pkt)
+	if got != 331776 {
+		t.Fatalf("bitrate REMB = %d, esperado 331776", got)
+	}
+}

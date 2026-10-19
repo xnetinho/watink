@@ -16,6 +16,7 @@ import (
 )
 
 type CallManager struct {
+	peerEstimatedBitrate uint32
 	sock core.VoipSocket
 	log  *slog.Logger
 
@@ -95,6 +96,7 @@ type CallManager struct {
 	// OnVideoKeyframeRequested avisa que o CONTATO pediu um quadro-chave do nosso vídeo (PLI/FIR): o
 	// codificador da câmera precisa gerar um IDR agora. Roda na goroutine do relay: NÃO pode bloquear.
 	OnVideoKeyframeRequested func()
+	OnEstimatedBitrateChanged func(uint32)
 
 	// OnPeerRtp (alteração Watink) recebe sequência, timestamp e tamanho do payload
 	// de cada pacote RTP do contato já autenticado, para medir perda, jitter e taxa.
