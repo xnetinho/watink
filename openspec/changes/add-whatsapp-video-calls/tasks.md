@@ -60,17 +60,24 @@
       empurrar o PCM); comando de texto `camera` validado e reserializado no business; `{"type":"keyframe"}` volta ao
       navegador; teto de leitura de 512 KB nas duas pontas (um quadro-chave passa de 32 KB, o padrão do WebSocket)
 - [x] 2.2 Frontend: `CameraSender` (`getUserMedia` → `MediaStreamTrackProcessor` → `VideoEncoder` annexb/realtime, 640×480,
-      15 fps, 600 kbps, quadro-chave a cada 2 s e sob pedido, descarta quando o codificador atrasa); botão de câmera no
-      painel; permissão negada / câmera ausente / erro do codificador com mensagem própria; só Chromium, com o motivo na tela
+      15 fps, teto de 300 kbps — ver 2.4 —, quadro-chave a cada 2 s e sob pedido, descarta quando o codificador atrasa);
+      botão de câmera no painel; permissão negada / câmera ausente / erro do codificador com mensagem própria; só
+      Chromium, com o motivo na tela
 - [ ] 2.3 `device_orientation` anunciado pelo estado 1 quando o navegador girar. **Adiado:** o comando de câmera já leva a
       orientação (hoje sempre 0, a do `VideoEncoder`); detectar a rotação do aparelho/janela e reanunciar exige o estado 1
       de novo e só faz sentido depois de ver o que o contato mostra
-- [ ] 2.4 **Teste real: o contato vê a câmera do operador** (capturar com o diag). Tentativa ao vivo em 17/out/2026:
+- [x] 2.4 **Teste real: o contato vê a câmera do operador** (capturar com o diag). Tentativa ao vivo em 17/out/2026:
       **não validou o envio**. O operador não viu o botão de câmera nem prompt de permissão. Diagnóstico: no evento real o
       `<video>` fica aninhado em `offer/destination/to/video`; a detecção anterior só examinava filhos diretos, classificava a
       chamada como voz e o painel escondia o botão. A busca da mídia agora percorre os wrappers e tem regressão com essa
-      árvore real; o stack da tentativa ainda não foi reconstruído/retestado após o fix. Portanto não há evidência ao vivo
-      de quadro enviado/recebido. O que existia antes: decifra, remonta e responde a PLI contra contato simulado.
+      árvore real; o stack da tentativa ainda não foi reconstruído/retestado após o fix.
+      **Validado ao vivo em 19/out/2026** (Android do contato): o contato viu a câmera do operador, fluida, numa chamada
+      inteira. O log `video tx` do engine confirma o envio — `au_in=au_sent` a ~15 quadros/s, `au_gated=0`,
+      `au_not_ready=0`, `pli=0` — e mostra (`rx_pt`) que o contato manda PSFB (PT 206) a cada janela, feedback de banda que
+      o engine ainda **não** trata. A lentidão anterior (≈1 quadro a cada 10 s) era o codificador a 600 kbps passando do
+      teto `init_bwe.max_bitrate=350000` que o próprio contato anuncia no `<offer>`, com o excedente descartado no caminho;
+      agora o encoder vai a 300 kbps. Vale para este aparelho; a instrumentação fica, e adaptar o bitrate ao feedback do
+      contato é a próxima alavanca. Ver `tasks.md` 2.2 e o commit `1b2aba4b`
 
 ## 3. Iniciar chamada de vídeo
 
