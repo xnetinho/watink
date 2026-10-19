@@ -2,6 +2,11 @@
 
 > Produto de T0.1 do plano em `docs/agents/plugin-grupos-comunidades.md`. Contrato fechado
 > antes de qualquer código — muda aqui primeiro, código depois.
+>
+> **Estado atual (2026-10-18):** esta API interna do engine-go é a única implementação ativa.
+> O SaaS externo izapia foi descontinuado e removido do código; as capturas/respostas desse serviço
+> nas seções históricas abaixo permanecem como registro de pesquisa/compatibilidade, não como
+> provider suportado nem dependência de execução.
 
 ## Por que existe
 
@@ -20,14 +25,12 @@ externa — é detalhe de implementação de `enginego.Provider`, não API do Wa
 - Auth: header `X-Internal-Token`, valor = env `GROUPS_API_TOKEN`. **Fail-closed**: se
   `GROUPS_API_TOKEN` não estiver setado no ambiente, o servidor **não sobe** (mesma postura de
   `cryptobox`/`PROXY_ENC_KEY` no `business`) — nunca abre a porta sem auth.
-- Sessão identificada por `sessionID` (int, o `Whatsapp.ID` do core) no path — diferente da
-  izapia, que usa um `sid` opaco (aqui a sessão já é first-class no engine-go).
+- Sessão identificada por `sessionID` (int, o `Whatsapp.ID` do core) no path.
 
-## Envelope — espelho do envelope da izapia
+## Envelope
 
-A izapia usa `{ok, data, raw?, error{code, message, details?}}` para toda resposta (verificado
-ao vivo no OpenAPI dela, `api.izapia.com/openapi.json`). O engine-go replica o mesmo formato —
-é o que torna `enginego.Provider` e `izapia.Provider`, no `business`, código-espelho:
+O envelope de resposta interno é `{ok, data, error{code, message, details?}}`; é contrato entre
+o engine-go e o provider `enginego` no business:
 
 ```json
 // sucesso
@@ -37,16 +40,15 @@ ao vivo no OpenAPI dela, `api.izapia.com/openapi.json`). O engine-go replica o m
 { "ok": false, "error": { "code": "NOT_FOUND", "message": "grupo não encontrado" } }
 ```
 
-Códigos de erro usados aqui (subconjunto do vocabulário da izapia, reaproveitado por
-consistência): `INVALID_INPUT` (400) · `NOT_FOUND` (404) · `AUTH_FAILED` (401, token interno
+Códigos de erro usados aqui: `INVALID_INPUT` (400) · `NOT_FOUND` (404) · `AUTH_FAILED` (401, token interno
 ausente/errado) · `NOT_ADMIN` (403, ação exige admin no grupo) · `RATE_LIMITED` (429) ·
 `PROVIDER_ERROR` (502, erro do whatsmeow não classificado) · `SESSION_NOT_CONNECTED` (409).
 
 ## DTO canônico do Watink
 
-Este é **nosso** DTO — normalizado a partir do whatsmeow no engine-go, e a partir do JSON real
-da izapia (capturado ao vivo abaixo) no `business`. Nenhum dos dois providers expõe o formato
-nativo dele direto; ambos traduzem para isto.
+Este é **nosso** DTO — normalizado a partir do whatsmeow no engine-go e consumido pelo provider
+`enginego` no business. O JSON do provider descontinuado, capturado ao vivo no anexo histórico,
+foi usado na validação inicial do contrato.
 
 ```go
 type GroupInfo struct {
@@ -94,11 +96,11 @@ type CommunityInfo struct {
 **Nota de campo (`memberAddMode`):** whatsmeow expõe isso como `GroupMemberAddMode` com valores
 `admin_add`/`all_member_add` — os dois nomes acima são literais do enum nativo, não inventados.
 
-## Probe real contra a izapia (paridade — anexo de referência)
+## Anexo histórico — probe real contra o provider descontinuado
 
-Capturado em 2026-08-04 contra uma sessão conectada real
-(`GET /api/v1/sessions/{sid}/groups`), via MCP `izapia_request` — o OpenAPI da izapia não tipa
-`data` (é `description`-only), então o shape só existe por captura ao vivo:
+Capturado em 2026-08-04 contra uma sessão conectada real do provider então ativo
+(`GET /api/v1/sessions/{sid}/groups`); o OpenAPI não tipava `data` (era `description`-only), então
+este shape é mantido como registro histórico de compatibilidade:
 
 ```json
 [
@@ -118,15 +120,10 @@ Capturado em 2026-08-04 contra uma sessão conectada real
 
 `GET /groups/{groupId}` devolve o mesmo shape de um único grupo (não um array).
 
-**Campos ausentes na resposta real da izapia** que o DTO canônico exige: `announce`, `locked`,
-`memberAddMode`, `joinApprovalMode`, `pictureURL`, `isCommunity`, `isSubGroup`, `parentJID`,
-`phoneNumber`/`displayName` por participante (só `jid` cru, tipicamente `@lid`, sem número nem
-nome resolvido). **Consequência para T2.1 (`izapia.Provider`):** esses campos ficam com
-zero-value (`false`/`""`) quando a izapia não os retorna nessa chamada — não é um bug de
-mapeamento, é o que a API de origem entrega. Se o produto precisar desses campos de verdade
-(ex.: mostrar quem é admin com nome), T2.1 precisa de uma chamada adicional (`GET contacts` ou
-similar) para resolver `@lid`→nome/telefone — **fora do escopo do MVP**, registrar como known
-gap na tela de Participantes (mostra JID quando nome não resolvido).
+O provider descontinuado não retornava alguns campos do DTO canônico (`announce`, `locked`,
+`memberAddMode`, `joinApprovalMode`, `pictureURL`, `isCommunity`, `isSubGroup`, `parentJID` e
+`phoneNumber`/`displayName` por participante). Esse gap pertence somente à implementação antiga;
+o engine-go atual usa diretamente whatsmeow e não depende dessa forma de resposta.
 
 **Atualização (T1.3, 2026-08-04) — comunidade validada ao vivo, shape original estava
 errado.** Criada e removida uma comunidade de teste na mesma sessão do probe original
@@ -155,13 +152,10 @@ errado.** Criada e removida uma comunidade de teste na mesma sessão do probe or
 }
 ```
 
-**Consequência:** `GET /communities/{id}` não devolve `subject`/`owner`/`description` no nível
-raiz nenhum, e os participantes vêm como JID cru sem `is_admin`/`is_super_admin`. Isso foi
-corrigido no `izapia.Provider` (`client_groups.go`/`groups.go`, lado `business`) — `GetCommunity`
-não popula mais esses campos (ficam vazios, documentado no código, não é bug). O contrato da
-API HTTP interna do engine-go em si (rotas de escrita de comunidade abaixo) não muda — o
-whatsmeow nativo (`CreateGroup` com `IsParent`, `GetSubGroups`) segue com sua própria forma,
-já implementada e testada (`groups_community.go`).
+**Resultado do probe histórico:** `GET /communities/{id}` não devolvia `subject`/`owner`/`description` no nível raiz,
+e participantes vinham como JID cru sem `is_admin`/`is_super_admin`. Esse gap pertencia ao provider descontinuado.
+O contrato atual do engine-go usa whatsmeow nativo (`CreateGroup` com `IsParent`, `GetSubGroups`), implementado e
+coberto por testes em `groups_community.go`.
 
 ## Rotas (20 — MVP; exclui `groups/join` e `groups/preview`, ver decisão §1 do plano)
 
@@ -189,11 +183,7 @@ Prefixo: nenhum (mux dedicado, só este domínio). `{sessionID}` sempre no path.
 > documento (T0.1) listava uma rota POST por campo (`/subject`, `/description`, `/announce`,
 > `/locked`, `/member-add-mode`, `/picture`). A implementação real (T1.2, `groups_write.go` em
 > `internal/whatsapp/` e `internal/groupsapi/`) consolidou tudo num único
-> **`PUT /sessions/{sessionID}/groups/{groupJID}`**, espelhando exatamente o que o
-> `enginego.Provider` do lado `business` (T2.2, já implementado antes deste ponto) já esperava:
-> um PUT só com os campos alterados. `izapia.Provider` (T2.1) continua fazendo uma chamada por
-> campo — os dois providers não precisam ter a mesma forma de request, só a mesma interface
-> `domain.GroupEngine`.
+> **`PUT /sessions/{sessionID}/groups/{groupJID}`** com todos os campos alterados em um só payload.
 
 ## Campo `tenantId` nos payloads de escrita
 
@@ -208,8 +198,7 @@ levam `tenantId`.
 
 O campo `pictureURL` do body do PUT carrega **base64 da imagem**, não uma URL — nome herdado do
 campo de leitura equivalente (`GroupInfo.pictureURL`, que na resposta *é* uma URL, resolvida
-pelo WhatsApp após o upload). Mesma convenção usada pelo campo `image` do
-`SetGroupPhoto` na izapia (`client_groups.go`, lado `business`).
+pelo WhatsApp após o upload).
 
 **Excluídas do MVP** (decisão §1 do plano — risco de ban por entrar em massa em grupos de
 terceiros): `GET /groups/preview` (`GetGroupInfoFromLink`), `POST /groups/join`
@@ -240,13 +229,13 @@ terceiros): `GET /groups/preview` (`GetGroupInfoFromLink`), `POST /groups/join`
 Token bucket **por `sessionID`**, aplicado antes de qualquer chamada whatsmeow de escrita
 (criar, participantes, configs, convite, join-requests, leave, comunidade). Rejeição →
 `429 {ok:false, error:{code:"RATE_LIMITED", message:"..."}}`. Este é o limitador de **defesa
-em profundidade** — o limitador principal, que cobre também conexões `izapia` (que nunca
-passam por aqui), vive no `groups_service.go` do plugin no `business` (correção §2.2 do plano).
+em profundidade** — o limitador principal fica no `groups_service.go` do plugin no `business`
+(correção §2.2 do plano).
 
-**Default: 20 ações de escrita por sessão a cada janela de 1 minuto** (mesmo valor nos dois
-limitadores, engine-go e business). Não é derivado de dados reais de produção — WhatsApp não
-publica um limite oficial para ações administrativas de grupo, e a instância Watink não tinha
-volume suficiente até o fechamento desta issue para calibrar empiricamente. É uma estimativa
+**Default: 20 ações de escrita por sessão a cada janela de 1 minuto** (engine-go e business).
+Não é derivado de dados reais de produção — WhatsApp não publica um limite oficial para ações
+administrativas de grupo, e a instância Watink não tinha volume suficiente até o fechamento desta
+issue para calibrar empiricamente. É uma estimativa
 conservadora por analogia: fica **abaixo** do que se observa tolerado para envio de mensagens
 em contas não-verificadas (dezenas por minuto), partindo da premissa de que ações
 administrativas (add/remove/promote em massa) têm um padrão mais "visivelmente automatizado"

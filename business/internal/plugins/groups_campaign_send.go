@@ -25,9 +25,8 @@ var (
 // message (BEFORE publishing -- see groups_campaign_ticket.go), and hands
 // it to flow.WhatsAppAdapter -- the exact same shape
 // flow/executor_quickanswer.go already builds for the FlowBuilder
-// quickAnswer node, so both the AMQP (whatsmeow) and the izapia rich-send
-// path already understand this Meta contract without any change to either
-// engine.
+// quickAnswer node, so every domain.WhatsAppEngine implementation already
+// understands this Meta contract without any change.
 //
 // adapter == nil is fail-closed, not a no-op: GroupsPlugin.OnActivate only
 // builds one when a real domain.CommandPublisher was injected (see
@@ -70,11 +69,12 @@ func sendOne(ctx context.Context, db *gorm.DB, core sdk.WatinkCore, adapter *flo
 		return err
 	}
 
-	// effectiveID == send.EnvID for every AMQP/whatsmeow send; for izapia it's
-	// izapia's OWN message_id (dispatchCampaignMessage already renamed the
-	// persisted Message's PK to match) -- messageId here MUST be the real one,
-	// never EnvID unconditionally, or reply correlation (issue #598) can never
-	// find this send again.
+	// effectiveID == send.EnvID for the AMQP/whatsmeow path; a non-whatsmeow
+	// domain.WhatsAppEngine may assign its OWN message_id server-side
+	// (dispatchCampaignMessage already renamed the persisted Message's PK to
+	// match) -- messageId here MUST be the real one, never EnvID
+	// unconditionally, or reply correlation (issue #598) can never find this
+	// send again.
 	db.Model(&models.GroupCampaignSend{}).Where(`id = ?`, send.ID).Updates(map[string]interface{}{
 		"ticketId":  ticket.ID,
 		"messageId": effectiveID,
@@ -107,14 +107,15 @@ type dispatchCampaignMessageParams struct {
 // flow/executor_quickanswer.go already builds for the FlowBuilder
 // quickAnswer node.
 //
-// Returns the EFFECTIVE message id actually used by WhatsApp -- for every
-// AMQP/whatsmeow send this equals p.EnvID, but izapia assigns its OWN
-// message_id server-side (see domain.WhatsAppEngine's doc comment); when
-// that happens this function renames the just-persisted Message's primary
-// key to the real id, because reply correlation matches replies against
-// Messages.id (via QuotedMsgID) and GroupCampaignSend.MessageID -- keeping
-// EnvID there would mean no future reply could ever match. Callers MUST
-// persist the returned id, never assume it equals p.EnvID.
+// Returns the EFFECTIVE message id actually used by WhatsApp -- for the
+// AMQP/whatsmeow send this equals p.EnvID, but a non-whatsmeow
+// domain.WhatsAppEngine may assign its OWN message_id server-side (see
+// domain.WhatsAppEngine's doc comment); when that happens this function
+// renames the just-persisted Message's primary key to the real id, because
+// reply correlation matches replies against Messages.id (via QuotedMsgID)
+// and GroupCampaignSend.MessageID -- keeping EnvID there would mean no
+// future reply could ever match. Callers MUST persist the returned id,
+// never assume it equals p.EnvID.
 func dispatchCampaignMessage(ctx context.Context, db *gorm.DB, core sdk.WatinkCore, adapter *flow.WhatsAppAdapter, p dispatchCampaignMessageParams) (models.Ticket, string, error) {
 	var ticket models.Ticket
 	if adapter == nil {
@@ -182,14 +183,14 @@ func dispatchCampaignMessage(ctx context.Context, db *gorm.DB, core sdk.WatinkCo
 		effectiveID = p.EnvID
 	}
 	if effectiveID != p.EnvID {
-		// izapia assigned its own message_id -- rename the Message row we just
-		// persisted (PK == p.EnvID) to the REAL WhatsApp id. Nothing else has a
-		// real FK to Messages.id (QuotedMsgID/GroupCampaignSend.MessageID are
-		// informal string references), so this is safe. Best-effort: a failure
-		// here means reply correlation degrades for this one send, not that the
-		// message itself failed to go out.
+		// The engine assigned its own message_id -- rename the Message row we
+		// just persisted (PK == p.EnvID) to the REAL WhatsApp id. Nothing else
+		// has a real FK to Messages.id (QuotedMsgID/GroupCampaignSend.MessageID
+		// are informal string references), so this is safe. Best-effort: a
+		// failure here means reply correlation degrades for this one send, not
+		// that the message itself failed to go out.
 		if err := db.Exec(`UPDATE "Messages" SET id = ? WHERE id = ? AND "tenantId" = ?`, effectiveID, p.EnvID, p.TenantID).Error; err != nil {
-			log.Printf("[groups] campaign send: falha ao renomear id da mensagem para o id real da izapia (env=%s real=%s): %v", p.EnvID, effectiveID, err)
+			log.Printf("[groups] campaign send: falha ao renomear id da mensagem para o id real do engine (env=%s real=%s): %v", p.EnvID, effectiveID, err)
 		}
 	}
 	return ticket, effectiveID, nil

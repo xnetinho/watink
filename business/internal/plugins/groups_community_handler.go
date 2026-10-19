@@ -13,13 +13,6 @@ import (
 // handleListCommunities has no dedicated GroupEngine method — a community
 // IS a group (IsCommunity=true), so this filters ListGroups client-side.
 //
-// KNOWN GAP (engine-go/docs/groups-api.md, izapia.groupInfoFromDTO): the
-// izapia provider currently can't populate IsCommunity (that field isn't
-// returned by its group endpoints) — on an izapia connection this list is
-// always empty today. Fixing it requires either an izapia API change
-// upstream or a Watink-side heuristic (e.g. inferring from
-// GetCommunity succeeding) — out of scope for this issue, tracked as a
-// follow-up rather than silently shipped as "it just works".
 // Mesma leitura de GroupCache que handleListGroups (groups_handler.go) --
 // nunca fala com o WhatsApp no caminho comum, só no bootstrap da primeira
 // vez que a conexão é vista. Reaproveita a MESMA cache linha-a-grupo

@@ -140,22 +140,6 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
                 {errors.name && touched.name && <p className="text-xs text-destructive">{errors.name as string}</p>}
               </div>
 
-              <div className="space-y-1">
-                <Label>Motor</Label>
-                <Select
-                  value={values.engineType ?? "whatsmeow"}
-                  onValueChange={(v) => setFieldValue("engineType", v)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="whatsmeow">whatsmeow (padrão)</SelectItem>
-                    <SelectItem value="izapia">izapia</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="flex items-center gap-2">
                 <Switch
                   id="wa-default"
@@ -183,7 +167,6 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
                 <Label htmlFor="wa-sync">Sincronizar Histórico</Label>
               </div>
 
-              {values.engineType !== "izapia" && (
               <div className="space-y-1 pt-2">
                 <Label>Proxy (anti-ban)</Label>
                 <Select
@@ -231,7 +214,6 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
                   Alterar o proxy só vale na próxima conexão — reconecte para aplicar.
                 </p>
               </div>
-              )}
 
               <div className="space-y-1 pt-2">
                 <Label>Grupo de conexões</Label>

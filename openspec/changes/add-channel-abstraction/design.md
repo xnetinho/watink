@@ -6,7 +6,7 @@
 adaptador que traduz entre o protocolo da plataforma e três contratos neutros: **receber**, **enviar** e **conectar**.
 O WhatsApp passa a ser **o primeiro adaptador**, não o caso especial.
 
-Isto continua o que o ADR 0014 começou (`flow.OutboundChannelAdapter`, só saída) e o que o izapia provou em pequeno
+Isto continua o que o ADR 0014 começou (`flow.OutboundChannelAdapter`, só saída) e a lição aprendida com o provider histórico izapia (removido em 2026-10)
 (`engines map[string]WhatsAppEngine`). Falta o lado da **entrada** e o **modelo de dados**.
 
 ## O teste que valida a abstração
@@ -107,16 +107,16 @@ agregado por `ContactIdentity`.
 
 Generalização de `Whatsapp`: `kind`, `name` (único **por tenant**, hoje é único global), `status`, `credentialsEnc`
 (JSON cifrado com `cryptobox`, mesmo padrão do Proxy), `config jsonb`, `lastError`. Os campos específicos de WhatsApp
-(`qrcode`, `wid`, `proxy*`, `izapia*`) ficam como `config` do kind `whatsapp` durante a migração. A associação com filas
+(`qrcode`, `wid`, `proxy*`) ficam como `config` do kind `whatsapp` durante a migração. A associação com filas
 (`whatsapp_queues`) vira `channel_connection_queues`; a visibilidade de ticket por fila (`pkg/auth/tenant.go`) passa a
 usá-la.
 
 ### D6. Entrada única
 
 `ChannelInbound.Receive(ctx, InboundMessage)` substitui o `MessagePayload` de WhatsApp como contrato do
-`ReceiveMessageUseCase`. O consumidor AMQP do WhatsApp, o webhook do izapia e os webhooks dos novos canais viram
+`ReceiveMessageUseCase`. O consumidor AMQP do WhatsApp e os webhooks dos novos canais viram
 **produtores** do mesmo contrato. Dedup por `(channelConnectionId, externalMessageId)` no Redis (padrão `wbot:msg:`).
-Os webhooks são autenticados por **segredo por conexão** (HMAC ou header), como o izapia já faz.
+Os webhooks são autenticados por **segredo por conexão** (HMAC ou header).
 
 ### D7. Expandir e contrair, nunca trocar
 

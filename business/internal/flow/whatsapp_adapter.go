@@ -16,8 +16,8 @@ import (
 // wbot:msg: Redis convention used across the message pipeline).
 const dedupTTL = 24 * time.Hour
 
-// WhatsAppAdapterDeps are optional dependencies enabling non-AMQP engines
-// (e.g. izapia). When absent, every send goes through the AMQP path below —
+// WhatsAppAdapterDeps are optional dependencies enabling non-AMQP engines.
+// When absent, every send goes through the AMQP path below —
 // preserving the original FASE 1 behavior unchanged.
 type WhatsAppAdapterDeps struct {
 	DB      *gorm.DB
@@ -28,8 +28,8 @@ type WhatsAppAdapterDeps struct {
 // dedups by EnvID, then either translates an OutboundMessage into the AMQP
 // command `wbot.<tenant>.<session>.<cmd>` for the dumb engine-go executor
 // (default, ADR 0014), or — when the connection's EngineType is non-AMQP
-// (e.g. izapia) and WhatsAppAdapterDeps is wired — dispatches via
-// domain.WhatsAppEngine instead.
+// and WhatsAppAdapterDeps is wired — dispatches via domain.WhatsAppEngine
+// instead.
 type WhatsAppAdapter struct {
 	rabbit domain.CommandPublisher
 	redis  domain.RedisService
@@ -63,8 +63,8 @@ func (a *WhatsAppAdapter) Send(ctx context.Context, msg OutboundMessage) error {
 // SendReportingID behaves exactly like Send, but additionally returns the
 // EFFECTIVE WhatsApp message ID actually assigned to the outbound message.
 // For every AMQP/whatsmeow path this always equals the id we requested
-// (engine-go forces it via whatsmeow's SendRequestExtra) -- but izapia (and
-// any future domain.WhatsAppEngine that assigns its own id) can return a
+// (engine-go forces it via whatsmeow's SendRequestExtra) -- but a
+// non-AMQP domain.WhatsAppEngine that assigns its own id can return a
 // DIFFERENT one, and callers that persist a Message row keyed by their own
 // EnvID (campaign sendOne/dispatchCampaignMessage) need the real value, or
 // reply correlation (QuotedMsgID matching) can never find it. Plain Send
@@ -94,7 +94,7 @@ func (a *WhatsAppAdapter) sendInternal(ctx context.Context, msg OutboundMessage)
 	}
 
 	// Resolve a conexão/engine cedo — usada tanto para desviar engines
-	// não-AMQP (izapia) quanto para o "digitando..." abaixo, que vale para
+	// não-AMQP quanto para o "digitando..." abaixo, que vale para
 	// QUALQUER engine (whatsmeow via AMQP inclusive), não só as não-AMQP.
 	// Só quando deps são injetadas (call sites que não precisam mantêm o
 	// comportamento AMQP-only original).
@@ -217,15 +217,15 @@ func (a *WhatsAppAdapter) applyHumanPacing(ctx context.Context, engine domain.Wh
 }
 
 // sendViaEngine dispatches a text/media/rich send through the connection's
-// domain.WhatsAppEngine (izapia and future non-AMQP engines). Rich sends
+// domain.WhatsAppEngine (future non-AMQP engines). Rich sends
 // (quickAnswerExecutor stuffs qaType/qaContent/qaMessage into Meta alongside
 // the AMQP-shaped commandType/payload — see executor_quickanswer.go) go
 // through RichMessageEngine when the engine implements it; otherwise they
 // fail loudly rather than silently no-op.
-// sendViaEngine returns the EFFECTIVE WhatsApp message id -- for izapia (and
-// any future engine that assigns its own id server-side) this can differ
-// from the requested messageID; callers that persist a Message row keyed by
-// their own EnvID need this real value for reply correlation to work (see
+// sendViaEngine returns the EFFECTIVE WhatsApp message id -- for any engine
+// that assigns its own id server-side this can differ from the requested
+// messageID; callers that persist a Message row keyed by their own EnvID
+// need this real value for reply correlation to work (see
 // SendReportingID's doc comment).
 func (a *WhatsAppAdapter) sendViaEngine(ctx context.Context, whatsapp models.Whatsapp, msg OutboundMessage) (string, error) {
 	engine, err := a.deps.Engines.EngineFor(whatsapp)

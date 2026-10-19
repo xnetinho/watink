@@ -1,10 +1,13 @@
 # Plano de Execução — Plugin "Grupos e Comunidades"
 
-> **Para o agente executor.** Plano operacional de um plugin novo, first-party, embarcado
-> (ADR 0003/0024 — nada de terceiro/out-of-process aqui, ver `docs/agents/marketplace-terceiros.md`
-> só como referência de fases/aceite, não como pré-requisito). Leia antes:
-> [`docs/dev/plugins.md`](../dev/plugins.md) (como construir um plugin), `docs/agents/plugins.md`
-> (licenciamento), e a doc de contrato da izapia (link na Fase 0).
+> **Estado atual (2026-10-18):** o provider alternativo izapia (SaaS externo, API `api.izapia.com`) foi descontinuado e
+> removido do repositório; `enginego` é o único provider ativo. Este documento registra a pesquisa e as decisões da
+> implementação inicial; menções à izapia abaixo são contexto histórico, não suporte vigente. A tarefa T2.2 foi cancelada
+> quando o serviço foi descontinuado; não há implementação izapia pendente.
+
+> **Para referência histórica.** Plano operacional da implementação inicial de um plugin first-party, embarcado.
+> O estado atual está no topo e no código; as fases/provedores alternativos abaixo que citam izapia foram encerrados/cancelados
+> em 2026-10 e não são instruções de execução. Consulte [`docs/dev/plugins.md`](../dev/plugins.md) para o processo atual.
 
 **Status:** ✅ **implementado e fechado** (issues #514-#524, todas as fases concluídas —
 código, testes, frontend, catálogo do Hub). Este documento permanece como registro da pesquisa
@@ -17,14 +20,13 @@ divergências documentadas explicitamente). Principais divergências:
 - **`PUT /groups/:id` único** em vez de uma rota POST por campo de configuração (subject/
   announce/locked/... eram rotas separadas no desenho original de T0.1) — alinhado ao que o
   `enginego.Provider` já implementava.
-- **Shape real da comunidade na izapia é diferente do inferido em T0.1** — validado ao vivo
+- **Shape real da comunidade no provider histórico diferia do inferido em T0.1** — validado ao vivo
   (criação + leitura + limpeza de uma comunidade de teste real) durante T1.3, com o mapeamento
-  corrigido em `izapia.Provider`. Ver `engine-go/docs/groups-api.md`.
+  corrigido no provider da época. Ver `engine-go/docs/groups-api.md` (anexo histórico).
 - **Catálogo do Hub ficou em `status: draft`** — preço não definido pelo dono na sessão de
   execução; plugin não está visível no Marketplace até publicação manual.
 - **`GET /communities` não tem método próprio em `domain.GroupEngine`** — deriva de
-  `ListGroups()` filtrado por `isCommunity`, o que deixa a lista sempre vazia em conexões
-  `izapia` (campo que a API dela não retorna). Ver invariant correspondente em `CLAUDE.md`.
+  `ListGroups()` filtrado por `isCommunity`.
 - **`joinApprovalMode` não tem rota REST dedicada no plugin** — `domain.GroupEngine` tem o
   método, mas `internal/plugins/groups.go` não expõe um endpoint isolado para ele; a UI
   desabilita o toggle correspondente (a aprovação em si funciona via `join-requests`).
@@ -43,15 +45,14 @@ Estado original da pesquisa (útil para contexto histórico) preservado abaixo.
 | Repo | O que já existe | O que falta |
 |---|---|---|
 | `engine-go` | Lê passivamente metadados de grupo (`GetGroupInfo` do whatsmeow) só para taguear mensagens recebidas como comunidade/subgrupo (`groupMeta` em `internal/whatsapp/service.go`/`events_message.go`). Nenhuma ação de escrita. Só expõe `/health` via HTTP (`internal/health/server.go`) — todo o resto é comando AMQP fire-and-forget (`internal/command/router.go`, tipos fechados: `session.*`, `message.*`, `contact.*`, `history.*`). | Toda a superfície de gestão ativa de grupo/comunidade (criar, participantes, convite, configs) e uma forma **síncrona** de responder (ver §3). |
-| `business` (`watinkdev`) | Abstração de provider já existe e é o encaixe natural: `domain.WhatsAppEngine` (porta) com duas implementações — `internal/infrastructure/enginego/provider.go` (AMQP, routing key `wbot.<tenantId>.<sessionId>.<cmd>`) e `internal/infrastructure/izapia/provider.go` (HTTP, resolve credencial por tenant via `models.IzapiaConfig` + `cryptobox`). Extensões opcionais já seguem o padrão de type-assertion (`RichMessageEngine`). `models.Whatsapp.EngineType` decide qual provider é usado por conexão; `IzapiaSessionID` guarda o `{sid}` da izapia. Plugins embarcados seguem o padrão `internal/plugins/<nome>/*.go` (ver `helpdesk.go`) + `PluginManager.Register` em `internal/routes/routes.go`. | Um plugin `groups`/`communities`, a nova porta de extensão `GroupEngine`, e as duas implementações da porta. |
+| `business` (`watinkdev`) | Abstração `domain.WhatsAppEngine`; atualmente só `internal/infrastructure/enginego/provider.go` (AMQP, routing key `wbot.<tenantId>.<sessionId>.<cmd>`) está registrada. Extensões opcionais seguem o padrão de type-assertion (`RichMessageEngine`). `models.Whatsapp.EngineType` permanece como escolha por conexão para admitir futuro provider. Plugins embarcados seguem `internal/plugins/<nome>/*.go` + `PluginManager.Register` em `internal/routes/routes.go`. | Um plugin `groups`/`communities` e a nova porta de extensão `GroupEngine`. |
 | `hub` | Catálogo (`CatalogEntry`: slug, type, priceCents, taxRatePercent, description...) e todo o trilho de licença Ed25519 já funcionam (usado pelo Helpdesk). | Só a entrada de catálogo nova — nada de mecanismo novo. |
 | `watink-plugin-manager` | Nada específico a mudar — só passa a servir o catálogo com a entrada nova no próximo heartbeat. | — |
 | iZapia (SaaS externo, mesmo time) | **Já implementa tudo isso** — 18 rotas de grupo + 4 de comunidade sob `/api/v1/sessions/{sid}/...`, ver §2. | — |
 
-**Consequência prática:** a izapia já resolveu o design deste domínio. O caminho de menor risco é
-**espelhar o contrato dela** (nomes de campo, shape de resposta) tanto na nova API interna do
-engine-go quanto na API pública que o plugin expõe no `business` — evita reinventar semântica e
-deixa os dois providers (`enginego`, `izapia`) quase simétricos em código.
+**Registro histórico da decisão:** o contrato público estudado durante o plano inicial foi usado como referência
+para os nomes de campo e shape de resposta da API interna do engine-go. O provider que serviu de referência foi
+removido depois; `enginego` é hoje a única implementação ativa.
 
 ## 2. Referência — contrato izapia (`https://api.izapia.com/openapi.json`)
 
@@ -224,21 +225,17 @@ divergiu do desenho da Fase 0).
 ## FASE 2 — business: porta, providers, plugin embarcado
 
 ### T2.1 — `domain.GroupEngine` + implementação `enginego.Provider`
-**Repo:** watinkdev. **Depende de:** gate F1.
-- Implementar a interface fechada em T0.2 chamando a API HTTP interna do engine-go (cliente HTTP
-  simples, timeout curto, sem retry automático em escrita — evita duplicar ação de grupo).
-- **Aceite:** testes com servidor HTTP fake local cobrindo happy path + timeout + erro 4xx/5xx
-  propagado como erro tipado (`utils.NewFriendlyError`, padrão já usado no `izapia.Provider`).
+**Estado:** ✅ implementado. O provider ativo usa a API HTTP interna do engine-go; testes com servidor HTTP fake cobrem
+happy path, timeout e erros 4xx/5xx tipados (`utils.NewFriendlyError`).
 
-### T2.2 — Implementação `izapia.Provider`
-**Repo:** watinkdev. **Depende de:** gate F1 (pode rodar em paralelo a T2.1).
-- Mesma interface, chamando o `Client` já existente contra os endpoints do §2, resolvendo
-  `w.IzapiaSessionID` como `{sid}`.
-- **Aceite:** testes com o mesmo padrão de mock HTTP já usado nos outros métodos do provider
-  izapia.
+### T2.2 — Provider HTTP alternativo (cancelado)
+**Estado:** ❌ cancelado em 2026-10-18. A izapia (SaaS externo do mesmo time) foi descontinuada; o adapter, configuração,
+webhook e suporte a conexões izapia foram removidos. Não há implementação nem suporte pendente. Esta seção abaixo é apenas
+registro da investigação/implementação histórica, não tarefa executável.
 
 ### T2.3 — Plugin embarcado `internal/plugins/groups/`
-**Repo:** watinkdev. **Depende de:** T2.1 + T2.2.
+**Estado:** ✅ implementado. O plugin resolve `domain.GroupEngine` por type-assertion sobre o engine da conexão; hoje só
+`enginego` implementa essa interface.
 - Estrutura seguindo o padrão do Helpdesk (`groups.go` manifest/OnActivate, `groups_handler.go`,
   `groups_participants_handler.go`, `groups_community_handler.go`, `groups_service.go` — service
   resolve o provider via `WhatsAppEngineResolver` + type-assert `domain.GroupEngine`, devolve 501

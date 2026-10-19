@@ -111,10 +111,11 @@ type WhatsAppEngineResolver interface {
 }
 
 // WhatsAppEngine is the port every WhatsApp connection provider must
-// implement (whatsmeow via engine-go, izapia HTTP, ...). Selected per
-// connection by Whatsapp.EngineType — see ADR pendente "izapia provider".
-// Implementations own their own transport (AMQP vs HTTP); callers never
-// branch on transport, only on which WhatsAppEngine was resolved.
+// implement (whatsmeow via engine-go is the only one registered today, but
+// the interface stays provider-neutral by design). Selected per connection
+// by Whatsapp.EngineType. Implementations own their own transport (AMQP vs
+// HTTP); callers never branch on transport, only on which WhatsAppEngine
+// was resolved.
 type WhatsAppEngine interface {
 	StartSession(ctx context.Context, w models.Whatsapp, usePairingCode bool, phoneNumber string, force bool) error
 	StopSession(ctx context.Context, w models.Whatsapp) error
@@ -122,19 +123,19 @@ type WhatsAppEngine interface {
 	// SendText/SendMedia return the EFFECTIVE message ID actually assigned to
 	// the outbound message -- for engine-go (AMQP, whatsmeow) this always
 	// equals the requested messageID (forced via SendRequestExtra on the
-	// engine-go side), but izapia's HTTP API generates its own message_id
-	// server-side and returns it in the response; callers that need the real
-	// WhatsApp id for reply correlation (e.g. campaign send, issue: izapia
-	// message id discarded) MUST use the returned value, never assume it
-	// equals the requested messageID.
+	// engine-go side), but a non-AMQP implementation's HTTP API may generate
+	// its own message_id server-side and return it in the response; callers
+	// that need the real WhatsApp id for reply correlation (e.g. campaign
+	// send) MUST use the returned value, never assume it equals the
+	// requested messageID.
 	SendText(ctx context.Context, w models.Whatsapp, to, messageID, body string) (string, error)
 	SendMedia(ctx context.Context, w models.Whatsapp, to, messageID, mediaType, mediaURL, mimeType string) (string, error)
 }
 
 // InteractiveButton is an engine-neutral display button for an interactive
-// (buttons/list) send. Kind mirrors the izapia enum (quick_reply|url|call|
-// copy|list); "list" is special — it carries its own sub-menu in List instead
-// of a single tap action, and at most one such button may appear per message.
+// (buttons/list) send. Kind enumerates quick_reply|url|call|copy|list;
+// "list" is special — it carries its own sub-menu in List instead of a
+// single tap action, and at most one such button may appear per message.
 type InteractiveButton struct {
 	ID    string
 	Kind  string // quick_reply | url | call | copy | list
@@ -155,8 +156,8 @@ type ListRow struct {
 }
 
 // CarouselCard is one card of a carousel send (image + optional title + up to
-// 3 display buttons — no "list"/"copy"-payment kinds, per izapia's stricter
-// carousel button subset).
+// 3 display buttons — no "list"/"copy"-payment kinds, matching the stricter
+// carousel button subset most providers support).
 type CarouselCard struct {
 	ImageURL string
 	Mimetype string

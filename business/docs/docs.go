@@ -2422,7 +2422,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Busca a foto de perfil atualizada do contato. Para conexões izapia, roda de forma síncrona e responde 200; para engine-go, publica a mensagem assíncrona via AMQP e responde 202.",
+                "description": "Busca a foto de perfil atualizada do contato; publica a mensagem assíncrona via AMQP e responde 202.",
                 "produces": [
                     "application/json"
                 ],
@@ -2440,15 +2440,6 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
                     "202": {
                         "description": "Accepted",
                         "schema": {
@@ -3558,56 +3549,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
-                        }
-                    }
-                }
-            }
-        },
-        "/izapia-config": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "izapia"
-                ],
-                "summary": "Consultar credencial izapia do tenant",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.izapiaConfigResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Só recebe a API key — a base URL é sempre api.izapia.com.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "izapia"
-                ],
-                "summary": "Salvar a API key izapia do tenant",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.izapiaConfigResponse"
                         }
                     }
                 }
@@ -7279,39 +7220,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/webhooks/izapia/{sessionId}": {
-            "post": {
-                "description": "Recebe eventos de mensagem/status da sessão izapia. Autenticado por assinatura HMAC (X-izapia-Signature), não por JWT.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "izapia"
-                ],
-                "summary": "Webhook izapia (inbound)",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID da conexão (Whatsapps.id)",
-                        "name": "sessionId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/whatsapp": {
             "get": {
                 "security": [
@@ -7951,17 +7859,6 @@ const docTemplate = `{
             "properties": {
                 "clientSignature": {
                     "type": "string"
-                }
-            }
-        },
-        "controllers.izapiaConfigResponse": {
-            "type": "object",
-            "properties": {
-                "baseUrl": {
-                    "type": "string"
-                },
-                "hasApiKey": {
-                    "type": "boolean"
                 }
             }
         },
@@ -9051,10 +8948,6 @@ const docTemplate = `{
                 },
                 "isDefault": {
                     "type": "boolean"
-                },
-                "izapiaSessionId": {
-                    "description": "IzapiaSessionID is the session id assigned by the izapia API (distinct from\nthis row's own ID). Only set when EngineType == \"izapia\".",
-                    "type": "string"
                 },
                 "keepAlive": {
                     "type": "boolean"

@@ -43,7 +43,7 @@
 
 ## 4. WhatsApp como o primeiro adaptador (paridade, sem mudar comportamento)
 
-- [ ] 4.1 Adaptador `whatsapp` que delega ao `WhatsAppEngine`/`enginego`/`izapia` existentes
+- [ ] 4.1 Adaptador `whatsapp` que delega ao `WhatsAppEngine`/`enginego` existente (provider izapia removido em 2026-10)
 - [ ] 4.2 Os 5 pontos com `if EngineType != "whatsmeow"` passam pelo registro de canais
 - [ ] 4.3 Uma função única de endereçamento (hoje há ao menos 6 construtores de JID espalhados)
 - [ ] 4.4 Teste de regressão ponta a ponta do WhatsApp (receber, enviar, ack, citação, mídia) contra Postgres e

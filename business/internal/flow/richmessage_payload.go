@@ -52,7 +52,7 @@ func buildRichButtons(raw interface{}) []domain.InteractiveButton {
 
 // BuildRichMessageRequest translates a QuickAnswer type + interpolated
 // message + decoded content into the engine-neutral domain.RichMessageRequest
-// consumed by domain.RichMessageEngine implementations (e.g. izapia). Only
+// consumed by domain.RichMessageEngine implementations. Only
 // called for the rich types (interactive_buttons/list/poll/carousel/pix) —
 // text/media are sent via WhatsAppEngine.SendText/SendMedia directly. Mirrors
 // BuildQuickAnswerCommand's per-type field mapping so the two translations

@@ -54,9 +54,8 @@ func (p *Provider) UpdateParticipants(ctx context.Context, w models.Whatsapp, gr
 	return out.Participants, nil
 }
 
-// UpdateGroupSettings, unlike izapia.Provider's one-endpoint-per-field
-// chain, is a single PUT with only the changed fields — no
-// "which sub-call failed" ambiguity possible here.
+// UpdateGroupSettings sends a single PUT with only the changed fields — no
+// "which sub-call failed" ambiguity possible.
 func (p *Provider) UpdateGroupSettings(ctx context.Context, w models.Whatsapp, groupJID string, patch domain.GroupSettingsPatch) error {
 	body := map[string]interface{}{"tenantId": w.TenantID.String()}
 	if patch.Subject != nil {

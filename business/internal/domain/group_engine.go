@@ -20,11 +20,9 @@ import (
 
 // GroupInfo is the Watink-canonical shape of a WhatsApp group or community —
 // normalized by each GroupEngine implementation from its own transport (the
-// engine-go internal HTTP API for enginego, the izapia HTTP API for izapia).
-// Neither provider's native format is used directly; both translate into
-// this. See engine-go/docs/groups-api.md for the field-by-field mapping and
-// the known gap around participant PhoneNumber/DisplayName on the izapia
-// side (that provider only returns a bare JID, typically @lid).
+// engine-go internal HTTP API for enginego). No provider's native format is
+// used directly; each translates into this. See engine-go/docs/groups-api.md
+// for the field-by-field mapping.
 type GroupInfo struct {
 	JID              string        `json:"jid"` // "120363xxxxx@g.us" — the only identifier used end-to-end (invariant 5, never a numeric Watink-owned ID)
 	Subject          string        `json:"subject"`
@@ -47,8 +45,8 @@ type Participant struct {
 	JID         string `json:"jid"`
 	PhoneNumber string `json:"phoneNumber,omitempty"` // empty when only @lid was resolved
 	DisplayName string `json:"displayName,omitempty"`
-	// PictureURL is NEVER set by the provider itself (izapia/whatsmeow
-	// don't return a per-participant avatar in the group payload) — it's
+	// PictureURL is NEVER set by the provider itself (the group payload
+	// doesn't return a per-participant avatar) — it's
 	// filled in by groups_participant_enrich.go (business/internal/plugins)
 	// as a best-effort DB lookup against existing Contact rows, same
 	// reuse-what-we-already-have strategy as enrichContactFromGroup

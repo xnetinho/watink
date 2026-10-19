@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router";
-import { SettingsIcon, Palette, Headphones, Brain, Library, HardDrive, Network, MapPin, Info, Zap, Sparkles, ClipboardList, Building2, Cloud, Phone } from "lucide-react";
+import { SettingsIcon, Palette, Headphones, Brain, Library, HardDrive, Network, MapPin, Info, Sparkles, ClipboardList, Building2, Cloud, Phone } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { t } from "@/lib/calls/t";
 
@@ -41,7 +41,6 @@ const SettingsSideNav: React.FC<SettingsSideNavProps> = ({ activeSection, active
       {item("ai-gateways", Sparkles, "Agentes de IA (Assistentes)", activePlugins.includes("assistant"))}
       {item("address", MapPin, "Endereço (CEP)")}
       {item("proxy", Network, "Proxy")}
-      {item("izapia", Zap, "izapia")}
       {item("storage", HardDrive, "Armazenamento", !!isSuperAdmin)}
       {item("saas-mode", Cloud, "Modo SaaS", !!isSuperAdmin)}
       {item("about", Info, "Sobre")}
