@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Circle, Mic, MicOff, PhoneOff, ShieldAlert, TriangleAlert, Video, VideoOff, X } from "lucide-react";
+import { Circle, Mic, MicOff, PhoneOff, ShieldAlert, Settings, TriangleAlert, Video, VideoOff, X } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { useCalls } from "@/context/Calls/CallsContext";
 import { displayName, elapsedSeconds, formatDuration } from "@/lib/calls/format";
 import type { ActiveCall } from "@/context/Calls/types";
 import CallQualityPanel from "./CallQualityPanel";
+import { DeviceSettingsModal } from "./DeviceSettingsModal";
 
 /** Texto do estado atual da chamada. */
 export function phaseLabel(call: ActiveCall, now: number): string {
@@ -56,6 +57,7 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
   recordingMode = "off",
 }) => {
   const { active, end, setMuted, setCamera, canSendVideo, startRecording, stopRecording, dismiss, videoSink } = useCalls();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -119,6 +121,13 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
             {phaseLabel(active, now)}
           </p>
         </div>
+      <DeviceSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSave={(audioId, videoId, bgMode) => {
+          console.log("Applied devices/bg:", { audioId, videoId, bgMode });
+        }}
+      />
         {ended && (
           <Button variant="ghost" size="icon" onClick={dismiss} aria-label={t("calls.active.close")}>
             <X />
@@ -230,6 +239,15 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
               {active.recording ? t("calls.active.stopRecord") : t("calls.active.record")}
             </Button>
           )}
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Configurações de Dispositivos e Fundo"
+            data-testid="device-settings-btn"
+          >
+            <Settings />
+          </Button>
           <Button variant="destructive" onClick={() => void end()} data-testid="end-call">
             <PhoneOff />
             {t("calls.active.hangUp")}
