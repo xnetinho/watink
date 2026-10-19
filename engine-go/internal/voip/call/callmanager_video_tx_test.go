@@ -328,3 +328,16 @@ func TestPackAccessUnit_DropsAUDAndJoinsNALs(t *testing.T) {
 		t.Fatal("só AUD não é um quadro")
 	}
 }
+
+// O resumo de recepção é o que diz se o contato manda avisos de controle (PT 4 = RR/REMB rápido do
+// WhatsApp) que o engine ainda não trata. Ordem por índice = saída estável.
+func TestRxSummary_ListsOnlyThePayloadTypesSeen(t *testing.T) {
+	var rx [256]uint32
+	rx[97], rx[4], rx[201] = 2100, 1500, 9
+	if got := rxSummary(&rx); got != "4:1500,97:2100,201:9" {
+		t.Fatalf("resumo = %q, esperado \"4:1500,97:2100,201:9\"", got)
+	}
+	if got := rxSummary(&[256]uint32{}); got != "" {
+		t.Fatalf("sem pacotes o resumo é vazio: %q", got)
+	}
+}

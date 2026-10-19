@@ -9,12 +9,20 @@ import { encodeVideoFrame } from "./videoFrame";
  * Tudo que é do navegador entra por `CameraDeps`, para testar sem câmera.
  */
 
-/** Níveis da fase: 640x480 a 15 fps e 600 kbps cabem com folga no nível 3.1 e na saída do operador. */
+/**
+ * Níveis da fase: 640x480 a 15 fps.
+ *
+ * O teto de banda vem do `init_bwe` que o aparelho do contato anuncia no `<offer>`: `max_bitrate` =
+ * 350 kbps até a sondagem adaptativa dele subir (ap_max_bps = 1 Mbps). O 600 kbps anterior ficava acima
+ * desse teto e o engine não trata nenhum aviso de banda do contato, então o excesso era descartado.
+ * 300 kbps deixa folga para o áudio (~32 kbps) e o cabeçalho RTP. Se o contato passar a fluir, subir
+ * isto é a próxima alavanca; o `rx_pt` do log "video tx" mostra se ele chega a mandar pedido de banda.
+ */
 export const CAMERA = {
   width: 640,
   height: 480,
   fps: 15,
-  bitrate: 600_000,
+  bitrate: 300_000,
   /** Intervalo máximo entre quadros-chave (o contato precisa de um para começar e para se recuperar). */
   keyframeEveryMs: 2000,
   /** Fila de codificação acima disto = o codificador não dá conta: descarta o quadro da câmera. */

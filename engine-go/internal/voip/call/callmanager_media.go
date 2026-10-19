@@ -119,6 +119,9 @@ func (m *CallManager) onRelayData(data []byte) {
 	if len(data) < 12 {
 		return
 	}
+	m.mu.Lock()
+	m.videoStats.rx[data[1]]++
+	m.mu.Unlock()
 	if data[1] >= 192 && data[1] <= 223 {
 		m.onRtcp(data)
 		return

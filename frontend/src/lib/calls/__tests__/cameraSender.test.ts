@@ -107,7 +107,7 @@ describe("CameraSender", () => {
     const c = (r.deps.getStream as ReturnType<typeof vi.fn>).mock.calls[0][0] as { audio: boolean; video: { width: { ideal: number } } };
     expect(c.audio).toBe(false);
     expect(c.video.width.ideal).toBe(640);
-    expect(r.enc().config).toMatchObject({ codec: "avc1.42E01F", width: 640, height: 480, bitrate: 600000, latencyMode: "realtime", avc: { format: "annexb" } });
+    expect(r.enc().config).toMatchObject({ codec: "avc1.42E01F", width: 640, height: 480, bitrate: 300000, latencyMode: "realtime", avc: { format: "annexb" } });
     r.sender.stop();
   });
 

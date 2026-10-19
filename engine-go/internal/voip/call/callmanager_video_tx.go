@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
@@ -40,6 +42,26 @@ type videoTxStats struct {
 	auSent     uint32
 	plis       uint32
 	sr         int
+	// rx conta o segundo byte de cada pacote que chega do contato (índice = byte cru): PTs de áudio e
+	// vídeo e, principalmente, os PTs de controle que o WhatsApp usa (RR/REMB/NACK, ex.: PT 4) e que
+	// hoje são descartados sem tratamento. Sem isso "o vídeo trava" não separa falta de banda — o
+	// contato avisa e nós ignoramos — de erro no nosso envio.
+	rx [256]uint32
+}
+
+// rxSummary lista os tipos de pacote que chegaram do contato na janela, no formato "pt:contagem".
+func rxSummary(rx *[256]uint32) string {
+	var b strings.Builder
+	for pt, n := range rx {
+		if n == 0 {
+			continue
+		}
+		if b.Len() > 0 {
+			b.WriteByte(',')
+		}
+		fmt.Fprintf(&b, "%d:%d", pt, n)
+	}
+	return b.String()
 }
 
 // logVideoStatsLocked emite o resumo e zera a janela. Precisa estar com m.mu travado.
@@ -50,8 +72,9 @@ func (m *CallManager) logVideoStatsLocked() {
 	}
 	m.log.Info("video tx",
 		"au_in", s.auIn, "au_sent", s.auSent, "au_gated", s.auGated, "au_not_ready", s.auNotReady,
-		"pli", s.plis, "need_idr", m.videoNeedIDR, "stride", m.videoTxStride)
+		"pli", s.plis, "need_idr", m.videoNeedIDR, "stride", m.videoTxStride, "rx_pt", rxSummary(&s.rx))
 	s.auIn, s.auNotReady, s.auGated, s.auSent, s.plis = 0, 0, 0, 0, 0
+	s.rx = [256]uint32{}
 }
 
 var errNoVideoCall = errors.New("a chamada não tem vídeo")
