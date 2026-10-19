@@ -18,10 +18,10 @@ import (
 // Contact.Name from the WhatsApp push name, Contact.ProfilePicUrl from the
 // contact-sync flow) — a participant who never DM'd the number stays
 // JID-only, which is correct: there's no cheap way to resolve a name for
-// someone the tenant has never talked to (izapia's participant payload has
-// no name field; asking whatsmeow/izapia for a fresh picture per
-// participant would mean one WhatsApp round-trip per member — a real
-// rate-limit/ban risk on large groups, so deliberately not done here).
+// someone the tenant has never talked to (the group participant payload has
+// no name field; asking the engine for a fresh picture per participant
+// would mean one WhatsApp round-trip per member — a real rate-limit/ban
+// risk on large groups, so deliberately not done here).
 //
 // One bulk query (never N+1) regardless of participant count.
 func enrichParticipantsFromContacts(db *gorm.DB, tenantID uuid.UUID, participants []domain.Participant) []domain.Participant {
@@ -80,9 +80,9 @@ func enrichParticipantsFromContacts(db *gorm.DB, tenantID uuid.UUID, participant
 }
 
 // participantNumber prefers PhoneNumber (populated for @lid participants
-// whose real number whatsmeow/izapia resolved); falls back to the local
-// part of JID for plain @s.whatsapp.net participants where PhoneNumber was
-// never set. Matches Contact.Number's convention (bare digits, no server).
+// whose real number the engine resolved); falls back to the local part of
+// JID for plain @s.whatsapp.net participants where PhoneNumber was never
+// set. Matches Contact.Number's convention (bare digits, no server).
 func participantNumber(p domain.Participant) string {
 	if p.PhoneNumber != "" {
 		return strings.SplitN(p.PhoneNumber, "@", 2)[0]

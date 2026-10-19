@@ -164,9 +164,9 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 }
 
 // HandleInboundMessage is the exported entry point for non-AMQP transports
-// (izapia webhook) to feed an inbound message through the exact same
-// pipeline (ReceiveMessageUseCase + broadcasts + FlowBuilder routing) as the
-// engine-go AMQP consumer.
+// (e.g. a webhook-based engine) to feed an inbound message through the
+// exact same pipeline (ReceiveMessageUseCase + broadcasts + FlowBuilder
+// routing) as the engine-go AMQP consumer.
 func (el *EventListener) HandleInboundMessage(ctx context.Context, p MessagePayload, rawSessionID string, tenantID uuid.UUID) error {
 	return el.processMessage(ctx, p, rawSessionID, tenantID)
 }
@@ -189,8 +189,8 @@ func (el *EventListener) HandlePollVoteEvent(ctx context.Context, payload json.R
 }
 
 // HandleSessionRiskEvent is the exported entry point for non-AMQP transports
-// (izapia webhook) to apply a ban/throttle risk signal (401/403/429/463)
-// through the same logic as the engine-go AMQP consumer (handleSessionRisk):
+// to apply a ban/throttle risk signal (401/403/429/463) through the same
+// logic as the engine-go AMQP consumer (handleSessionRisk):
 // persists lastRiskCode/Action/Message/At on the connection, auto-isolates
 // the proxy for 429/463, and broadcasts whatsappSessionRisk to the tenant.
 func (el *EventListener) HandleSessionRiskEvent(ctx context.Context, payload json.RawMessage, tenantID uuid.UUID) error {

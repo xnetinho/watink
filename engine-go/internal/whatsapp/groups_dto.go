@@ -4,8 +4,7 @@ import "go.mau.fi/whatsmeow/types"
 
 // GroupInfo, Participant and CommunityInfo mirror the Watink-canonical DTO
 // documented in engine-go/docs/groups-api.md and business/internal/domain/group_engine.go
-// (T0.1/T0.2) — the whole point of this shape is that enginego and izapia
-// providers on the business side deserialize the exact same JSON.
+// (T0.1/T0.2) — the engine and business deserialize the same JSON shape.
 type GroupInfo struct {
 	JID              string        `json:"jid"`
 	Subject          string        `json:"subject"`

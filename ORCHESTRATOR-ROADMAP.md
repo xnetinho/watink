@@ -69,6 +69,16 @@
   e de política sem resolver a incerteza do fluxo principal. Validar em aparelho e conta de teste, sem mídia real de clientes;
   confirmar sincronização, campos disponíveis e download completo antes de desenhar API/UI. | 📋 Planejada — validar viabilidade
 
+- [ ] **Epic 12**: Pareamento de WhatsApp por código (pairing code) via whatsmeow, sem leitura de QR Code. O backend já
+  aceita `usePairingCode`/`phoneNumber` em `POST /whatsappsession/:id` e existe `PairingCodeModal`
+  (`frontend/src/components/PairingCodeModal/`), mas o modal está **órfão**: nada no código abre
+  `pairingModalOpen`/`setPairingModalOpen(true)` — hoje o único caminho de pareamento por código é
+  `PhoneInputDialog` na tela de detalhe (`/connections/:id`), que usa seu próprio estado local
+  (`showPairingInput`/`PairingCodePanel`), não o `PairingCodeModal`. Ligar (ou remover) o `PairingCodeModal` depende de
+  decidir qual dos dois componentes é o caminho oficial — não fazer os dois coexistirem fazendo a mesma coisa de formas
+  diferentes (mesmo tipo de redundância do Epic da tela de Conexões). Expor a opção "Conectar por código" também na tela
+  de **lista** (`/connections`), que hoje só tem "Conectar" (QR). | 📋 Planejada
+
 ## Próximo Epic — Backend Go DI & Packages
 
 **Branch**: `refactor/backend-di-packages`

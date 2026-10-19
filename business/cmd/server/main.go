@@ -146,8 +146,6 @@ func main() {
 	// FlowBuilder FASE 1: the inbound seam is plugged into the EventListener
 	// (NewEventListener wires flow.NewSkeleton with the interpreter+registry),
 	// replacing the two previously-dead workers. No separate AMQP flow worker.
-	// Built unconditionally (not just when RabbitMQ connects) — the izapia
-	// webhook handler below reuses it as a transport-agnostic inbound seam.
 	eventListener := services.NewEventListener(container.ChannelSessionRepo, container.MessageRepo, container.ContactRepo, container.TicketRepo, container.ReceiveMessage, broadcast, database.DB, channelRegistry, redisSvc, rabbitMQ, mediaWaiter)
 	eventListener.ConfigureKnowledge(ragRetriever, ragResponder)
 
@@ -195,12 +193,6 @@ func main() {
 	callAudioController := controllers.NewCallAudioController(container.Calls, calls.NewAudio(),
 		calls.NewEngineDialer(engineaddr.CallsAudioURL()), database.DB)
 	r.GET("/api/v1/calls/:id/audio", callAudioController.Stream)
-
-	// izapia webhook — public route (no JWT), authenticated per-session by
-	// HMAC signature (X-izapia-Signature). See izapia.Provider.ensureSession
-	// for where the webhook secret/URL is configured on session creation.
-	izapiaWebhookController := controllers.NewIzapiaWebhookController(database.DB, eventListener, container.IzapiaProvider)
-	r.POST("/webhooks/izapia/:sessionId", izapiaWebhookController.HandleWebhook)
 
 	apiGroup := r.Group("/api/v1")
 	apiGroup.Use(gin.Logger())

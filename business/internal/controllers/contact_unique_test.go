@@ -23,7 +23,7 @@ import (
 func contactRouter(t *testing.T, db *gorm.DB, tenantID uuid.UUID) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
-	ctrl := NewContactController(repository.NewGORMContactRepo(db), nil, nil, nil, nil)
+	ctrl := NewContactController(repository.NewGORMContactRepo(db), nil, nil, nil)
 	r := gin.New()
 	r.Use(testScopedMiddleware(db, tenantID.String()))
 	r.POST("/contacts", ctrl.CreateContact)

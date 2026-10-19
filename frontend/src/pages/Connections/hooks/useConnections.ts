@@ -17,6 +17,9 @@ export interface UseConnectionsReturn {
   webchatModalOpen: boolean;
   confirmModalOpen: boolean;
   selectedWhatsApp: ConnectionSession | null;
+  /** IDs com um POST/PUT /whatsappsession em voo — usado pra desabilitar o botão e evitar
+   * disparar o mesmo start (lock Redis de 10s) duas vezes antes do SSE atualizar o status. */
+  pendingSessionIds: Set<number>;
   handleStartSession: (id: number) => Promise<void>;
   handleRequestNewQrCode: (id: number) => Promise<void>;
   handleDisconnectSession: (id: number) => Promise<void>;
@@ -39,26 +42,51 @@ export const useConnections = (): UseConnectionsReturn => {
   const [webchatModalOpen, setWebchatModalOpen] = useState(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [selectedWhatsApp, setSelectedWhatsApp] = useState<ConnectionSession | null>(null);
+  const [pendingSessionIds, setPendingSessionIds] = useState<Set<number>>(new Set());
+
+  const addPending = (id: number) => setPendingSessionIds((prev) => new Set(prev).add(id));
+  const removePending = (id: number) =>
+    setPendingSessionIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
 
   useEffect(() => {
     const refetch = () => { reloadWhatsApps(); };
     // whatsappSessionRisk é o mesmo refetch — o valor persistido (lastRiskCode/
     // lastRiskAt) já vem no GET /whatsapp, então só precisamos disparar o reload.
-    return subscribeToSocket({ whatsappSession: refetch, whatsapp: refetch, whatsappSessionRisk: refetch });
+    // whatsappSession também libera o pending assim que o status muda (OPENING/QRCODE/...):
+    // sem isso o botão ficaria desabilitado até o próximo fetch manual.
+    const onSession = (data: { session?: { id?: number } }) => {
+      if (typeof data?.session?.id === "number") removePending(data.session.id);
+      reloadWhatsApps();
+    };
+    return subscribeToSocket({ whatsappSession: onSession, whatsapp: refetch, whatsappSessionRisk: refetch });
   }, [reloadWhatsApps]);
 
+  // Clique duplo (ou "Conectar" + "Reiniciar Sessão" do mesmo card) batia no lock Redis de 10s do
+  // backend (ERR_SESSION_STARTING_ALREADY) sem feedback visual nenhum — o pending local evita o
+  // segundo POST/PUT antes do primeiro responder ou do SSE atualizar o status.
   const handleStartSession = async (id: number) => {
+    if (pendingSessionIds.has(id)) return;
+    addPending(id);
     try {
       await api.post(`/whatsappsession/${id}`);
     } catch (err) {
+      removePending(id);
       toastError(err);
     }
   };
 
   const handleRequestNewQrCode = async (id: number) => {
+    if (pendingSessionIds.has(id)) return;
+    addPending(id);
     try {
       await api.put(`/whatsappsession/${id}`);
     } catch (err) {
+      removePending(id);
       toastError(err);
     }
   };
@@ -142,6 +170,7 @@ export const useConnections = (): UseConnectionsReturn => {
     webchatModalOpen,
     confirmModalOpen,
     selectedWhatsApp,
+    pendingSessionIds,
     handleStartSession,
     handleRequestNewQrCode,
     handleDisconnectSession,

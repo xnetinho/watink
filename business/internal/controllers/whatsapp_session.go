@@ -157,8 +157,5 @@ func channelSessionToModel(s *domain.ChannelSession) models.Whatsapp {
 		ProxyGroupID:      s.ProxyGroupID,
 		ConnectionGroupID: s.ConnectionGroupID,
 		Wid:               s.Wid,
-
-		IzapiaSessionID:        s.IzapiaSessionID,
-		IzapiaWebhookSecretEnc: s.IzapiaWebhookSecretEnc,
 	}
 }

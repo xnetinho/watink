@@ -19,9 +19,8 @@ import (
 
 // groupsHTTPClient is a small, timeout-bounded HTTP client for the
 // engine-go internal groups API (engine-go/docs/groups-api.md). Resolved
-// lazily from env (ENGINE_HOST, GROUPS_API_TOKEN) on each call — same
-// pattern as izapia.Provider.clientFor resolving per-tenant credentials —
-// rather than threaded through enginego.New's constructor, to avoid
+// lazily from env (ENGINE_HOST, GROUPS_API_TOKEN) on each call — rather
+// than threaded through enginego.New's constructor, to avoid
 // widening that signature for every existing call site
 // (internal/services/whatsapp_session.go and its tests).
 //
@@ -53,9 +52,8 @@ func groupsAPIConfig() (baseURL, token string, err error) {
 	return baseURL, token, nil
 }
 
-// groupsEnvelope mirrors engine-go's response envelope exactly
-// (engine-go/docs/groups-api.md "Envelope") — enginego.Provider and
-// izapia.Provider are meant to stay code-mirrors of each other.
+// groupsEnvelope mirrors the response envelope defined by the internal
+// engine-go groups API.
 type groupsEnvelope struct {
 	OK    bool               `json:"ok"`
 	Data  json.RawMessage    `json:"data"`

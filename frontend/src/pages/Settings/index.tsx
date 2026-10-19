@@ -16,7 +16,6 @@ import StorageSection from "./components/StorageSection";
 import SaaSModeSection from "./components/SaaSModeSection";
 import AboutSection from "./components/AboutSection";
 import ProxySection from "./components/ProxySection";
-import IzapiaSection from "./components/IzapiaSection";
 import AddressLookupSettings from "./components/AddressLookupSettings";
 
 import { useSettings } from "./hooks/useSettings";
@@ -122,9 +121,6 @@ const Settings: React.FC = () => {
               )}
               {activeSection === "proxy" && (
                 <ProxySection />
-              )}
-              {activeSection === "izapia" && (
-                <IzapiaSection />
               )}
               {activeSection === "storage" && isSuperAdmin && (
                 <StorageSection />
