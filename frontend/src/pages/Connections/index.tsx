@@ -24,6 +24,7 @@ const Connections = () => {
     webchatModalOpen,
     confirmModalOpen,
     selectedWhatsApp,
+    pendingSessionIds,
     handleStartSession,
     handleRequestNewQrCode,
     handleDisconnectSession,
@@ -100,6 +101,7 @@ const Connections = () => {
             <ConnectionCard
               key={whatsApp.id}
               whatsApp={whatsApp}
+              pending={pendingSessionIds.has(whatsApp.id)}
               onNavigate={(id) => navigate(`/connections/${id}`)}
               onConnect={handleStartSession}
               onDisconnect={handleDisconnectSession}

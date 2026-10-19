@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"net/http"
+
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/infrastructure/enginego"
 	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -76,7 +79,11 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 		return err
 	}
 	if !acquired {
-		return fmt.Errorf("ERR_SESSION_STARTING_ALREADY")
+		// Clique duplo / outra aba: não é falha do servidor (500), é conflito esperado (409) — já
+		// existe um start em andamento para esta conexão (lockKey TTL de 10s).
+		return utils.NewFriendlyError(http.StatusConflict,
+			"Esta conexão já está iniciando a sessão. Aguarde alguns segundos antes de tentar de novo.",
+			fmt.Errorf("ERR_SESSION_STARTING_ALREADY"))
 	}
 
 	engine, err := wss.engineFor(whatsapp)
