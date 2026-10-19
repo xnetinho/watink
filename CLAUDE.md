@@ -718,3 +718,9 @@ grupo — divergências do ADR 0016) · Issues #514-#524, #589-#602
 ### Domain
 - **Config**: [`docs/agents/domain.md`](docs/agents/domain.md)
 - Use sempre os termos canônicos de `CONTEXT.md` — nunca os termos marcados como `_Avoid_`.
+
+## Regra de Ouro para Evitar Falhas no CI do Docker (Frontend / Embed)
+- **Sempre que modificar arquivos no frontend (`frontend/src/`)**, execute localmente antes de fazer o commit e push:
+  1. `cd frontend && npm run build`
+  2. `git status --short`
+- **Nunca inclua alterações automáticas em `frontend/public/version.json` geradas pelo build nos commits de feature/fix**, a menos que o objetivo expresso seja alterar a versão do serviço. Sempre verifique `git status` e reverta `frontend/public/version.json` se modificado apenas pelo script de build (`git checkout frontend/public/version.json`), evitando que arquivos temporários/gerados poluam o commit e quebrem o cache de buildx no Docker.
