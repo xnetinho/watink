@@ -47,6 +47,7 @@ export interface UseCallAudioOptions {
   onVideoFrame?: (frame: VideoFrame) => void;
   /** O contato perdeu o vídeo do operador (PLI): a câmera precisa gerar um quadro-chave agora. */
   onKeyframeRequested?: () => void;
+  onEstimatedBitrate?: (bitrate: number) => void;
 }
 
 function getToken(): string {
@@ -76,12 +77,13 @@ export function classifyMicError(err: unknown): AudioFailure {
  * 16 kHz mono Int16 com quadros de 20 ms, e reproduz o que chega com um jitter
  * buffer de ~60 ms. Encerra tudo ao desmontar ou quando `enabled` volta a falso.
  */
-export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, onVideoFrame, onKeyframeRequested }: UseCallAudioOptions) {
+export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, onVideoFrame, onKeyframeRequested, onEstimatedBitrate }: UseCallAudioOptions) {
   const mutedRef = useRef(muted);
   const failureRef = useRef(onFailure);
   const telemetryRef = useRef(onTelemetry);
   const videoRef = useRef(onVideoFrame);
   const keyframeRef = useRef(onKeyframeRequested);
+  const bitrateRef = useRef(onEstimatedBitrate);
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [levels, setLevels] = useState({ tx: 0, rx: 0 });
@@ -93,8 +95,9 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
     failureRef.current = onFailure;
     telemetryRef.current = onTelemetry;
     videoRef.current = onVideoFrame;
+    bitrateRef.current = onEstimatedBitrate;
     keyframeRef.current = onKeyframeRequested;
-  }, [onFailure, onTelemetry, onVideoFrame, onKeyframeRequested]);
+  }, [onFailure, onTelemetry, onVideoFrame, onKeyframeRequested, onEstimatedBitrate]);
 
   const cleanupRef = useRef<(() => void) | null>(null);
   const teardown = useCallback(() => {
@@ -165,9 +168,10 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
       ws.onmessage = (ev) => {
         if (typeof ev.data === "string") {
           try {
-            const t = JSON.parse(ev.data) as CallTelemetry | { type: "keyframe" };
+            const t = JSON.parse(ev.data) as CallTelemetry | { type: "keyframe" } | { type: "bitrate"; bitrate: number };
             if (t.type === "quality") telemetryRef.current?.(t);
             else if (t.type === "keyframe") keyframeRef.current?.();
+            else if (t.type === "bitrate") bitrateRef.current?.((t as { bitrate: number }).bitrate);
           } catch { /* mensagem de controle inválida: ignora */ }
           return;
         }

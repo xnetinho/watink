@@ -290,6 +290,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     onTelemetry,
     onVideoFrame,
     onKeyframeRequested,
+    onEstimatedBitrate: (bitrate) => cameraRef.current?.setBitrate(bitrate),
   });
   audioApiRef.current = audio;
 

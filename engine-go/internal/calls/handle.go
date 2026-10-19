@@ -77,6 +77,7 @@ func (h *managerHandle) SetMedia(k MediaHooks) {
 	h.m.OnPeerVideo = k.OnPeerVideo
 	h.m.OnPeerVideoFrame = k.OnPeerVideoFrame
 	h.m.OnVideoKeyframeRequested = k.OnKeyframeRequested
+	h.m.OnEstimatedBitrateChanged = k.OnEstimatedBitrateChanged
 }
 func (h *managerHandle) FeedPCM(pcm []float32)                { h.m.FeedCapturedPCM(pcm) }
 func (h *managerHandle) SendVideo(au []byte, d time.Duration) { h.m.SendVideoFrame(au, d) }

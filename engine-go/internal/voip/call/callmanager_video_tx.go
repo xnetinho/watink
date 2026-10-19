@@ -278,6 +278,16 @@ func (m *CallManager) onRtcp(data []byte) {
 		m.mu.Unlock()
 		m.log.Debug("peer estimated bitrate (REMB)", "bitrate_bps", bitrate)
 	}
+	if bitrate := media.ParseRembBitrate(plain); bitrate > 0 {
+		m.mu.Lock()
+		m.peerEstimatedBitrate = bitrate
+		cb := m.OnEstimatedBitrateChanged
+		m.mu.Unlock()
+		m.log.Debug("peer estimated bitrate (REMB)", "bitrate_bps", bitrate)
+		if cb != nil {
+			cb(bitrate)
+		}
+	}
 	if own == 0 || !media.RtcpRequestsKeyframe(plain, own) {
 		return
 	}

@@ -241,6 +241,24 @@ export class CameraSender {
     }
   }
 
+  setBitrate(bitrate: number): void {
+    const enc = this.encoder;
+    if (!enc || enc.state === "closed") return;
+    try {
+      enc.configure({
+        codec: CAMERA.codec,
+        width: CAMERA.width,
+        height: CAMERA.height,
+        bitrate,
+        fps: CAMERA.fps,
+        latencyMode: "realtime",
+        avc: { format: "annexb" },
+      });
+    } catch {
+      /* ignore reconfigure error */
+    }
+  }
+
   private onChunk(chunk: EncodedChunkLike): void {
     if (!this.running) return;
     const data = new Uint8Array(chunk.byteLength);
