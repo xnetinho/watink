@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +24,17 @@ const callID = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 type fakeHandle struct {
 	media calls.MediaHooks
 	fed   chan int
+
+	mu      sync.Mutex
+	videoIn [][]byte
+	camera  [][2]int
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func (h *fakeHandle) SetHooks(calls.Hooks)                                       {}
@@ -39,8 +51,19 @@ func (h *fakeHandle) Start(context.Context, string, types.JID) error            
 func (h *fakeHandle) Abandon(string)                                             {}
 func (h *fakeHandle) SetMedia(k calls.MediaHooks)                                { h.media = k }
 func (h *fakeHandle) FeedPCM(p []float32)                                        { h.fed <- len(p) }
-func (h *fakeHandle) RelayRTTMs() (int, bool)                                    { return 25, true }
-func (h *fakeHandle) RelayConnected() bool                                       { return true }
+func (h *fakeHandle) SendVideo(au []byte, d time.Duration) {
+	h.mu.Lock()
+	h.videoIn = append(h.videoIn, append([]byte(nil), au...))
+	h.mu.Unlock()
+}
+func (h *fakeHandle) SetCamera(_ context.Context, on bool, orientation int) error {
+	h.mu.Lock()
+	h.camera = append(h.camera, [2]int{b2i(on), orientation})
+	h.mu.Unlock()
+	return nil
+}
+func (h *fakeHandle) RelayRTTMs() (int, bool) { return 25, true }
+func (h *fakeHandle) RelayConnected() bool    { return true }
 
 type backend struct{ s *calls.Session }
 
@@ -254,5 +277,111 @@ func TestAudioSocketCarriesVideoFrames(t *testing.T) {
 	}
 	if !gotVideo || !gotAudio {
 		t.Fatalf("vídeo=%v áudio=%v: os dois tinham de chegar", gotVideo, gotAudio)
+	}
+}
+
+func waitFor(t *testing.T, what string, ok func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for !ok() {
+		if time.Now().After(deadline) {
+			t.Fatal(what)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// A câmera do operador sobe pelo mesmo WebSocket: o quadro de vídeo chega ao handle (nunca como PCM) e o PCM
+// continua indo ao codec.
+func TestOperatorVideoReachesHandleAndPCMStaysAudio(t *testing.T) {
+	srv, h, _ := setup(t)
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.CloseNow()
+	ctx := context.Background()
+	au := []byte{0, 0, 0, 1, 0x65, 7, 7, 7}
+	if err := c.Write(ctx, websocket.MessageBinary, calls.EncodeVideoFrame(1000, true, 0, au)); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Write(ctx, websocket.MessageBinary, make([]byte, 640)); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "o quadro de vídeo não chegou ao handle", func() bool { h.mu.Lock(); defer h.mu.Unlock(); return len(h.videoIn) == 1 })
+	waitFor(t, "o PCM não chegou ao codec", func() bool { return len(h.fed) == 1 })
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if string(h.videoIn[0]) != string(au) {
+		t.Fatalf("a access unit foi alterada: %x", h.videoIn[0])
+	}
+	if n := <-h.fed; n != 320 {
+		t.Fatalf("o PCM chegou com %d amostras, quer 320", n)
+	}
+}
+
+func TestCameraCommandReachesHandle(t *testing.T) {
+	srv, h, _ := setup(t)
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.CloseNow()
+	ctx := context.Background()
+	_ = c.Write(ctx, websocket.MessageText, []byte(`{"type":"camera","on":true,"orientation":1}`))
+	_ = c.Write(ctx, websocket.MessageText, []byte(`{"type":"desconhecido","on":true}`))
+	_ = c.Write(ctx, websocket.MessageText, []byte(`nao é json`))
+	_ = c.Write(ctx, websocket.MessageText, []byte(`{"type":"camera","on":false}`))
+	waitFor(t, "os comandos de câmera não chegaram", func() bool { h.mu.Lock(); defer h.mu.Unlock(); return len(h.camera) == 2 })
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.camera[0] != [2]int{1, 1} || h.camera[1] != [2]int{0, 0} {
+		t.Fatalf("comandos = %v, quer [[1 1] [0 0]] (comando desconhecido e lixo são ignorados)", h.camera)
+	}
+}
+
+// O contato pediu um quadro-chave: o navegador recebe o controle em texto e gera um IDR.
+func TestKeyframeRequestReachesBrowser(t *testing.T) {
+	srv, h, _ := setup(t)
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.CloseNow()
+	waitFor(t, "o gancho de keyframe não foi ligado", func() bool { return h.media.OnKeyframeRequested != nil })
+	h.media.OnKeyframeRequested()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	for {
+		typ, msg, err := c.Read(ctx)
+		if err != nil {
+			t.Fatal("o pedido de keyframe não chegou ao navegador")
+		}
+		if typ == websocket.MessageText && string(msg) == `{"type":"keyframe"}` {
+			return
+		}
+	}
+}
+
+// Um quadro-chave de câmera passa de 32 KB (o limite padrão do WebSocket) sem derrubar o canal de áudio.
+func TestOperatorBigKeyframeIsNotRejectedByReadLimit(t *testing.T) {
+	srv, h, _ := setup(t)
+	c, _, err := dial(t, srv, "/calls/"+callID+"/audio")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.CloseNow()
+	c.SetReadLimit(1 << 20)
+	au := append([]byte{0, 0, 0, 1, 0x65}, make([]byte, 200*1024)...)
+	if err := c.Write(context.Background(), websocket.MessageBinary, calls.EncodeVideoFrame(1, true, 0, au)); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "o quadro-chave de 200 KB não chegou (limite de leitura do servidor?)", func() bool {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		return len(h.videoIn) == 1 && len(h.videoIn[0]) == len(au)
+	})
+	if err := c.Write(context.Background(), websocket.MessageBinary, make([]byte, 640)); err != nil {
+		t.Fatal("o canal caiu depois do quadro grande:", err)
 	}
 }

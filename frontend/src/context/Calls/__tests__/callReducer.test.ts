@@ -174,6 +174,13 @@ describe("callsReducer", () => {
     expect(s.active?.media).toBe("video");
   });
 
+  it("accepted sem campo media preserva video e tela de câmera", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: { ...incoming(), media: "video" } });
+    s = callsReducer(s, { type: "accepted", payload: incoming() });
+    expect(s.active?.media).toBe("video");
+    expect(s.active?.camera).toBe(false);
+  });
+
   it("sem media no evento, a chamada é de voz (engine antigo)", () => {
     let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming() });
     expect(s.ringing.C1.media).toBe("audio");
@@ -209,5 +216,24 @@ describe("callsReducer", () => {
     expect(Object.keys(s.ringing).sort()).toEqual(["A", "B"]);
     s = callsReducer(s, { type: "ended", callId: "A" });
     expect(Object.keys(s.ringing)).toEqual(["B"]);
+  });
+
+  it("a câmera liga limpando a falha e, ao falhar, desliga guardando o motivo", () => {
+    let s = callsReducer(initialCallsState(), { type: "accepted", payload: incoming() });
+    expect(s.active?.camera).toBe(false);
+    s = callsReducer(s, { type: "camera", on: false, failure: "denied" });
+    expect(s.active?.camera).toBe(false);
+    expect(s.active?.cameraFailure).toBe("denied");
+    s = callsReducer(s, { type: "camera", on: true });
+    expect(s.active?.camera).toBe(true);
+    expect(s.active?.cameraFailure).toBeNull();
+    s = callsReducer(s, { type: "camera", on: false });
+    expect(s.active?.camera).toBe(false);
+    expect(s.active?.cameraFailure).toBeNull();
+  });
+
+  it("sem chamada ativa o evento de câmera não faz nada", () => {
+    const s = callsReducer(initialCallsState(), { type: "camera", on: true });
+    expect(s.active).toBeNull();
   });
 });

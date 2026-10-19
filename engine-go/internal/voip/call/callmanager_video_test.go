@@ -81,7 +81,28 @@ func TestIncomingVideoOffer_DerivesVideoSsrcsIntoRelay(t *testing.T) {
 	}
 }
 
-// Chamada de voz: nenhum SSRC de vídeo, relay exatamente como antes.
+// O payload real coloca <video> sob destination/to; a detecção precisa atravessar os wrappers.
+func TestIncomingVideoOffer_NestedVideoIsDetected(t *testing.T) {
+	peer := types.NewJID("5511999990001", types.DefaultUserServer)
+	m, spy, _ := newVideoRig(t, false)
+	m.mu.Lock()
+	m.currentCall = nil
+	m.mu.Unlock()
+	m.relay = spy
+	video := &waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"from": peer.String()}, Content: []waBinary.Node{{
+		Tag:   "offer",
+		Attrs: waBinary.Attrs{"call-id": "NESTED-VIDEO", "call-creator": peer.String()},
+		Content: []waBinary.Node{{
+			Tag:     "destination",
+			Content: []waBinary.Node{{Tag: "to", Content: []waBinary.Node{{Tag: "video"}}}},
+		}},
+	}}}
+	m.HandleCallOffer(context.Background(), video, peer)
+	if m.CurrentCall() == nil || m.CurrentCall().MediaType != core.CallMediaTypeVideo {
+		t.Fatalf("video dentro de destination/to deveria identificar videochamada: %+v", m.CurrentCall())
+	}
+}
+
 func TestIncomingVoiceOffer_HasNoVideoSsrcs(t *testing.T) {
 	m, spy, _ := newVideoRig(t, false)
 	m.mu.Lock()

@@ -24,6 +24,23 @@ func AUHasIDR(au []byte) bool {
 	return false
 }
 
+// PackAccessUnit monta o payload de uma access unit como o WhatsApp a espera: ela inteira vira UM NAL,
+// com os NALs separados por 00 00 00 01, sem start code no início e sem o AUD (tipo 9). Devolve nil se
+// não sobrar nenhum NAL.
+func PackAccessUnit(annexB []byte) []byte {
+	var packed []byte
+	for _, n := range SplitAnnexB(annexB) {
+		if len(n) == 0 || n[0]&0x1f == 9 {
+			continue
+		}
+		if len(packed) > 0 {
+			packed = append(packed, 0, 0, 0, 1)
+		}
+		packed = append(packed, n...)
+	}
+	return packed
+}
+
 // PackageH264NALU splits one NAL unit into RTP payloads: a single payload when it fits
 // the MTU budget, else FU-A fragments.
 func PackageH264NALU(nalu []byte) [][]byte {

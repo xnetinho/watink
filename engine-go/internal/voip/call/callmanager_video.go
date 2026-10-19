@@ -112,8 +112,11 @@ func (m *CallManager) onVideoRtp(data []byte, ssrc uint32) {
 	}
 	m.mu.Unlock()
 
-	if needPLI && onPLI != nil {
-		onPLI()
+	if needPLI {
+		m.sendVideoPLI(ssrc)
+		if onPLI != nil {
+			onPLI()
+		}
 	}
 	if rotationChanged && onOrient != nil {
 		onOrient(rotation)

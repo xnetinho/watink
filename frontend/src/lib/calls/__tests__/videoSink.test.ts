@@ -81,6 +81,17 @@ describe("VideoSink", () => {
     expect(Dec.last).toBeNull();
   });
 
+  // O canal não avisa que o contato desligou a câmera: o sink deduz pelo último quadro recebido.
+  it("isReceivingVideo é falso sem quadro e verdadeiro logo após um quadro", () => {
+    const sink = new VideoSink(Dec as never, Chunk as never);
+    expect(sink.isReceivingVideo()).toBe(false);
+    sink.attach(mkCanvas().c);
+    sink.push(key);
+    expect(sink.isReceivingVideo()).toBe(true);
+    sink.close();
+    expect(sink.isReceivingVideo()).toBe(false);
+  });
+
   // O celular em retrato manda a imagem deitada; a rotação vem em cada quadro (bits 1-2 de flags) e o
   // sink tem de girar o desenho. Sem isso a imagem aparecia virada para a esquerda.
   it("gira o desenho pela rotação do quadro e troca largura/altura do canvas nos quartos ímpares", () => {

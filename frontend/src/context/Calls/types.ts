@@ -57,6 +57,10 @@ export interface ActiveCall {
   /** Instante em que a mídia conectou de verdade: o cronômetro parte daqui. */
   connectedAt: number | null;
   muted: boolean;
+  /** A câmera do operador está ligada e sendo enviada ao contato (videochamada). */
+  camera: boolean;
+  /** Por que a câmera não ligou (permissão negada, ausente, erro do codificador). */
+  cameraFailure: string | null;
   recording: boolean;
   quality: CallQuality | null;
   /** Motivo do fim, quando phase === "ended". */

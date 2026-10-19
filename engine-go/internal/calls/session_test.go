@@ -61,6 +61,10 @@ type fakeHandle struct {
 	fed     []float32
 	rtt     int
 	relayUp bool
+
+	videoIn   []videoIn
+	camera    []cameraCmd
+	cameraErr error
 }
 
 func (h *fakeHandle) rec(s string) {
@@ -125,6 +129,17 @@ func (h *fakeHandle) FeedPCM(p []float32) {
 	h.fed = append(h.fed, p...)
 	h.mu.Unlock()
 }
+func (h *fakeHandle) SendVideo(au []byte, d time.Duration) {
+	h.mu.Lock()
+	h.videoIn = append(h.videoIn, videoIn{append([]byte(nil), au...), d})
+	h.mu.Unlock()
+}
+func (h *fakeHandle) SetCamera(_ context.Context, on bool, orientation int) error {
+	h.mu.Lock()
+	h.camera = append(h.camera, cameraCmd{on, orientation})
+	h.mu.Unlock()
+	return h.cameraErr
+}
 func (h *fakeHandle) RelayRTTMs() (int, bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -138,6 +153,16 @@ func (h *fakeHandle) RelayConnected() bool {
 func (h *fakeHandle) Abandon(reason string) {
 	h.rec("abandon:" + reason)
 	h.hooks.OnEnded(State{EndReason: reason})
+}
+
+type videoIn struct {
+	au []byte
+	d  time.Duration
+}
+
+type cameraCmd struct {
+	on          bool
+	orientation int
 }
 
 type published struct {
@@ -317,7 +342,10 @@ func TestUnsupportedTypes_GroupIsIgnored(t *testing.T) {
 func TestVideoOffer_RingsAsVideoCall(t *testing.T) {
 	r := newRig(t, false, nil)
 	video := offer(callA, pn("5511999990001"))
-	video.Data = &waBinary.Node{Tag: "offer", Content: []waBinary.Node{{Tag: "video"}}}
+	video.Data = &waBinary.Node{Tag: "offer", Content: []waBinary.Node{{
+		Tag:     "destination",
+		Content: []waBinary.Node{{Tag: "to", Content: []waBinary.Node{{Tag: "video"}}}},
+	}}}
 	r.s.OnOffer(context.Background(), video)
 
 	if len(r.evs("call.missed")) != 0 {
@@ -325,10 +353,24 @@ func TestVideoOffer_RingsAsVideoCall(t *testing.T) {
 	}
 	in := r.evs("call.incoming")
 	if len(in) != 1 || in[0]["media"] != "video" {
-		t.Fatalf("call.incoming deveria anunciar media=video: %v", in)
+		t.Fatalf("call.incoming deveria anunciar media=video para a forma real destination/to/video: %v", in)
 	}
 	if r.nHandles() != 1 {
 		t.Fatalf("a videochamada precisa de gerenciador: %d", r.nHandles())
+	}
+}
+
+func TestVideoOffer_NestedInDestinationIsAnnouncedAsVideo(t *testing.T) {
+	r := newRig(t, false, nil)
+	video := offer(callA, pn("5511999990001"))
+	video.Data = &waBinary.Node{Tag: "offer", Content: []waBinary.Node{{
+		Tag:     "destination",
+		Content: []waBinary.Node{{Tag: "to", Content: []waBinary.Node{{Tag: "video"}}}},
+	}}}
+	r.s.OnOffer(context.Background(), video)
+	in := r.evs("call.incoming")
+	if len(in) != 1 || in[0]["media"] != "video" {
+		t.Fatalf("vídeo aninhado no payload real deve anunciar media=video: %v", in)
 	}
 }
 

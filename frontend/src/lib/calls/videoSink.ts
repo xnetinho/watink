@@ -14,6 +14,9 @@ interface DecodedFrame {
 /** Quantas rotações pendentes guardar (um quadro decodificado sai depois de entrar; a fila é curta). */
 const MAX_PENDING_ROTATIONS = 64;
 
+/** Sem quadro novo por este tempo, o contato desligou a câmera (o WebSocket não avisa). */
+const VIDEO_GAP_MS = 3000;
+
 /**
  * Liga o vídeo do contato a um `<canvas>` SEM passar pelo estado do React: um re-render por quadro
  * (15-30 por segundo) seria péssimo. O painel registra o canvas; os quadros que chegam antes dele
@@ -25,6 +28,8 @@ export class VideoSink {
   /** Rotação de cada quadro, por timestamp (µs): o decoder devolve o quadro depois e fora de contexto. */
   private rotations = new Map<number, Rotation>();
   private lastRotation: Rotation = 0;
+  /** Instante do último quadro recebido do contato; zero enquanto nenhum chegou. */
+  private lastFrameAt = 0;
   /** Avisa o business que convém o contato mandar um quadro-chave. */
   onNeedKeyframe?: () => void;
 
@@ -43,7 +48,9 @@ export class VideoSink {
   }
 
   push(frame: VideoFrame): void {
-    if (!this.canvas || !this.supported) return;
+    if (!this.supported) return;
+    this.lastFrameAt = Date.now();
+    if (!this.canvas) return;
     if (!this.playback) {
       this.playback = new VideoPlayback({ DecoderCtor: this.DecoderCtor, ChunkCtor: this.ChunkCtor, onFrame: (f) => this.draw(f as DecodedFrame) });
       this.playback.onNeedKeyframe = () => this.onNeedKeyframe?.();
@@ -61,10 +68,16 @@ export class VideoSink {
     }
   }
 
+  /** O contato ainda está mandando imagem? Serve para trocar o quadro congelado por um aviso. */
+  isReceivingVideo(): boolean {
+    return this.lastFrameAt > 0 && Date.now() - this.lastFrameAt < VIDEO_GAP_MS;
+  }
+
   close(): void {
     this.playback?.close();
     this.playback = null;
     this.canvas = null;
+    this.lastFrameAt = 0;
     this.rotations.clear();
   }
 

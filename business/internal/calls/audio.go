@@ -15,6 +15,9 @@ const (
 	// é descartado: atraso acumulado é pior que um pico de ruído, e um destino
 	// lento nunca pode travar quem produz.
 	bridgeQueue = 50
+	// videoQueue limita o vídeo da câmera do operador a ~2 s (15 fps ≈ 30 quadros). Fila À PARTE do
+	// áudio: um quadro-chave grande nunca pode empurrar o PCM para fora, nem o contrário.
+	videoQueue = 32
 	// DropGrace é por quanto tempo o navegador pode ficar sem canal de áudio antes
 	// de a chamada ser encerrada.
 	DropGrace = 10 * time.Second
@@ -29,7 +32,9 @@ type Pipe struct {
 	dropped atomic.Int64
 }
 
-func newPipe() *Pipe { return &Pipe{ch: make(chan []byte, bridgeQueue)} }
+func newPipe() *Pipe { return newPipeSize(bridgeQueue) }
+
+func newPipeSize(n int) *Pipe { return &Pipe{ch: make(chan []byte, n)} }
 
 // Push enfileira um quadro sem nunca bloquear.
 func (p *Pipe) Push(f []byte) {
@@ -58,6 +63,8 @@ type Bridge struct {
 	// ToEngine leva o PCM do operador ao contato; ToBrowser leva o do contato ao operador.
 	ToEngine  *Pipe
 	ToBrowser *Pipe
+	// VideoToEngine leva a câmera do operador ao contato, numa fila separada do PCM.
+	VideoToEngine *Pipe
 	// Tap recebe uma cópia de cada quadro dos dois sentidos (gravação). Nunca bloqueia.
 	Tap func(fromOperator bool, frame []byte)
 
@@ -66,7 +73,7 @@ type Bridge struct {
 }
 
 func newBridge(callID string) *Bridge {
-	return &Bridge{CallID: callID, ToEngine: newPipe(), ToBrowser: newPipe(), done: make(chan struct{})}
+	return &Bridge{CallID: callID, ToEngine: newPipe(), ToBrowser: newPipe(), VideoToEngine: newPipeSize(videoQueue), done: make(chan struct{})}
 }
 
 // IsVideoFrame diz se a mensagem binária é um quadro de VÍDEO (prefixo FF 56 44 01 + cabeçalho), o
@@ -78,10 +85,11 @@ func IsVideoFrame(msg []byte) bool {
 // videoHeaderLen: prefixo (4) + flags (1) + timestamp de 90 kHz (4).
 const videoHeaderLen = 9
 
-// FromBrowser registra um quadro vindo do operador. O vídeo do navegador (envio, fase 2) ainda não é
-// suportado: é descartado em vez de seguir ao engine e à gravação como se fosse áudio.
+// FromBrowser registra um quadro vindo do operador. O vídeo da câmera segue ao engine pela fila própria e
+// NUNCA entra no Tap: o gravador é só de áudio.
 func (b *Bridge) FromBrowser(f []byte) {
 	if IsVideoFrame(f) {
+		b.VideoToEngine.Push(f)
 		return
 	}
 	if b.Tap != nil {

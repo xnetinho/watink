@@ -30,6 +30,39 @@ func NewEngineDialer(base string) EngineDialer {
 // ErrAudioNotConfigured: o business não sabe onde está o canal de áudio do engine.
 var ErrAudioNotConfigured = errors.New("canal de áudio das chamadas não configurado (defina ENGINE_HOST no business)")
 
+// maxVideoMessage é o maior quadro aceito do navegador: um quadro-chave de 640x480 a 600 kbps passa de 64 KB
+// com folga em cenas com movimento.
+const maxVideoMessage = 512 * 1024
+
+// cameraCommand é o comando de texto do navegador para ligar/desligar a câmera. O business o valida e
+// o reserializa: nunca repassa texto cru do navegador ao engine.
+type cameraCommand struct {
+	Type        string `json:"type"`
+	On          bool   `json:"on"`
+	Orientation int    `json:"orientation"`
+}
+
+// parseCameraCommand devolve o comando já saneado (orientação fora de 0..3 vira 0). ok=false para qualquer
+// outro texto.
+func parseCameraCommand(raw []byte) (cameraCommand, bool) {
+	var c cameraCommand
+	if json.Unmarshal(raw, &c) != nil || c.Type != "camera" {
+		return cameraCommand{}, false
+	}
+	if c.Orientation < 0 || c.Orientation > 3 {
+		c.Orientation = 0
+	}
+	return c, true
+}
+
+// isKeyframeRequest diz se o texto do engine é o pedido de quadro-chave para o navegador.
+func isKeyframeRequest(raw []byte) bool {
+	var c struct {
+		Type string `json:"type"`
+	}
+	return json.Unmarshal(raw, &c) == nil && c.Type == "keyframe"
+}
+
 // Telemetry é o que o engine manda como texto no WebSocket de áudio.
 type Telemetry struct {
 	Type        string   `json:"type"`
@@ -92,7 +125,7 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 	}
 	defer func() { _ = eng.CloseNow() }()
 	eng.SetReadLimit(1 << 20)
-	browser.SetReadLimit(64 * 1024)
+	browser.SetReadLimit(maxVideoMessage)
 
 	rctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -104,8 +137,16 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 			if err != nil {
 				return
 			}
-			if typ == websocket.MessageBinary && len(data) > 0 {
+			switch {
+			case typ == websocket.MessageBinary && len(data) > 0:
 				br.FromBrowser(data)
+			case typ == websocket.MessageText:
+				if c, ok := parseCameraCommand(data); ok {
+					raw, _ := json.Marshal(c)
+					wctx, wc := context.WithTimeout(rctx, 2*time.Second)
+					_ = eng.Write(wctx, websocket.MessageText, raw)
+					wc()
+				}
 			}
 		}
 	}()
@@ -120,11 +161,18 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 			case websocket.MessageBinary:
 				br.FromEngine(data)
 			case websocket.MessageText:
+				if isKeyframeRequest(data) {
+					wctx, wc := context.WithTimeout(rctx, 2*time.Second)
+					_ = browser.Write(wctx, websocket.MessageText, data)
+					wc()
+					continue
+				}
 				s.handleTelemetry(ctx, tenantID, data)
 			}
 		}
 	}()
 	go pump(rctx, cancel, br.ToEngine, eng)
+	go pump(rctx, cancel, br.VideoToEngine, eng)
 	go pump(rctx, cancel, br.ToBrowser, browser)
 
 	<-rctx.Done()

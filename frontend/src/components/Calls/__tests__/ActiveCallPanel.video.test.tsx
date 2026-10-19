@@ -39,4 +39,25 @@ describe("ActiveCallPanel — vídeo", () => {
     render(withCalls(makeCtx({ active: baseCall({ media: "video", phase: "ended" }), videoSink: sinkOf(true) }), <ActiveCallPanel />));
     expect(screen.queryByTestId("call-video")).not.toBeInTheDocument();
   });
+
+  it("contato desligou a câmera: avisa em vez de deixar a imagem congelada", () => {
+    const sink = sinkOf(true);
+    sink.isReceivingVideo = () => false;
+    render(withCalls(makeCtx({ active: baseCall({ media: "video", phase: "active", connectedAt: Date.now() - 10_000 }), videoSink: sink }), <ActiveCallPanel />));
+    expect(screen.getByTestId("video-paused")).toHaveTextContent(/desativou a câmera/i);
+  });
+
+  it("enquanto chegam quadros não avisa nada", () => {
+    const sink = sinkOf(true);
+    sink.isReceivingVideo = () => true;
+    render(withCalls(makeCtx({ active: baseCall({ media: "video", phase: "active", connectedAt: Date.now() - 10_000 }), videoSink: sink }), <ActiveCallPanel />));
+    expect(screen.queryByTestId("video-paused")).not.toBeInTheDocument();
+  });
+
+  it("nos primeiros segundos não acusa câmera desligada (o quadro-chave ainda está vindo)", () => {
+    const sink = sinkOf(true);
+    sink.isReceivingVideo = () => false;
+    render(withCalls(makeCtx({ active: baseCall({ media: "video", phase: "active", connectedAt: Date.now() }), videoSink: sink }), <ActiveCallPanel />));
+    expect(screen.queryByTestId("video-paused")).not.toBeInTheDocument();
+  });
 });

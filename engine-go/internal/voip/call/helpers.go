@@ -1,16 +1,16 @@
 package call
 
 import (
-	"strings"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/wanode"
+	"strings"
 
 	waBinary "go.mau.fi/whatsmeow/binary"
 )
 
 func hasChildTag(n *waBinary.Node, tag string) bool {
 	for _, c := range wanode.NodeChildren(n) {
-		if c.Tag == tag {
+		if c.Tag == tag || hasChildTag(&c, tag) {
 			return true
 		}
 	}
