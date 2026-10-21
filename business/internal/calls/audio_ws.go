@@ -55,12 +55,13 @@ func parseCameraCommand(raw []byte) (cameraCommand, bool) {
 	return c, true
 }
 
-// isKeyframeRequest diz se o texto do engine é o pedido de quadro-chave para o navegador.
+// isKeyframeRequest diz se o texto do engine é um controle para o navegador (pedido de quadro-chave ou
+// bitrate estimado pelo contato), repassado sem interpretar. O nome ficou pelo uso original.
 func isKeyframeRequest(raw []byte) bool {
 	var c struct {
 		Type string `json:"type"`
 	}
-	return json.Unmarshal(raw, &c) == nil && c.Type == "keyframe"
+	return json.Unmarshal(raw, &c) == nil && (c.Type == "keyframe" || c.Type == "bitrate")
 }
 
 // Telemetry é o que o engine manda como texto no WebSocket de áudio.

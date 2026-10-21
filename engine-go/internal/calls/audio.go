@@ -72,12 +72,15 @@ type AudioPipe struct {
 
 // Control é uma mensagem de controle engine → navegador, em texto JSON no mesmo WebSocket.
 type Control struct {
-	Type string `json:"type"`
+	Type    string `json:"type"`
+	Bitrate uint32 `json:"bitrate,omitempty"`
 }
 
 const (
 	// controlKeyframe pede ao codificador da câmera um quadro-chave agora (o contato perdeu o vídeo).
 	controlKeyframe = "keyframe"
+	// controlBitrate leva ao navegador o bitrate estimado pelo contato (REMB) para ajustar o codificador.
+	controlBitrate = "bitrate"
 	// minVideoStep e maxVideoStep limitam a duração deduzida entre dois quadros da câmera: fora disso o
 	// relógio do navegador não é confiável e vale o padrão.
 	minVideoStep = 10 * time.Millisecond
@@ -318,6 +321,14 @@ func (s *Session) wireMedia(ac *activeCall) {
 			s.mu.Unlock()
 			if p != nil {
 				p.pushControl(Control{Type: controlKeyframe})
+			}
+		},
+		OnEstimatedBitrateChanged: func(bps uint32) {
+			s.mu.Lock()
+			p := ac.pipe
+			s.mu.Unlock()
+			if p != nil {
+				p.pushControl(Control{Type: controlBitrate, Bitrate: bps})
 			}
 		},
 	})
