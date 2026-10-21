@@ -163,7 +163,7 @@ func (m *SctpRelayManager) connectToRelay(info RelayConfig) {
 
 	pc.OnICEConnectionStateChange(func(s webrtc.ICEConnectionState) {
 		m.log.Info("relay ice state", "id", id, "state", s.String())
-		if s == webrtc.ICEConnectionStateFailed || s == webrtc.ICEConnectionStateDisconnected {
+		if s == webrtc.ICEConnectionStateFailed {
 			m.failConnection(conn)
 		}
 	})
