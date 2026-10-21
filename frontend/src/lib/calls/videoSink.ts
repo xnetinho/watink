@@ -30,6 +30,7 @@ export class VideoSink {
   private lastRotation: Rotation = 0;
   /** Instante do último quadro recebido do contato; zero enquanto nenhum chegou. */
   private lastFrameAt = 0;
+  private hasReceivedFrame = false;
   /** Avisa o business que convém o contato mandar um quadro-chave. */
   onNeedKeyframe?: () => void;
 
@@ -42,6 +43,10 @@ export class VideoSink {
     return !!this.DecoderCtor && !!this.ChunkCtor;
   }
 
+  get hasReceivedAnyFrame(): boolean {
+    return this.hasReceivedFrame;
+  }
+
   /** Chamado pelo painel com o canvas (ou null ao sair). */
   attach(canvas: HTMLCanvasElement | null): void {
     this.canvas = canvas;
@@ -49,6 +54,7 @@ export class VideoSink {
 
   push(frame: VideoFrame): void {
     if (!this.supported) return;
+    this.hasReceivedFrame = true;
     this.lastFrameAt = Date.now();
     if (!this.canvas) return;
     if (!this.playback) {
@@ -78,6 +84,7 @@ export class VideoSink {
     this.playback = null;
     this.canvas = null;
     this.lastFrameAt = 0;
+    this.hasReceivedFrame = false;
     this.rotations.clear();
   }
 

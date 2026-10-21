@@ -67,6 +67,8 @@ export function makeCtx(over: Partial<CallsContextValue> = {}): CallsContextValu
     dismiss: vi.fn(),
     audioLevels: { tx: 0, rx: 0 },
     videoSink: new VideoSink(undefined, undefined),
+    localStream: null,
+    applyDeviceSettings: vi.fn(async () => undefined),
     ...over,
   };
 }

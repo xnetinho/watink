@@ -39,3 +39,27 @@ export function storeDevices(sel: SelectedDevices): void {
     /* ignore */
   }
 }
+
+/** Toca um som de teste curto ("ding-dong") no alto-falante selecionado para validação imediata do operador. */
+export function playTestSound(sinkId?: string): Promise<void> {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (sinkId && typeof (ctx as unknown as { setSinkId?: (id: string) => Promise<void> }).setSinkId === "function") {
+      void (ctx as unknown as { setSinkId: (id: string) => Promise<void> }).setSinkId(sinkId).catch(() => {});
+    }
+    osc.start();
+    osc.stop(ctx.currentTime + 0.6);
+    return new Promise((resolve) => setTimeout(resolve, 600));
+  } catch {
+    return Promise.resolve();
+  }
+}

@@ -56,7 +56,7 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
   recordingAvailable = false,
   recordingMode = "off",
 }) => {
-  const { active, end, setMuted, setCamera, canSendVideo, startRecording, stopRecording, dismiss, videoSink } = useCalls();
+  const { active, end, setMuted, setCamera, canSendVideo, startRecording, stopRecording, dismiss, videoSink, localStream, applyDeviceSettings } = useCalls();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -102,8 +102,8 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
   const canCamera = isVideoCall && canSendVideo && (active.phase === "active" || active.phase === "connecting");
   const cameraFailure = active.cameraFailure ? t(CAMERA_FAILURE_KEY[active.cameraFailure] ?? "calls.active.cameraUnavailable") : null;
   const cameraUnsupported = isVideoCall && !canSendVideo;
-  // Os primeiros segundos não contam: o quadro-chave do contato ainda está a caminho.
-  const videoPaused = showVideo && active.phase === "active" && !receivingVideo && now - (active.connectedAt ?? now) > 4000;
+  // Só avisa que a câmera foi desativada se um quadro já chegou antes e depois parou por mais de 5 s
+  const videoPaused = showVideo && active.phase === "active" && videoSink.hasReceivedAnyFrame && !receivingVideo && now - (active.connectedAt ?? now) > 5000;
 
   return (
     <div
@@ -121,13 +121,6 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
             {phaseLabel(active, now)}
           </p>
         </div>
-      <DeviceSettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onSave={(audioId, videoId, bgMode) => {
-          console.log("Applied devices/bg:", { audioId, videoId, bgMode });
-        }}
-      />
         {ended && (
           <Button variant="ghost" size="icon" onClick={dismiss} aria-label={t("calls.active.close")}>
             <X />
@@ -135,6 +128,30 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
         )}
       </div>
 
+      <DeviceSettingsModal
+        open={settingsOpen}
+        currentStream={localStream}
+        onClose={() => setSettingsOpen(false)}
+        onSave={applyDeviceSettings}
+      />
+
+      {active && active.media === "video" && active.camera && localStream && (
+        <div className="relative mb-2">
+          <video
+            ref={(node) => {
+              if (node && node.srcObject !== localStream) {
+                node.srcObject = localStream;
+                void node.play().catch(() => {});
+              }
+            }}
+            muted
+            playsInline
+            className="max-h-40 w-full rounded-xl bg-black object-contain transform -scale-x-100"
+            aria-label="Sua câmera (self-view)"
+          />
+          <span className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">Você</span>
+        </div>
+      )}
       {showVideo && (
         <div className="relative">
           <canvas

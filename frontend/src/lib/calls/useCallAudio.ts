@@ -14,6 +14,7 @@ import {
 } from "./pcm";
 import { CAPTURE_PROCESSOR, PLAYBACK_PROCESSOR, loadCallWorklets } from "./worklet";
 import { decodeVideoFrame, isVideoFrame, type VideoFrame } from "./videoFrame";
+import { getStoredDevices } from "./deviceManager";
 
 export type AudioFailure = "mic_denied" | "mic_unavailable" | "socket" | "unsupported" | "audio_unavailable";
 
@@ -84,6 +85,9 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
   const videoRef = useRef(onVideoFrame);
   const keyframeRef = useRef(onKeyframeRequested);
   const bitrateRef = useRef(onEstimatedBitrate);
+  const sinkElRef = useRef<HTMLAudioElement | null>(null);
+  const ctxRef = useRef<AudioContext | null>(null);
+  const playbackRef = useRef<AudioWorkletNode | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [levels, setLevels] = useState({ tx: 0, rx: 0 });
@@ -98,6 +102,19 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
     bitrateRef.current = onEstimatedBitrate;
     keyframeRef.current = onKeyframeRequested;
   }, [onFailure, onTelemetry, onVideoFrame, onKeyframeRequested, onEstimatedBitrate]);
+
+  /** Desvia a reprodução para um <audio> com a saída escolhida; só desliga o destino padrão se o <audio> tocar. */
+  const routeToSink = async (ctx: AudioContext, playback: AudioWorkletNode, sinkId: string) => {
+    const sink = ctx.createMediaStreamDestination();
+    const el = new Audio();
+    el.srcObject = sink.stream;
+    if (typeof el.setSinkId !== "function") return;
+    await el.setSinkId(sinkId);
+    await el.play();
+    playback.connect(sink);
+    playback.disconnect(ctx.destination);
+    sinkElRef.current = el;
+  };
 
   const cleanupRef = useRef<(() => void) | null>(null);
   const teardown = useCallback(() => {
@@ -130,13 +147,29 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
       wsRef.current = null;
       stream?.getTracks().forEach((t) => t.stop());
       void ctx?.close().catch(() => undefined);
+      ctxRef.current = null;
+      playbackRef.current = null;
+      if (sinkElRef.current) {
+        sinkElRef.current.pause();
+        sinkElRef.current.srcObject = null;
+        sinkElRef.current = null;
+      }
     };
     cleanupRef.current = stop;
 
     (async () => {
       try {
+        const stored = getStoredDevices();
+        const audioConstraints: MediaTrackConstraints = {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        };
+        if (stored.audioInputId) {
+          audioConstraints.deviceId = { ideal: stored.audioInputId };
+        }
         stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          audio: audioConstraints,
         });
       } catch (err) {
         if (!disposed) failureRef.current(classifyMicError(err));
@@ -145,6 +178,7 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
       if (disposed) { stream.getTracks().forEach((t) => t.stop()); return; }
 
       ctx = new AudioContext();
+      ctxRef.current = ctx;
       try {
         await loadCallWorklets(ctx);
       } catch {
@@ -156,8 +190,15 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
       const source = ctx.createMediaStreamSource(stream);
       const capture = new AudioWorkletNode(ctx, CAPTURE_PROCESSOR);
       const playback = new AudioWorkletNode(ctx, PLAYBACK_PROCESSOR, { outputChannelCount: [1] });
+      playbackRef.current = playback;
       source.connect(capture);
+      // Saída padrão: caminho original (direto no destino do contexto), sem nada que possa travar a chamada.
+      // Só quando o operador escolheu outro alto-falante a saída passa por um <audio> com setSinkId, e isso
+      // roda em segundo plano: se falhar ou demorar, o áudio já está tocando no padrão.
       playback.connect(ctx.destination);
+      if (ctx.state === "suspended") void ctx.resume().catch(() => undefined);
+      const outId = getStoredDevices().audioOutputId;
+      if (outId) void routeToSink(ctx, playback, outId).catch(() => undefined);
 
       ws = new WebSocket(audioUrl(callId));
       wsRef.current = ws;
@@ -231,5 +272,22 @@ export function useCallAudio({ callId, enabled, muted, onFailure, onTelemetry, o
     return true;
   }, []);
 
-  return { connected, levels, stop: teardown, sendBinary, sendCameraCommand };
+  /** Troca o alto-falante / fone de ouvido da chamada (sinkId). Cria o <audio> se ainda não existir. */
+  const setAudioOutput = useCallback(async (sinkId: string) => {
+    const ctx = ctxRef.current;
+    const pb = playbackRef.current;
+    if (!ctx || !pb) return;
+    // Já tem elemento: só troca o sink.
+    if (sinkElRef.current) {
+      if (typeof sinkElRef.current.setSinkId === "function") {
+        try { await sinkElRef.current.setSinkId(sinkId); } catch (err) { console.warn("setSinkId failed:", err); }
+      }
+      return;
+    }
+    // Não tem elemento: cria a rota alternativa agora.
+    try { await routeToSink(ctx, pb, sinkId); } catch (err) { console.warn("routeToSink failed:", err); }
+  }, []);
+
+
+  return { connected, levels, stop: teardown, sendBinary, sendCameraCommand, setAudioOutput };
 }

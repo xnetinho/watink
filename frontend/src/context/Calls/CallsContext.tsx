@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { AuthContext } from "../Auth/AuthContext";
 import { check } from "../../components/Can";
 import api from "../../services/api";
@@ -8,6 +8,12 @@ import type { ActiveCall, CallEventPayload, CallQuality } from "./types";
 import { useCallAudio, type AudioFailure, type CallTelemetry } from "../../lib/calls/useCallAudio";
 import { VideoSink } from "../../lib/calls/videoSink";
 import { CameraSender, browserCameraDeps, type CameraFailure } from "../../lib/calls/cameraSender";
+import {
+  VirtualBackgroundProcessor,
+  type BackgroundMode,
+  type VirtualBackgroundConfig,
+} from "../../lib/calls/virtualBackground";
+import { storeDevices } from "../../lib/calls/deviceManager";
 import { detectVideoSupport } from "../../lib/calls/videoSupport";
 import type { VideoFrame } from "../../lib/calls/videoFrame";
 import { notify } from "../../lib/notify";
@@ -28,7 +34,7 @@ export interface CallsContextValue {
   end: () => Promise<void>;
   setMuted: (muted: boolean) => void;
   /** Liga/desliga a câmera do operador na videochamada (só Chromium: `canSendVideo`). */
-  setCamera: (on: boolean) => Promise<void>;
+  setCamera: (on: boolean, deviceId?: string, bgConfig?: VirtualBackgroundConfig) => Promise<void>;
   /** O navegador consegue ENVIAR a câmera (WebCodecs + MediaStreamTrackProcessor). */
   canSendVideo: boolean;
   setPaused: (paused: boolean) => void;
@@ -38,6 +44,10 @@ export interface CallsContextValue {
   audioLevels: { tx: number; rx: number };
   /** Desenha o vídeo do contato num canvas; o painel o registra com `attach`. */
   videoSink: VideoSink;
+  /** Stream local da câmera do operador (para preview e self-view). */
+  localStream: MediaStream | null;
+  /** Aplica preferências de microfone, câmera, speaker e fundo. */
+  applyDeviceSettings: (audioId: string, videoId: string, audioOutputId: string, bgMode: BackgroundMode, bgImageUrl?: string) => Promise<void>;
 }
 
 const noop = async () => undefined;
@@ -62,6 +72,8 @@ export const CallsContext = createContext<CallsContextValue>({
   dismiss: () => undefined,
   audioLevels: { tx: 0, rx: 0 },
   videoSink: new VideoSink(undefined, undefined),
+  localStream: null,
+  applyDeviceSettings: noop,
 });
 
 export const useCalls = () => useContext(CallsContext);
@@ -270,12 +282,17 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // A câmera do operador: um CameraSender por chamada. O contato pede quadro-chave (PLI) pelo canal.
   const cameraRef = useRef<CameraSender | null>(null);
-  const audioApiRef = useRef<{ sendBinary: (m: Uint8Array) => boolean; sendCameraCommand: (on: boolean, o?: number) => boolean } | null>(null);
+  const bgProcessorRef = useRef<VirtualBackgroundProcessor>(new VirtualBackgroundProcessor());
+  const currentBgConfigRef = useRef<VirtualBackgroundConfig>({ mode: "none" });
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const audioApiRef = useRef<{ sendBinary: (m: Uint8Array) => boolean; sendCameraCommand: (on: boolean, o?: number) => boolean; setAudioOutput: (sinkId: string) => Promise<void> } | null>(null);
   const canSendVideo = useMemo(() => detectVideoSupport().canSend, []);
   const onKeyframeRequested = useCallback(() => cameraRef.current?.requestKeyframe(), []);
   const stopCamera = useCallback(() => {
     const cam = cameraRef.current;
     cameraRef.current = null;
+    bgProcessorRef.current.stop();
+    setLocalStream(null);
     if (cam?.active) {
       cam.stop();
       audioApiRef.current?.sendCameraCommand(false);
@@ -303,10 +320,12 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => () => {
     cameraRef.current?.stop();
     cameraRef.current = null;
+    bgProcessorRef.current.stop();
+    setLocalStream(null);
   }, [callId]);
 
   const setCamera = useCallback(
-    async (on: boolean) => {
+    async (on: boolean, deviceId?: string, bgConfig?: VirtualBackgroundConfig) => {
       const a = stateRef.current.active;
       if (!a || a.media !== "video") return;
       if (!on) {
@@ -315,18 +334,47 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return;
       }
       if (cameraRef.current?.active || !canSendVideo) return;
+      if (bgConfig) {
+        currentBgConfigRef.current = bgConfig;
+      }
+      const activeBg = currentBgConfigRef.current;
+
       const cam = new CameraSender({
         deps: browserCameraDeps(),
         send: (m) => { audioApiRef.current?.sendBinary(m); },
         onFailure: (reason: CameraFailure) => {
           cameraRef.current = null;
+          bgProcessorRef.current.stop();
+          setLocalStream(null);
           audioApiRef.current?.sendCameraCommand(false);
           dispatch({ type: "camera", on: false, failure: reason });
         },
       });
       cameraRef.current = cam;
-      if (await cam.start()) {
+
+      let customStream: MediaStream | undefined;
+      let rawStream: MediaStream | null = null;
+      if (activeBg.mode !== "none") {
+        try {
+          const videoConstraints: Record<string, unknown> = {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 15 },
+            facingMode: "user",
+          };
+          if (deviceId) {
+            videoConstraints.deviceId = { exact: deviceId };
+          }
+          rawStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+          customStream = await bgProcessorRef.current.start(rawStream, activeBg);
+        } catch {
+          /* fallback to normal camera */
+        }
+      }
+
+      if (await cam.start(deviceId, customStream as unknown as import("../../lib/calls/cameraSender").StreamLike)) {
         if (cameraRef.current !== cam) { cam.stop(); return; }
+        setLocalStream(customStream || (cam.mediaStream as unknown as MediaStream) || rawStream);
         audioApiRef.current?.sendCameraCommand(true, 0);
         dispatch({ type: "camera", on: true });
       }
@@ -334,6 +382,24 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [canSendVideo, stopCamera],
   );
 
+  const applyDeviceSettings = useCallback(
+    async (audioId: string, videoId: string, audioOutputId: string, bgMode: BackgroundMode, bgImageUrl?: string) => {
+      storeDevices({ audioInputId: audioId, audioOutputId, videoInputId: videoId });
+      if (audioOutputId) {
+        void audioApiRef.current?.setAudioOutput(audioOutputId);
+      }
+      const newBg: VirtualBackgroundConfig = { mode: bgMode, imageUrl: bgImageUrl };
+      currentBgConfigRef.current = newBg;
+
+      if (cameraRef.current?.active) {
+        stopCamera();
+        setTimeout(() => {
+          void setCamera(true, videoId, newBg);
+        }, 150);
+      }
+    },
+    [setCamera, stopCamera],
+  );
 
   const value = useMemo<CallsContextValue>(
     () => ({
@@ -356,8 +422,10 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       dismiss,
       audioLevels: audio.levels,
       videoSink,
+      localStream,
+      applyDeviceSettings,
     }),
-    [state, canReceive, canPlace, active, accept, reject, place, end, setMuted, setCamera, canSendVideo, setPaused, startRecording, stopRecording, dismiss, audio.levels, videoSink],
+    [state, canReceive, canPlace, active, accept, reject, place, end, setMuted, setCamera, canSendVideo, setPaused, startRecording, stopRecording, dismiss, audio.levels, videoSink, localStream, applyDeviceSettings],
   );
 
   return <CallsContext.Provider value={value}>{children}</CallsContext.Provider>;

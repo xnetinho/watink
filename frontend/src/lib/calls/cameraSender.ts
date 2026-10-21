@@ -109,6 +109,8 @@ export class CameraSender {
   private reader: ReaderLike | null = null;
   private running = false;
   private forceKey = true;
+  private keyframeCount = 0;
+  private currentBitrate: number = CAMERA.bitrate;
   private lastKeyAt = 0;
   private lastFrameAt = 0;
   private orientation: 0 | 1 | 2 | 3 = 0;
@@ -121,6 +123,10 @@ export class CameraSender {
     return this.running;
   }
 
+  get mediaStream(): StreamLike | null {
+    return this.stream;
+  }
+
   /** Gira a imagem que o contato verá: quartos de volta horários (0..3), como o CVO do WhatsApp. */
   setOrientation(quarters: 0 | 1 | 2 | 3): void {
     this.orientation = quarters;
@@ -131,18 +137,31 @@ export class CameraSender {
     this.forceKey = true;
   }
 
-  async start(): Promise<boolean> {
+  async start(deviceId?: string, customStream?: StreamLike): Promise<boolean> {
     if (this.running) return true;
     const { deps, onFailure } = this.opts;
     let stream: StreamLike;
-    try {
-      stream = await deps.getStream({
-        video: { width: { ideal: CAMERA.width }, height: { ideal: CAMERA.height }, frameRate: { ideal: CAMERA.fps }, facingMode: "user" },
-        audio: false,
-      });
-    } catch (err) {
-      onFailure(classifyCameraError(err));
-      return false;
+    if (customStream) {
+      stream = customStream;
+    } else {
+      try {
+        const videoConstraints: Record<string, unknown> = {
+          width: { ideal: CAMERA.width },
+          height: { ideal: CAMERA.height },
+          frameRate: { ideal: CAMERA.fps },
+          facingMode: "user",
+        };
+        if (deviceId) {
+          videoConstraints.deviceId = { exact: deviceId };
+        }
+        stream = await deps.getStream({
+          video: videoConstraints,
+          audio: false,
+        });
+      } catch (err) {
+        onFailure(classifyCameraError(err));
+        return false;
+      }
     }
     const track = stream.getVideoTracks()[0];
     if (!track) {
@@ -175,6 +194,7 @@ export class CameraSender {
     this.reader = deps.readerFor(track);
     this.running = true;
     this.forceKey = true;
+    this.keyframeCount = 0;
     this.baseTs = null;
     this.lastFrameAt = -Infinity;
     this.lastKeyAt = -Infinity;
@@ -244,16 +264,20 @@ export class CameraSender {
   setBitrate(bitrate: number): void {
     const enc = this.encoder;
     if (!enc || enc.state === "closed") return;
+    const target = Math.max(150_000, Math.min(450_000, bitrate));
+    if (Math.abs(target - this.currentBitrate) < 75_000) return;
+    this.currentBitrate = target;
     try {
       enc.configure({
         codec: CAMERA.codec,
         width: CAMERA.width,
         height: CAMERA.height,
-        bitrate,
-        fps: CAMERA.fps,
+        bitrate: target,
+        framerate: CAMERA.fps,
         latencyMode: "realtime",
         avc: { format: "annexb" },
       });
+      this.forceKey = true;
     } catch {
       /* ignore reconfigure error */
     }

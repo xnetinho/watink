@@ -5,9 +5,12 @@ import ActiveCallPanel from "../ActiveCallPanel";
 import { baseCall, makeCtx, withCalls } from "./helpers";
 import { VideoSink } from "@/lib/calls/videoSink";
 
-const sinkOf = (supported: boolean) => {
+const sinkOf = (supported: boolean, hasReceived = true) => {
   const s = new VideoSink(supported ? (class {} as never) : undefined, supported ? (class {} as never) : undefined);
   s.attach = vi.fn();
+  if (hasReceived) {
+    Object.defineProperty(s, "hasReceivedAnyFrame", { get: () => true });
+  }
   return s;
 };
 
