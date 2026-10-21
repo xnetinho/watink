@@ -78,17 +78,11 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 		targetJID = msg.ConversationKey
 	}
 
+	msgID := "3EB0" + fmt.Sprintf("%016X", time.Now().UnixNano())
+
 	// Se for envio de mídia
 	if msg.MediaType != "" && msg.MediaType != "chat" {
-		mediaMsg := domain.WhatsAppMediaMessage{
-			JID:      targetJID,
-			URL:      msg.MediaURL,
-			Data:     msg.MediaData,
-			Type:     msg.MediaType,
-			Caption:  msg.Body,
-			QuotedID: msg.QuotedMessageID,
-		}
-		effID, err := eng.SendMedia(ctx, wa, mediaMsg)
+		effID, err := eng.SendMedia(ctx, wa, targetJID, msgID, msg.MediaType, msg.MediaURL, "")
 		if err != nil {
 			return domain.SendResult{}, err
 		}
@@ -100,12 +94,7 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 	}
 
 	// Envio de texto padrão
-	textMsg := domain.WhatsAppTextMessage{
-		JID:      targetJID,
-		Body:     msg.Body,
-		QuotedID: msg.QuotedMessageID,
-	}
-	effID, err := eng.SendText(ctx, wa, textMsg)
+	effID, err := eng.SendText(ctx, wa, targetJID, msgID, msg.Body)
 	if err != nil {
 		return domain.SendResult{}, err
 	}
