@@ -7,6 +7,35 @@
 > Origem do código portado, a registrar em `engine-go/internal/voip/NOTICE.md`: `purpshell/meowcaller`
 > (MIT, Rajeh Taher), `fabriciosprj/WaCalls-Video` e `arthost/WaCalls` (MIT, jotadev66).
 
+## BUG ABERTO — vídeo do operador congela de forma intermitente (20/out/2026)
+
+O vídeo do operador chega fluido ao celular na maioria das chamadas, mas em algumas congela num quadro e
+não volta. Ligar/desligar a câmera mostra sempre o mesmo quadro congelado. Tratado como bug, não como
+funcionalidade pendente: a fase 2 continua marcada como entregue.
+
+**Medido (chamada que congelou):** relays conectados, SRTCP do contato autenticado, SSRC de vídeo igual na
+alocação do relay e no envio, `au_sent` 65–68 por janela de 5 s, `idr_sent` 2–3 (IDR a cada ~2 s), `pli=0`,
+`au_gated=0`, nenhum erro. O engine entrega tudo ao relay.
+
+**Já refutado (não repetir):** navegador parar de gerar IDR; descasamento de SSRC de vídeo; SPS/PPS fora de
+STAP-A; reenvio do primeiro IDR; falta de NACK (nenhum PT 205 chegou do contato, não há prova de que seja a
+causa).
+
+**Corrigido no caminho (commits de 20/out):** `VideoFrameInfoDelta` 0x20 → 0x00; empacotamento `PacketizeAu`
+(STAP-A para SPS+PPS, um pacote por slice); REMB agora chega ao encoder.
+
+**Candidatos sem prova:** `short_offset` e `initial_bandwidth` sempre 0 (o Android real manda `short_offset`
+29/36); ausência de FEC de vídeo (o contato manda PT 225/231, não identificados); perfil H.264 que o navegador
+produz variar entre chamadas.
+
+**Próximo passo:** capturar o que o decoder do celular registra durante o congelamento (`adb logcat` do
+WhatsApp/`MediaCodec` por depuração sem fio) e comparar byte a byte um pacote de vídeo nosso com um do contato.
+
+- [ ] B.1 Reproduzir e capturar o `logcat` do celular na chamada congelada
+- [ ] B.2 Comparar cabeçalho RTP/extensão 0xdebe e NAL types: pacote nosso × pacote do contato
+- [ ] B.3 Corrigir a causa provada e validar em 10 chamadas seguidas sem congelar
+- [ ] B.4 Teste de regressão que cubra a causa
+
 ## 0. Base de sinalização e mídia (sem UI)
 
 - [x] 0.1 Trocar o `<video>` do `offer`/`accept`/`preaccept` de `vp8` para H.264 (`enc="h.264" dec="H264"
