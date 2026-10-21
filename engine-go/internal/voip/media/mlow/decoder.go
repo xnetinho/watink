@@ -69,9 +69,36 @@ func (d *MlowDecoder) Decode(payload []byte) []float32 {
 			main = frames[len(frames)-1].Data // the main (current) frame is last
 		}
 		d.log.Trace().Int("red_frames", len(frames)).Int("main_bytes", len(main)).Msg("decode: RED depacked")
-		return d.decodeFrame(main)
+		return d.decodeInner(main)
+	}
+	return d.decodeInner(payload)
+}
+
+// decodeInner routes one bare MLow payload: multiframe envelope, or a single frame.
+//
+// The envelope is checked before the TOC is read, because under the TOC grammar its first byte
+// reads as a SID (bit 7 set). A decoder that skips this check answers every packet of such a
+// call with comfort noise and reports nothing: total silence with no symptom at all.
+func (d *MlowDecoder) decodeInner(payload []byte) []float32 {
+	if IsMultiframe(payload) {
+		return d.decodeMultiframe(payload)
 	}
 	return d.decodeFrame(payload)
+}
+
+// decodeMultiframe decodes every sub-frame of an envelope, in transmission order, into one
+// contiguous packet.
+func (d *MlowDecoder) decodeMultiframe(payload []byte) []float32 {
+	frames, err := SplitMultiframe(payload)
+	if err != nil {
+		d.log.Debug().Err(err).Msg("decode: multiframe split failed, emitting silence")
+		return make([]float32, opusFrameSamps)
+	}
+	out := make([]float32, 0, len(frames)*SmplIntfLen)
+	for _, frame := range frames {
+		out = append(out, d.decodeFrame(frame)...)
+	}
+	return out
 }
 
 func (d *MlowDecoder) decodeFrame(frame []byte) []float32 {
