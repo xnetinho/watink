@@ -17,15 +17,18 @@ type Ticket struct {
 	IsCommunity    bool      `gorm:"column:isCommunity;not null;default:false" json:"isCommunity"`
 	IsSubGroup     bool      `gorm:"column:isSubGroup;not null;default:false" json:"isSubGroup"`
 	UnreadMessages int       `gorm:"column:unreadMessages" json:"unreadMessages"`
-	QueueID        *int      `gorm:"column:queueId" json:"queueId"`
-	TenantID       uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
-	CreatedAt      time.Time `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt      time.Time `gorm:"column:updatedAt" json:"updatedAt"`
+	QueueID             *int      `gorm:"column:queueId" json:"queueId"`
+	TenantID            uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
+	ChannelConnectionID *int      `gorm:"column:channelConnectionId;index:idx_tickets_channel_conn" json:"channelConnectionId,omitempty"`
+	ConversationKey     string    `gorm:"column:conversationKey;size:255;index:idx_tickets_conv_key" json:"conversationKey,omitempty"`
+	CreatedAt           time.Time `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt           time.Time `gorm:"column:updatedAt" json:"updatedAt"`
 
 	// Relations
-	Contact  Contact   `gorm:"foreignKey:ContactID" json:"contact,omitempty"`
-	User     User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	Messages []Message `gorm:"foreignKey:TicketID" json:"messages,omitempty"`
+	Contact           Contact            `gorm:"foreignKey:ContactID" json:"contact,omitempty"`
+	User              User               `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	ChannelConnection *ChannelConnection `gorm:"foreignKey:ChannelConnectionID" json:"channelConnection,omitempty"`
+	Messages          []Message          `gorm:"foreignKey:TicketID" json:"messages,omitempty"`
 
 	// Tags is populated manually (batch query via EntityTags) by ListTickets —
 	// not a GORM association, since EntityTag is polymorphic (entityType+entityId).

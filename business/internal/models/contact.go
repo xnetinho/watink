@@ -37,9 +37,10 @@ type Contact struct {
 	UpdatedAt time.Time `gorm:"column:updatedAt" json:"updatedAt"`
 
 	// Relations
-	Tickets []Ticket `gorm:"foreignKey:ContactID" json:"tickets,omitempty"`
-	Wallet  *User    `gorm:"foreignKey:WalletUserID" json:"wallet,omitempty"`
-	Client  *Client  `gorm:"foreignKey:ClientID" json:"client,omitempty"`
+	Tickets    []Ticket          `gorm:"foreignKey:ContactID" json:"tickets,omitempty"`
+	Wallet     *User             `gorm:"foreignKey:WalletUserID" json:"wallet,omitempty"`
+	Client     *Client           `gorm:"foreignKey:ClientID" json:"client,omitempty"`
+	Identities []ContactIdentity `gorm:"foreignKey:ContactID" json:"identities,omitempty"`
 }
 
 func (Contact) TableName() string {

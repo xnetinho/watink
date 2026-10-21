@@ -47,9 +47,11 @@ func Migrate() {
 		&models.User{},
 		&models.Setting{},
 		&models.Contact{},
+		&models.ContactIdentity{},
 		&models.Client{},
 		&models.ClientAddress{},
 		&models.Whatsapp{},
+		&models.ChannelConnection{},
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},
@@ -131,6 +133,14 @@ func Migrate() {
 
 	addClientAddressGeography()
 
+	if err := BackfillContactIdentities(DB); err != nil {
+		log.Printf("Warning: failed to backfill contact identities: %v", err)
+	}
+
+	if err := BackfillTicketConversationKeys(DB); err != nil {
+		log.Printf("Warning: failed to backfill ticket conversation keys: %v", err)
+	}
+
 	// KBChunk (halfvec/HNSW) is not GORM-modelable, same reasoning as
 	// addCustomIndexes()/PostGIS above — raw idempotent DDL, best-effort.
 	knowledge.EnsureSchema(DB)
@@ -170,6 +180,46 @@ func addClientAddressGeography() {
 	if err := DB.Exec(`ALTER TABLE "ClientAddresses" ADD COLUMN IF NOT EXISTS geog geography(Point,4326)`).Error; err != nil {
 		log.Printf("Warning: failed to add ClientAddresses.geog (PostGIS extension may be missing): %v", err)
 	}
+}
+
+// BackfillContactIdentities cria registros em ContactIdentities para todos os Contacts existentes
+// com number ou lid válidos, atribuindo channel='whatsapp'. É 100% idempotente (ON CONFLICT DO NOTHING).
+// Task 2.1 (ADR 0033).
+func BackfillContactIdentities(db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Backfill por number
+		qNumber := `
+			INSERT INTO "ContactIdentities" ("tenantId", "contactId", "channel", "externalId", "displayName", "avatarUrl", "meta", "createdAt", "updatedAt")
+			SELECT c."tenantId", c.id, 'whatsapp', c.number, c.name, COALESCE(c."profilePicUrl", ''), '{}'::jsonb, NOW(), NOW()
+			FROM "Contacts" c
+			WHERE c.number IS NOT NULL AND c.number != ''
+			ON CONFLICT ("tenantId", "channel", "externalId") DO NOTHING;
+		`
+		if err := tx.Exec(qNumber).Error; err != nil {
+			return err
+		}
+
+		// Backfill por lid
+		qLid := `
+			INSERT INTO "ContactIdentities" ("tenantId", "contactId", "channel", "externalId", "displayName", "avatarUrl", "meta", "createdAt", "updatedAt")
+			SELECT c."tenantId", c.id, 'whatsapp', c.lid, c.name, COALESCE(c."profilePicUrl", ''), '{}'::jsonb, NOW(), NOW()
+			FROM "Contacts" c
+			WHERE c.lid IS NOT NULL AND c.lid != ''
+			ON CONFLICT ("tenantId", "channel", "externalId") DO NOTHING;
+		`
+		return tx.Exec(qLid).Error
+	})
+}
+
+// BackfillTicketConversationKeys preenche conversationKey com contactId::text para tickets legados
+// que ainda não possuem conversationKey definida (Task 2.3 / ADR 0033). É 100% idempotente.
+func BackfillTicketConversationKeys(db *gorm.DB) error {
+	q := `
+		UPDATE "Tickets"
+		SET "conversationKey" = "contactId"::text
+		WHERE "conversationKey" IS NULL OR "conversationKey" = '';
+	`
+	return db.Exec(q).Error
 }
 
 // Seed recria o catálogo de Permissions em granularidade recurso:ação
@@ -386,6 +436,7 @@ func addCustomIndexes() error {
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_status ON "Tickets" ("tenantId", "status")`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_queue_status ON "Tickets" ("tenantId", "queueId", "status")`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_open_conversation ON "Tickets" ("tenantId", "channelConnectionId", "conversationKey") WHERE "status" IN ('open', 'pending') AND "channelConnectionId" IS NOT NULL AND "conversationKey" IS NOT NULL AND "conversationKey" != ''`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_tenant_ticket_fromme ON "Messages" ("tenantId", "ticketId", "fromMe")`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_tenant_fromme_createdat ON "Messages" ("tenantId", "fromMe", "createdAt")`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_quick_answers_tenant_shortcut ON "QuickAnswers" ("tenantId", shortcut)`,
