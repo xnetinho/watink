@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import TagChip from "../TagChip";
 import MarkdownWrapper from "../MarkdownWrapper";
+import { ChannelBadge } from "../ChannelBadge";
 import { getBackendUrl } from "../../helpers/urlUtils";
 import { getContactDisplayName } from "../../utils/clientDisplayName";
 
@@ -46,6 +47,7 @@ interface Ticket {
   isSubGroup?: boolean;
   isNewsletter?: boolean;
   whatsappId?: number;
+  channel?: string;
   contact: Contact;
   queue?: Queue;
   whatsapp?: WhatsApp;
@@ -171,8 +173,11 @@ const TicketListItem: React.FC<TicketListItemProps> = ({ ticket }) => {
         </div>
 
         {/* Linha 3 — badge da conexão + tags */}
-        {(ticket.whatsapp?.name || (ticket.tags && ticket.tags.length > 0)) && (
+        {(ticket.channel || ticket.whatsapp?.name || (ticket.tags && ticket.tags.length > 0)) && (
           <div className="mt-0.5 flex flex-wrap items-center gap-1">
+            {ticket.channel && ticket.channel !== "whatsapp" && (
+              <ChannelBadge channel={ticket.channel} size="sm" />
+            )}
             {ticket.whatsapp?.name && (
               <span className="self-start rounded px-1.5 py-px text-[0.625rem] font-semibold bg-muted text-muted-foreground">
                 {ticket.whatsapp.name}

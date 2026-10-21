@@ -15,8 +15,10 @@ import ConfirmationModal from "../../components/ConfirmationModal";
 
 import { useConnections } from "./hooks/useConnections";
 import { ConnectionCard } from "./components/ConnectionCard";
+import { ChannelSelectorModal } from "./components/ChannelSelectorModal";
 
 const Connections = () => {
+  const [channelSelectorOpen, setChannelSelectorOpen] = React.useState(false);
   const {
     whatsApps,
     reloadWhatsApps,
@@ -47,6 +49,12 @@ const Connections = () => {
         whatsAppId={selectedWhatsApp?.id}
         onSaved={async () => { await reloadWhatsApps(); }}
       />
+      <ChannelSelectorModal
+        open={channelSelectorOpen}
+        onClose={() => setChannelSelectorOpen(false)}
+        onSelectWhatsApp={handleOpenNewWhatsApp}
+        onChannelCreated={async () => { await reloadWhatsApps(); }}
+      />
       <WebchatModal
         open={webchatModalOpen}
         onClose={handleCloseWebchatModal}
@@ -71,7 +79,7 @@ const Connections = () => {
             <MessageSquare className="mr-2 h-4 w-4" />
             Configurar Webchat
           </Button>
-          <Button onClick={handleOpenNewWhatsApp}>
+          <Button onClick={() => setChannelSelectorOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nova Conexão
           </Button>
@@ -90,7 +98,7 @@ const Connections = () => {
                 Adicione um WhatsApp para começar a atender seus clientes
               </p>
             </div>
-            <Button onClick={handleOpenNewWhatsApp}>
+            <Button onClick={() => setChannelSelectorOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Nova Conexão
             </Button>
