@@ -14,6 +14,127 @@ const (
 	maxAccessUnitBytes   = 8 << 20
 )
 
+// NAL types (H.264 spec / RFC 6184).
+const (
+	nalTypeSEI = 6
+	nalTypeAUD = 9
+)
+
+// fuaFragSize é o tamanho do corpo de cada fragmento FU-A (MTU - indicator - FU header).
+const fuaFragSize = mtuPayloadMax - 2
+
+// PacketizeAu packetiza uma access unit Annex-B em payloads RTP conforme RFC 6184 e o que o
+// WhatsApp espera: NALs não-VCL pequenos (SPS, PPS) são agregados em STAP-A; cada NAL VCL
+// (slice) vai como single-NAL (se couber) ou FU-A (se não couber); AUD é omitido; SEI antes
+// do primeiro VCL é omitido. Source of truth: whatsapp-rust wacore/src/voip/h264.rs packetize_au.
+func PacketizeAu(au []byte) [][]byte {
+	var out [][]byte
+	seenVCL := false
+	var stapBuf []byte
+	var stapF, stapNri byte
+	stapOpen := false
+
+	flushStap := func() {
+		if !stapOpen {
+			return
+		}
+		stapBuf[0] = stapF | stapNri | byte(h264StapAType)
+		out = append(out, stapBuf)
+		stapBuf = nil
+		stapOpen = false
+	}
+
+	for _, nal := range SplitAnnexB(au) {
+		if len(nal) == 0 {
+			continue
+		}
+		unitType := nal[0] & 0x1f
+		if unitType == nalTypeAUD {
+			continue
+		}
+		if !seenVCL && unitType == nalTypeSEI {
+			continue
+		}
+		if unitType >= 1 && unitType <= 5 {
+			flushStap()
+			seenVCL = true
+			if len(nal) <= mtuPayloadMax {
+				p := make([]byte, len(nal))
+				copy(p, nal)
+				out = append(out, p)
+			} else {
+				out = append(out, fragmentNAL(nal)...)
+			}
+			continue
+		}
+		stapCost := 2 + len(nal)
+		fits := false
+		if stapOpen {
+			fits = len(stapBuf)+stapCost <= mtuPayloadMax
+		} else {
+			fits = stapCost < mtuPayloadMax
+		}
+		if !fits {
+			flushStap()
+			if stapCost >= mtuPayloadMax {
+				if len(nal) <= mtuPayloadMax {
+					p := make([]byte, len(nal))
+					copy(p, nal)
+					out = append(out, p)
+				} else {
+					out = append(out, fragmentNAL(nal)...)
+				}
+				continue
+			}
+		}
+		if !stapOpen {
+			stapBuf = []byte{0}
+			stapF = nal[0] & 0x80
+			stapNri = nal[0] & 0x60
+			stapOpen = true
+		} else {
+			stapF |= nal[0] & 0x80
+			if nri := nal[0] & 0x60; nri > stapNri {
+				stapNri = nri
+			}
+		}
+		stapBuf = append(stapBuf, byte(len(nal)>>8), byte(len(nal)))
+		stapBuf = append(stapBuf, nal...)
+	}
+	flushStap()
+	return out
+}
+
+// fragmentNAL divide um NAL grande em fragmentos FU-A (RFC 6184 §5.8).
+func fragmentNAL(nal []byte) [][]byte {
+	indicator := (nal[0] & 0xe0) | byte(h264FuaType)
+	origType := nal[0] & 0x1f
+	body := nal[1:]
+	nFrags := (len(body) + fuaFragSize - 1) / fuaFragSize
+	var out [][]byte
+	for i, chunk := 0, body; len(chunk) > 0; i++ {
+		end := fuaFragSize
+		if end > len(chunk) {
+			end = len(chunk)
+		}
+		frag := chunk[:end]
+		fuHeader := origType
+		if i == 0 {
+			fuHeader |= 0x80 // Start
+		}
+		if i == nFrags-1 {
+			fuHeader |= 0x40 // End
+		}
+		pkt := make([]byte, 2+len(frag))
+		pkt[0] = indicator
+		pkt[1] = fuHeader
+		copy(pkt[2:], frag)
+		out = append(out, pkt)
+		chunk = chunk[end:]
+	}
+	return out
+}
+
 // AUHasIDR reports whether an Annex-B access unit contains an IDR NAL unit.
 func AUHasIDR(au []byte) bool {
 	for _, nalu := range SplitAnnexB(au) {

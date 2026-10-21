@@ -53,7 +53,7 @@ func TestVideoStreamMatchesCapturedWebFrameMetadata(t *testing.T) {
 	}{
 		{e1, "32080001510000610000910000000000"},
 		{e2, "300851000061000091000100"},
-		{e3, "32200002510000610000910002000000"},
+		{e3, "32000002510000610000910002000000"},
 	} {
 		if got := hex.EncodeToString(c.got.Encode()); got != c.want {
 			t.Errorf("pacote %d: extensão %s, esperado %s", i+1, got, c.want)

@@ -14,8 +14,9 @@ const (
 	// WhatsappRtpExtensionProfile é o perfil da extensão (o mesmo do áudio).
 	WhatsappRtpExtensionProfile uint16 = 0xdebe
 	// VideoFrameInfoIDR e VideoFrameInfoDelta marcam o tipo do quadro em MediaFrameInfo.
+	// Source of truth: whatsapp-rust wacore/src/voip/rtp.rs
 	VideoFrameInfoIDR   uint8 = 0x08
-	VideoFrameInfoDelta uint8 = 0x20
+	VideoFrameInfoDelta uint8 = 0x00
 	// VideoSlotWord separa o SSRC de vídeo do de áudio (slot 0) na derivação HKDF.
 	VideoSlotWord uint32 = 2
 	// VideoClockRate é o relógio RTP do vídeo.

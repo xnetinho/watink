@@ -40,6 +40,7 @@ type videoTxStats struct {
 	auNotReady uint32
 	auGated    uint32
 	auSent     uint32
+	idrSent    uint32
 	plis       uint32
 	sr         int
 	// rx conta o segundo byte de cada pacote que chega do contato (índice = byte cru): PTs de áudio e
@@ -71,9 +72,9 @@ func (m *CallManager) logVideoStatsLocked() {
 		return
 	}
 	m.log.Info("video tx",
-		"au_in", s.auIn, "au_sent", s.auSent, "au_gated", s.auGated, "au_not_ready", s.auNotReady,
+		"au_in", s.auIn, "au_sent", s.auSent, "idr_sent", s.idrSent, "au_gated", s.auGated, "au_not_ready", s.auNotReady,
 		"pli", s.plis, "need_idr", m.videoNeedIDR, "stride", m.videoTxStride, "rx_pt", rxSummary(&s.rx))
-	s.auIn, s.auNotReady, s.auGated, s.auSent, s.plis = 0, 0, 0, 0, 0
+	s.auIn, s.auNotReady, s.auGated, s.auSent, s.idrSent, s.plis = 0, 0, 0, 0, 0, 0
 	s.rx = [256]uint32{}
 }
 
@@ -135,8 +136,9 @@ func (m *CallManager) SendVideoFrame(au []byte, duration time.Duration) {
 		m.videoStats.auGated++
 		return
 	}
-	packed := media.PackAccessUnit(au)
-	if len(packed) == 0 {
+	// Packetiza a access unit conforme RFC 6184 + WhatsApp: SPS+PPS em STAP-A, slices separados.
+	allPayloads := media.PacketizeAu(au)
+	if len(allPayloads) == 0 {
 		return
 	}
 	if m.videoTx == nil || m.videoTxSsrc != m.videoSelfSsrc {
@@ -148,10 +150,9 @@ func (m *CallManager) SendVideoFrame(au []byte, duration time.Duration) {
 	if idr {
 		info = media.VideoFrameInfoIDR
 	}
-	payloads := media.PackageH264NALU(packed)
 	sent := 0
-	for i, p := range payloads {
-		h, _ := m.videoTx.NextPacket(i == len(payloads)-1, info)
+	for i, p := range allPayloads {
+		h, _ := m.videoTx.NextPacket(i == len(allPayloads)-1, info)
 		prot, err := m.srtpSession.Protect(&media.RtpPacket{Header: h, Payload: p})
 		if err != nil {
 			m.log.Debug("srtp video protect error", "err", err)
@@ -167,6 +168,9 @@ func (m *CallManager) SendVideoFrame(au []byte, duration time.Duration) {
 		return
 	}
 	m.videoStats.auSent++
+	if idr {
+		m.videoStats.idrSent++
+	}
 	if m.videoPackets == uint32(sent) {
 		m.log.Info("first video frame sent", "bytes", len(au), "idr", idr, "packets", sent, "ssrc", m.videoSelfSsrc)
 		m.startVideoRtcpLocked()

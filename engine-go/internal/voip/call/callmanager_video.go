@@ -56,6 +56,7 @@ func (m *CallManager) applyVideoSsrcsLocked() {
 	if m.videoPeerSsrc != 0 {
 		peer = append(peer, m.videoPeerSsrc)
 	}
+	m.log.Info("video ssrcs applied to relay", "self", m.videoSelfSsrc, "peer", m.videoPeerSsrc)
 	m.relay.SetExtraSsrcs(self, peer)
 }
 
