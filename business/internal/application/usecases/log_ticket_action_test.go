@@ -25,6 +25,9 @@ func (m *mockLogTicketRepo) FindByID(_ context.Context, _ int, _ uuid.UUID) (*do
 func (m *mockLogTicketRepo) FindOpenByContact(_ context.Context, _ uuid.UUID, _ int, _ int) (*domain.Ticket, error) {
 	return nil, nil
 }
+func (m *mockLogTicketRepo) FindOpenByConversation(_ context.Context, _ uuid.UUID, _ int, _ string) (*domain.Ticket, error) {
+	return nil, nil
+}
 func (m *mockLogTicketRepo) FindOrCreatePending(_ context.Context, _ *domain.Ticket) (*domain.Ticket, error) {
 	return nil, nil
 }

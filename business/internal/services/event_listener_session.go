@@ -29,6 +29,7 @@ func (el *EventListener) handleQrCode(ctx context.Context, payload json.RawMessa
 	}
 
 	el.bcast().EmitToTenantRoom(tenantID.String(), "whatsappSession", map[string]interface{}{"action": "update", "session": map[string]interface{}{"id": sessionID, "qrcode": p.QrCode, "status": "QRCODE"}})
+	el.bcast().EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{"action": "update", "connection": map[string]interface{}{"id": sessionID, "qrcode": p.QrCode, "status": "QRCODE"}})
 	return nil
 }
 
@@ -50,6 +51,7 @@ func (el *EventListener) handlePairingCode(ctx context.Context, payload json.Raw
 	}
 
 	el.bcast().EmitToTenantRoom(tenantID.String(), "whatsappSession", map[string]interface{}{"action": "update", "session": map[string]interface{}{"id": sessionID, "status": status, "pairingCode": p.PairingCode}})
+	el.bcast().EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{"action": "update", "connection": map[string]interface{}{"id": sessionID, "status": status, "pairingCode": p.PairingCode}})
 	return nil
 }
 
@@ -89,6 +91,7 @@ func (el *EventListener) handleSessionStatus(ctx context.Context, payload json.R
 	}
 
 	el.bcast().EmitToTenantRoom(tenantID.String(), "whatsappSession", map[string]interface{}{"action": "update", "session": map[string]interface{}{"id": sessionID, "status": p.Status, "number": p.Number, "profilePicUrl": p.ProfilePicUrl, "firstConnection": updates["firstConnection"]}})
+	el.bcast().EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{"action": "update", "connection": map[string]interface{}{"id": sessionID, "status": p.Status, "number": p.Number, "profilePicUrl": p.ProfilePicUrl, "firstConnection": updates["firstConnection"]}})
 	return nil
 }
 

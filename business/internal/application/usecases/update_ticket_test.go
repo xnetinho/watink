@@ -33,6 +33,9 @@ func (m *updateTicketRepo) FindByID(_ context.Context, _ int, _ uuid.UUID) (*dom
 func (m *updateTicketRepo) FindOpenByContact(_ context.Context, _ uuid.UUID, _ int, _ int) (*domain.Ticket, error) {
 	return nil, nil
 }
+func (m *updateTicketRepo) FindOpenByConversation(_ context.Context, _ uuid.UUID, _ int, _ string) (*domain.Ticket, error) {
+	return nil, nil
+}
 func (m *updateTicketRepo) FindOrCreatePending(_ context.Context, t *domain.Ticket) (*domain.Ticket, error) {
 	return t, nil
 }

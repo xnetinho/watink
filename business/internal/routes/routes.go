@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/alltomatos/watinkdev/business/internal/application"
+	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
@@ -101,7 +102,22 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	storageController := controllers.NewStorageController(s3Store)
 	saasModeController := controllers.NewSaaSModeController(saasContractSvc)
 
+	// Canais Agnósticos de Mensageria (ADR 0033 / Task 3.4)
+	channelInboundSvc := services.NewChannelInboundService(
+		container.DB,
+		container.RedisSvc,
+		container.TicketRepo,
+		container.ContactRepo,
+		container.MessageRepo,
+		container.ReceiveMessage,
+		container.Broadcast,
+		flowRuntime,
+	)
+	channelWebhookController := controllers.NewChannelWebhookController(container.DB, channelInboundSvc)
+	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService))
+
 	// Public Routes
+	group.POST("/webhooks/channels/:kind/:connectionId", channelWebhookController.HandleWebhook)
 	group.POST("/auth/login", authController.Login)
 	group.POST("/auth/refresh_token", authController.RefreshToken)
 	group.GET("/public-settings", settingController.GetPublicSettings)

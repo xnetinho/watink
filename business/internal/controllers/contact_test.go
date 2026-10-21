@@ -110,6 +110,9 @@ func (m *MockContactRepo) FindByLID(ctx context.Context, tenantID uuid.UUID, lid
 func (m *MockContactRepo) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number, pushName, profilePicUrl string, isGroup, isLid bool, lid, _ string) (*domain.Contact, error) {
 	return nil, nil
 }
+func (m *MockContactRepo) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
+	return nil, nil, nil
+}
 func (m *MockContactRepo) Create(ctx context.Context, contact *domain.Contact) error { return nil }
 func (m *MockContactRepo) Delete(ctx context.Context, id int, tenantID uuid.UUID) error {
 	return nil

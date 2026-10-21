@@ -146,6 +146,77 @@ func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.
 	return contactModelToDomain(&m), nil
 }
 
+// FindOrCreateByIdentity resolve o Contact através de uma ContactIdentity externa (ADR 0033).
+func (r *GORMContactRepository) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
+	var ident models.ContactIdentity
+	err := r.db.WithContext(ctx).
+		Where(`"tenantId" = ? AND "channel" = ? AND "externalId" = ?`, tenantID, string(channel), externalID).
+		First(&ident).Error
+
+	if err == nil {
+		// Identidade encontrada: carrega o contato correspondente
+		var contact models.Contact
+		if err := r.db.WithContext(ctx).Where(`id = ? AND "tenantId" = ?`, ident.ContactID, tenantID).First(&contact).Error; err != nil {
+			return nil, nil, err
+		}
+		// Atualiza dados cadastrais se necessário
+		updates := make(map[string]interface{})
+		if name != "" && (ident.DisplayName == "" || ident.DisplayName != name) {
+			updates["displayName"] = name
+		}
+		if avatarURL != "" && ident.AvatarURL != avatarURL {
+			updates["avatarUrl"] = avatarURL
+		}
+		if len(updates) > 0 {
+			_ = r.db.WithContext(ctx).Model(&ident).Updates(updates).Error
+		}
+		return contactModelToDomain(&contact), &ident, nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, err
+	}
+
+	// Não existe: cria o Contact e a ContactIdentity dentro de uma transação
+	var createdContact models.Contact
+	var createdIdent models.ContactIdentity
+
+	txErr := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		contactName := name
+		if contactName == "" {
+			contactName = externalID
+		}
+		createdContact = models.Contact{
+			Name:          contactName,
+			TenantID:      tenantID,
+			ProfilePicUrl: avatarURL,
+		}
+		if err := tx.Create(&createdContact).Error; err != nil {
+			return fmt.Errorf("failed to create contact: %w", err)
+		}
+
+		createdIdent = models.ContactIdentity{
+			TenantID:    tenantID,
+			ContactID:   createdContact.ID,
+			Channel:     string(channel),
+			ExternalID:  externalID,
+			DisplayName: contactName,
+			AvatarURL:   avatarURL,
+			Meta:        "{}",
+		}
+		if err := tx.Create(&createdIdent).Error; err != nil {
+			return fmt.Errorf("failed to create contact identity: %w", err)
+		}
+		return nil
+	})
+
+	if txErr != nil {
+		return nil, nil, txErr
+	}
+
+	return contactModelToDomain(&createdContact), &createdIdent, nil
+}
+
 // FindByID returns a single contact by ID scoped to tenantID, or nil if not found.
 func (r *GORMContactRepository) FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*domain.Contact, error) {
 	var m models.Contact

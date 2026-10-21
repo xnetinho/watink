@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
@@ -54,13 +55,7 @@ func quotedPreviewText(q models.Message) string {
 }
 
 func contactJID(contact models.Contact) string {
-	if contact.IsGroup {
-		return contact.Number + "@g.us"
-	}
-	if contact.Lid != nil && *contact.Lid != "" {
-		return *contact.Lid
-	}
-	return contact.Number
+	return utils.ContactJID(contact.Number, contact.Lid, contact.IsGroup)
 }
 
 // SendMessage envia uma mensagem via engine WhatsApp.
@@ -104,6 +99,17 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	contact := ticket.Contact
 	if contact.ID == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
+		return
+	}
+
+	// Validação de regra de resposta por canal (D2 / ADR 0033)
+	policy := resolveTicketReplyPolicy(db, &ticket)
+	if !policy.CanReply {
+		c.JSON(http.StatusConflict, gin.H{
+			"error":   "reply_not_allowed",
+			"code":    string(policy.Reason),
+			"message": policy.Message,
+		})
 		return
 	}
 
@@ -195,6 +201,47 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
 		return
+	}
+
+	// Se o ticket pertencer a uma ChannelConnection agnóstica registrada, despacha pelo canal (Tarefa 4.2 / ADR 0033)
+	if ticket.ChannelConnectionID != nil {
+		var conn models.ChannelConnection
+		if err := db.Session(&gorm.Session{NewDB: true}).
+			Where("id = ? AND \"tenantId\" = ?", *ticket.ChannelConnectionID, tenantID).
+			First(&conn).Error; err == nil {
+			if chAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind)); err == nil {
+				outMsg := domain.OutboundMessage{
+					ConversationKey: ticket.ConversationKey,
+					ExternalID:      to,
+					Body:            body,
+					MediaType:       mediaType,
+					MediaURL:        mediaURL,
+					QuotedMessageID: quotedID,
+				}
+				sendRes, err := chAdapter.Send(c.Request.Context(), &conn, outMsg)
+				if err != nil {
+					utils.RespondWithInternalError(c, err, "SendMessage")
+					return
+				}
+				if sendRes.ExternalMessageID != "" {
+					messageID = sendRes.ExternalMessageID
+				}
+				msg := models.Message{
+					ID:        messageID,
+					Body:      body,
+					Ack:       1,
+					MediaType: mediaType,
+					MediaUrl:  mediaURL,
+					TicketID:  ticket.ID,
+					ContactID: &contact.ID,
+					FromMe:    true,
+					TenantID:  tenantID,
+				}
+				_ = db.Create(&msg).Error
+				c.JSON(http.StatusOK, msg)
+				return
+			}
+		}
 	}
 
 	if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {

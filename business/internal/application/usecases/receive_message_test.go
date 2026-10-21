@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
 )
 
@@ -39,6 +40,9 @@ func (m *mockRcvContactRepo) BulkDelete(_ context.Context, _ []int, _ uuid.UUID)
 func (m *mockRcvContactRepo) DeleteAll(_ context.Context, _ uuid.UUID) (int64, error) { return 0, nil }
 func (m *mockRcvContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _ string, _ string, _ string, _ bool, _ bool, _ string, _ string) (*domain.Contact, error) {
 	return m.contact, m.findOrCreateErr
+}
+func (m *mockRcvContactRepo) FindOrCreateByIdentity(_ context.Context, _ uuid.UUID, _ domain.ChannelKind, _, _, _ string) (*domain.Contact, *models.ContactIdentity, error) {
+	return m.contact, nil, nil
 }
 
 type mockMessageRepo struct {
@@ -79,6 +83,10 @@ func (m *receiveTicketRepo) Update(ctx context.Context, t *domain.Ticket, fields
 }
 
 func (m *receiveTicketRepo) FindOpenByContact(_ context.Context, _ uuid.UUID, _ int, _ int) (*domain.Ticket, error) {
+	return m.openTicket, m.openTicketErr
+}
+
+func (m *receiveTicketRepo) FindOpenByConversation(_ context.Context, _ uuid.UUID, _ int, _ string) (*domain.Ticket, error) {
 	return m.openTicket, m.openTicketErr
 }
 

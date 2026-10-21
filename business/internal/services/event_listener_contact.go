@@ -108,6 +108,10 @@ func syncConnectionProfilePic(ctx context.Context, sessions domain.ChannelSessio
 			"action":  "update",
 			"session": map[string]interface{}{"id": session.ID, "profilePicUrl": p.Contact.ProfilePicUrl},
 		})
+		domain.BroadcastOrNop(b).EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{
+			"action":     "update",
+			"connection": map[string]interface{}{"id": session.ID, "profilePicUrl": p.Contact.ProfilePicUrl},
+		})
 		return nil
 	}
 	return nil

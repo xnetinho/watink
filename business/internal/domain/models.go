@@ -19,10 +19,12 @@ type Ticket struct {
 	IsCommunity    bool      `json:"isCommunity"`
 	IsSubGroup     bool      `json:"isSubGroup"`
 	UnreadMessages int       `json:"unreadMessages"`
-	QueueID        *int      `json:"queueId"`
-	TenantID       uuid.UUID `json:"tenantId"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	QueueID             *int      `json:"queueId"`
+	TenantID            uuid.UUID `json:"tenantId"`
+	ChannelConnectionID *int      `json:"channelConnectionId,omitempty"`
+	ConversationKey     string    `json:"conversationKey,omitempty"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
 }
 
 // Message represents a message in a ticket conversation

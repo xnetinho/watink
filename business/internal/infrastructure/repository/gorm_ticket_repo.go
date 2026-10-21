@@ -56,6 +56,22 @@ func (r *GORMTicketRepository) FindOpenByContact(ctx context.Context, tenantID u
 	return ticketModelToDomain(&m), nil
 }
 
+// FindOpenByConversation busca ticket aberto/pendente pela chave de conversa neutra (D4 / ADR 0033).
+func (r *GORMTicketRepository) FindOpenByConversation(ctx context.Context, tenantID uuid.UUID, channelConnID int, conversationKey string) (*domain.Ticket, error) {
+	var m models.Ticket
+	err := r.db.WithContext(ctx).
+		Where("\"channelConnectionId\" = ? AND \"conversationKey\" = ? AND \"tenantId\" = ?", channelConnID, conversationKey, tenantID).
+		Where("status IN ?", []string{"open", "pending"}).
+		First(&m).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return ticketModelToDomain(&m), nil
+}
+
 // FindOrCreatePending finds an existing pending ticket or creates a new one.
 func (r *GORMTicketRepository) FindOrCreatePending(ctx context.Context, ticket *domain.Ticket) (*domain.Ticket, error) {
 	m := ticketDomainToModel(ticket)
@@ -152,38 +168,42 @@ func (r *GORMTicketRepository) CountOpenTicketsPerUser(ctx context.Context, user
 
 func ticketModelToDomain(m *models.Ticket) *domain.Ticket {
 	return &domain.Ticket{
-		ID:             m.ID,
-		Status:         m.Status,
-		LastMessage:    m.LastMessage,
-		ContactID:      m.ContactID,
-		UserID:         m.UserID,
-		WhatsappID:     m.WhatsappID,
-		IsGroup:        m.IsGroup,
-		IsCommunity:    m.IsCommunity,
-		IsSubGroup:     m.IsSubGroup,
-		UnreadMessages: m.UnreadMessages,
-		QueueID:        m.QueueID,
-		TenantID:       m.TenantID,
-		CreatedAt:      m.CreatedAt,
-		UpdatedAt:      m.UpdatedAt,
+		ID:                  m.ID,
+		Status:              m.Status,
+		LastMessage:         m.LastMessage,
+		ContactID:           m.ContactID,
+		UserID:              m.UserID,
+		WhatsappID:          m.WhatsappID,
+		IsGroup:             m.IsGroup,
+		IsCommunity:         m.IsCommunity,
+		IsSubGroup:          m.IsSubGroup,
+		UnreadMessages:      m.UnreadMessages,
+		QueueID:             m.QueueID,
+		TenantID:            m.TenantID,
+		ChannelConnectionID: m.ChannelConnectionID,
+		ConversationKey:     m.ConversationKey,
+		CreatedAt:           m.CreatedAt,
+		UpdatedAt:           m.UpdatedAt,
 	}
 }
 
 func ticketDomainToModel(d *domain.Ticket) *models.Ticket {
 	return &models.Ticket{
-		ID:             d.ID,
-		Status:         d.Status,
-		LastMessage:    d.LastMessage,
-		ContactID:      d.ContactID,
-		UserID:         d.UserID,
-		WhatsappID:     d.WhatsappID,
-		IsGroup:        d.IsGroup,
-		IsCommunity:    d.IsCommunity,
-		IsSubGroup:     d.IsSubGroup,
-		UnreadMessages: d.UnreadMessages,
-		QueueID:        d.QueueID,
-		TenantID:       d.TenantID,
-		CreatedAt:      d.CreatedAt,
-		UpdatedAt:      d.UpdatedAt,
+		ID:                  d.ID,
+		Status:              d.Status,
+		LastMessage:         d.LastMessage,
+		ContactID:           d.ContactID,
+		UserID:              d.UserID,
+		WhatsappID:          d.WhatsappID,
+		IsGroup:             d.IsGroup,
+		IsCommunity:         d.IsCommunity,
+		IsSubGroup:          d.IsSubGroup,
+		UnreadMessages:      d.UnreadMessages,
+		QueueID:             d.QueueID,
+		TenantID:            d.TenantID,
+		ChannelConnectionID: d.ChannelConnectionID,
+		ConversationKey:     d.ConversationKey,
+		CreatedAt:           d.CreatedAt,
+		UpdatedAt:           d.UpdatedAt,
 	}
 }

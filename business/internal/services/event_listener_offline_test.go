@@ -49,6 +49,9 @@ func (m *mockContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, number, p
 	m.foundOrCreated = append(m.foundOrCreated, c)
 	return c, nil
 }
+func (m *mockContactRepo) FindOrCreateByIdentity(_ context.Context, _ uuid.UUID, _ domain.ChannelKind, _, _, _ string) (*domain.Contact, *models.ContactIdentity, error) {
+	return m.contact, nil, nil
+}
 
 type mockSessionRepo struct {
 	updateCalls int

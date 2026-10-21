@@ -107,6 +107,10 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 		"action":  "update",
 		"session": whatsapp,
 	})
+	wss.broadcast.EmitToTenantRoom(whatsapp.TenantID.String(), "channelConnection", map[string]interface{}{
+		"action":     "update",
+		"connection": whatsapp,
+	})
 
 	if err := engine.StartSession(context.Background(), whatsapp, usePairingCode, phoneNumber, force); err != nil {
 		_ = wss.redisSvc.DelLock(lockKey)
@@ -121,6 +125,10 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 			wss.broadcast.EmitToTenantRoom(whatsapp.TenantID.String(), "whatsappSession", map[string]interface{}{
 				"action":  "update",
 				"session": whatsapp,
+			})
+			wss.broadcast.EmitToTenantRoom(whatsapp.TenantID.String(), "channelConnection", map[string]interface{}{
+				"action":     "update",
+				"connection": whatsapp,
 			})
 		}
 		return err
