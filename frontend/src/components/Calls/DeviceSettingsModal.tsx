@@ -103,6 +103,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
     };
 
     void startPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Atualiza o preview ao vivo quando o fundo muda
