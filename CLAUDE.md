@@ -67,6 +67,7 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
 | Plugins — Campanhas de Grupo (4ª aba do plugin Grupos, ADR 0030): modelos+scheduler+drain+captura de resposta no backend, editor+relatório completos no frontend | ✅ Concluída (código+testes contra Postgres real; issues #590-#602) — texto do aviso de risco na UI marcado como pendente de aval do dono do produto (issue #600); tipos Botões/Lista ainda não validados manualmente em grupo real |
 | Atividades (Ordens de Serviço) — entidade core (ADR 0029): model+migration+RBAC+backfill, SLA real (não placeholder como o Helpdesk), CRUD+execução+evidência S3+KPIs, listagem redesenhada + tela de gestão (lista/criar/editar/atribuir/checklist) | ✅ Fase 0 concluída (código+testes contra Postgres real+verificação manual no browser; issues #527-#537) — ✅ Fase 1 concluída (`sdk.WatinkCoreActivities` + Helpdesk cria Activity ao abrir Protocol; issues #538/#541/#542/#543) — Fase 2 (Pipeline/Deal) não iniciada |
 | Chamadas de voz do WhatsApp no navegador (ADR 0031): porte do WaCalls no engine, fila dedicada, WebSocket PCM, gravação MP3 no business, telemetria, permissões `calls:*` | ✅ Implementado, testado (engine `-race`, business contra Postgres/RabbitMQ reais, frontend vitest) e **validado ao vivo em chamadas reais com dois números (out/2026)**; 8 defeitos achados e corrigidos. **Sem prova ao vivo**: atender em outro aparelho, grupo, proxy, permissões com usuários reais, falhas de rede/UDP, carga; perguntas abertas (qualidade do áudio, ban após N chamadas, NAT estrito) |
+| Canais agnósticos de mensageria (ADR 0033, change `add-channel-abstraction`): modelo de dados neutro (`ContactIdentity`, `ChannelConnection`), interface agnóstica de canal, capacidades em dado, regras de resposta (`CanReply`) | 🔧 Em implementação (fases 1 a 5; plano em `docs/agents/channels.md`) |
 
 ## Services & Ports
 
@@ -616,6 +617,19 @@ técnicas (BOM) e tabelas de preço extras via licença do Marketplace.
 - Não confundir `AiGateway` (plugin, plural) com `omniroute` (core, singular, usado por embeddings/RAG)
 
 **Referência:** [`docs/agents/assistants.md`](docs/agents/assistants.md) · ADR 0020 (Agent Runtime) · ADR novo (Flow sintético + extensão do SDK — a criar)
+
+## Módulo: Canais Agnósticos (Mensageria Multicanal)
+
+**Responsabilidade:** Desacoplar o Watink do WhatsApp para permitir atendimento unificado em múltiplos canais (Telegram, Mercado Livre, OLX, Instagram, TikTok), através de interfaces agnósticas (`Channel`, `InboundMessage`, `OutboundMessage`), capacidades declaradas em dado (`Capabilities`), validação de regras de resposta (`CanReply`, `ReplyPolicy`), e modelo de dados neutro (`ContactIdentity`, `ChannelConnection`).
+
+**Invariants:**
+- **Expandir e Contrair:** modelo de dados é aditivo; o canal WhatsApp mantém seu comportamento original inalterado durante toda a fase de expansão.
+- `ContactIdentity(tenantId, channel, externalId)` desacopla o contato humano de um número de telefone/JID.
+- `Ticket.conversationKey` abstrai o identificador da conversa (contato no Telegram/WhatsApp, pedido no Mercado Livre, anúncio na OLX).
+- Toda rota de webhook externa valida assinatura criptográfica/segredo específico por conexão.
+- Canais REST/Webhook rodam nativamente no `business`; `engine-go` permanece exclusivo para socket/VoIP do WhatsApp.
+
+**Referência:** [`docs/agents/channels.md`](docs/agents/channels.md) · ADR 0033 · `openspec/changes/add-channel-abstraction/`
 
 ## Módulo: Grupos e Comunidades
 

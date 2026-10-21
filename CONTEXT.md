@@ -27,8 +27,23 @@ Governança: `docs/adr/frontend/005-design-system-governance.md`.
 **Ticket**: Unidade central de atendimento — representa uma conversa ativa entre um Contact e um User em um Queue. Criada automaticamente ao receber uma mensagem ou manualmente por um agente.
 _Avoid_: Case, chamado, issue, conversation
 
-**Contact**: Pessoa ou grupo do WhatsApp que envia ou recebe mensagens. Pode ser individual (pessoa) ou grupo (isGroup=true). Vincula-se a um Ticket como remetente. Pode existir sem nunca virar um **Client** — mensagem/Ticket não pressupõe cadastro de CRM.
-_Avoid_: destinatário, pessoa — não confundir com **Client**: todo Client agrega 1+ Contacts, mas nem todo Contact é (ou precisa ser) um Client.
+**Contact**: Pessoa, lead ou entidade de chat que envia ou recebe mensagens por qualquer canal de comunicação (WhatsApp, Telegram, etc.). Pode ser individual ou grupo (`isGroup=true`). Vincula-se a um Ticket como remetente e possui uma ou mais **ContactIdentity**. Pode existir sem nunca virar um **Client** — mensagem/Ticket não pressupõe cadastro de CRM.
+_Avoid_: destinatário, pessoa, contato do WhatsApp — não confundir com **Client**: todo Client agrega 1+ Contacts, mas nem todo Contact é (ou precisa ser) um Client.
+
+**Channel**: Tipo de canal de mensagens suportado pela plataforma (`whatsapp`, `telegram`, `mercadolivre`, `olx`, `instagram`, `tiktok`), definindo suas capacidades estruturais (`Capabilities`) e regras de resposta (`ReplyPolicy`).
+_Avoid_: Plataforma externa, integração (quando genérico)
+
+**ChannelConnection**: Conexão persistente de um tenant a um canal específico, armazenando credenciais cifradas, configurações de webhook e status operacional. Generaliza o antigo modelo exclusivo de WhatsApp.
+_Avoid_: Instância, WABA, conexão WhatsApp (quando abranger múltiplos canais)
+
+**ContactIdentity**: Identidade externa de um Contact em um canal específico (`channel`, `externalId`). Permite que um mesmo Contact humano possua múltiplas identidades em canais distintos.
+_Avoid_: Número, JID (como chave primária universal)
+
+**conversationKey**: Chave de roteamento que define "a mesma conversa" dentro de um canal — tipicamente o contato direto, mas podendo representar um pedido específico (Mercado Livre) ou um anúncio (OLX).
+_Avoid_: ID de chat, número de telefone
+
+**Capabilities / ReplyPolicy**: Definição em dado das funcionalidades suportadas pelo canal (suporte a mídia, grupos, limite de caracteres) e das restrições de janela de resposta (ex.: janela de 24h).
+_Avoid_: Regra de negócio hardcoded
 
 **Client**: Entidade de CRM (Pessoa Física ou Jurídica) do core do business — agrega 1+ Contacts (`Contact.ClientID`, vínculo sempre manual; um Contact pertence a no máximo um Client) e 1+ ClientAddresses. Nome Social (exclusivo de PF) substitui o nome civil em toda exibição do sistema quando preenchido. `Document` (CPF/CNPJ) cifrado at-rest; soft-delete via `DeletedAt` (nunca hard delete). Histórico (Tickets/Deals) é resolvido por transitividade via `Contact.ClientID` — nunca desnormalizado.
 _Avoid_: Customer — não confundir com **Tenant** (organização cliente da plataforma SaaS) nem com **Contact** (identidade WhatsApp).
@@ -41,11 +56,11 @@ _Avoid_: Agent, attendant, operador, atendente, Profile, perfil
 **Queue**: Fila de roteamento de Tickets — mecanismo técnico de distribuição (estratégia Round-Robin ou Balanced, saudações). Distinta de **Setor** (unidade organizacional de pessoas/permissões): um Setor tem 1+ Queues (`setor_filas`), mas Queue não carrega gestão nem permissões.
 _Avoid_: Department, team, setor (não são sinônimos — ver **Setor**)
 
-**ChannelSession**: Sessão ativa de um canal de comunicação (WhatsApp/Telegram). Contém QR code, status de conexão, e configurações por tenant. Representa o estado runtime de um Whatsapp.
-_Avoid_: Session, conexão, wbot, instancia
+**ChannelSession**: Sessão runtime ativa de uma ChannelConnection. Contém QR code (quando aplicável), status em tempo real, e configurações por tenant.
+_Avoid_: Session, wbot, instancia
 
-**Whatsapp**: Configuração persistente de um número de WhatsApp. Referência lógica que dá origem a ChannelSessions. Associa-se a Queues via tabela de junção.
-_Avoid_: WABA, número, telefone, channel
+**Whatsapp**: Instância da tabela legada correspondente ao canal `kind=whatsapp`. Coexiste com ChannelConnection durante o processo de migração (expandir-e-contrair) até paridade total.
+_Avoid_: WABA, número, telefone (quando referindo-se à conexão)
 
 **Message**: Mensagem individual dentro de um Ticket. Pode ser de texto, mídia, reação ou sistema. Rastreada por Ack (0=pending, 1=sent, 2=delivered, 3=read, 4=error).
 _Avoid_: Msg, texto, notificação
