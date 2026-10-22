@@ -15,10 +15,17 @@ import (
 	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
 )
 
-type Adapter struct{}
+type Adapter struct {
+	// inbound entrega ao serviço de entrada as mensagens recebidas por polling
+	// (webhook entrega pelo controller). nil = polling não entrega.
+	inbound InboundHandler
+}
 
-func NewAdapter() *Adapter {
-	return &Adapter{}
+// InboundHandler entrega uma mensagem neutra ao pipeline de entrada.
+type InboundHandler func(ctx context.Context, msg domain.InboundMessage) error
+
+func NewAdapter(inbound InboundHandler) *Adapter {
+	return &Adapter{inbound: inbound}
 }
 
 func (a *Adapter) Kind() domain.ChannelKind {
@@ -47,8 +54,11 @@ func (a *Adapter) Capabilities() domain.Capabilities {
 
 func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, input domain.ConnectInput) (domain.ConnectResult, error) {
 	token := input.Token
-	if token == "" && conn.CredentialsEnc != "" {
-		token = conn.CredentialsEnc
+	if token == "" {
+		stored, err := domain.ChannelCredentials(conn)
+		if err == nil {
+			token = stored
+		}
 	}
 	if token == "" {
 		return domain.ConnectResult{Status: "DISCONNECTED", Connected: false}, fmt.Errorf("telegram bot token is required")
@@ -81,7 +91,7 @@ func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, i
 
 	if mode == "polling" {
 		_ = client.DeleteWebhook(ctx)
-		globalPollingManager.Start(conn, nil)
+		globalPollingManager.Start(conn, a.inbound)
 		conn.Config = fmt.Sprintf(`{"bot_username": "%s", "bot_id": %d, "first_name": "%s", "mode": "polling"}`, user.Username, user.ID, user.FirstName)
 	} else {
 		globalPollingManager.Stop(conn.ID)
@@ -96,7 +106,6 @@ func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, i
 		conn.Config = fmt.Sprintf(`{"bot_username": "%s", "bot_id": %d, "first_name": "%s", "mode": "webhook", "webhook_url": "%s"}`, user.Username, user.ID, user.FirstName, webhookURL)
 	}
 
-	conn.CredentialsEnc = token
 	conn.WebhookSecret = secret
 	conn.Status = "CONNECTED"
 
@@ -108,20 +117,20 @@ func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, i
 
 func (a *Adapter) Disconnect(ctx context.Context, conn *models.ChannelConnection) error {
 	globalPollingManager.Stop(conn.ID)
-	if conn.CredentialsEnc != "" {
-		client := NewClient(conn.CredentialsEnc)
-		_ = client.DeleteWebhook(ctx)
+	if token, err := domain.ChannelCredentials(conn); err == nil {
+		_ = NewClient(token).DeleteWebhook(ctx)
 	}
 	conn.Status = "DISCONNECTED"
 	return nil
 }
 
 func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg OutboundMessageBridge) (domain.SendResult, error) {
-	if conn.CredentialsEnc == "" {
+	token, err := domain.ChannelCredentials(conn)
+	if err != nil {
 		return domain.SendResult{}, fmt.Errorf("telegram connection has no token")
 	}
 
-	client := NewClient(conn.CredentialsEnc)
+	client := NewClient(token)
 	var replyID int
 	if msg.QuotedMessageID != "" {
 		if idInt, err := strconv.Atoi(msg.QuotedMessageID); err == nil {
@@ -269,13 +278,15 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 
 	var mediaURL string
 	if fileID != "" && conn.CredentialsEnc != "" {
-		client := NewClient(conn.CredentialsEnc)
-		if filePath, err := client.GetFile(ctx, fileID); err == nil && filePath != "" {
-			if reader, err := client.DownloadFile(ctx, filePath); err == nil {
-				if savedURL, err := mediastore.SaveMediaReader(reader, mimeType); err == nil {
-					mediaURL = savedURL
+		if token, err := domain.ChannelCredentials(conn); err == nil {
+			client := NewClient(token)
+			if filePath, err := client.GetFile(ctx, fileID); err == nil && filePath != "" {
+				if reader, err := client.DownloadFile(ctx, filePath); err == nil {
+					if savedURL, err := mediastore.SaveMediaReader(reader, mimeType); err == nil {
+						mediaURL = savedURL
+					}
+					_ = reader.Close()
 				}
-				_ = reader.Close()
 			}
 		}
 	}

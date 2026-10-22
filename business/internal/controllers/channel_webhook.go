@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -97,15 +98,26 @@ func (wc *ChannelWebhookController) HandleWebhook(c *gin.Context) {
 
 	// 7. Encaminha as mensagens para o serviço unificado de entrada
 	processed := 0
+	failed := 0
 	if wc.inboundService != nil {
 		for _, msg := range inboundMsgs {
 			msg.TenantID = conn.TenantID
 			msg.ChannelConnectionID = conn.ID
 			msg.Channel = domain.ChannelKind(kind)
-			if _, err := wc.inboundService.Receive(c.Request.Context(), msg); err == nil {
-				processed++
+			if _, err := wc.inboundService.Receive(c.Request.Context(), msg); err != nil {
+				log.Printf("[ChannelWebhook] receive error (conn %d, msg %s): %v", conn.ID, msg.ExternalMessageID, err)
+				failed++
+				continue
 			}
+			processed++
 		}
+	}
+
+	// Falha de processamento responde 5xx: o canal reentrega o update (o Telegram
+	// só considera entregue em 2xx), em vez de perder a mensagem silenciosamente.
+	if failed > 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "received": processed, "failed": failed})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "received": processed})

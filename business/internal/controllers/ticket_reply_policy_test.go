@@ -114,7 +114,7 @@ func TestTicketReplyPolicy_ShowAndSend409(t *testing.T) {
 	r.GET("/tickets/:ticketId", tc.ShowTicket)
 	r.POST("/messages/:ticketId", mc.SendMessage)
 
-	// 1. Testa GET /tickets/:id devolvendo replyPolicy expirada
+	// 1. Testa GET /tickets/:id com replyPolicy expirada
 	wShow := httptest.NewRecorder()
 	reqShow, _ := http.NewRequest("GET", "/tickets/"+strconv.Itoa(ticket.ID), nil)
 	r.ServeHTTP(wShow, reqShow)

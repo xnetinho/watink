@@ -6,9 +6,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// ChannelConnection representa uma conexão persistente de um tenant a um canal específico
+// ChannelConnection representa uma conexão duradoura de um tenant a um canal específico
 // (WhatsApp, Telegram, Mercado Livre, OLX, Instagram, TikTok), com credenciais cifradas
-// e status operacional (ADR 0033). Generaliza a antiga entidade Whatsapp.
+// e status de operação (ADR 0033). Generaliza a antiga entidade Whatsapp.
 type ChannelConnection struct {
 	ID              int       `gorm:"primaryKey" json:"id"`
 	TenantID        uuid.UUID `gorm:"column:tenantId;type:uuid;not null;uniqueIndex:idx_channel_connections_tenant_name" json:"tenantId"`

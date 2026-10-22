@@ -61,11 +61,13 @@ func (s *ChannelInboundService) Receive(ctx context.Context, msg domain.InboundM
 	}
 
 	// 1. Deduplicação por (channelConnectionId, externalMessageId) no Redis
+	dedupKey := ""
 	if s.redis != nil {
-		dedupKey := fmt.Sprintf("channel:msg:%s:%d:%s", msg.Channel, msg.ChannelConnectionID, msg.ExternalMessageID)
+		dedupKey = fmt.Sprintf("channel:msg:%s:%d:%s", msg.Channel, msg.ChannelConnectionID, msg.ExternalMessageID)
 		acquired, err := s.redis.SetLock(dedupKey, "1", channelDedupTTL)
 		if err != nil {
 			log.Printf("[ChannelInbound] redis dedup lock check error (msg %s): %v", msg.ExternalMessageID, err)
+			dedupKey = ""
 		} else if !acquired {
 			// Mensagem já processada anteriormente: descarta silenciosamente (idempotente)
 			log.Printf("[ChannelInbound] duplicate message ignored: %s", dedupKey)
@@ -73,6 +75,17 @@ func (s *ChannelInboundService) Receive(ctx context.Context, msg domain.InboundM
 		}
 	}
 
+	res, err := s.processInbound(ctx, msg)
+	if err != nil && dedupKey != "" {
+		// Processamento falhou: libera a marca para o canal poder reentregar a
+		// mensagem; sem isso ela seria descartada como duplicata por 24h.
+		_ = s.redis.DelLock(dedupKey)
+	}
+	return res, err
+}
+
+// processInbound executa o pipeline de entrada de uma mensagem já deduplicada.
+func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.InboundMessage) (*usecases.ReceiveMessageResult, error) {
 	// 2. Se for canal WhatsApp, preserva paridade total delegando ao usecase existente
 	if msg.Channel == domain.ChannelKindWhatsApp {
 		return s.receiveMessage.Execute(ctx, usecases.ReceiveMessageInput{

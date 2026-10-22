@@ -154,7 +154,7 @@ func (r *GORMContactRepository) FindOrCreateByIdentity(ctx context.Context, tena
 		First(&ident).Error
 
 	if err == nil {
-		// Identidade encontrada: carrega o contato correspondente
+		// Identidade encontrada: carrega o contato relacionado
 		var contact models.Contact
 		if err := r.db.WithContext(ctx).Where(`id = ? AND "tenantId" = ?`, ident.ContactID, tenantID).First(&contact).Error; err != nil {
 			return nil, nil, err
