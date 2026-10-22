@@ -153,6 +153,64 @@ func (c *Client) GetUpdates(ctx context.Context, offset int64, timeout int) ([]T
 	return res.Result, nil
 }
 
+type TelegramFile struct {
+	FileID       string `json:"file_id"`
+	FileUniqueId string `json:"file_unique_id"`
+	FileSize     int64  `json:"file_size,omitempty"`
+	FilePath     string `json:"file_path,omitempty"`
+}
+
+type GetFileResponse struct {
+	Ok     bool         `json:"ok"`
+	Result TelegramFile `json:"result"`
+}
+
+func (c *Client) GetFile(ctx context.Context, fileID string) (string, error) {
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/getFile?file_id=%s", c.token, fileID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("getFile error (status %d): %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var res GetFileResponse
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return "", err
+	}
+	if !res.Ok {
+		return "", fmt.Errorf("telegram getFile not ok")
+	}
+	return res.Result.FilePath, nil
+}
+
+func (c *Client) DownloadFile(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	url := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", c.token, filePath)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		_ = resp.Body.Close()
+		return nil, fmt.Errorf("download file error (status %d)", resp.StatusCode)
+	}
+	return resp.Body, nil
+}
+
 type SendMessageRequest struct {
 	ChatID           interface{} `json:"chat_id"` // int64 or string
 	Text             string      `json:"text"`
