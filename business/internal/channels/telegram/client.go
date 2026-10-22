@@ -66,16 +66,16 @@ func (c *Client) GetMe(ctx context.Context) (*User, error) {
 }
 
 type SetWebhookRequest struct {
-	URL         string   `json:"url"`
-	SecretToken string   `json:"secret_token,omitempty"`
+	URL            string   `json:"url"`
+	SecretToken    string   `json:"secret_token,omitempty"`
 	AllowedUpdates []string `json:"allowed_updates,omitempty"`
 }
 
 func (c *Client) SetWebhook(ctx context.Context, webhookURL, secretToken string) error {
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook", c.token)
 	payload := SetWebhookRequest{
-		URL:         webhookURL,
-		SecretToken: secretToken,
+		URL:            webhookURL,
+		SecretToken:    secretToken,
 		AllowedUpdates: []string{"message", "edited_message", "my_chat_member"},
 	}
 	body, err := json.Marshal(payload)
@@ -117,6 +117,42 @@ func (c *Client) DeleteWebhook(ctx context.Context) error {
 	return nil
 }
 
+type GetUpdatesResponse struct {
+	Ok     bool             `json:"ok"`
+	Result []TelegramUpdate `json:"result"`
+}
+
+func (c *Client) GetUpdates(ctx context.Context, offset int64, timeout int) ([]TelegramUpdate, error) {
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/getUpdates?offset=%d&timeout=%d", c.token, offset, timeout)
+	httpClient := &http.Client{
+		Timeout: time.Duration(timeout+5) * time.Second,
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("getUpdates error (status %d): %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var res GetUpdatesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return nil, err
+	}
+	if !res.Ok {
+		return nil, fmt.Errorf("telegram getUpdates not ok")
+	}
+	return res.Result, nil
+}
+
 type SendMessageRequest struct {
 	ChatID           interface{} `json:"chat_id"` // int64 or string
 	Text             string      `json:"text"`
@@ -124,9 +160,9 @@ type SendMessageRequest struct {
 }
 
 type TelegramResponse struct {
-	Ok     bool              `json:"ok"`
-	Result json.RawMessage   `json:"result"`
-	Description string       `json:"description,omitempty"`
+	Ok          bool            `json:"ok"`
+	Result      json.RawMessage `json:"result"`
+	Description string          `json:"description,omitempty"`
 }
 
 type MessageResult struct {
@@ -135,8 +171,7 @@ type MessageResult struct {
 
 func (c *Client) SendMessage(ctx context.Context, chatID string, text string, replyToMsgID int) (int64, error) {
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", c.token)
-	
-	// Tenta converter chatID para int64 se possível
+
 	var parsedChatID interface{} = chatID
 	if idInt, err := strconv.ParseInt(chatID, 10, 64); err == nil {
 		parsedChatID = idInt

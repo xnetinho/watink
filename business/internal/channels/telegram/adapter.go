@@ -68,13 +68,32 @@ func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, i
 		secret = hex.EncodeToString(b)
 	}
 
-	// Monta URL pública de webhook (assumindo que o servidor expõe /webhooks/channels/telegram/:id)
-	// Como o adapter roda no business, o webhook URL pode vir configurado no env ou derivado.
-	// Por ora, registramos o secret e salvamos o token.
+	// Determina o modo (webhook ou polling) escolhido pelo usuário (Task 1.4 / ADR 0033)
+	mode := "webhook"
+	if input.Params != nil && input.Params["mode"] != "" {
+		mode = input.Params["mode"]
+	} else if conn.Config != "" {
+		var cfg map[string]interface{}
+		if json.Unmarshal([]byte(conn.Config), &cfg) == nil {
+			if m, ok := cfg["mode"].(string); ok && m != "" {
+				mode = m
+			}
+		}
+	}
+
+	if mode == "polling" {
+		// Telegram exige desativar o webhook antes de usar getUpdates (polling)
+		_ = client.DeleteWebhook(ctx)
+		globalPollingManager.Start(conn, nil)
+		conn.Config = fmt.Sprintf(`{"bot_username": "%s", "bot_id": %d, "first_name": "%s", "mode": "polling"}`, user.Username, user.ID, user.FirstName)
+	} else {
+		globalPollingManager.Stop(conn.ID)
+		conn.Config = fmt.Sprintf(`{"bot_username": "%s", "bot_id": %d, "first_name": "%s", "mode": "webhook"}`, user.Username, user.ID, user.FirstName)
+	}
+
 	conn.CredentialsEnc = token
 	conn.WebhookSecret = secret
 	conn.Status = "CONNECTED"
-	conn.Config = fmt.Sprintf(`{"bot_username": "%s", "bot_id": %d, "first_name": "%s"}`, user.Username, user.ID, user.FirstName)
 
 	return domain.ConnectResult{
 		Status:    "CONNECTED",
@@ -83,6 +102,7 @@ func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, i
 }
 
 func (a *Adapter) Disconnect(ctx context.Context, conn *models.ChannelConnection) error {
+	globalPollingManager.Stop(conn.ID)
 	if conn.CredentialsEnc != "" {
 		client := NewClient(conn.CredentialsEnc)
 		_ = client.DeleteWebhook(ctx)
@@ -116,7 +136,7 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 	}, nil
 }
 
-// OutboundMessageBridge é um alias para evitar conflito de import se necessário
+// OutboundMessageBridge é um alias para compatibilidade
 type OutboundMessageBridge = domain.OutboundMessage
 
 // Structs para parse do webhook do Telegram
@@ -160,7 +180,6 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		msg = update.EditedMessage
 	}
 	if msg == nil {
-		// Eventos não tratados (ex.: my_chat_member) retornam vazio sem erro
 		return nil, nil
 	}
 
