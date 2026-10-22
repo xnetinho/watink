@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/alltomatos/watinkdev/business/internal/application"
 	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
+	telegramChannel "github.com/alltomatos/watinkdev/business/internal/channels/telegram"
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
@@ -115,6 +116,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	)
 	channelWebhookController := controllers.NewChannelWebhookController(container.DB, channelInboundSvc)
 	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService))
+	domain.DefaultChannelRegistry().Register(telegramChannel.NewAdapter())
 
 	// Public Routes
 	group.POST("/webhooks/channels/:kind/:connectionId", channelWebhookController.HandleWebhook)
