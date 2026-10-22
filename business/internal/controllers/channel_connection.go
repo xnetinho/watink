@@ -75,7 +75,7 @@ func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 		Status:         "DISCONNECTED",
 	}
 
-	// Cria o registro no banco primeiro para obter o Connection ID (essencial para a URL de webhook do Telegram)
+	// Cria o registro no banco primeiro para obter o Connection ID (fundamental para a URL de webhook do Telegram)
 	if err := db.Create(&conn).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "CreateChannelConnection")
 		return

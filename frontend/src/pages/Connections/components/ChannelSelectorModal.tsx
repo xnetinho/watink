@@ -62,6 +62,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
   const [selectedChannel, setSelectedChannel] = useState<ChannelDefinition | null>(null);
   const [tokenInput, setTokenInput] = useState("");
   const [nameInput, setNameInput] = useState("");
+  const [modeInput, setModeInput] = useState<"webhook" | "polling">("webhook");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Estados para configuração do WhatsApp
@@ -98,6 +99,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
     setSelectedChannel(null);
     setTokenInput("");
     setNameInput("");
+    setModeInput("webhook");
     setIsSubmitting(false);
     setWhatsAppForm({
       name: "",
@@ -134,6 +136,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
         kind: selectedChannel?.kind,
         name: nameInput.trim(),
         token: tokenInput.trim(),
+        mode: modeInput,
       });
       notify.success(`Canal ${selectedChannel?.name} conectado com sucesso!`);
       onChannelCreated?.();
@@ -378,6 +381,23 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
                   />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-foreground">Modo de Operação</label>
+                  <Select value={modeInput} onValueChange={(val: "webhook" | "polling") => setModeInput(val)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione o modo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="webhook">Webhook (Recomendado - Instantâneo)</SelectItem>
+                      <SelectItem value="polling">Polling (Busca Ativa - Sem URL pública)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {modeInput === "webhook"
+                      ? "O Telegram enviará as notificações diretamente para a URL pública do Watink."
+                      : "O Watink buscará novas mensagens em loop (ideal se o servidor não tiver IP/domínio público)."}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">Token do Bot (API Token)</label>

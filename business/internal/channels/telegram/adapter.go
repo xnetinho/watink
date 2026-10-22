@@ -272,10 +272,10 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		client := NewClient(conn.CredentialsEnc)
 		if filePath, err := client.GetFile(ctx, fileID); err == nil && filePath != "" {
 			if reader, err := client.DownloadFile(ctx, filePath); err == nil {
-				defer reader.Close()
 				if savedURL, err := mediastore.SaveMediaReader(reader, mimeType); err == nil {
 					mediaURL = savedURL
 				}
+				_ = reader.Close()
 			}
 		}
 	}
