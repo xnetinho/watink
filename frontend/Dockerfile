@@ -10,6 +10,7 @@ COPY vite.config.mjs ./
 COPY tsconfig*.json ./
 COPY tailwind.config.js postcss.config.js ./
 COPY copy-assets.js ./
+COPY build-sourcemap.mjs ./
 # Executa os passos do `build` diretamente (sem o hook `postbuild`, que roda o
 # sync-embed-go.js — dev-only: sincroniza o build no embed do Go, irrelevante na
 # imagem de produção nginx).
