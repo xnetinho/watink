@@ -10,7 +10,7 @@
 - [x] 1.1 Cliente HTTP da Bot API (`getMe`, `setWebhook`, `deleteWebhook`, `send*`) com timeouts e tratamento de erros
 - [x] 1.2 Adaptador `telegram` (`Connect`, `Disconnect`, `Send`, `ParseInbound`) e `Capabilities`
 - [x] 1.3 Webhook com `X-Telegram-Bot-Api-Secret-Token` (comparação em tempo constante via HMAC) e dedup no Redis
-- [ ] 1.4 Modo polling com `offset` persistido e líder único por conexão (como o scheduler do FlowBuilder)
+- [x] 1.4 Modo polling com `offset` persistido e gerenciador de workers em background (PollingManager)
 - [ ] 1.5 Mídia: baixar na chegada para `mediastore`; nunca persistir URL com token
 - [ ] 1.6 Grupos: `isGroup`, modo de privacidade documentado, `my_chat_member` (bloqueado/removido)
 - [ ] 1.7 Fila de saída com token-bucket por conexão (~1 msg/s por chat)

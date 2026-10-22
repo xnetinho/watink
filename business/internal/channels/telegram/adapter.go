@@ -12,6 +12,7 @@ import (
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
 )
 
 type Adapter struct{}
@@ -26,9 +27,9 @@ func (a *Adapter) Kind() domain.ChannelKind {
 
 func (a *Adapter) Capabilities() domain.Capabilities {
 	return domain.Capabilities{
-		InitiateConversation: false, // Telegram bots não podem iniciar conversa sem comando/mensagem prévia do usuário
-		ReplyWindow:          nil,   // Sem limite de janela temporal
-		MaxTextBytes:         4096,  // Limite da Bot API do Telegram
+		InitiateConversation: false,
+		ReplyWindow:          nil,
+		MaxTextBytes:         4096,
 		Media: []domain.MediaKind{
 			domain.MediaKindImage,
 			domain.MediaKindVideo,
@@ -47,7 +48,6 @@ func (a *Adapter) Capabilities() domain.Capabilities {
 func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, input domain.ConnectInput) (domain.ConnectResult, error) {
 	token := input.Token
 	if token == "" && conn.CredentialsEnc != "" {
-		// Se já tiver credencial salva (reconexão)
 		token = conn.CredentialsEnc
 	}
 	if token == "" {
@@ -60,7 +60,6 @@ func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, i
 		return domain.ConnectResult{Status: "DISCONNECTED", Connected: false}, fmt.Errorf("invalid telegram bot token: %w", err)
 	}
 
-	// Gera segredo de webhook se não houver
 	secret := conn.WebhookSecret
 	if secret == "" {
 		b := make([]byte, 32)
@@ -68,7 +67,6 @@ func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, i
 		secret = hex.EncodeToString(b)
 	}
 
-	// Determina o modo (webhook ou polling) escolhido pelo usuário (Task 1.4 / ADR 0033)
 	mode := "webhook"
 	if input.Params != nil && input.Params["mode"] != "" {
 		mode = input.Params["mode"]
@@ -82,13 +80,20 @@ func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, i
 	}
 
 	if mode == "polling" {
-		// Telegram exige desativar o webhook antes de usar getUpdates (polling)
 		_ = client.DeleteWebhook(ctx)
 		globalPollingManager.Start(conn, nil)
 		conn.Config = fmt.Sprintf(`{"bot_username": "%s", "bot_id": %d, "first_name": "%s", "mode": "polling"}`, user.Username, user.ID, user.FirstName)
 	} else {
 		globalPollingManager.Stop(conn.ID)
-		conn.Config = fmt.Sprintf(`{"bot_username": "%s", "bot_id": %d, "first_name": "%s", "mode": "webhook"}`, user.Username, user.ID, user.FirstName)
+		baseURL := "https://homolog.watink.com"
+		if input.Params != nil && input.Params["baseUrl"] != "" {
+			baseURL = input.Params["baseUrl"]
+		}
+		webhookURL := fmt.Sprintf("%s/api/v1/webhooks/channels/telegram/%d", baseURL, conn.ID)
+		if err := client.SetWebhook(ctx, webhookURL, secret); err != nil {
+			return domain.ConnectResult{Status: "DISCONNECTED", Connected: false}, fmt.Errorf("failed to set telegram webhook: %w", err)
+		}
+		conn.Config = fmt.Sprintf(`{"bot_username": "%s", "bot_id": %d, "first_name": "%s", "mode": "webhook", "webhook_url": "%s"}`, user.Username, user.ID, user.FirstName, webhookURL)
 	}
 
 	conn.CredentialsEnc = token
@@ -136,24 +141,43 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 	}, nil
 }
 
-// OutboundMessageBridge é um alias para compatibilidade
 type OutboundMessageBridge = domain.OutboundMessage
 
-// Structs para parse do webhook do Telegram
 type TelegramUpdate struct {
-	UpdateID      int64             `json:"update_id"`
-	Message       *TelegramMessage  `json:"message,omitempty"`
-	EditedMessage *TelegramMessage  `json:"edited_message,omitempty"`
+	UpdateID      int64            `json:"update_id"`
+	Message       *TelegramMessage `json:"message,omitempty"`
+	EditedMessage *TelegramMessage `json:"edited_message,omitempty"`
+}
+
+type TelegramFileObject struct {
+	FileID       string `json:"file_id"`
+	FileUniqueId string `json:"file_unique_id"`
+	FileSize     int64  `json:"file_size,omitempty"`
+	FileName     string `json:"file_name,omitempty"`
+	MimeType     string `json:"mime_type,omitempty"`
+}
+
+type TelegramPhotoSize struct {
+	FileID       string `json:"file_id"`
+	FileUniqueId string `json:"file_unique_id"`
+	Width        int    `json:"width"`
+	Height       int    `json:"height"`
+	FileSize     int64  `json:"file_size,omitempty"`
 }
 
 type TelegramMessage struct {
-	MessageID int64           `json:"message_id"`
-	From      *TelegramUser   `json:"from,omitempty"`
-	Chat      TelegramChat    `json:"chat"`
-	Date      int64           `json:"date"`
-	Text      string          `json:"text,omitempty"`
-	Caption   string          `json:"caption,omitempty"`
-	ReplyTo   *TelegramMessage `json:"reply_to_message,omitempty"`
+	MessageID int64                `json:"message_id"`
+	From      *TelegramUser        `json:"from,omitempty"`
+	Chat      TelegramChat         `json:"chat"`
+	Date      int64                `json:"date"`
+	Text      string               `json:"text,omitempty"`
+	Caption   string               `json:"caption,omitempty"`
+	ReplyTo   *TelegramMessage     `json:"reply_to_message,omitempty"`
+	Photo     []TelegramPhotoSize  `json:"photo,omitempty"`
+	Document  *TelegramFileObject  `json:"document,omitempty"`
+	Video     *TelegramFileObject  `json:"video,omitempty"`
+	Audio     *TelegramFileObject  `json:"audio,omitempty"`
+	Voice     *TelegramFileObject  `json:"voice,omitempty"`
 }
 
 type TelegramUser struct {
@@ -204,6 +228,58 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		body = msg.Caption
 	}
 
+	mediaType := "chat"
+	var fileID string
+	var mimeType string
+
+	if len(msg.Photo) > 0 {
+		mediaType = "image"
+		// Pega a foto de maior resolução (última do array)
+		fileID = msg.Photo[len(msg.Photo)-1].FileID
+		mimeType = "image/jpeg"
+	} else if msg.Document != nil {
+		mediaType = "document"
+		fileID = msg.Document.FileID
+		mimeType = msg.Document.MimeType
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+	} else if msg.Video != nil {
+		mediaType = "video"
+		fileID = msg.Video.FileID
+		mimeType = msg.Video.MimeType
+		if mimeType == "" {
+			mimeType = "video/mp4"
+		}
+	} else if msg.Audio != nil {
+		mediaType = "audio"
+		fileID = msg.Audio.FileID
+		mimeType = msg.Audio.MimeType
+		if mimeType == "" {
+			mimeType = "audio/mpeg"
+		}
+	} else if msg.Voice != nil {
+		mediaType = "audio"
+		fileID = msg.Voice.FileID
+		mimeType = msg.Voice.MimeType
+		if mimeType == "" {
+			mimeType = "audio/ogg"
+		}
+	}
+
+	var mediaURL string
+	if fileID != "" && conn.CredentialsEnc != "" {
+		client := NewClient(conn.CredentialsEnc)
+		if filePath, err := client.GetFile(ctx, fileID); err == nil && filePath != "" {
+			if reader, err := client.DownloadFile(ctx, filePath); err == nil {
+				defer reader.Close()
+				if savedURL, err := mediastore.SaveMediaReader(reader, mimeType); err == nil {
+					mediaURL = savedURL
+				}
+			}
+		}
+	}
+
 	var quotedID string
 	if msg.ReplyTo != nil {
 		quotedID = strconv.FormatInt(msg.ReplyTo.MessageID, 10)
@@ -222,7 +298,8 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 			GroupJID:   chatExternalID,
 		},
 		Body:            body,
-		MediaType:       "chat",
+		MediaType:       mediaType,
+		MediaURL:        mediaURL,
 		QuotedMessageID: quotedID,
 		Timestamp:       time.Unix(msg.Date, 0),
 		RawPayload:      raw,

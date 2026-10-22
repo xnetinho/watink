@@ -37,7 +37,7 @@ func (cc *ChannelConnectionController) ListConnections(c *gin.Context) {
 	c.JSON(http.StatusOK, conns)
 }
 
-// CreateConnection cria e conecta uma nova ChannelConnection (ex.: Telegram token).
+// CreateConnection cria e conecta uma nova ChannelConnection (ex.: Telegram token, com webhook/polling).
 func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
 	if !ok {
@@ -48,7 +48,7 @@ func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 		Kind  string `json:"kind" binding:"required"`
 		Name  string `json:"name" binding:"required"`
 		Token string `json:"token" binding:"required"`
-		Mode  string `json:"mode"` // webhook ou polling
+		Mode  string `json:"mode"` // "webhook" (padrão) ou "polling"
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -61,7 +61,6 @@ func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 		return
 	}
 
-	// Cifra as credenciais (token) at-rest com cryptobox
 	encToken, err := cryptobox.Encrypt(input.Token)
 	if err != nil {
 		utils.RespondWithInternalError(c, err, "EncryptChannelCredentials")
@@ -76,30 +75,36 @@ func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 		Status:         "DISCONNECTED",
 	}
 
-	// Obtém o adaptador de canal do registry
-	channelAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(input.Kind))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("unsupported channel kind: %s", input.Kind)})
-		return
-	}
-
-	// Executa Connect no canal
-	connectInput := domain.ConnectInput{
-		Token: input.Token,
-		Params: map[string]string{
-			"mode": input.Mode,
-		},
-	}
-
-	_, connErr := channelAdapter.Connect(c.Request.Context(), &conn, connectInput)
-	if connErr != nil {
-		conn.Status = "DISCONNECTED"
-		conn.LastError = connErr.Error()
-	}
-
+	// Cria o registro no banco primeiro para obter o Connection ID (essencial para a URL de webhook do Telegram)
 	if err := db.Create(&conn).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "CreateChannelConnection")
 		return
+	}
+
+	channelAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(input.Kind))
+	if err == nil {
+		scheme := "http"
+		if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+			scheme = "https"
+		}
+		baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
+
+		connectInput := domain.ConnectInput{
+			Token: input.Token,
+			Params: map[string]string{
+				"mode":    input.Mode,
+				"baseUrl": baseURL,
+			},
+		}
+
+		if _, connErr := channelAdapter.Connect(c.Request.Context(), &conn, connectInput); connErr != nil {
+			conn.Status = "DISCONNECTED"
+			conn.LastError = connErr.Error()
+		} else {
+			conn.Status = "CONNECTED"
+			conn.LastError = ""
+		}
+		_ = db.Save(&conn).Error
 	}
 
 	c.JSON(http.StatusOK, conn)
