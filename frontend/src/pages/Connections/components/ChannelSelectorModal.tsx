@@ -1,5 +1,7 @@
 /* @jsxImportSource react */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import * as Yup from "yup";
+import { Formik, Form, Field } from "formik";
 import {
   Dialog,
   DialogContent,
@@ -9,22 +11,52 @@ import {
 } from "../../../components/ui/dialog";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import { Switch } from "../../../components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/ui/select";
 import { CHANNELS_CATALOG, ChannelDefinition } from "../../../config/channels";
-import { MessageCircle, Send, ShoppingBag, Camera, Tag, Video, ArrowLeft, AlertCircle } from "lucide-react";
+import {
+  MessageCircle,
+  Send,
+  ShoppingBag,
+  Camera,
+  Tag,
+  Video,
+  ArrowLeft,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import api from "../../../services/api";
 import { notify } from "../../../lib/notify";
+import { i18n } from "../../../translate/i18n";
+import QueueSelect from "../../../components/QueueSelect";
+import type {
+  WhatsAppFormValues,
+  Proxy,
+  ProxyGroup,
+  ConnectionGroup,
+} from "../../../types/domain";
+
+const SessionSchema = Yup.object().shape({
+  name: Yup.string().min(2, "Muito curto!").max(50, "Muito longo!").required("Obrigatório"),
+});
 
 interface ChannelSelectorModalProps {
   open: boolean;
   onClose: () => void;
-  onSelectWhatsApp: () => void;
+  onSelectWhatsApp?: () => void;
   onChannelCreated?: () => void;
 }
 
 export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
   open,
   onClose,
-  onSelectWhatsApp,
   onChannelCreated,
 }) => {
   const [selectedChannel, setSelectedChannel] = useState<ChannelDefinition | null>(null);
@@ -32,11 +64,53 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
   const [nameInput, setNameInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Estados para configuração do WhatsApp
+  const [whatsAppForm, setWhatsAppForm] = useState<WhatsAppFormValues>({
+    name: "",
+    isDefault: false,
+    keepAlive: false,
+    syncHistory: false,
+    engineType: "whatsmeow",
+    proxyMode: "none",
+    proxyId: null,
+    proxyGroupId: null,
+    connectionGroupId: null,
+  });
+  const [selectedQueueIds, setSelectedQueueIds] = useState<number[]>([]);
+  const [proxies, setProxies] = useState<Proxy[]>([]);
+  const [proxyGroups, setProxyGroups] = useState<ProxyGroup[]>([]);
+  const [connectionGroups, setConnectionGroups] = useState<ConnectionGroup[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    api.get<Proxy[]>("/proxies", { params: { status: "active" } })
+      .then(({ data }) => setProxies(Array.isArray(data) ? data : []))
+      .catch(() => setProxies([]));
+    api.get<ProxyGroup[]>("/proxy-groups")
+      .then(({ data }) => setProxyGroups(Array.isArray(data) ? data : []))
+      .catch(() => setProxyGroups([]));
+    api.get<ConnectionGroup[]>("/connection-groups")
+      .then(({ data }) => setConnectionGroups(Array.isArray(data) ? data : []))
+      .catch(() => setConnectionGroups([]));
+  }, [open]);
+
   const resetState = () => {
     setSelectedChannel(null);
     setTokenInput("");
     setNameInput("");
     setIsSubmitting(false);
+    setWhatsAppForm({
+      name: "",
+      isDefault: false,
+      keepAlive: false,
+      syncHistory: false,
+      engineType: "whatsmeow",
+      proxyMode: "none",
+      proxyId: null,
+      proxyGroupId: null,
+      connectionGroupId: null,
+    });
+    setSelectedQueueIds([]);
   };
 
   const handleClose = () => {
@@ -45,11 +119,6 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
   };
 
   const handleSelect = (channel: ChannelDefinition) => {
-    if (channel.kind === "whatsapp") {
-      handleClose();
-      onSelectWhatsApp();
-      return;
-    }
     setSelectedChannel(channel);
   };
 
@@ -67,6 +136,21 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
         token: tokenInput.trim(),
       });
       notify.success(`Canal ${selectedChannel?.name} conectado com sucesso!`);
+      onChannelCreated?.();
+      handleClose();
+    } catch (err) {
+      notify.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveWhatsApp = async (values: WhatsAppFormValues) => {
+    setIsSubmitting(true);
+    const payload = { ...values, queueIds: selectedQueueIds };
+    try {
+      await api.post("/whatsapp", payload);
+      notify.success(i18n.t("whatsappModal.success"));
       onChannelCreated?.();
       handleClose();
     } catch (err) {
@@ -154,7 +238,138 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
           </div>
         ) : (
           <div className="space-y-4 py-2">
-            {selectedChannel.authKind === "token" && (
+            {selectedChannel.kind === "whatsapp" && (
+              <Formik
+                initialValues={whatsAppForm}
+                enableReinitialize
+                validationSchema={SessionSchema}
+                onSubmit={async (values) => {
+                  await handleSaveWhatsApp(values);
+                }}
+              >
+                {({ values, touched, errors, setFieldValue }) => (
+                  <Form className="space-y-4">
+                    <div className="space-y-1">
+                      <Label>{i18n.t("whatsappModal.form.name")}</Label>
+                      <Field as={Input} name="name" placeholder="Ex: WhatsApp Vendas" autoFocus aria-invalid={!!(errors.name && touched.name)} />
+                      {errors.name && touched.name && <p className="text-xs text-destructive">{errors.name as string}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-1">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="wa-modal-default"
+                          checked={values.isDefault}
+                          onCheckedChange={(checked) => setFieldValue("isDefault", checked)}
+                        />
+                        <Label htmlFor="wa-modal-default" className="text-xs">{i18n.t("whatsappModal.form.default")}</Label>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="wa-modal-keep-alive"
+                          checked={values.keepAlive}
+                          onCheckedChange={(checked) => setFieldValue("keepAlive", checked)}
+                        />
+                        <Label htmlFor="wa-modal-keep-alive" className="text-xs">Keep Alive</Label>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="wa-modal-sync"
+                          checked={values.syncHistory}
+                          onCheckedChange={(checked) => setFieldValue("syncHistory", checked)}
+                        />
+                        <Label htmlFor="wa-modal-sync" className="text-xs">Sincronizar Histórico</Label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 pt-1">
+                      <Label className="text-xs">Proxy (anti-ban)</Label>
+                      <Select
+                        value={
+                          values.proxyMode === "group" && values.proxyGroupId
+                            ? `group:${values.proxyGroupId}`
+                            : values.proxyMode === "single" && values.proxyId
+                            ? `single:${values.proxyId}`
+                            : "none"
+                        }
+                        onValueChange={(v) => {
+                          if (v === "none") {
+                            setFieldValue("proxyMode", "none");
+                            setFieldValue("proxyId", null);
+                            setFieldValue("proxyGroupId", null);
+                          } else if (v.startsWith("group:")) {
+                            setFieldValue("proxyMode", "group");
+                            setFieldValue("proxyGroupId", Number(v.slice(6)));
+                            setFieldValue("proxyId", null);
+                          } else {
+                            setFieldValue("proxyMode", "single");
+                            setFieldValue("proxyId", Number(v.slice(7)));
+                            setFieldValue("proxyGroupId", null);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Sem proxy" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sem proxy (IP do servidor)</SelectItem>
+                          {proxyGroups.map((g) => (
+                            <SelectItem key={`g${g.id}`} value={`group:${g.id}`}>
+                              Grupo: {g.name} ({g.rotationStrategy === "rotate" ? "rotação" : "fixo"})
+                            </SelectItem>
+                          ))}
+                          {proxies.map((p) => (
+                            <SelectItem key={`p${p.id}`} value={`single:${p.id}`}>
+                              {p.label ? `${p.label} — ` : ""}{p.scheme}://{p.host}:{p.port}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1 pt-1">
+                      <Label className="text-xs">Grupo de conexões</Label>
+                      <Select
+                        value={values.connectionGroupId ? String(values.connectionGroupId) : "none"}
+                        onValueChange={(v) => setFieldValue("connectionGroupId", v === "none" ? null : Number(v))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Sem grupo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sem grupo</SelectItem>
+                          {connectionGroups.map((g) => (
+                            <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="pt-1">
+                      <Label className="mb-1 block text-xs">Filas Permitidas</Label>
+                      <QueueSelect
+                        selectedQueueIds={selectedQueueIds}
+                        onChange={setSelectedQueueIds}
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-3 border-t border-border/50">
+                      <Button variant="ghost" type="button" onClick={() => setSelectedChannel(null)}>
+                        Voltar
+                      </Button>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {i18n.t("whatsappModal.buttons.okAdd")}
+                      </Button>
+                    </div>
+                  </Form>
+                )}
+              </Formik>
+            )}
+
+            {selectedChannel.authKind === "token" && selectedChannel.kind !== "whatsapp" && (
               <div className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">Nome da Conexão</label>
@@ -185,7 +400,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
               </div>
             )}
 
-            {(selectedChannel.authKind === "oauth" || selectedChannel.authKind === "oauth_review") && (
+            {(selectedChannel.authKind === "oauth" || selectedChannel.authKind === "oauth_review") && selectedChannel.kind !== "whatsapp" && (
               <div className="rounded-xl border border-border/60 p-4 bg-muted/30 space-y-3">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />

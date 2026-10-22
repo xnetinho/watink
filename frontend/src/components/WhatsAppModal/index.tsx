@@ -116,11 +116,13 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>
-            {whatsAppId ? i18n.t("whatsappModal.title.edit") : i18n.t("whatsappModal.title.add")}
-          </DialogTitle>
+          <div className="flex items-center gap-2">
+            <DialogTitle>
+              {whatsAppId ? i18n.t("whatsappModal.title.edit") : i18n.t("whatsappModal.title.add")}
+            </DialogTitle>
+          </div>
         </DialogHeader>
 
         <Formik
