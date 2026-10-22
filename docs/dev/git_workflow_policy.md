@@ -83,17 +83,11 @@ O merge flow de branches acima roda dentro de um pipeline de **três estágios c
 
 - **Homologação rastreia `develop`**; **produção rastreia `main`**. Cada promoção exige o portão anterior verde.
 - **Nunca** promover para homologação sem validação local, nem para produção sem aprovação em homologação.
-- **Deploy é automático nos dois estágios** via GitHub Actions
-  (`.github/workflows/cd-homolog.yaml` e `cd-production.yaml`): um push em
-  `develop`/`main` builda a imagem e faz o deploy via SSH direto na VPS
-  (`git reset --hard` no branch + `docker compose build && up -d`), seguido
-  de smoke test (`GET /api/health`). Nenhum passo manual depois do merge.
-- **Produção roda em `app.watink.com`**, na mesma VPS de homolog, como um
-  stack Docker isolado (containers, rede, volumes e segredos próprios —
-  nunca compartilhados com homolog). Ver `docker-compose.prod.yml` na raiz
-  do repo — o mesmo arquivo serve os dois ambientes, diferenciados só pelo
-  `.env`/`.env.prod` e pelo project name do Compose (`-p watink-homolog` vs
-  `-p watink-prod`).
+- **Deploy é automático em produção** via GitHub Actions
+  (`.github/workflows/cd-production.yaml`): um push em `main` builda a
+  imagem e faz o deploy via SSH (`docker-compose.prod.yml`). Homologação é
+  conduzida localmente no ambiente de produção/homologação atual.
+- **Produção roda no ambiente atual**, como stack Docker isolado. Ver `docker-compose.prod.yml` na raiz do repo.
 - **Não há branch longa de teste.** Não se mantém uma branch paralela (como foi `test/ghcr-images`) que publica imagens a
   cada push: ela acumulou 69 commits sem passar pela CI por 3 semanas. Cada mudança vive numa branch de feature
   curta, é verificada localmente (portão 1), vira PR contra `develop` e só então ganha imagem. Publicar uma imagem
