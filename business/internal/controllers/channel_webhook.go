@@ -12,6 +12,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/services"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -50,14 +51,21 @@ func (wc *ChannelWebhookController) HandleWebhook(c *gin.Context) {
 		return
 	}
 
-	// 1. Busca a conexão pelo ID e kind
+	// 1. Busca a conexão pelo ID e kind. A empresa ainda não é conhecida: a descoberta usa o escopo de sistema e é a
+	// única coisa que ele faz aqui (RLS, ADR 0034). Dali em diante tudo roda no escopo da empresa da conexão.
 	var conn models.ChannelConnection
-	if err := wc.db.Session(&gorm.Session{NewDB: true}).
+	sysCtx, sysDone := tenantdb.SystemCtx(c.Request.Context(), wc.db)
+	err = wc.db.WithContext(sysCtx).Session(&gorm.Session{NewDB: true}).
 		Where("id = ? AND kind = ?", connID, kind).
-		First(&conn).Error; err != nil {
+		First(&conn).Error
+	sysDone()
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not_found"})
 		return
 	}
+	tenantCtx, tenantDone := tenantdb.TenantCtx(c.Request.Context(), wc.db, conn.TenantID)
+	defer tenantDone()
+	c.Request = c.Request.WithContext(tenantCtx)
 
 	// 2. Lê os bytes do payload
 	raw, err := c.GetRawData()

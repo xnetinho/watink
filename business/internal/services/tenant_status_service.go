@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"sync"
 	"time"
 
@@ -48,8 +50,10 @@ func (s *TenantStatusService) GetStatus(tenantID uuid.UUID) (string, error) {
 	}
 	s.mu.Unlock()
 
+	ctx, done := tenantdb.SystemCtx(context.Background(), s.db)
+	defer done()
 	var status string
-	if err := s.db.Table("Tenants").Select("status").Where("id = ?", tenantID).Scan(&status).Error; err != nil {
+	if err := s.db.WithContext(ctx).Table("Tenants").Select("status").Where("id = ?", tenantID).Scan(&status).Error; err != nil {
 		return "", err
 	}
 

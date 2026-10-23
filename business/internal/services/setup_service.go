@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"os"
 	"strings"
@@ -42,6 +43,8 @@ func NewSetupService(db *gorm.DB) *SetupService {
 type TenantSeedData = domain.TenantSeedData
 
 func (s *SetupService) NeedsSetup(ctx context.Context) (bool, error) {
+	ctx, done := tenantdb.SystemCtx(ctx, s.db)
+	defer done()
 	var usersCount, tenantsCount int64
 	if err := s.db.WithContext(ctx).Model(&models.User{}).Count(&usersCount).Error; err != nil {
 		return false, err
@@ -56,7 +59,9 @@ func (s *SetupService) NeedsSetup(ctx context.Context) (bool, error) {
 // barreira single-tenant e usa o plano "Community" fixo. O seed em si vive em
 // seedTenant, compartilhado com ProvisionTenant (control plane SaaS).
 func (s *SetupService) InitializeTenant(data TenantSeedData) error {
-	return s.db.Transaction(func(tx *gorm.DB) error {
+	ctx, done := tenantdb.SystemCtx(context.Background(), s.db)
+	defer done()
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 0. Barreira concorrente (P3-3): NeedsSetup no controller é
 		// check-then-act fora de transação — dois POST /initial-setup
 		// simultâneos numa instalação virgem (emails diferentes) escapariam e
@@ -105,7 +110,9 @@ func (s *SetupService) InitializeTenant(data TenantSeedData) error {
 // MESMA chave devolve o tenant já criado em vez de duplicar ou estourar 409.
 func (s *SetupService) ProvisionTenant(data TenantSeedData, spec domain.ProvisionPlanSpec, idempotencyKey string) (domain.ProvisionResult, error) {
 	var result domain.ProvisionResult
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	ctx, done := tenantdb.SystemCtx(context.Background(), s.db)
+	defer done()
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Idempotência: serializa provisões com a MESMA chave e devolve o tenant
 		// existente se já houver. Best-effort no advisory lock (bancos sem
 		// suporte só perdem a serialização, não o pre-check). No Postgres o lock
@@ -152,7 +159,9 @@ func (s *SetupService) ProvisionTenant(data TenantSeedData, spec domain.Provisio
 // no vocabulário do core (active/trialing/expired/canceled) — o mapeamento é
 // feito no lado do SaaS. Idempotente por construção.
 func (s *SetupService) PushSubscription(tenantID uuid.UUID, spec domain.ProvisionPlanSpec, status string, expiresAt *time.Time) error {
-	return s.db.Transaction(func(tx *gorm.DB) error {
+	ctx, done := tenantdb.SystemCtx(context.Background(), s.db)
+	defer done()
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var count int64
 		if err := tx.Model(&models.Tenant{}).Where("id = ?", tenantID).Count(&count).Error; err != nil {
 			return err

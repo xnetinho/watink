@@ -23,7 +23,7 @@ func newCallID() string {
 // As validações de ticket individual, conexão conectada e sem proxy são do
 // controller; aqui ficam a de operador ocupado e a da conexão ocupada.
 func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, ticket *models.Ticket, contact *models.Contact) (*models.CallLog, error) {
-	busy, err := s.userInCall(tenantID, userID)
+	busy, err := s.userInCall(ctx, tenantID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, tic
 		return nil, ErrUserBusy
 	}
 	var onConn int64
-	if err := s.fresh().Model(&models.CallLog{}).
+	if err := s.fresh(ctx).Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "whatsappId" = ? AND "endedAt" IS NULL AND status IN ?`,
 			tenantID, ticket.WhatsappID, []string{StatusRinging, StatusActive}).Count(&onConn).Error; err != nil {
 		return nil, err
@@ -52,12 +52,12 @@ func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, tic
 		Direction: "outgoing", Status: StatusRinging, PeerJid: peer, CallerPn: number, StartedAt: now,
 		HandledByUserID: &userID, AnsweredAt: nil,
 	}
-	if err := s.fresh().Create(l).Error; err != nil {
+	if err := s.fresh(ctx).Create(l).Error; err != nil {
 		return nil, err
 	}
 	if err := s.command(tenantID, ticket.WhatsappID, "call.start", map[string]interface{}{"callId": callID, "to": peer}); err != nil {
 		end := s.now()
-		s.fresh().Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
+		s.fresh(ctx).Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
 			Updates(map[string]interface{}{"status": StatusFailed, "endReason": "failed", "endedAt": end})
 		return nil, fmt.Errorf("falha ao iniciar a chamada: %w", err)
 	}

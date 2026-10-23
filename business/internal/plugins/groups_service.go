@@ -48,7 +48,7 @@ func (s *groupsService) resolveConnectionFromQuery(c *gin.Context, tenantID uuid
 // "devolve 501 claro" requirement.
 func (s *groupsService) resolveConnection(c *gin.Context, tenantID uuid.UUID, whatsappID int) (models.Whatsapp, domain.GroupEngine, error) {
 	var w models.Whatsapp
-	if err := s.db.Where(`id = ? AND "tenantId" = ?`, whatsappID, tenantID).First(&w).Error; err != nil {
+	if err := s.db.WithContext(c.Request.Context()).Where(`id = ? AND "tenantId" = ?`, whatsappID, tenantID).First(&w).Error; err != nil {
 		return w, nil, utils.NewFriendlyError(http.StatusNotFound, "Conexão não encontrada.", fmt.Errorf("groups: conexão %d não encontrada para o tenant %s: %w", whatsappID, tenantID, err))
 	}
 	engine, err := s.resolver.EngineFor(w)

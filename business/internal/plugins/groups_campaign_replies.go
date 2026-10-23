@@ -84,6 +84,8 @@ func registerGroupCampaignReplyEvents(core sdk.WatinkCore) {
 // FromMe/empty-body messages without ever touching the campaign tables,
 // then the TTL gate skips tenants with zero campaign activity.
 func handleGroupCampaignReplyMessage(ctx context.Context, db *gorm.DB, gate *groupCampaignReplyGate, payload map[string]any) {
+	// O assinante herda o escopo da empresa do evento pelo ctx (RLS, ADR 0034).
+	db = db.WithContext(ctx)
 	isGroup, _ := payload["isGroup"].(bool)
 	if !isGroup {
 		return

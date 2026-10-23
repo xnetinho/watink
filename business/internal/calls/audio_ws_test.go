@@ -87,7 +87,7 @@ func (f *fakeEngine) audio() [][]byte {
 func browserEndpoint(t *testing.T, r *rig, a *Audio, dial EngineDialer, userID int, callID string) (*websocket.Conn, *http.Response, error) {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if err := r.svc.AuthorizeAudio(r.tenant, userID, callID); err != nil {
+		if err := r.svc.AuthorizeAudio(context.Background(), r.tenant, userID, callID); err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
@@ -163,19 +163,19 @@ func TestAuthorizeAudio_Rules(t *testing.T) {
 	uid := answeredCall(t, r, "AU-3")
 	other := r.users["setor_fila_A"].ID
 
-	assert.NoError(t, r.svc.AuthorizeAudio(r.tenant, uid, "AU-3"))
-	assert.Equal(t, ErrNotYourCall, r.svc.AuthorizeAudio(r.tenant, other, "AU-3"), "outro operador da mesma empresa")
-	assert.Equal(t, ErrNotFound, r.svc.AuthorizeAudio(r.other, r.users["de_outra_empresa"].ID, "AU-3"), "outra empresa: não revela que existe")
-	assert.Equal(t, ErrNotFound, r.svc.AuthorizeAudio(r.tenant, uid, "NAO-EXISTE"))
+	assert.NoError(t, r.svc.AuthorizeAudio(context.Background(), r.tenant, uid, "AU-3"))
+	assert.Equal(t, ErrNotYourCall, r.svc.AuthorizeAudio(context.Background(), r.tenant, other, "AU-3"), "outro operador da mesma empresa")
+	assert.Equal(t, ErrNotFound, r.svc.AuthorizeAudio(context.Background(), r.other, r.users["de_outra_empresa"].ID, "AU-3"), "outra empresa: não revela que existe")
+	assert.Equal(t, ErrNotFound, r.svc.AuthorizeAudio(context.Background(), r.tenant, uid, "NAO-EXISTE"))
 
 	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("AU-3", "user_ended", 5)))
-	assert.Equal(t, ErrNotActive, r.svc.AuthorizeAudio(r.tenant, uid, "AU-3"), "chamada encerrada não abre áudio")
+	assert.Equal(t, ErrNotActive, r.svc.AuthorizeAudio(context.Background(), r.tenant, uid, "AU-3"), "chamada encerrada não abre áudio")
 }
 
 func TestAuthorizeAudio_RingingCallNotYetAnsweredIsDenied(t *testing.T) {
 	r := newRig(t)
 	ringing(t, r, "AU-4")
-	assert.Equal(t, ErrNotYourCall, r.svc.AuthorizeAudio(r.tenant, r.users["da_fila_A"].ID, "AU-4"), "quem não assumiu não abre áudio")
+	assert.Equal(t, ErrNotYourCall, r.svc.AuthorizeAudio(context.Background(), r.tenant, r.users["da_fila_A"].ID, "AU-4"), "quem não assumiu não abre áudio")
 }
 
 func TestServeAudio_SecondBrowserIsRejected(t *testing.T) {

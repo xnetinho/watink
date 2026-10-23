@@ -48,7 +48,7 @@ func (s *Service) writeSystemMessage(ctx context.Context, tenantID uuid.UUID, l 
 	if l.HandledByUserID != nil {
 		payload["handledByUserId"] = *l.HandledByUserID
 		var u models.User
-		if s.fresh().Select("name").Where(`id = ? AND "tenantId" = ?`, *l.HandledByUserID, tenantID).First(&u).Error == nil {
+		if s.fresh(ctx).Select("name").Where(`id = ? AND "tenantId" = ?`, *l.HandledByUserID, tenantID).First(&u).Error == nil {
 			payload["handledByName"] = u.Name
 		}
 	}
@@ -57,7 +57,7 @@ func (s *Service) writeSystemMessage(ctx context.Context, tenantID uuid.UUID, l 
 		ID: callMessageID(l.CallID), Body: callBody(l), TicketID: *l.TicketID, ContactID: l.ContactID,
 		FromMe: l.Direction == "outgoing", TenantID: tenantID, MediaType: "call", DataJson: string(data),
 	}
-	res := s.fresh().Where(`id = ?`, msg.ID).FirstOrCreate(&msg)
+	res := s.fresh(ctx).Where(`id = ?`, msg.ID).FirstOrCreate(&msg)
 	if res.Error != nil {
 		log.Printf("[calls] mensagem de sistema da chamada %s falhou: %v", l.CallID, res.Error)
 		return

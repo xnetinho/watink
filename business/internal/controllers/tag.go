@@ -50,7 +50,8 @@ func (tc *TagController) List(c *gin.Context) {
 		Count int64
 	}
 	var usageCounts []usageRow
-	db.Model(&models.EntityTag{}).
+	// Session(NewDB): o db de GetScoped já acumulou os Where/Order da listagem acima; reusá-lo gerava SQL sobre "Tags".
+	db.Session(&gorm.Session{NewDB: true}).Model(&models.EntityTag{}).
 		Select(`"tagId" as tag_id, COUNT(*) as count`).
 		Where(`"tenantId" = ?`, tenantID).
 		Group(`"tagId"`).

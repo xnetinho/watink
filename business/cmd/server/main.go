@@ -59,6 +59,15 @@ var (
 func main() {
 	_ = godotenv.Load()
 
+	// `watink-business migrate` é o job de migração: roda como administrador, cria papéis, esquema e políticas RLS e
+	// termina. O servidor nunca recebe a credencial de administrador.
+	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+		if err := database.RunMigrations(); err != nil {
+			log.Fatalf("migration failed: %v", err)
+		}
+		return
+	}
+
 	shutdown, err := services.InitTelemetry(context.Background())
 	if err != nil {
 		log.Printf("Warning: OTel init failed: %v", err)
@@ -68,7 +77,7 @@ func main() {
 
 	log.Println("Watink Business starting...")
 	database.Connect()
-	database.Migrate()
+	defer database.Close()
 
 	// Instanciação explícita — Injeção via construtor (DI Pura)
 	redisSvc, err := services.NewRedisServiceFromEnv()

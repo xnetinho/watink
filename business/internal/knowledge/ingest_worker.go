@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"io"
 	"log"
 	"strings"
@@ -104,7 +105,11 @@ func (w *IngestWorker) handleDelivery(d amqp.Delivery) error {
 		return fmt.Errorf("invalid tenantId: %w", err)
 	}
 
-	w.processJob(context.Background(), tenantID, job)
+	// O job inteiro roda no escopo da empresa dele (RLS, ADR 0034). O escopo fixa uma conexão só enquanto há consulta; a
+	// ingestão chama serviços externos (download, embeddings), então o escopo é devolvido ao pool entre as etapas.
+	ctx, done := tenantdb.TenantCtx(context.Background(), w.db, tenantID)
+	defer done()
+	w.processJob(ctx, tenantID, job)
 	return nil
 }
 
@@ -113,15 +118,15 @@ func (w *IngestWorker) processJob(ctx context.Context, tenantID uuid.UUID, job j
 
 	text, err := w.fetchDocument(ctx, job)
 	if err != nil {
-		w.fail(tenantID, job.SourceID, err.Error())
+		w.fail(ctx, tenantID, job.SourceID, err.Error())
 		return
 	}
 
 	hash := contentHash(text)
 
 	var source models.KnowledgeBaseSource
-	if err := w.db.Where(`id = ? AND "tenantId" = ?`, job.SourceID, tenantID).First(&source).Error; err != nil {
-		w.fail(tenantID, job.SourceID, "source not found")
+	if err := w.db.WithContext(ctx).Where(`id = ? AND "tenantId" = ?`, job.SourceID, tenantID).First(&source).Error; err != nil {
+		w.fail(ctx, tenantID, job.SourceID, "source not found")
 		return
 	}
 
@@ -129,19 +134,19 @@ func (w *IngestWorker) processJob(ctx context.Context, tenantID uuid.UUID, job j
 	// (costly) chunk+embed+store cycle entirely and just report ready again.
 	// This is what makes reingest of an unchanged page/file cheap.
 	if source.ContentHash != "" && source.ContentHash == hash {
-		w.markReady(tenantID, &source, source.ChunkCount, hash)
+		w.markReady(ctx, tenantID, &source, source.ChunkCount, hash)
 		return
 	}
 
 	chunks := ChunkText(text, job.Payload.URL)
 	if len(chunks) == 0 {
-		w.fail(tenantID, job.SourceID, "ERR_NO_CHUNKS: sem texto extraível")
+		w.fail(ctx, tenantID, job.SourceID, "ERR_NO_CHUNKS: sem texto extraível")
 		return
 	}
 
-	cfg, ok := tenantEmbedConfig(w.db, tenantID)
+	cfg, ok := tenantEmbedConfig(w.db.WithContext(ctx), tenantID)
 	if !ok {
-		w.fail(tenantID, job.SourceID, "ERR_NO_EMBEDDING_CONFIG: configure o modelo de embedding em Configurações")
+		w.fail(ctx, tenantID, job.SourceID, "ERR_NO_EMBEDDING_CONFIG: configure o modelo de embedding em Configurações")
 		return
 	}
 
@@ -151,13 +156,13 @@ func (w *IngestWorker) processJob(ctx context.Context, tenantID uuid.UUID, job j
 	}
 	vectors, err := w.embed.EmbedTexts(ctx, cfg, texts)
 	if err != nil {
-		w.fail(tenantID, job.SourceID, fmt.Sprintf("ERR_EMBEDDING_FAILED: %v", err))
+		w.fail(ctx, tenantID, job.SourceID, fmt.Sprintf("ERR_EMBEDDING_FAILED: %v", err))
 		return
 	}
 
 	stored, err := w.storeChunks(ctx, tenantID, job.KnowledgeBaseID, job.SourceID, chunks, vectors, cfg)
 	if err != nil {
-		w.fail(tenantID, job.SourceID, fmt.Sprintf("ERR_STORE_FAILED: %v", err))
+		w.fail(ctx, tenantID, job.SourceID, fmt.Sprintf("ERR_STORE_FAILED: %v", err))
 		return
 	}
 
@@ -167,7 +172,7 @@ func (w *IngestWorker) processJob(ctx context.Context, tenantID uuid.UUID, job j
 		// only ever had the text inside the (transient) AMQP message.
 		source.RawContent = job.Payload.Text
 	}
-	w.markReady(tenantID, &source, stored, hash)
+	w.markReady(ctx, tenantID, &source, stored, hash)
 }
 
 // fetchDocument dispatches by job type to get the raw extracted text.
@@ -277,8 +282,8 @@ func (w *IngestWorker) storeChunks(ctx context.Context, tenantID uuid.UUID, kbID
 	return inserted, nil
 }
 
-func (w *IngestWorker) markReady(tenantID uuid.UUID, source *models.KnowledgeBaseSource, chunkCount int, hash string) {
-	if err := w.db.Session(&gorm.Session{NewDB: true}).Model(source).Updates(map[string]interface{}{
+func (w *IngestWorker) markReady(ctx context.Context, tenantID uuid.UUID, source *models.KnowledgeBaseSource, chunkCount int, hash string) {
+	if err := w.db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).Model(source).Updates(map[string]interface{}{
 		"status":         "ready",
 		"lastError":      "",
 		"chunkCount":     chunkCount,
@@ -291,8 +296,8 @@ func (w *IngestWorker) markReady(tenantID uuid.UUID, source *models.KnowledgeBas
 	w.publishStatus(tenantID, source.ID, "ready", "", chunkCount)
 }
 
-func (w *IngestWorker) fail(tenantID uuid.UUID, sourceID int, msg string) {
-	if err := w.db.Exec(
+func (w *IngestWorker) fail(ctx context.Context, tenantID uuid.UUID, sourceID int, msg string) {
+	if err := w.db.WithContext(ctx).Exec(
 		`UPDATE "KnowledgeBaseSources" SET status = 'error', "lastError" = ? WHERE id = ? AND "tenantId" = ?`,
 		msg, sourceID, tenantID,
 	).Error; err != nil {

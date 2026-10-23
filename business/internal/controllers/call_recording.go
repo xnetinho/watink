@@ -48,7 +48,7 @@ func (cc *CallController) StartRecording(c *gin.Context) {
 		return
 	}
 	userID, _ := callUserID(c)
-	if err := cc.svc.StartRecording(tenantID, userID, c.Param("id"), false); err != nil {
+	if err := cc.svc.StartRecording(c.Request.Context(), tenantID, userID, c.Param("id"), false); err != nil {
 		respondRecordingError(c, err)
 		return
 	}
@@ -142,7 +142,7 @@ func (cc *CallController) GetRecordingConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tenant inválido"})
 		return
 	}
-	c.JSON(http.StatusOK, cc.svc.RecordingConfig(tenantID))
+	c.JSON(http.StatusOK, cc.svc.RecordingConfig(c.Request.Context(), tenantID))
 }
 
 // PutRecordingConfig godoc
@@ -168,9 +168,9 @@ func (cc *CallController) PutRecordingConfig(c *gin.Context) {
 		utils.RespondWithBindError(c, err)
 		return
 	}
-	if err := cc.svc.SetRecordingMode(tenantID, userID, req.Mode, req.Ack); err != nil {
+	if err := cc.svc.SetRecordingMode(c.Request.Context(), tenantID, userID, req.Mode, req.Ack); err != nil {
 		respondRecordingError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, cc.svc.RecordingConfig(tenantID))
+	c.JSON(http.StatusOK, cc.svc.RecordingConfig(c.Request.Context(), tenantID))
 }

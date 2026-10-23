@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -69,10 +70,15 @@ func IsAuth(db *gorm.DB) gin.HandlerFunc {
 		c.Set("alcance", claims["alcance"])
 		c.Set("tenantId", tenantID)
 
-		// Sem SET LOCAL app.current_tenant: o comando nunca funcionou (SET não aceita parâmetro, o handle não está
-		// em transação e o usuário do banco é superusuário, que ignora RLS). O isolamento entre empresas é o filtro
-		// "tenantId" explícito em cada consulta (auth.GetScoped), ver ADR 0001.
-		c.Set("db", db)
+		// Escopo de empresa da requisição (RLS, ADR 0034): toda consulta feita com este ctx roda numa conexão do
+		// banco com app.tenant_id definido, e a política do banco só enxerga as linhas da empresa. A conexão é
+		// fixada na primeira consulta e devolvida ao pool (com a empresa limpa) quando a requisição termina.
+		// Sobre um handle sem Router (testes unitários), TenantCtx não faz nada.
+		tenantUUID, _ := uuid.Parse(tenantID)
+		ctx, done := tenantdb.TenantCtx(c.Request.Context(), db, tenantUUID)
+		defer done()
+		c.Request = c.Request.WithContext(ctx)
+		c.Set("db", db.WithContext(ctx))
 
 		c.Next()
 	}

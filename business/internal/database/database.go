@@ -3,37 +3,14 @@ package database
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/alltomatos/watinkdev/business/internal/knowledge"
 	"github.com/alltomatos/watinkdev/business/internal/models"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
-
-func Connect() {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASS"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_PORT"),
-	)
-
-	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: newGormLogger(),
-	})
-
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-
-	fmt.Println("Connected to database successfully")
-}
 
 func Migrate() {
 	if err := dropLegacyRBAC(); err != nil {
@@ -121,10 +98,6 @@ func Migrate() {
 
 	if err := dropIzapiaSchema(DB); err != nil {
 		log.Fatalf("Failed to drop retired izapia schema: %v", err)
-	}
-
-	if err := applyRLS(); err != nil {
-		log.Printf("Warning: failed to apply RLS policies: %v", err)
 	}
 
 	if err := addCustomIndexes(); err != nil {
@@ -591,31 +564,5 @@ func addCustomIndexes() error {
 			log.Printf("addCustomIndexes (RBAC best-effort): %q falhou (provável dado repetido legado): %v", ddl, err)
 		}
 	}
-	return nil
-}
-
-func applyRLS() error {
-	tables := []string{"Users", "Tickets", "Messages", "Contacts", "Settings", "ConversationEmbeddings", "FlowRuns", "FlowRunLogs", "Clients", "ClientAddresses"}
-
-	for _, t := range tables {
-		if err := DB.Exec(fmt.Sprintf("ALTER TABLE \"%s\" ENABLE ROW LEVEL SECURITY", t)).Error; err != nil {
-			return fmt.Errorf("enable rls %s: %w", t, err)
-		}
-		if err := DB.Exec(fmt.Sprintf("ALTER TABLE \"%s\" FORCE ROW LEVEL SECURITY", t)).Error; err != nil {
-			return fmt.Errorf("force rls %s: %w", t, err)
-		}
-
-		policy := fmt.Sprintf("%s_tenant_isolation", strings.ToLower(t))
-		if err := DB.Exec(fmt.Sprintf("DROP POLICY IF EXISTS \"%s\" ON \"%s\"", policy, t)).Error; err != nil {
-			return fmt.Errorf("drop policy %s: %w", t, err)
-		}
-		if err := DB.Exec(fmt.Sprintf(
-			"CREATE POLICY \"%s\" ON \"%s\" USING ((\"tenantId\")::text = current_setting('app.current_tenant', true))",
-			policy, t,
-		)).Error; err != nil {
-			return fmt.Errorf("policy %s: %w", t, err)
-		}
-	}
-
 	return nil
 }

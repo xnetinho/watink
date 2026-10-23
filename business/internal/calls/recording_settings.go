@@ -1,6 +1,7 @@
 package calls
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"time"
@@ -26,16 +27,16 @@ type RecordingConfig struct {
 }
 
 // RecordingConfig lê o modo e o último aceite da empresa.
-func (s *Service) RecordingConfig(tenantID uuid.UUID) RecordingConfig {
-	cfg := RecordingConfig{Mode: s.recordingMode(tenantID), Available: s.rec.Available()}
+func (s *Service) RecordingConfig(ctx context.Context, tenantID uuid.UUID) RecordingConfig {
+	cfg := RecordingConfig{Mode: s.recordingMode(ctx, tenantID), Available: s.rec.Available()}
 	var by models.Setting
-	if s.fresh().Where(`key = ? AND "tenantId" = ?`, SettingRecordingAckBy, tenantID).First(&by).Error == nil {
+	if s.fresh(ctx).Where(`key = ? AND "tenantId" = ?`, SettingRecordingAckBy, tenantID).First(&by).Error == nil {
 		if n, err := strconv.Atoi(by.Value); err == nil {
 			cfg.AckBy = &n
 		}
 	}
 	var at models.Setting
-	if s.fresh().Where(`key = ? AND "tenantId" = ?`, SettingRecordingAckAt, tenantID).First(&at).Error == nil {
+	if s.fresh(ctx).Where(`key = ? AND "tenantId" = ?`, SettingRecordingAckAt, tenantID).First(&at).Error == nil {
 		if t, err := time.Parse(time.RFC3339, at.Value); err == nil {
 			cfg.AckAt = &t
 		}
@@ -43,8 +44,8 @@ func (s *Service) RecordingConfig(tenantID uuid.UUID) RecordingConfig {
 	return cfg
 }
 
-func (s *Service) putSetting(tenantID uuid.UUID, key, value string) error {
-	return s.fresh().Clauses(clause.OnConflict{
+func (s *Service) putSetting(ctx context.Context, tenantID uuid.UUID, key, value string) error {
+	return s.fresh(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "key"}, {Name: "tenantId"}},
 		DoUpdates: clause.AssignmentColumns([]string{"value", "updatedAt"}),
 	}).Create(&models.Setting{Key: key, TenantID: tenantID, Value: value}).Error
@@ -53,7 +54,7 @@ func (s *Service) putSetting(tenantID uuid.UUID, key, value string) error {
 // SetRecordingMode muda o modo de gravação da empresa. Sair de "off" para outro
 // modo EXIGE o aceite do termo (ack=true) e grava quem aceitou e quando; ficar em
 // "off" ou voltar para "off" nunca exige. Sem armazenamento, só "off" é aceito.
-func (s *Service) SetRecordingMode(tenantID uuid.UUID, userID int, mode string, ack bool) error {
+func (s *Service) SetRecordingMode(ctx context.Context, tenantID uuid.UUID, userID int, mode string, ack bool) error {
 	switch mode {
 	case CallRecordingOff, CallRecordingOptional, CallRecordingAuto:
 	default:
@@ -63,18 +64,18 @@ func (s *Service) SetRecordingMode(tenantID uuid.UUID, userID int, mode string, 
 		if !s.rec.Available() {
 			return ErrRecordingNoS3
 		}
-		if s.recordingMode(tenantID) == CallRecordingOff && !ack {
+		if s.recordingMode(ctx, tenantID) == CallRecordingOff && !ack {
 			return ErrAckRequired
 		}
 	}
-	if err := s.putSetting(tenantID, SettingRecordingMode, mode); err != nil {
+	if err := s.putSetting(ctx, tenantID, SettingRecordingMode, mode); err != nil {
 		return err
 	}
 	if mode != CallRecordingOff && ack {
-		if err := s.putSetting(tenantID, SettingRecordingAckBy, strconv.Itoa(userID)); err != nil {
+		if err := s.putSetting(ctx, tenantID, SettingRecordingAckBy, strconv.Itoa(userID)); err != nil {
 			return err
 		}
-		return s.putSetting(tenantID, SettingRecordingAckAt, s.now().UTC().Format(time.RFC3339))
+		return s.putSetting(ctx, tenantID, SettingRecordingAckAt, s.now().UTC().Format(time.RFC3339))
 	}
 	return nil
 }

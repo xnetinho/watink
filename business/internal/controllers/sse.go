@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"net/http"
 	"os"
@@ -39,7 +41,11 @@ func (sc *SSEController) canSeeTicket(tenantID uuid.UUID, userID int, alcance st
 		if sc.db == nil || userID <= 0 {
 			return false
 		}
-		q := sc.db.Session(&gorm.Session{NewDB: true}).Model(&models.Ticket{}).
+		// O SSE dura a conexão inteira e não pode segurar uma conexão do banco (RLS, ADR 0034, D4): cada verificação abre
+		// e encerra o seu escopo curto da empresa do token.
+		ctx, done := tenantdb.TenantCtx(context.Background(), sc.db, tenantID)
+		defer done()
+		q := sc.db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).Model(&models.Ticket{}).
 			Where(`id = ? AND "tenantId" = ?`, ticketID, tenantID)
 		if alcance != "tenant" && alcance != "plataforma" {
 			q = q.Where(`("userId" = ? `+

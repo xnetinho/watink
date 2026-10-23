@@ -84,6 +84,30 @@ services:
     restart: unless-stopped
 
   # ── Aplicação ────────────────────────────────────────────────
+  # Job de migração (ADR 0034): único processo com credencial de administrador do banco. Cria os papéis
+  # watink_app/watink_system, o esquema e as políticas RLS, e termina. O servidor só sobe depois dele.
+  watink-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.business
+    image: watink/business:prod
+    command: ["./watink-business", "migrate"]
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=watink
+      - DB_ADMIN_USER=postgres
+      - DB_ADMIN_PASS=${DB_PASS}
+      - DB_APP_PASS=${DB_APP_PASS}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS}
+      - DB_ENGINE_PASS=${DB_ENGINE_PASS}
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [watink_net]
+    restart: "no"
+
   watink-business:
     build:
       context: .
@@ -96,8 +120,8 @@ services:
       - GIN_MODE=release
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS}
+      - DB_APP_PASS=${DB_APP_PASS}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS}
       - DB_NAME=watink
       - AMQP_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
       - REDIS_URL=redis://redis:6379
@@ -129,6 +153,8 @@ services:
       # OBRIGATÓRIO (o mesmo valor nos dois serviços): sem ele o stack nem sobe, em vez
       # de subir com chamadas mudas.
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -166,8 +192,9 @@ services:
       - AMQP_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS}
+      - DB_USER=watink_engine
+      - DB_PASS=${DB_ENGINE_PASS}
+      - DB_SEARCH_PATH=whatsmeow
       - DB_NAME=watink
       - HEALTH_PORT=8083
       # Mesma API interna de grupos referenciada em watink-business acima —
@@ -180,6 +207,8 @@ services:
       # (a porta NÃO é publicada). Precisa de saída UDP para os relays do WhatsApp.
       - CALLS_AUDIO_PORT=8085
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       rabbitmq:

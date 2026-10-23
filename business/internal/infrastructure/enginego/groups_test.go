@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -151,9 +152,10 @@ func TestProvider_5xxPropagatesAsError(t *testing.T) {
 }
 
 func TestProvider_Timeout_PropagatesAndNoRetry(t *testing.T) {
-	callCount := 0
+	// atomic: o handler roda na goroutine do servidor HTTP e o teste lê o contador na goroutine do teste.
+	var callCount atomic.Int32
 	setupGroupsTestServer(t, func(w http.ResponseWriter, r *http.Request) {
-		callCount++
+		callCount.Add(1)
 		time.Sleep(20 * time.Millisecond)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true,"data":` + realGroupResponse + `}`))
@@ -167,7 +169,7 @@ func TestProvider_Timeout_PropagatesAndNoRetry(t *testing.T) {
 	// Give the (already-failed) request time to have retried, if it were
 	// going to — it must not, a retried write would duplicate the action.
 	time.Sleep(50 * time.Millisecond)
-	assert.LessOrEqual(t, callCount, 1, "write/read calls must never auto-retry")
+	assert.LessOrEqual(t, callCount.Load(), int32(1), "write/read calls must never auto-retry")
 }
 
 func TestProvider_LinkGroupToCommunity_PathIncludesBothJIDs(t *testing.T) {

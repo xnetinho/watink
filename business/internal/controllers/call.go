@@ -272,7 +272,7 @@ func (cc *CallController) List(c *gin.Context) {
 	f.Page, _ = strconv.Atoi(c.Query("page"))
 	f.PageSize, _ = strconv.Atoi(c.Query("pageSize"))
 
-	rows, total, err := cc.svc.History(historyScope(c, tenantID, userID), f)
+	rows, total, err := cc.svc.History(c.Request.Context(), historyScope(c, tenantID, userID), f)
 	if err != nil {
 		utils.RespondWithInternalError(c, err, "CallController.List")
 		return
@@ -296,7 +296,7 @@ func (cc *CallController) Show(c *gin.Context) {
 		return
 	}
 	userID, _ := callUserID(c)
-	l, err := cc.svc.Get(historyScope(c, tenantID, userID), c.Param("id"))
+	l, err := cc.svc.Get(c.Request.Context(), historyScope(c, tenantID, userID), c.Param("id"))
 	if err != nil {
 		respondCallError(c, err)
 		return

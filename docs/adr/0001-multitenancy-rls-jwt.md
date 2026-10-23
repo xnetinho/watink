@@ -5,7 +5,7 @@ filtra por `"tenantId"` de forma explícita**: `auth.GetScoped(c, "<Tabela>")` n
 `WHERE "tenantId"` manual nos workers, listeners e scheduler. Alternativa considerada: schema-per-tenant (rejeitada
 por overhead de migration e connection pooling).
 
-Status: accepted (revisado em out/2026: **o RLS descrito na versão original nunca esteve ativo**)
+Status: **superseded pelo ADR 0034** (out/2026). O RLS passou a ser real: papéis dedicados, escopo por contexto e política gerada do catálogo. O texto abaixo é o histórico da decisão anterior.
 
 ## O que mudou
 

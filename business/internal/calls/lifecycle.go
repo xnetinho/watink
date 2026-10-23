@@ -18,9 +18,9 @@ var (
 	ErrConnectionBusy  = errors.New("a conexão já tem uma chamada em andamento")
 )
 
-func (s *Service) load(tenantID uuid.UUID, callID string) (*models.CallLog, error) {
+func (s *Service) load(ctx context.Context, tenantID uuid.UUID, callID string) (*models.CallLog, error) {
 	var l models.CallLog
-	err := s.fresh().Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).First(&l).Error
+	err := s.fresh(ctx).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).First(&l).Error
 	if err != nil {
 		return nil, ErrNotFound
 	}
@@ -28,9 +28,9 @@ func (s *Service) load(tenantID uuid.UUID, callID string) (*models.CallLog, erro
 }
 
 // userInCall diz se o operador já tem uma chamada ativa (assumida e não encerrada).
-func (s *Service) userInCall(tenantID uuid.UUID, userID int) (bool, error) {
+func (s *Service) userInCall(ctx context.Context, tenantID uuid.UUID, userID int) (bool, error) {
 	var n int64
-	err := s.fresh().Model(&models.CallLog{}).
+	err := s.fresh(ctx).Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "handledByUserId" = ? AND status IN ?`, tenantID, userID, []string{StatusRinging, StatusActive}).
 		Count(&n).Error
 	return n > 0, err
@@ -41,11 +41,11 @@ func (s *Service) userInCall(tenantID uuid.UUID, userID int) (bool, error) {
 // vence e o segundo recebe ErrAlreadyAnswered. Só então o engine é mandado
 // atender.
 func (s *Service) Accept(ctx context.Context, tenantID uuid.UUID, userID int, callID string) (*models.CallLog, error) {
-	l, err := s.load(tenantID, callID)
+	l, err := s.load(ctx, tenantID, callID)
 	if err != nil {
 		return nil, err
 	}
-	busy, err := s.userInCall(tenantID, userID)
+	busy, err := s.userInCall(ctx, tenantID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (s *Service) Accept(ctx context.Context, tenantID uuid.UUID, userID int, ca
 		return nil, ErrUserBusy
 	}
 	now := s.now()
-	res := s.fresh().Model(&models.CallLog{}).
+	res := s.fresh(ctx).Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "callId" = ? AND status = ? AND "handledByUserId" IS NULL AND direction = 'incoming'`,
 			tenantID, callID, StatusRinging).
 		Updates(map[string]interface{}{"handledByUserId": userID, "answeredAt": now})
@@ -64,7 +64,7 @@ func (s *Service) Accept(ctx context.Context, tenantID uuid.UUID, userID int, ca
 		return nil, ErrAlreadyAnswered
 	}
 	if err := s.command(tenantID, l.WhatsappID, "call.accept", map[string]interface{}{"callId": callID}); err != nil {
-		s.fresh().Model(&models.CallLog{}).
+		s.fresh(ctx).Model(&models.CallLog{}).
 			Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
 			Updates(map[string]interface{}{"handledByUserId": nil, "answeredAt": nil})
 		return nil, fmt.Errorf("falha ao atender: %w", err)
@@ -72,12 +72,12 @@ func (s *Service) Accept(ctx context.Context, tenantID uuid.UUID, userID int, ca
 	s.bcast.EmitToTenantRoom(tenantID.String(), "call.answered", map[string]interface{}{
 		"callId": callID, "handledByUserId": userID,
 	})
-	return s.load(tenantID, callID)
+	return s.load(ctx, tenantID, callID)
 }
 
 // Reject recusa uma chamada que ainda toca. Só aqui o engine envia reject ao chamador.
 func (s *Service) Reject(ctx context.Context, tenantID uuid.UUID, userID int, callID string) error {
-	l, err := s.load(tenantID, callID)
+	l, err := s.load(ctx, tenantID, callID)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (s *Service) Reject(ctx context.Context, tenantID uuid.UUID, userID int, ca
 		return ErrAlreadyAnswered
 	}
 	now := s.now()
-	res := s.fresh().Model(&models.CallLog{}).
+	res := s.fresh(ctx).Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "callId" = ? AND status = ? AND "handledByUserId" IS NULL`, tenantID, callID, StatusRinging).
 		Updates(map[string]interface{}{"status": StatusRejected, "endReason": "declined", "endedAt": now, "handledByUserId": userID})
 	if res.Error != nil {
@@ -105,7 +105,7 @@ func (s *Service) Reject(ctx context.Context, tenantID uuid.UUID, userID int, ca
 
 // End encerra uma chamada em andamento a pedido do operador que a assumiu.
 func (s *Service) End(ctx context.Context, tenantID uuid.UUID, userID int, callID string) error {
-	l, err := s.load(tenantID, callID)
+	l, err := s.load(ctx, tenantID, callID)
 	if err != nil {
 		return err
 	}
@@ -127,11 +127,11 @@ func (s *Service) HandleState(ctx context.Context, tenantID uuid.UUID, raw json.
 	// answeredAt: a chamada recebida o grava em Accept; a de SAÍDA só fica atendida quando o contato
 	// responde e a mídia conecta (este evento). Sem isso toda chamada de saída virava "perdida".
 	upd := map[string]interface{}{"status": StatusActive}
-	res := s.fresh().Model(&models.CallLog{}).
+	res := s.fresh(ctx).Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "callId" = ? AND status = ? AND "endedAt" IS NULL`, tenantID, ev.CallID, StatusRinging).
 		Updates(upd)
 	if res.Error == nil {
-		s.fresh().Model(&models.CallLog{}).
+		s.fresh(ctx).Model(&models.CallLog{}).
 			Where(`"tenantId" = ? AND "callId" = ? AND "answeredAt" IS NULL`, tenantID, ev.CallID).
 			Update("answeredAt", s.now())
 	}
@@ -140,7 +140,7 @@ func (s *Service) HandleState(ctx context.Context, tenantID uuid.UUID, raw json.
 	}
 	if res.RowsAffected > 0 {
 		s.bcast.EmitToTenantRoom(tenantID.String(), "call.state", map[string]interface{}{"callId": ev.CallID, "state": "active"})
-		s.startAutoRecordingOnAnswer(tenantID, ev.CallID)
+		s.startAutoRecordingOnAnswer(ctx, tenantID, ev.CallID)
 	}
 	return nil
 }
@@ -151,13 +151,13 @@ func (s *Service) HandleState(ctx context.Context, tenantID uuid.UUID, raw json.
 // chamada que falha por media_timeout deixaria gravação) nem o áudio do navegador (na saída ele
 // abre ao discar, com a chamada tocando). O Tap da ponte já está ligado e Feed é no-op sem
 // gravação ativa, então iniciar aqui basta. Já gravando (reconexão) é ignorado.
-func (s *Service) startAutoRecordingOnAnswer(tenantID uuid.UUID, callID string) {
-	if s.rec == nil || !s.autoRecord(tenantID) {
+func (s *Service) startAutoRecordingOnAnswer(ctx context.Context, tenantID uuid.UUID, callID string) {
+	if s.rec == nil || !s.autoRecord(ctx, tenantID) {
 		return
 	}
-	l, err := s.load(tenantID, callID)
+	l, err := s.load(ctx, tenantID, callID)
 	if err != nil || l.HandledByUserID == nil {
 		return
 	}
-	s.startRecordingBestEffort(tenantID, *l.HandledByUserID, callID)
+	s.startRecordingBestEffort(ctx, tenantID, *l.HandledByUserID, callID)
 }

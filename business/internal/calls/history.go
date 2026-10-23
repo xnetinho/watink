@@ -1,6 +1,7 @@
 package calls
 
 import (
+	"context"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -26,8 +27,8 @@ type HistoryScope struct {
 
 // scoped restringe a consulta à empresa e, sem alcance de empresa, às chamadas
 // cujo ticket é visível ao usuário (mesma regra de auth.GetScopedDB("Tickets")).
-func (s *Service) scoped(sc HistoryScope) *gorm.DB {
-	q := s.fresh().Model(&models.CallLog{}).Where(`"CallLogs"."tenantId" = ?`, sc.TenantID)
+func (s *Service) scoped(ctx context.Context, sc HistoryScope) *gorm.DB {
+	q := s.fresh(ctx).Model(&models.CallLog{}).Where(`"CallLogs"."tenantId" = ?`, sc.TenantID)
 	if sc.Tenant {
 		return q
 	}
@@ -39,8 +40,8 @@ func (s *Service) scoped(sc HistoryScope) *gorm.DB {
 }
 
 // History lista as chamadas visíveis ao usuário, da mais recente para a mais antiga.
-func (s *Service) History(sc HistoryScope, f HistoryFilter) ([]models.CallLog, int64, error) {
-	q := s.scoped(sc)
+func (s *Service) History(ctx context.Context, sc HistoryScope, f HistoryFilter) ([]models.CallLog, int64, error) {
+	q := s.scoped(ctx, sc)
 	if f.Status != "" {
 		q = q.Where(`"CallLogs".status = ?`, f.Status)
 	}
@@ -69,9 +70,9 @@ func (s *Service) History(sc HistoryScope, f HistoryFilter) ([]models.CallLog, i
 
 // Get devolve uma chamada se o usuário puder vê-la; senão ErrNotFound (nunca
 // revela que ela existe).
-func (s *Service) Get(sc HistoryScope, callID string) (*models.CallLog, error) {
+func (s *Service) Get(ctx context.Context, sc HistoryScope, callID string) (*models.CallLog, error) {
 	var l models.CallLog
-	if err := s.scoped(sc).Where(`"CallLogs"."callId" = ?`, callID).First(&l).Error; err != nil {
+	if err := s.scoped(ctx, sc).Where(`"CallLogs"."callId" = ?`, callID).First(&l).Error; err != nil {
 		return nil, ErrNotFound
 	}
 	return &l, nil

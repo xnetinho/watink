@@ -121,7 +121,7 @@ func TestE2E_FullCallFlowOverRealRabbitMQ(t *testing.T) {
 	require.Eventually(t, func() bool { return r.log(t, callID).Status == StatusActive }, 5*time.Second, 25*time.Millisecond, "call.state ativa a chamada")
 
 	// 4) gravação opcional ligada pelo operador; áudio sintético pelo canal WebSocket real
-	require.NoError(t, svc.StartRecording(r.tenant, uid, callID, false))
+	require.NoError(t, svc.StartRecording(context.Background(), r.tenant, uid, callID, false))
 
 	engineConnCh := make(chan *websocket.Conn, 1)
 	engineGot := make(chan []byte, 8)
@@ -149,7 +149,7 @@ func TestE2E_FullCallFlowOverRealRabbitMQ(t *testing.T) {
 	audio := NewAudio()
 	dial := NewEngineDialer("ws" + strings.TrimPrefix(engineSrv.URL, "http"))
 	browserSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if err := svc.AuthorizeAudio(r.tenant, uid, callID); err != nil {
+		if err := svc.AuthorizeAudio(context.Background(), r.tenant, uid, callID); err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}

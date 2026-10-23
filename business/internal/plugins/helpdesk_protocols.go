@@ -95,7 +95,7 @@ func handleListProtocols(core sdk.WatinkCore) gin.HandlerFunc {
 			return
 		}
 
-		query := core.GetDB().Preload("Contact").Preload("Contact.Client").
+		query := core.GetDB().WithContext(c.Request.Context()).Preload("Contact").Preload("Contact.Client").
 			Where(`"tenantId" = ?`, tenantID)
 
 		if search := c.Query("searchParam"); search != "" {
@@ -151,7 +151,7 @@ func handleCreateProtocol(core sdk.WatinkCore) gin.HandlerFunc {
 			return
 		}
 
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 
 		var contact models.Contact
 		if err := db.Where(`id = ? AND "tenantId" = ?`, req.ContactID, tenantID).First(&contact).Error; err != nil {
@@ -261,7 +261,7 @@ func handleGetProtocol(core sdk.WatinkCore) gin.HandlerFunc {
 		}
 
 		var protocol models.Protocol
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 		if err := db.Preload("Contact").Preload("Contact.Client").
 			Where(`id = ? AND "tenantId" = ?`, c.Param("id"), tenantID).
 			First(&protocol).Error; err != nil {
@@ -287,7 +287,7 @@ func handleUpdateProtocol(core sdk.WatinkCore) gin.HandlerFunc {
 			return
 		}
 
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 		var protocol models.Protocol
 		if err := db.Where(`id = ? AND "tenantId" = ?`, c.Param("id"), tenantID).First(&protocol).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "protocol not found"})

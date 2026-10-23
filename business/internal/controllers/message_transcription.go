@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"net/http"
 	"os"
 	"strconv"
@@ -108,6 +109,8 @@ func (mc *MessageController) TranscribeAudio(c *gin.Context) {
 	if gateway.BaseURL != nil {
 		baseURL = *gateway.BaseURL
 	}
+	// Chamada externa lenta (até dezenas de segundos): solta a conexão do banco antes de esperar (RLS, ADR 0034, D4).
+	tenantdb.Release(c.Request.Context())
 	text, err := aiclient.Transcribe(aiclient.Config{
 		Provider: gateway.Provider, Model: gateway.Model, APIKey: apiKey, BaseURL: baseURL,
 	}, modelName, audio, "audio"+extForAudioMime(mimeType))

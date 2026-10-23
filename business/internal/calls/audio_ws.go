@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log/slog"
 	"time"
 
@@ -81,8 +84,8 @@ var ErrNotYourCall = errors.New("esta chamada não é sua")
 // AuthorizeAudio confere que a chamada existe NESTA empresa, que está em curso e
 // que o operador é quem a assumiu. Qualquer outra pessoa recebe ErrNotFound (nunca
 // revela que a chamada existe) ou ErrNotYourCall.
-func (s *Service) AuthorizeAudio(tenantID uuid.UUID, userID int, callID string) error {
-	l, err := s.load(tenantID, callID)
+func (s *Service) AuthorizeAudio(ctx context.Context, tenantID uuid.UUID, userID int, callID string) error {
+	l, err := s.load(ctx, tenantID, callID)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -121,7 +124,9 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 		slog.Error("canal de áudio do engine indisponível: a chamada será encerrada",
 			"callId", callID, "tenantId", tenantID, "err", err)
 		_ = browser.Close(websocket.StatusInternalError, "audio_unavailable")
-		_ = s.End(ctx, tenantID, userID, callID)
+		_ = tenantdb.WithTenant(ctx, s.db, tenantID, func(c context.Context) error {
+			return s.End(c, tenantID, userID, callID)
+		})
 		return
 	}
 	defer func() { _ = eng.CloseNow() }()
@@ -181,12 +186,22 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 		return
 	}
 	a.Release(br)
+	// O watchdog sobrevive ao WebSocket: cada verificação abre o seu próprio escopo curto da empresa (RLS, ADR 0034).
 	ended := func() bool {
-		l, err := s.load(tenantID, callID)
+		var l *models.CallLog
+		var err error
+		_ = tenantdb.WithTenant(context.Background(), s.db, tenantID, func(c context.Context) error {
+			l, err = s.load(c, tenantID, callID)
+			return nil
+		})
 		return err != nil || l.EndedAt != nil
 	}
-	go a.Watchdog(context.Background(), callID, ended, func() {
-		_ = s.End(context.Background(), tenantID, userID, callID)
+	safego.Go("calls.watchdog", func() {
+		a.Watchdog(context.Background(), callID, ended, func() {
+			_ = tenantdb.WithTenant(context.Background(), s.db, tenantID, func(c context.Context) error {
+				return s.End(c, tenantID, userID, callID)
+			})
+		})
 	})
 }
 

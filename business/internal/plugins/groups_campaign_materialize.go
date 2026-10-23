@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"encoding/json"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"math/rand"
 	"time"
@@ -38,7 +39,11 @@ func materializeDueCampaigns(ctx context.Context, db *gorm.DB) {
 			log.Printf("[groups] campaign materialize: contexto expirado, encerrando tick cedo")
 			return
 		}
-		materializeOneCampaign(db, c)
+		// A varredura é de sistema; cada campanha é materializada no escopo da empresa dela (RLS, ADR 0034).
+		_ = tenantdb.WithTenant(ctx, db, c.TenantID, func(cctx context.Context) error {
+			materializeOneCampaign(db.WithContext(cctx), c)
+			return nil
+		})
 	}
 }
 

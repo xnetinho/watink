@@ -24,9 +24,18 @@ services:
     container_name: lt-rabbitmq
     ports:
       - "127.0.0.1:5672:5672"
+  watink-migrate:
+    image: local/watink-business:dev
+    container_name: lt-migrate
+    build:
+      context: .
+      dockerfile: Dockerfile.business
   watink-business:
     image: local/watink-business:dev
     container_name: lt-business
+    environment:
+      # Só para a verificação local: permite provisionar uma segunda empresa e testar isolamento de ponta a ponta.
+      - SAAS_INTERNAL_TOKEN=localtest_saas_token
     build:
       context: .
       dockerfile: Dockerfile.business

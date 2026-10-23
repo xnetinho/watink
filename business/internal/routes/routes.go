@@ -6,8 +6,8 @@ import (
 	"log"
 
 	"github.com/alltomatos/watinkdev/business/internal/application"
-	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
 	telegramChannel "github.com/alltomatos/watinkdev/business/internal/channels/telegram"
+	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
@@ -19,6 +19,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -27,7 +28,10 @@ import (
 // nesse modo, para que continuem recebendo mensagens após restart do processo.
 func resumeTelegramPolling(db *gorm.DB, handler telegramChannel.InboundHandler) {
 	var conns []models.ChannelConnection
-	if err := db.Where("kind = ? AND status = ?", string(domain.ChannelKindTelegram), "CONNECTED").Find(&conns).Error; err != nil {
+	// Varredura de todas as empresas no boot: caso de sistema (RLS, ADR 0034).
+	sysCtx, done := tenantdb.SystemCtx(context.Background(), db)
+	defer done()
+	if err := db.WithContext(sysCtx).Where("kind = ? AND status = ?", string(domain.ChannelKindTelegram), "CONNECTED").Find(&conns).Error; err != nil {
 		log.Printf("[Telegram Polling] failed to load connections: %v", err)
 		return
 	}
@@ -143,20 +147,25 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	channelWebhookController := controllers.NewChannelWebhookController(container.DB, channelInboundSvc)
 	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService))
 	// Polling entrega as mensagens pelo mesmo pipeline de entrada do webhook.
+	// Cada mensagem roda no escopo da empresa dela (RLS, ADR 0034), em escopo próprio: o polling é uma goroutine longa.
 	channelInboundHandler := func(ctx context.Context, msg domain.InboundMessage) error {
-		_, err := channelInboundSvc.Receive(ctx, msg)
-		return err
+		return tenantdb.WithTenant(ctx, db, msg.TenantID, func(ctx context.Context) error {
+			_, err := channelInboundSvc.Receive(ctx, msg)
+			return err
+		})
 	}
 	domain.DefaultChannelRegistry().Register(telegramChannel.NewAdapter(channelInboundHandler))
 	resumeTelegramPolling(container.DB, channelInboundHandler)
 
-	// Public Routes
+	// Public Routes. O webhook de canal descobre a empresa pela conexão e troca de escopo sozinho; as demais rotas
+	// públicas não pertencem a uma empresa e rodam no escopo de sistema do banco (RLS, ADR 0034).
 	group.POST("/webhooks/channels/:kind/:connectionId", channelWebhookController.HandleWebhook)
-	group.POST("/auth/login", authController.Login)
-	group.POST("/auth/refresh_token", authController.RefreshToken)
-	group.GET("/public-settings", settingController.GetPublicSettings)
-	group.GET("/initial-setup/check", setupController.CheckSetup)
-	group.POST("/initial-setup", setupController.InitialSetup)
+	sysScope := middleware.SystemScope(db)
+	group.POST("/auth/login", sysScope, authController.Login)
+	group.POST("/auth/refresh_token", sysScope, authController.RefreshToken)
+	group.GET("/public-settings", sysScope, settingController.GetPublicSettings)
+	group.GET("/initial-setup/check", sysScope, setupController.CheckSetup)
+	group.POST("/initial-setup", sysScope, setupController.InitialSetup)
 	group.GET("/system/maintenance", controllers.GetMaintenanceStatus)
 
 	// Registro self-service (Onda 6, ADR 0007 do Watink SaaS) — proxy público
@@ -165,9 +174,9 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// estão setadas; sem elas, o grupo simplesmente não é montado — o frontend
 	// esconde o botão "Registrar-se" e nada muda para quem não usa o Watink SaaS.
 	if registerController.Enabled() {
-		group.GET("/register/plans", registerController.Plans)
-		group.POST("/register", registerController.Register)
-		group.GET("/register/:id/status", registerController.Status)
+		group.GET("/register/plans", sysScope, registerController.Plans)
+		group.POST("/register", sysScope, registerController.Register)
+		group.GET("/register/:id/status", sysScope, registerController.Status)
 	}
 
 	// Swagger / API docs
@@ -179,7 +188,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// 503 quando ausente). Cross-tenant por natureza; montado FORA da cadeia
 	// protegida (IsAuth/TenantMiddleware). Ver docs/integration-core.md §1.
 	internalSaaS := group.Group("/internal/saas")
-	internalSaaS.Use(middleware.InternalSaaSOnly(saasTokenCache))
+	internalSaaS.Use(middleware.InternalSaaSOnly(saasTokenCache), sysScope)
 	{
 		internalSaaS.GET("/ping", saasInternalController.Ping)
 		internalSaaS.POST("/tenants", saasInternalController.ProvisionTenant)
@@ -197,7 +206,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// heartbeat do Hub — soma TODOS os tenants da instância, sem filtro (o
 	// Hub não conhece cada tenant em separado, ADR 0003).
 	internalPluginManager := group.Group("/internal/plugin-manager")
-	internalPluginManager.Use(middleware.InternalPluginManagerOnly())
+	internalPluginManager.Use(middleware.InternalPluginManagerOnly(), sysScope)
 	{
 		internalPluginManager.GET("/instance-stats", pluginManagerInternalController.InstanceStats)
 	}

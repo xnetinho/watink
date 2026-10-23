@@ -44,7 +44,18 @@ argumento `true` limita o valor à transação, então commit ou rollback o apag
 *Por quê:* é a única forma segura com pool; `SET` de sessão vazaria o valor para a próxima requisição que reutilizar a conexão.
 *Alternativa rejeitada:* uma conexão dedicada por requisição com `SET` de sessão; esgota o pool e vaza se faltar o reset.
 
-### D3. Transação preguiçosa por requisição, com savepoints
+### D3. (REVISADA na implementação) Conexão fixada por escopo, sem transação por requisição
+
+**Decisão implementada:** o escopo da requisição fixa UMA conexão na primeira consulta e define `app.tenant_id` na sessão
+(`set_config(..., false)`); `Scope.Close`/`Release` fazem `RESET app.tenant_id` e devolvem a conexão ao pool (se o `RESET`
+falhar, a conexão é descartada). Não há transação por requisição.
+*Por quê mudou:* a transação preguiçosa exigiria commit/rollback decidido pelo status HTTP e faria cada violação de
+unicidade tratada abortar o restante da requisição; o pacote já usa `Transaction`/`SAVEPOINT` do GORM onde precisa, e o
+isolamento não depende de atomicidade da requisição. A conexão fixada dá o mesmo isolamento (a política do banco lê a
+sessão) sem alterar a semântica transacional existente. Custo: a conexão fica presa do primeiro uso até o fim da
+requisição, o que `Release()` mitiga antes de chamadas externas.
+
+### D3-original. Transação preguiçosa por requisição, com savepoints (NÃO implementada)
 O middleware não abre transação logo no início. Ele coloca no contexto um provedor que, na **primeira** consulta, abre a
 transação, define a empresa e a reutiliza até o fim; `commit` em resposta 2xx/3xx, `rollback` em 4xx/5xx ou panic.
 Chamadas a `db.Transaction` dentro dela viram **savepoint** automaticamente (comportamento do GORM sobre `*gorm.DB` já em

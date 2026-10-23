@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"time"
 
@@ -48,8 +49,9 @@ func drainDueSends(ctx context.Context, core sdk.WatinkCore, db *gorm.DB, adapte
 		drainOneSend(ctx, db, core, adapter, send)
 	}
 
-	closeFinishedRuns(db)
-	closeFinishedCampaigns(db)
+	// Fechamento global de runs e campanhas: varredura de todas as empresas, no escopo de sistema do tick.
+	closeFinishedRuns(db.WithContext(ctx))
+	closeFinishedCampaigns(db.WithContext(ctx))
 }
 
 // reapStuckClaims resets a send stuck in "sending" for too long (crash
@@ -102,6 +104,10 @@ func pickDueSends(ctx context.Context, db *gorm.DB) ([]models.GroupCampaignSend,
 // send. A lost claim race (RowsAffected==0) is a silent no-op -- another
 // node already owns this send.
 func drainOneSend(ctx context.Context, db *gorm.DB, core sdk.WatinkCore, adapter *flow.WhatsAppAdapter, send models.GroupCampaignSend) {
+	// O tick varre todas as empresas (escopo de sistema); cada envio roda inteiro na empresa dele (RLS, ADR 0034).
+	ctx, done := tenantdb.TenantCtx(ctx, db, send.TenantID)
+	defer done()
+	db = db.WithContext(ctx)
 	claimed, err := claimSend(db, send.ID)
 	if err != nil {
 		log.Printf("[groups] campaign drain: claim falhou (send %d): %v", send.ID, err)

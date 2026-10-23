@@ -64,6 +64,30 @@ services:
   # Application Services
   # ──────────────────────────────────────────────
 
+  # Job de migração (ADR 0034): único processo com credencial de administrador do banco.
+  watink-migrate:
+    build:
+      context: ./business
+      dockerfile: Dockerfile.dev
+    command: ["go", "run", "./cmd/server", "migrate"]
+    working_dir: /app
+    volumes:
+      - ./business:/app
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=watink
+      - DB_ADMIN_USER=postgres
+      - DB_ADMIN_PASS=${DB_PASS:-watink_secret_pass}
+      - DB_APP_PASS=${DB_APP_PASS:-watink_app_dev_pass}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS:-watink_system_dev_pass}
+      - DB_ENGINE_PASS=${DB_ENGINE_PASS:-watink_engine_dev_pass}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [watink_net]
+    restart: "no"
+
   watink-business:
     build:
       context: ./business
@@ -75,8 +99,8 @@ services:
       - PORT_GO=8082
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS:-watink_secret_pass}
+      - DB_APP_PASS=${DB_APP_PASS:-watink_app_dev_pass}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS:-watink_system_dev_pass}
       - DB_NAME=watink
       - AMQP_URL=amqp://guest:guest@rabbitmq:5672
       - REDIS_URL=redis://redis:6379
@@ -119,6 +143,8 @@ services:
       - S3_USE_SSL=false
       - S3_REGION=us-east-1
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -157,14 +183,17 @@ services:
       - AMQP_URL=amqp://guest:guest@rabbitmq:5672
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS:-watink_secret_pass}
+      - DB_USER=watink_engine
+      - DB_PASS=${DB_ENGINE_PASS:-watink_engine_dev_pass}
+      - DB_SEARCH_PATH=whatsmeow
       - DB_NAME=watink
       - HEALTH_PORT=8083
       - GROUPS_API_PORT=8084
       - GROUPS_API_TOKEN=${GROUPS_API_TOKEN:-}
       - CALLS_AUDIO_PORT=8085
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       postgres:

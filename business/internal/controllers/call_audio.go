@@ -10,6 +10,7 @@ import (
 
 	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -91,17 +92,26 @@ func (ca *CallAudioController) Stream(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	if !auth.UserHasPermission(ca.db, id.userID, id.tenantID, "calls", "receive") &&
-		!auth.UserHasPermission(ca.db, id.userID, id.tenantID, "calls", "place") {
+	// A verificação roda num escopo curto da empresa do token, encerrado antes do fluxo longo: o WebSocket dura a
+	// chamada inteira e não pode segurar uma conexão do banco (RLS, ADR 0034, D4).
+	vctx, vdone := tenantdb.TenantCtx(c.Request.Context(), ca.db, id.tenantID)
+	allowed := auth.UserHasPermission(ca.db.WithContext(vctx), id.userID, id.tenantID, "calls", "receive") ||
+		auth.UserHasPermission(ca.db.WithContext(vctx), id.userID, id.tenantID, "calls", "place")
+	var authErr error
+	if allowed {
+		authErr = ca.svc.AuthorizeAudio(vctx, id.tenantID, id.userID, c.Param("id"))
+	}
+	vdone()
+	if !allowed {
 		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
 	callID := c.Param("id")
-	switch err := ca.svc.AuthorizeAudio(id.tenantID, id.userID, callID); {
-	case errors.Is(err, calls.ErrNotFound):
+	switch {
+	case errors.Is(authErr, calls.ErrNotFound):
 		c.AbortWithStatus(http.StatusNotFound)
 		return
-	case err != nil:
+	case authErr != nil:
 		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}

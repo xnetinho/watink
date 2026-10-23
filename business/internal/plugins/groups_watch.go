@@ -44,6 +44,8 @@ func registerGroupWatchEvents(core sdk.WatinkCore) {
 // (no query at all) for the overwhelming majority of traffic: non-group
 // messages and tenants with zero active tags.
 func handleGroupWatchMessage(ctx context.Context, core sdk.WatinkCore, db *gorm.DB, payload map[string]any) {
+	// O assinante herda o escopo da empresa do evento pelo ctx (RLS, ADR 0034).
+	db = db.WithContext(ctx)
 	isGroup, _ := payload["isGroup"].(bool)
 	if !isGroup {
 		return
