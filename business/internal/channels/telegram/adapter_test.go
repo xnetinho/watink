@@ -14,7 +14,7 @@ import (
 )
 
 func TestTelegramAdapter_ContractAndParsing(t *testing.T) {
-	adapter := telegram.NewAdapter()
+	adapter := telegram.NewAdapter(nil)
 
 	assert.Equal(t, domain.ChannelKindTelegram, adapter.Kind())
 	caps := adapter.Capabilities()

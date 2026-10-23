@@ -68,7 +68,7 @@ func NewTestDB(t *testing.T) *gorm.DB {
 	// (que o AutoMigrate não executa). Sem essas regras os testes rodariam sem a regra
 	// real de unicidade por tenant.
 	for _, ddl := range []string{
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number) WHERE number <> ''`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
 	} {
 		if err := db.Exec(ddl).Error; err != nil {

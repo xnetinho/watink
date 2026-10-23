@@ -47,8 +47,9 @@ type Whatsapp struct {
 	LastRiskAt      *time.Time `gorm:"column:lastRiskAt" json:"lastRiskAt"`
 
 	// Relations
-	Tickets []Ticket `gorm:"foreignKey:WhatsappID" json:"tickets,omitempty"`
-	Queues  []Queue  `gorm:"many2many:whatsapp_queues;" json:"queues,omitempty"`
+	// Tickets não é associação: tickets de canais sem WhatsApp têm whatsappId = 0,
+	// e a FK gerada por esta has-many bloqueava o inbound de canal (ADR 0033).
+	Queues []Queue `gorm:"many2many:whatsapp_queues;" json:"queues,omitempty"`
 }
 
 func (Whatsapp) TableName() string {

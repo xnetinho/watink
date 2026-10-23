@@ -72,7 +72,7 @@ func TestChannelTicketFoundation_ParityAndIndexes(t *testing.T) {
 	assert.NotEmpty(t, updatedTicket.ConversationKey, "conversationKey deve ter sido preenchida pelo backfill")
 	assert.Equal(t, fmt.Sprintf("%d", contact.ID), updatedTicket.ConversationKey)
 
-	// 4. Paridade pós-backfill: FindOpenByContact continua devolvendo o mesmo ticket intacto
+	// 4. Paridade pós-backfill: FindOpenByContact continua retornando o mesmo ticket intacto
 	foundAfter, err := repo.FindOpenByContact(ctx, tenantID, contact.ID, whatsapp.ID)
 	require.NoError(t, err)
 	require.NotNil(t, foundAfter)

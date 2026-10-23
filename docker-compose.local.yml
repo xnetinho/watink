@@ -15,10 +15,15 @@ services:
     build:
       context: ./infra/postgres
       dockerfile: Dockerfile
+    # Exposto só em loopback: `go test ./...` do host (portão 1) precisa do Postgres.
+    ports:
+      - "127.0.0.1:5432:5432"
   redis:
     container_name: lt-redis
   rabbitmq:
     container_name: lt-rabbitmq
+    ports:
+      - "127.0.0.1:5672:5672"
   watink-business:
     image: local/watink-business:dev
     container_name: lt-business

@@ -52,12 +52,22 @@ interface ChannelSelectorModalProps {
   onClose: () => void;
   onSelectWhatsApp?: () => void;
   onChannelCreated?: () => void;
+  /** Quando informado, o modal edita a conexão existente em vez de criar outra. */
+  editConnection?: EditableChannelConnection | null;
+}
+
+export interface EditableChannelConnection {
+  id: number;
+  kind: string;
+  name: string;
+  config?: string;
 }
 
 export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
   open,
   onClose,
   onChannelCreated,
+  editConnection,
 }) => {
   const [selectedChannel, setSelectedChannel] = useState<ChannelDefinition | null>(null);
   const [tokenInput, setTokenInput] = useState("");
@@ -115,6 +125,22 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
     setSelectedQueueIds([]);
   };
 
+  // Edição: pula a escolha do tipo, pré-preenche nome/modo e deixa o token em branco
+  // (em branco mantém o segredo atual no backend).
+  useEffect(() => {
+    if (!open || !editConnection) return;
+    const def = CHANNELS_CATALOG.find((c) => c.kind === editConnection.kind) || null;
+    setSelectedChannel(def);
+    setNameInput(editConnection.name);
+    setTokenInput("");
+    try {
+      const cfg = JSON.parse(editConnection.config || "{}");
+      setModeInput(cfg.mode === "polling" ? "polling" : "webhook");
+    } catch {
+      setModeInput("webhook");
+    }
+  }, [open, editConnection]);
+
   const handleClose = () => {
     resetState();
     onClose();
@@ -125,20 +151,29 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
   };
 
   const handleConnectToken = async () => {
-    if (!tokenInput.trim() || !nameInput.trim()) {
+    if (!nameInput.trim() || (!editConnection && !tokenInput.trim())) {
       notify.warning("Preencha o nome da conexão e o token de acesso.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await api.post("/channels/connections", {
-        kind: selectedChannel?.kind,
-        name: nameInput.trim(),
-        token: tokenInput.trim(),
-        mode: modeInput,
-      });
-      notify.success(`Canal ${selectedChannel?.name} conectado com sucesso!`);
+      if (editConnection) {
+        await api.put(`/channels/connections/${editConnection.id}`, {
+          name: nameInput.trim(),
+          token: tokenInput.trim(),
+          mode: modeInput,
+        });
+        notify.success(`Canal ${selectedChannel?.name ?? ""} atualizado com sucesso!`);
+      } else {
+        await api.post("/channels/connections", {
+          kind: selectedChannel?.kind,
+          name: nameInput.trim(),
+          token: tokenInput.trim(),
+          mode: modeInput,
+        });
+        notify.success(`Canal ${selectedChannel?.name} conectado com sucesso!`);
+      }
       onChannelCreated?.();
       handleClose();
     } catch (err) {
@@ -202,13 +237,17 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            {selectedChannel && (
+            {selectedChannel && !editConnection && (
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setSelectedChannel(null)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
             <DialogTitle>
-              {selectedChannel ? `Conectar ${selectedChannel.name}` : "Selecione o Canal de Atendimento"}
+              {selectedChannel
+                ? editConnection
+                  ? `Editar ${selectedChannel.name}`
+                  : `Conectar ${selectedChannel.name}`
+                : "Selecione o Canal de Atendimento"}
             </DialogTitle>
           </div>
           <DialogDescription>
@@ -402,19 +441,29 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">Token do Bot (API Token)</label>
                   <Input
-                    placeholder="Cole o token recebido do @BotFather"
+                    placeholder={
+                      editConnection
+                        ? "Deixe em branco para manter o token atual"
+                        : "Cole o token recebido do @BotFather"
+                    }
                     type="password"
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value)}
                   />
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    Crie um bot no Telegram falando com o @BotFather e copie o token gerado.
+                    {editConnection
+                      ? "Preencha apenas se quiser trocar o token do bot."
+                      : "Crie um bot no Telegram falando com o @BotFather e copie o token gerado."}
                   </p>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="ghost" onClick={() => setSelectedChannel(null)}>Voltar</Button>
+                  <Button variant="ghost" onClick={handleClose}>Cancelar</Button>
                   <Button onClick={handleConnectToken} disabled={isSubmitting}>
-                    {isSubmitting ? "Validando..." : "Salvar Conexão"}
+                    {isSubmitting
+                      ? "Validando..."
+                      : editConnection
+                      ? "Salvar alterações"
+                      : "Salvar Conexão"}
                   </Button>
                 </div>
               </div>

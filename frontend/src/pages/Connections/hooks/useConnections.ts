@@ -10,9 +10,21 @@ import { subscribeToSocket } from "../../../services/sse-client";
 
 import type { ConnectionSession } from "../connectionsTypes";
 
+export interface ChannelConnection {
+  id: number;
+  kind: string;
+  name: string;
+  status: string;
+  lastError?: string;
+  config?: string;
+}
+
 export interface UseConnectionsReturn {
   whatsApps: ConnectionSession[];
   reloadWhatsApps: () => void;
+  channelConnections: ChannelConnection[];
+  reloadChannelConnections: () => Promise<void>;
+  handleDeleteChannelConnection: (id: number) => Promise<void>;
   whatsAppModalOpen: boolean;
   webchatModalOpen: boolean;
   confirmModalOpen: boolean;
@@ -43,6 +55,30 @@ export const useConnections = (): UseConnectionsReturn => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [selectedWhatsApp, setSelectedWhatsApp] = useState<ConnectionSession | null>(null);
   const [pendingSessionIds, setPendingSessionIds] = useState<Set<number>>(new Set());
+  const [channelConnections, setChannelConnections] = useState<ChannelConnection[]>([]);
+
+  const reloadChannelConnections = async () => {
+    try {
+      const { data } = await api.get<ChannelConnection[]>("/channels/connections");
+      setChannelConnections(Array.isArray(data) ? data : []);
+    } catch {
+      setChannelConnections([]);
+    }
+  };
+
+  useEffect(() => {
+    reloadChannelConnections();
+  }, []);
+
+  const handleDeleteChannelConnection = async (id: number) => {
+    try {
+      await api.delete(`/channels/connections/${id}`);
+      await reloadChannelConnections();
+      toast.warn(i18n.t("connections.toasts.deleted"));
+    } catch (err) {
+      toastError(err);
+    }
+  };
 
   const addPending = (id: number) => setPendingSessionIds((prev) => new Set(prev).add(id));
   const removePending = (id: number) =>
@@ -166,6 +202,9 @@ export const useConnections = (): UseConnectionsReturn => {
   return {
     whatsApps: whatsApps as ConnectionSession[],
     reloadWhatsApps,
+    channelConnections,
+    reloadChannelConnections,
+    handleDeleteChannelConnection,
     whatsAppModalOpen,
     webchatModalOpen,
     confirmModalOpen,

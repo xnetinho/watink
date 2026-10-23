@@ -131,6 +131,14 @@ func Migrate() {
 		log.Printf("Warning: failed to create custom indexes: %v", err)
 	}
 
+	// Tickets de canais não-WhatsApp gravam whatsappId = 0 (sentinel: "sem WhatsApp").
+	// A FK legada fk_Whatsapps_tickets rejeitava esse valor e derrubava todo o
+	// inbound de canal (violação SQLSTATE 23503). WhatsApp continua validado na
+	// aplicação (resolveConnection).
+	if err := DB.Exec(`ALTER TABLE "Tickets" DROP CONSTRAINT IF EXISTS "fk_Whatsapps_tickets"`).Error; err != nil {
+		log.Printf("Warning: failed to drop legacy fk_Whatsapps_tickets: %v", err)
+	}
+
 	addClientAddressGeography()
 
 	if err := BackfillContactIdentities(DB); err != nil {
@@ -431,8 +439,19 @@ func addCustomIndexes() error {
 		}
 	}
 
+	// Contatos de canais sem telefone (Telegram etc.) têm number vazio. O índice
+	// único por tenant precisa ignorar vazios, senão o 2º contato do tenant colide
+	// (SQLSTATE 23505 ao criar contato de canal).
+	var legacyNumberIndex bool
+	if err := DB.Raw(`SELECT count(*) > 0 FROM pg_indexes
+		WHERE indexname = 'idx_contacts_tenant_number' AND indexdef NOT LIKE '%WHERE%'`).Scan(&legacyNumberIndex).Error; err == nil && legacyNumberIndex {
+		if err := DB.Exec(`DROP INDEX IF EXISTS idx_contacts_tenant_number`).Error; err != nil {
+			log.Printf("addCustomIndexes (drop idx_contacts_tenant_number): %v", err)
+		}
+	}
+
 	indexes := []string{
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number) WHERE number <> ''`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_status ON "Tickets" ("tenantId", "status")`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_queue_status ON "Tickets" ("tenantId", "queueId", "status")`,

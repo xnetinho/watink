@@ -1,6 +1,10 @@
 package routes
 
 import (
+	"context"
+	"encoding/json"
+	"log"
+
 	"github.com/alltomatos/watinkdev/business/internal/application"
 	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
 	telegramChannel "github.com/alltomatos/watinkdev/business/internal/channels/telegram"
@@ -9,13 +13,35 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/flow"
 	"github.com/alltomatos/watinkdev/business/internal/mediawait"
 	"github.com/alltomatos/watinkdev/business/internal/middleware"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/pluginlicense"
 	"github.com/alltomatos/watinkdev/business/internal/plugins"
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+
+// resumeTelegramPolling recria os workers de polling das conexões já conectadas
+// nesse modo, para que continuem recebendo mensagens após restart do processo.
+func resumeTelegramPolling(db *gorm.DB, handler telegramChannel.InboundHandler) {
+	var conns []models.ChannelConnection
+	if err := db.Where("kind = ? AND status = ?", string(domain.ChannelKindTelegram), "CONNECTED").Find(&conns).Error; err != nil {
+		log.Printf("[Telegram Polling] failed to load connections: %v", err)
+		return
+	}
+	polling := make([]models.ChannelConnection, 0, len(conns))
+	for _, conn := range conns {
+		var cfg struct {
+			Mode string `json:"mode"`
+		}
+		if json.Unmarshal([]byte(conn.Config), &cfg) == nil && cfg.Mode == "polling" {
+			polling = append(polling, conn)
+		}
+	}
+	telegramChannel.ResumePolling(polling, handler)
+}
 
 type RouteRabbitMQ interface {
 	domain.CommandPublisher
@@ -116,7 +142,13 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	)
 	channelWebhookController := controllers.NewChannelWebhookController(container.DB, channelInboundSvc)
 	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService))
-	domain.DefaultChannelRegistry().Register(telegramChannel.NewAdapter())
+	// Polling entrega as mensagens pelo mesmo pipeline de entrada do webhook.
+	channelInboundHandler := func(ctx context.Context, msg domain.InboundMessage) error {
+		_, err := channelInboundSvc.Receive(ctx, msg)
+		return err
+	}
+	domain.DefaultChannelRegistry().Register(telegramChannel.NewAdapter(channelInboundHandler))
+	resumeTelegramPolling(container.DB, channelInboundHandler)
 
 	// Public Routes
 	group.POST("/webhooks/channels/:kind/:connectionId", channelWebhookController.HandleWebhook)
@@ -270,6 +302,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		channelConnCtrl := controllers.NewChannelConnectionController()
 		protected.GET("/channels/connections", auth.RequirePermission("connections", "read"), channelConnCtrl.ListConnections)
 		protected.POST("/channels/connections", auth.RequirePermission("connections", "create"), channelConnCtrl.CreateConnection)
+		protected.PUT("/channels/connections/:id", auth.RequirePermission("connections", "update"), channelConnCtrl.UpdateConnection)
 		protected.DELETE("/channels/connections/:id", auth.RequirePermission("connections", "delete"), channelConnCtrl.DeleteConnection)
 
 		// Proxies (anti-ban) — mesmo domínio de acesso que as conexões
