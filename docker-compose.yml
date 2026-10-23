@@ -10,9 +10,10 @@
 #   docker compose pull
 #   docker compose up -d
 #
-# As imagens são publicadas no GHCR por .github/workflows/publish-ghcr.yml, SOMENTE em push à branch main
-# (tags: latest e sha-<hash>). A branch develop não publica imagem: ela só roda CI. Defina IMAGE_TAG no .env para fixar
-# uma versão específica e WATINK_REGISTRY_OWNER para o dono do registry (o do repositório que publicou; padrão xnetinho).
+# As imagens são publicadas no GHCR por .github/workflows/release.yml, SOMENTE quando uma release é publicada ou por
+# disparo manual (tags: a da release, sha-<hash> e latest nas versões estáveis). Nenhum push a main/develop publica
+# imagem. Defina IMAGE_TAG no .env para fixar uma versão e WATINK_REGISTRY_OWNER para o dono do registry (o do
+# repositório que publicou; padrão xnetinho).
 
 services:
   # ── Infraestrutura ────────────────────────────────────────────

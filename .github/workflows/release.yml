@@ -1,15 +1,27 @@
-name: Publish GHCR (watink-business, watink-engine, watink-postgres)
+name: Release (imagens GHCR)
 
-# Publicação de imagens SÓ na branch principal. `develop` roda apenas CI (ci.yml, runners do GitHub) para detectar bugs e
-# validar alterações; nenhuma imagem sai dela. Dispara em push a main (+ manual, também restrito a main pelo `if` do job).
+# ÚNICO workflow de publicação. Imagens só saem quando uma release é publicada no GitHub ou por disparo manual; nada
+# publica em push a main/develop (develop e PRs rodam apenas o CI, em ci.yml). Não existe mais deploy automático por SSH:
+# o deploy é feito manualmente na VPS, puxando as imagens desta release.
+#
 # NUNCA em pull_request: o token deste workflow tem permissão de escrita em pacotes.
 on:
-  push:
-    branches: [main]
-  workflow_dispatch: {}
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag a publicar (ex.: v0.9.0 ou rc-1). Também recebe 'latest' se marcar a opção abaixo."
+        required: true
+        type: string
+      latest:
+        description: "Marcar estas imagens também como latest"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
-  group: publish-ghcr-${{ github.ref }}
+  group: release-ghcr-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false # não interrompe uma publicação em andamento
 
 permissions:
@@ -19,9 +31,8 @@ jobs:
   # Stack mínimo distribuível: sem qualquer uma destas 3 imagens, quem faz `docker pull` não consegue rodar o Watink de
   # verdade — watink-business sem watink-engine não conecta WhatsApp (o engine é o cliente whatsmeow); postgres vanilla
   # não tem PostGIS+pgvector, então watink-postgres é quem carrega essas extensões pré-instaladas.
-  # O código que chega aqui já passou pelo ci.yml no PR; os Dockerfiles compilam (go build) dentro do próprio build.
+  # O código já passou pelo ci.yml no PR; os Dockerfiles compilam (go build) dentro do próprio build.
   build-and-push:
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -41,6 +52,9 @@ jobs:
             context: ./infra/postgres
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Em release, constrói exatamente a tag publicada; no disparo manual, o ref escolhido na interface.
+          ref: ${{ github.event.release.tag_name || github.ref }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -51,13 +65,32 @@ jobs:
 
       - name: Compute image tags
         id: tags
+        env:
+          EVENT: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_LATEST: ${{ inputs.latest }}
         run: |
           # O nome do pacote no GHCR é sempre minúsculo; o dono é o do repositório que roda o workflow (fork ou upstream).
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
           IMAGE="ghcr.io/${OWNER}/${{ matrix.image }}"
           SHORT_SHA="${GITHUB_SHA::7}"
-          echo "tags=${IMAGE}:latest,${IMAGE}:sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "Tags: ${IMAGE}:latest ${IMAGE}:sha-${SHORT_SHA}"
+          if [ "$EVENT" = "release" ]; then
+            VERSION="$RELEASE_TAG"
+            LATEST=true
+            [ "$PRERELEASE" = "true" ] && LATEST=false # pré-release nunca vira latest
+          else
+            VERSION="$INPUT_TAG"
+            LATEST="$INPUT_LATEST"
+          fi
+          # Docker não aceita tag com '/' nem começando por '.' ou '-': normaliza o que o operador digitou.
+          VERSION="$(printf '%s' "$VERSION" | sed 's#[^A-Za-z0-9_.-]#-#g; s#^[.-]*##')"
+          [ -n "$VERSION" ] || { echo "tag vazia após normalizar" >&2; exit 1; }
+          TAGS="${IMAGE}:${VERSION},${IMAGE}:sha-${SHORT_SHA}"
+          [ "$LATEST" = "true" ] && TAGS="${TAGS},${IMAGE}:latest"
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+          echo "Tags: ${TAGS}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
