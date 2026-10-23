@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log/slog"
 	"time"
 
@@ -64,6 +65,9 @@ func (w *Worker) Run(ctx context.Context, tickInterval time.Duration) {
 // tick executa um ciclo de sync e devolve os ids executados com sucesso
 // nesta passada — o chamador os envia como `acks` no PRÓXIMO tick.
 func (w *Worker) tick(ctx context.Context, acks []string) []string {
+	// O sincronismo SaaS é da instalação inteira (provisiona e suspende empresas): escopo de sistema (RLS, ADR 0034).
+	ctx, done := tenantdb.SystemCtx(ctx, w.db)
+	defer done()
 	contract, err := w.contract.Get()
 	if err != nil {
 		if !errors.Is(err, services.ErrSaaSContractNotConfigured) {
@@ -73,7 +77,7 @@ func (w *Worker) tick(ctx context.Context, acks []string) []string {
 	}
 
 	client := New(contract.BaseURL, contract.InstanceID, contract.InternalToken)
-	resp, err := client.Sync(ctx, SyncRequest{CoreVersion: w.version, Acks: acks, Tenants: w.collectTenantsUsage()})
+	resp, err := client.Sync(ctx, SyncRequest{CoreVersion: w.version, Acks: acks, Tenants: w.collectTenantsUsage(ctx)})
 	if err != nil {
 		// NUNCA logar req/resp aqui — podem carregar payload de provisionamento
 		// com senha temporária. err de transporte não carrega o token (não é
@@ -88,7 +92,7 @@ func (w *Worker) tick(ctx context.Context, acks []string) []string {
 
 	executed := make([]string, 0, len(resp.Commands))
 	for _, cmd := range resp.Commands {
-		if err := w.execute(cmd); err != nil {
+		if err := w.execute(ctx, cmd); err != nil {
 			slog.Error("saas sync: falha ao executar comando", "command", cmd.Command, "commandId", cmd.ID, "erro", err.Error())
 			continue // sem ack — o servidor reentrega após a janela de redelivery
 		}
@@ -102,15 +106,15 @@ func (w *Worker) tick(ctx context.Context, acks []string) []string {
 // (mesmo padrão de controllers.SaaSInternalController.Usage, lado push).
 // Falha ao listar/coletar loga e devolve nil — o sync em si (claim/ack de
 // comandos) nunca deve travar por causa de telemetria de uso.
-func (w *Worker) collectTenantsUsage() []map[string]any {
+func (w *Worker) collectTenantsUsage(ctx context.Context) []map[string]any {
 	var tenants []models.Tenant
-	if err := w.db.Find(&tenants).Error; err != nil {
+	if err := w.db.WithContext(ctx).Find(&tenants).Error; err != nil {
 		slog.Error("saas sync: falha ao listar tenants para uso", "erro", err.Error())
 		return nil
 	}
 	result := make([]map[string]any, 0, len(tenants))
 	for _, t := range tenants {
-		usage, err := usagestats.Collect(w.db, t.ID)
+		usage, err := usagestats.Collect(w.db.WithContext(ctx), t.ID)
 		if err != nil {
 			slog.Error("saas sync: falha ao coletar uso do tenant", "tenantId", t.ID, "erro", err.Error())
 			continue
@@ -126,12 +130,12 @@ func (w *Worker) collectTenantsUsage() []map[string]any {
 // redelivery de um comando que este core nunca vai saber processar (ex.: um
 // watink-saas mais novo introduziu um comando que este core mais antigo
 // ainda não entende) — mas fica logado bem alto.
-func (w *Worker) execute(cmd SyncCommand) error {
+func (w *Worker) execute(ctx context.Context, cmd SyncCommand) error {
 	switch cmd.Command {
 	case "provision":
 		return w.executeProvision(cmd)
 	case "set_status":
-		return w.executeSetStatus(cmd)
+		return w.executeSetStatus(ctx, cmd)
 	case "push_subscription":
 		return w.executePushSubscription(cmd)
 	default:
@@ -198,7 +202,7 @@ func (w *Worker) executeProvision(cmd SyncCommand) error {
 // executeSetStatus espelha controllers.SaaSInternalController.SetStatus —
 // escrita direta, sem passar pelo SyncProvisioner (o lado push também não
 // passa pelo SetupService para isso).
-func (w *Worker) executeSetStatus(cmd SyncCommand) error {
+func (w *Worker) executeSetStatus(ctx context.Context, cmd SyncCommand) error {
 	var body struct {
 		Status string `json:"status"`
 		Reason string `json:"reason"`
@@ -210,7 +214,7 @@ func (w *Worker) executeSetStatus(cmd SyncCommand) error {
 	if err != nil {
 		return err
 	}
-	return w.db.Model(&models.Tenant{}).Where("id = ?", tenantID).Update("status", body.Status).Error
+	return w.db.WithContext(ctx).Model(&models.Tenant{}).Where("id = ?", tenantID).Update("status", body.Status).Error
 }
 
 // executePushSubscription espelha

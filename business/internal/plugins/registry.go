@@ -1,6 +1,8 @@
 package plugins
 
 import (
+	"context"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"sync"
 	"time"
@@ -171,10 +173,11 @@ func (r *PluginRegistry) isAllocated(tenantID uuid.UUID, pluginSlug string) (boo
 		return false, nil
 	}
 	var count int64
-	err := r.db.Session(&gorm.Session{NewDB: true}).
-		Model(&models.PluginInstallation{}).
-		Where(`"tenantId" = ? AND "pluginId" = ? AND active = ?`, tenantID, pluginSlug, true).
-		Count(&count).Error
+	err := tenantdb.Do(context.Background(), r.db, tenantID, func(tx *gorm.DB) error {
+		return tx.Model(&models.PluginInstallation{}).
+			Where(`"tenantId" = ? AND "pluginId" = ? AND active = ?`, tenantID, pluginSlug, true).
+			Count(&count).Error
+	})
 	if err != nil {
 		return false, err
 	}

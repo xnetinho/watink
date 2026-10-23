@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 
 	"github.com/google/uuid"
@@ -48,6 +49,9 @@ func (s *Service) Dispatch(ctx context.Context, body []byte) error {
 	if err != nil {
 		return fmt.Errorf("tenantId inválido %q: %w", env.TenantID, err)
 	}
+	// Cada evento roda no escopo da empresa do envelope (RLS, ADR 0034).
+	ctx, done := tenantdb.TenantCtx(ctx, s.db, tenantID)
+	defer done()
 	switch env.Type {
 	case "call.incoming":
 		return s.HandleIncoming(ctx, tenantID, env.Payload)

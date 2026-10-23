@@ -1,8 +1,10 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
@@ -44,8 +46,10 @@ type MovementInput struct {
 // onboarding hook, so any entry point (product create, first movement) works
 // without ordering assumptions.
 func (s *InventoryService) GetOrCreateDefaultWarehouse(tenantID uuid.UUID) (*models.Warehouse, error) {
+	ctx, done := tenantdb.TenantCtx(context.Background(), s.db, tenantID)
+	defer done()
 	var wh models.Warehouse
-	err := s.db.Session(&gorm.Session{NewDB: true}).
+	err := s.db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).
 		Where(`"tenantId" = ? AND name = ?`, tenantID, "Armazém Principal").
 		Attrs(models.Warehouse{TenantID: tenantID, Name: "Armazém Principal", IsActive: true}).
 		FirstOrCreate(&wh).Error
@@ -55,8 +59,10 @@ func (s *InventoryService) GetOrCreateDefaultWarehouse(tenantID uuid.UUID) (*mod
 // GetOrCreateBasePriceTable resolves the tenant's "Base" price table, same
 // lazy-creation reasoning as GetOrCreateDefaultWarehouse.
 func (s *InventoryService) GetOrCreateBasePriceTable(tenantID uuid.UUID) (*models.PriceTable, error) {
+	ctx, done := tenantdb.TenantCtx(context.Background(), s.db, tenantID)
+	defer done()
 	var pt models.PriceTable
-	err := s.db.Session(&gorm.Session{NewDB: true}).
+	err := s.db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).
 		Where(`"tenantId" = ? AND name = ?`, tenantID, "Base").
 		Attrs(models.PriceTable{TenantID: tenantID, Name: "Base", IsActive: true}).
 		FirstOrCreate(&pt).Error
@@ -84,7 +90,9 @@ func (s *InventoryService) RegisterMovement(in MovementInput) (*models.Inventory
 	var resultingBalance float64
 	var minQuantity float64
 
-	err := s.db.Session(&gorm.Session{NewDB: true}).Transaction(func(tx *gorm.DB) error {
+	ctx, done := tenantdb.TenantCtx(context.Background(), s.db, in.TenantID)
+	defer done()
+	err := s.db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).Transaction(func(tx *gorm.DB) error {
 		var balance models.WarehouseBalance
 		lockErr := tx.Raw(`SELECT * FROM "WarehouseBalances" WHERE "warehouseId" = ? AND "skuId" = ? FOR UPDATE`,
 			in.WarehouseID, in.SKUID).

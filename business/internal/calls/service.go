@@ -87,7 +87,11 @@ func (s *Service) isPaused(tenantID uuid.UUID, userID int) bool {
 	return s.paused[pauseKey(tenantID, userID)]
 }
 
-func (s *Service) fresh() *gorm.DB { return s.db.Session(&gorm.Session{NewDB: true}) }
+// fresh devolve um handle novo que herda o escopo de empresa do ctx (RLS, ADR 0034). Quem abre o escopo é o ponto de
+// entrada (Dispatch, handler HTTP): aqui só se propaga.
+func (s *Service) fresh(ctx context.Context) *gorm.DB {
+	return s.db.WithContext(ctx).Session(&gorm.Session{NewDB: true})
+}
 
 // Eligible devolve os usuários que devem tocar para uma chamada na conexão:
 // enxergam a conexão, têm calls:receive, estão online e não pausaram. Sem o

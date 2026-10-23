@@ -51,3 +51,17 @@ func TestEventPayloadWithTenant_OverwritesTenantID(t *testing.T) {
 		t.Fatalf("expected tenantId overwritten to new-tenant, got %v", result["tenantId"])
 	}
 }
+
+func TestBuildPostgresDSN_SearchPath(t *testing.T) {
+	t.Setenv("DB_USER", "watink_engine")
+	t.Setenv("DB_PASS", "p")
+	t.Setenv("DB_HOST", "db")
+	t.Setenv("DB_PORT", "5432")
+	t.Setenv("DB_NAME", "watink")
+	t.Setenv("DB_SEARCH_PATH", "whatsmeow")
+
+	want := "postgres://watink_engine:p@db:5432/watink?sslmode=disable&search_path=whatsmeow"
+	if got := BuildPostgresDSN(); got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}

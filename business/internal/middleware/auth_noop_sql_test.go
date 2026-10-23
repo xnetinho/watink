@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -71,7 +72,8 @@ func TestIsAuth_ExecutesNoSQL(t *testing.T) {
 	}
 }
 
-// O handle entregue aos controllers é o mesmo *gorm.DB injetado: nada de clone com estado escondido.
+// O handle entregue aos controllers usa o mesmo pool do *gorm.DB injetado, e a única diferença é o ctx da requisição
+// (que carrega o escopo de empresa quando o banco tem o Router de RLS). Sem Router, o ctx não ganha escopo.
 func TestIsAuth_InjectsTheSameDB(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	const secret = "test-secret-samedb"
@@ -92,7 +94,8 @@ func TestIsAuth_InjectsTheSameDB(t *testing.T) {
 	r.ServeHTTP(httptest.NewRecorder(), req)
 
 	require.NotNil(t, got)
-	assert.Same(t, db, got)
+	assert.Same(t, db.ConnPool, got.ConnPool, "mesmo pool de conexões")
+	assert.Nil(t, tenantdb.ScopeFrom(got.Statement.Context), "sem Router não há escopo de empresa")
 }
 
 // A validação do UUID do token continua valendo (o tenantId alimenta todos os filtros "tenantId").

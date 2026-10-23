@@ -32,7 +32,7 @@ func handleListAttachments(core sdk.WatinkCore) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant"})
 			return
 		}
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 		protocol, ok := protocolTenantScoped(db, c, tenantID)
 		if !ok {
 			return
@@ -53,7 +53,7 @@ func handleUploadAttachments(core sdk.WatinkCore) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant"})
 			return
 		}
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 		protocol, ok := protocolTenantScoped(db, c, tenantID)
 		if !ok {
 			return
@@ -110,7 +110,7 @@ func handleDeleteAttachment(core sdk.WatinkCore) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant"})
 			return
 		}
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 		protocol, ok := protocolTenantScoped(db, c, tenantID)
 		if !ok {
 			return

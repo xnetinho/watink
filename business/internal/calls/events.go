@@ -115,9 +115,9 @@ func (s *Service) ResolveContactAndTicket(ctx context.Context, tenantID uuid.UUI
 
 // upsertLog grava a chamada pela chave (tenantId, callId). Reentrega do mesmo
 // evento não duplica: o conflito não faz nada e o registro existente é devolvido.
-func (s *Service) upsertLog(tenantID uuid.UUID, l *models.CallLog) (*models.CallLog, bool, error) {
+func (s *Service) upsertLog(ctx context.Context, tenantID uuid.UUID, l *models.CallLog) (*models.CallLog, bool, error) {
 	l.TenantID = tenantID
-	res := s.fresh().Clauses(clause.OnConflict{
+	res := s.fresh(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "tenantId"}, {Name: "callId"}},
 		DoNothing: true,
 	}).Create(l)
@@ -126,7 +126,7 @@ func (s *Service) upsertLog(tenantID uuid.UUID, l *models.CallLog) (*models.Call
 	}
 	created := res.RowsAffected > 0
 	var got models.CallLog
-	if err := s.fresh().Where(`"tenantId" = ? AND "callId" = ?`, tenantID, l.CallID).First(&got).Error; err != nil {
+	if err := s.fresh(ctx).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, l.CallID).First(&got).Error; err != nil {
 		return nil, false, err
 	}
 	return &got, created, nil
@@ -148,7 +148,7 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 	if err != nil {
 		return err
 	}
-	l, created, err := s.upsertLog(tenantID, &models.CallLog{
+	l, created, err := s.upsertLog(ctx, tenantID, &models.CallLog{
 		CallID: ev.CallID, WhatsappID: waID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "incoming", Media: mediaOf(ev.Media), Status: StatusRinging, PeerJid: ev.Peer, CallerPn: ev.CallerPn, StartedAt: s.now(),
 	})
@@ -210,7 +210,7 @@ func (s *Service) HandleMissed(ctx context.Context, tenantID uuid.UUID, raw json
 	if err != nil {
 		return err
 	}
-	l, _, err := s.upsertLog(tenantID, &models.CallLog{
+	l, _, err := s.upsertLog(ctx, tenantID, &models.CallLog{
 		CallID: ev.CallID, WhatsappID: waID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "incoming", Status: StatusMissed, PeerJid: ev.Peer, CallerPn: ev.CallerPn,
 		StartedAt: s.now(), EndReason: ev.Reason,
@@ -228,7 +228,7 @@ func (s *Service) HandleMissed(ctx context.Context, tenantID uuid.UUID, raw json
 // ticket e avisa os operadores que o toque acabou. Só age uma vez por chamada.
 func (s *Service) markMissed(ctx context.Context, tenantID uuid.UUID, l *models.CallLog, reason string) error {
 	now := s.now()
-	res := s.fresh().Model(&models.CallLog{}).
+	res := s.fresh(ctx).Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "callId" = ? AND "endedAt" IS NULL`, tenantID, l.CallID).
 		Updates(map[string]interface{}{"status": StatusMissed, "endReason": reason, "endedAt": now})
 	if res.Error != nil {

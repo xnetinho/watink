@@ -1,7 +1,9 @@
 package services
 
 import (
+	"context"
 	"errors"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
@@ -46,6 +48,12 @@ func NewSaaSContractService(db *gorm.DB) *SaaSContractService {
 	return &SaaSContractService{db: db}
 }
 
+// sys devolve um handle no escopo de sistema: o contrato SaaS é da instalação, não de uma empresa (RLS, ADR 0034).
+func (s *SaaSContractService) sys() *gorm.DB {
+	ctx, _ := tenantdb.SystemCtx(context.Background(), s.db)
+	return s.db.WithContext(ctx)
+}
+
 // Get decifra e devolve o contrato atual. ErrSaaSContractNotConfigured
 // (sentinel) sinaliza "sem Modo SaaS ativado" — não é uma falha, é o estado
 // default de toda instância que nunca passou pelo registro.
@@ -56,7 +64,7 @@ func (s *SaaSContractService) Get() (SaaSContract, error) {
 	// reusar o handle sem sessão nova acumula esse Where em queries
 	// seguintes no mesmo db (mesma armadilha documentada em
 	// plugin_marketplace_policy.go).
-	err := s.db.Session(&gorm.Session{NewDB: true}).First(&policy).Error
+	err := s.sys().Session(&gorm.Session{NewDB: true}).First(&policy).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return SaaSContract{}, ErrSaaSContractNotConfigured
 	}
@@ -95,7 +103,7 @@ func (s *SaaSContractService) Set(baseURL, instanceID, token string) error {
 	}
 
 	now := time.Now()
-	db := s.db.Session(&gorm.Session{NewDB: true})
+	db := s.sys().Session(&gorm.Session{NewDB: true})
 
 	var policy models.InstancePolicy
 	err = db.First(&policy).Error
@@ -146,7 +154,7 @@ func (s *SaaSContractService) Token() (token string, ok bool, err error) {
 // de sync (Onda C) a cada troca bem-sucedida com o Watink SaaS.
 func (s *SaaSContractService) TouchSync() error {
 	now := time.Now()
-	db := s.db.Session(&gorm.Session{NewDB: true})
+	db := s.sys().Session(&gorm.Session{NewDB: true})
 
 	var policy models.InstancePolicy
 	if err := db.First(&policy).Error; err != nil {

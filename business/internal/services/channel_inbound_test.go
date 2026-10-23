@@ -39,10 +39,10 @@ func (m *mockRedisService) DelLock(key string) error {
 	return nil
 }
 
-func (m *mockRedisService) Get(_ context.Context, _ string) (string, error) { return "", nil }
-func (m *mockRedisService) Subscribe(_ context.Context, _ string) *redis.PubSub { return nil }
+func (m *mockRedisService) Get(_ context.Context, _ string) (string, error)          { return "", nil }
+func (m *mockRedisService) Subscribe(_ context.Context, _ string) *redis.PubSub      { return nil }
 func (m *mockRedisService) Publish(_ context.Context, _ string, _ interface{}) error { return nil }
-func (m *mockRedisService) Ping(_ context.Context) error { return nil }
+func (m *mockRedisService) Ping(_ context.Context) error                             { return nil }
 
 func TestChannelInboundService_DedupAndAgnosticFlow(t *testing.T) {
 	db := testutil.NewTestDB(t)

@@ -49,6 +49,8 @@ func registerAssistantPipelineEvents(core sdk.WatinkCore, db *gorm.DB) {
 // message per match. Requires a ticket (SendTicketMessage's only send path)
 // — a Deal with no linked ticket is silently skipped, not an error.
 func handlePipelineEvent(ctx context.Context, core sdk.WatinkCore, db *gorm.DB, eventType string, payload map[string]any) {
+	// O assinante herda o escopo da empresa do evento pelo ctx (RLS, ADR 0034).
+	db = db.WithContext(ctx)
 	tenantIDStr, _ := payload["tenantId"].(string)
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {

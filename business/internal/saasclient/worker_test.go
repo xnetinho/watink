@@ -45,7 +45,7 @@ func TestWorker_Execute_ComandoForaDaAllowlistNuncaExecuta(t *testing.T) {
 	prov := &fakeProvisioner{}
 	w := NewWorker(nil, db, prov, "test")
 
-	err := w.execute(SyncCommand{ID: "1", Command: "delete_everything", Payload: json.RawMessage(`{}`)})
+	err := w.execute(context.Background(), SyncCommand{ID: "1", Command: "delete_everything", Payload: json.RawMessage(`{}`)})
 	require.NoError(t, err) // "confirmado" sem executar — nunca reentrega um comando que nunca vai processar
 
 	require.Empty(t, prov.provisionCalls, "comando fora da allowlist não deveria chegar ao provisioner")
@@ -62,7 +62,7 @@ func TestWorker_ExecuteProvision_DecodificaEChamaSetupService(t *testing.T) {
 		"password":"senha-forte-o-suficiente","document":"12345678900","idempotencyKey":"key-1",
 		"plan":{"name":"Starter","usersLimit":5,"connectionsLimit":2,"queuesLimit":1,"pluginQuota":0,"price":49.9,"active":true}
 	}`
-	err := w.execute(SyncCommand{ID: "2", Command: "provision", Payload: json.RawMessage(payload)})
+	err := w.execute(context.Background(), SyncCommand{ID: "2", Command: "provision", Payload: json.RawMessage(payload)})
 	require.NoError(t, err)
 
 	require.Len(t, prov.provisionCalls, 1)
@@ -79,7 +79,7 @@ func TestWorker_ExecuteSetStatus_AtualizaTenantDireto(t *testing.T) {
 
 	w := NewWorker(nil, db, &fakeProvisioner{}, "test")
 	payload := `{"status":"suspended","reason":"inadimplência"}`
-	err := w.execute(SyncCommand{ID: "3", Command: "set_status", TenantID: tenant.ID.String(), Payload: json.RawMessage(payload)})
+	err := w.execute(context.Background(), SyncCommand{ID: "3", Command: "set_status", TenantID: tenant.ID.String(), Payload: json.RawMessage(payload)})
 	require.NoError(t, err)
 
 	var reloaded models.Tenant
@@ -94,7 +94,7 @@ func TestWorker_ExecutePushSubscription_ChamaProvisionerComTenantIDCorreto(t *te
 
 	tenantID := uuid.New()
 	payload := `{"plan":{"name":"Pro"},"subscription":{"status":"active"}}`
-	err := w.execute(SyncCommand{ID: "4", Command: "push_subscription", TenantID: tenantID.String(), Payload: json.RawMessage(payload)})
+	err := w.execute(context.Background(), SyncCommand{ID: "4", Command: "push_subscription", TenantID: tenantID.String(), Payload: json.RawMessage(payload)})
 	require.NoError(t, err)
 
 	require.Len(t, prov.pushCalls, 1)

@@ -12,6 +12,8 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/flow"
 	"github.com/alltomatos/watinkdev/business/internal/mediawait"
 	"github.com/alltomatos/watinkdev/business/internal/plugins"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/google/uuid"
 	amqp "github.com/streadway/amqp"
 	"gorm.io/gorm"
@@ -98,7 +100,9 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 
 		log.Printf("[EventListener] Event received: %s (Tenant: %s)", env.Type, env.TenantID)
 
-		ctx := context.Background()
+		// Todo evento roda no escopo da empresa do envelope (RLS, ADR 0034): o banco só enxerga as linhas dela.
+		ctx, done := tenantdb.TenantCtx(context.Background(), eventListener.db, tid)
+		defer done()
 		switch env.Type {
 		case "session.qrcode":
 			return eventListener.handleQrCode(ctx, env.Payload, tid)
@@ -134,11 +138,13 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			// outros eventos), então rodar em goroutine própria é seguro e
 			// evita esse atraso sem mudar o contrato — ack imediato (best-effort,
 			// mesmo padrão de media.download no engine-go).
-			go func() {
-				if err := eventListener.handleMediaDownloaded(ctx, env.Payload, tid); err != nil {
+			bgCtx, bgDone := tenantdb.Detach(ctx)
+			safego.Go("event.handleMediaDownloaded", func() {
+				defer bgDone()
+				if err := eventListener.handleMediaDownloaded(bgCtx, env.Payload, tid); err != nil {
 					log.Printf("[EventListener] handleMediaDownloaded falhou: %v", err)
 				}
-			}()
+			})
 			return nil
 		case "contact.update":
 			if err := handleContactUpdate(ctx, eventListener.contacts, eventListener.bcast(), env.Payload, tid); err != nil {

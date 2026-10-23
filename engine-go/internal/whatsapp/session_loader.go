@@ -41,7 +41,7 @@ func (l *PostgresSessionLoader) LoadActiveSessions() ([]ActiveSession, error) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query(`SELECT id, "tenantId"::text, name, COALESCE("syncHistory", false), "syncPeriod", COALESCE("keepAlive", false), COALESCE(wid, '') FROM "Whatsapps" WHERE COALESCE("engineType", 'whatsmeow') = 'whatsmeow' AND status IN ('CONNECTED', 'OPENING', 'QRCODE')`)
+	rows, err := db.Query(`SELECT id, "tenantId"::text, name, COALESCE("syncHistory", false), "syncPeriod", COALESCE("keepAlive", false), COALESCE(wid, '') FROM public."Whatsapps" WHERE COALESCE("engineType", 'whatsmeow') = 'whatsmeow' AND status IN ('CONNECTED', 'OPENING', 'QRCODE')`)
 	if err != nil {
 		return nil, err
 	}

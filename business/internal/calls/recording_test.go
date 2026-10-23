@@ -85,12 +85,12 @@ func pcmFrame(amp float64, hz float64, idx int) []byte {
 
 func TestRecordingMode_AbsentAndInvalidAreOff(t *testing.T) {
 	r := newRig(t)
-	assert.Equal(t, CallRecordingOff, r.svc.recordingMode(r.tenant), "empresa que nunca configurou não grava")
+	assert.Equal(t, CallRecordingOff, r.svc.recordingMode(context.Background(), r.tenant), "empresa que nunca configurou não grava")
 	r.setMode(t, "auto")
-	assert.Equal(t, CallRecordingAuto, r.svc.recordingMode(r.tenant))
-	assert.Equal(t, CallRecordingOff, r.svc.recordingMode(uuid.New()), "o modo de outra empresa não vaza")
+	assert.Equal(t, CallRecordingAuto, r.svc.recordingMode(context.Background(), r.tenant))
+	assert.Equal(t, CallRecordingOff, r.svc.recordingMode(context.Background(), uuid.New()), "o modo de outra empresa não vaza")
 	r.setMode(t, "valor-corrompido")
-	assert.Equal(t, CallRecordingOff, r.svc.recordingMode(r.tenant), "valor inválido nunca liga a gravação")
+	assert.Equal(t, CallRecordingOff, r.svc.recordingMode(context.Background(), r.tenant), "valor inválido nunca liga a gravação")
 }
 
 // 7.11: os três modos.
@@ -98,7 +98,7 @@ func TestStartRecording_OffRejects(t *testing.T) {
 	r := newRig(t)
 	r.withRecording(t, newMemStore())
 	uid := answeredCall(t, r, "REC-1")
-	err := r.svc.StartRecording(r.tenant, uid, "REC-1", false)
+	err := r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-1", false)
 	assert.Equal(t, ErrRecordingOff, err, "modo off (padrão) rejeita")
 	assert.False(t, r.svc.Recording().Active(r.tenant, "REC-1"))
 }
@@ -109,11 +109,11 @@ func TestStartRecording_OptionalAllowsManualOnly(t *testing.T) {
 	r.setMode(t, "optional")
 	uid := answeredCall(t, r, "REC-2")
 
-	require.NoError(t, r.svc.StartRecording(r.tenant, uid, "REC-2", false))
+	require.NoError(t, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-2", false))
 	assert.True(t, r.svc.Recording().Active(r.tenant, "REC-2"))
 	assert.Equal(t, recording.StatusRecording, r.log(t, "REC-2").RecordingStatus)
 	assert.Equal(t, 1, r.bc.to(UserRoom(r.tenant, uid), "call.recording"), "o operador vê o indicador de gravando")
-	assert.Equal(t, ErrRecordingActive, r.svc.StartRecording(r.tenant, uid, "REC-2", false), "não grava duas vezes")
+	assert.Equal(t, ErrRecordingActive, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-2", false), "não grava duas vezes")
 }
 
 func TestStartRecording_AutoModeRejectsManualButAllowsAutomatic(t *testing.T) {
@@ -121,8 +121,8 @@ func TestStartRecording_AutoModeRejectsManualButAllowsAutomatic(t *testing.T) {
 	r.withRecording(t, newMemStore())
 	r.setMode(t, "auto")
 	uid := answeredCall(t, r, "REC-3")
-	assert.Equal(t, ErrRecordingNotOpt, r.svc.StartRecording(r.tenant, uid, "REC-3", false), "no modo auto o operador não liga/desliga")
-	require.NoError(t, r.svc.StartRecording(r.tenant, uid, "REC-3", true))
+	assert.Equal(t, ErrRecordingNotOpt, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-3", false), "no modo auto o operador não liga/desliga")
+	require.NoError(t, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-3", true))
 }
 
 func TestStartRecording_WithoutS3IsRejected(t *testing.T) {
@@ -130,7 +130,7 @@ func TestStartRecording_WithoutS3IsRejected(t *testing.T) {
 	r.withRecording(t, nil)
 	r.setMode(t, "optional")
 	uid := answeredCall(t, r, "REC-4")
-	assert.Equal(t, ErrRecordingNoS3, r.svc.StartRecording(r.tenant, uid, "REC-4", false), "instalação sem S3 rejeita")
+	assert.Equal(t, ErrRecordingNoS3, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-4", false), "instalação sem S3 rejeita")
 	assert.False(t, r.svc.Recording().Available())
 }
 
@@ -140,10 +140,10 @@ func TestStartRecording_OnlyTheHandlingOperatorAndOnlyInProgress(t *testing.T) {
 	r.setMode(t, "optional")
 	uid := answeredCall(t, r, "REC-5")
 	other := r.users["setor_fila_A"].ID
-	assert.Equal(t, ErrCallNotInProgress, r.svc.StartRecording(r.tenant, other, "REC-5", false), "outro operador não grava a chamada")
-	assert.Equal(t, ErrNotFound, r.svc.StartRecording(r.tenant, uid, "NAO-EXISTE", false))
+	assert.Equal(t, ErrCallNotInProgress, r.svc.StartRecording(context.Background(), r.tenant, other, "REC-5", false), "outro operador não grava a chamada")
+	assert.Equal(t, ErrNotFound, r.svc.StartRecording(context.Background(), r.tenant, uid, "NAO-EXISTE", false))
 	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("REC-5", "user_ended", 3)))
-	assert.Equal(t, ErrCallNotInProgress, r.svc.StartRecording(r.tenant, uid, "REC-5", false), "chamada encerrada não grava")
+	assert.Equal(t, ErrCallNotInProgress, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-5", false), "chamada encerrada não grava")
 }
 
 // Fluxo completo: grava, encerra a chamada, o MP3 vai ao S3 e o registro aponta a chave.
@@ -153,7 +153,7 @@ func TestRecording_EndOfCallUploadsAndRecordsKey(t *testing.T) {
 	r.withRecording(t, store)
 	r.setMode(t, "optional")
 	uid := answeredCall(t, r, "REC-6")
-	require.NoError(t, r.svc.StartRecording(r.tenant, uid, "REC-6", false))
+	require.NoError(t, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-6", false))
 
 	for i := 0; i < 100; i++ { // 2 s de áudio dos dois lados
 		r.svc.Recording().Feed(r.tenant, "REC-6", true, pcmFrame(8000, 440, i))
@@ -178,7 +178,7 @@ func TestRecording_UploadFailureMarksFailedAndExposesNothing(t *testing.T) {
 	r.withRecording(t, store)
 	r.setMode(t, "optional")
 	uid := answeredCall(t, r, "REC-7")
-	require.NoError(t, r.svc.StartRecording(r.tenant, uid, "REC-7", false))
+	require.NoError(t, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-7", false))
 	r.svc.Recording().Feed(r.tenant, "REC-7", true, pcmFrame(8000, 440, 0))
 	time.Sleep(100 * time.Millisecond)
 
@@ -196,7 +196,7 @@ func TestRecording_InterruptedCallDiscardsRecording(t *testing.T) {
 	r.withRecording(t, store)
 	r.setMode(t, "optional")
 	uid := answeredCall(t, r, "REC-8")
-	require.NoError(t, r.svc.StartRecording(r.tenant, uid, "REC-8", false))
+	require.NoError(t, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-8", false))
 	require.True(t, r.svc.Recording().Active(r.tenant, "REC-8"))
 
 	raw := []byte(`{"sessionId":"` + itoa(r.waA.ID) + `"}`)
@@ -211,7 +211,7 @@ func TestStopRecording_Manual(t *testing.T) {
 	r.withRecording(t, store)
 	r.setMode(t, "optional")
 	uid := answeredCall(t, r, "REC-9")
-	require.NoError(t, r.svc.StartRecording(r.tenant, uid, "REC-9", false))
+	require.NoError(t, r.svc.StartRecording(context.Background(), r.tenant, uid, "REC-9", false))
 	r.svc.Recording().Feed(r.tenant, "REC-9", true, pcmFrame(8000, 440, 0))
 	time.Sleep(100 * time.Millisecond)
 

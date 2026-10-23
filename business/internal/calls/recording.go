@@ -188,28 +188,28 @@ func (s *Service) finalizeRecording(ctx context.Context, tenantID uuid.UUID, cal
 		log.Printf("[calls] gravação da chamada %s falhou: %v", callID, err)
 		upd = map[string]interface{}{"recordingStatus": recording.StatusFailed, "recordingKey": ""}
 	}
-	s.fresh().Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).Updates(upd)
+	s.fresh(ctx).Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).Updates(upd)
 }
 
 // autoRecord diz se a empresa grava todas as chamadas.
-func (s *Service) autoRecord(tenantID uuid.UUID) bool {
-	return s.rec.Available() && s.recordingMode(tenantID) == CallRecordingAuto
+func (s *Service) autoRecord(ctx context.Context, tenantID uuid.UUID) bool {
+	return s.rec.Available() && s.recordingMode(ctx, tenantID) == CallRecordingAuto
 }
 
 // startRecordingBestEffort liga a gravação sem nunca atrapalhar a chamada: se falhar,
 // registra e segue sem gravar (o histórico mostra recordingStatus=failed).
-func (s *Service) startRecordingBestEffort(tenantID uuid.UUID, userID int, callID string) {
-	if err := s.StartRecording(tenantID, userID, callID, true); err != nil && !errors.Is(err, ErrRecordingActive) {
+func (s *Service) startRecordingBestEffort(ctx context.Context, tenantID uuid.UUID, userID int, callID string) {
+	if err := s.StartRecording(ctx, tenantID, userID, callID, true); err != nil && !errors.Is(err, ErrRecordingActive) {
 		log.Printf("[calls] gravação automática da chamada %s não iniciou: %v", callID, err)
-		s.fresh().Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
+		s.fresh(ctx).Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
 			Update("recordingStatus", recording.StatusFailed)
 	}
 }
 
 // recordingMode lê o modo de gravação da empresa; ausente ou inválido = off.
-func (s *Service) recordingMode(tenantID uuid.UUID) string {
+func (s *Service) recordingMode(ctx context.Context, tenantID uuid.UUID) string {
 	var st models.Setting
-	if err := s.fresh().Where(`key = ? AND "tenantId" = ?`, SettingRecordingMode, tenantID).First(&st).Error; err != nil {
+	if err := s.fresh(ctx).Where(`key = ? AND "tenantId" = ?`, SettingRecordingMode, tenantID).First(&st).Error; err != nil {
 		return CallRecordingOff
 	}
 	return NormalizeRecordingMode(st.Value)
@@ -217,18 +217,18 @@ func (s *Service) recordingMode(tenantID uuid.UUID) string {
 
 // StartRecording inicia a gravação de uma chamada em andamento do operador. `auto`
 // vale para o disparo automático (modo auto); o pedido manual exige o modo opcional.
-func (s *Service) StartRecording(tenantID uuid.UUID, userID int, callID string, auto bool) error {
+func (s *Service) StartRecording(ctx context.Context, tenantID uuid.UUID, userID int, callID string, auto bool) error {
 	if !s.rec.Available() {
 		return ErrRecordingNoS3
 	}
-	mode := s.recordingMode(tenantID)
+	mode := s.recordingMode(ctx, tenantID)
 	switch {
 	case mode == CallRecordingOff:
 		return ErrRecordingOff
 	case !auto && mode != CallRecordingOptional:
 		return ErrRecordingNotOpt
 	}
-	l, err := s.load(tenantID, callID)
+	l, err := s.load(ctx, tenantID, callID)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -238,7 +238,7 @@ func (s *Service) StartRecording(tenantID uuid.UUID, userID int, callID string, 
 	if _, err := s.rec.Start(tenantID, callID); err != nil {
 		return err
 	}
-	s.fresh().Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
+	s.fresh(ctx).Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
 		Update("recordingStatus", recording.StatusRecording)
 	s.bcast.EmitToRoom("/", UserRoom(tenantID, userID), "call.recording", map[string]interface{}{"callId": callID, "recording": true})
 	return nil
@@ -246,7 +246,7 @@ func (s *Service) StartRecording(tenantID uuid.UUID, userID int, callID string, 
 
 // StopRecording encerra a gravação em curso (modo opcional) e a envia ao armazenamento.
 func (s *Service) StopRecording(ctx context.Context, tenantID uuid.UUID, userID int, callID string) error {
-	l, err := s.load(tenantID, callID)
+	l, err := s.load(ctx, tenantID, callID)
 	if err != nil {
 		return ErrNotFound
 	}

@@ -19,13 +19,17 @@ func NewTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
 	dsn := testDSN()
-	cfg := &gorm.Config{
-		Logger:                                   logger.Discard,
-		DisableForeignKeyConstraintWhenMigrating: true,
+	// Cada gorm.Open recebe o seu próprio *gorm.Config: o Open escreve no Config (callbacks, ConnPool), e compartilhá-lo
+	// entre o handle do teste e o do Cleanup é uma corrida de dados (detectada por -race).
+	newCfg := func() *gorm.Config {
+		return &gorm.Config{
+			Logger:                                   logger.Discard,
+			DisableForeignKeyConstraintWhenMigrating: true,
+		}
 	}
 
 	// Root connection — used only to create/drop the schema.
-	root, err := gorm.Open(postgres.Open(dsn), cfg)
+	root, err := gorm.Open(postgres.Open(dsn), newCfg())
 	if err != nil {
 		t.Fatalf("testutil.NewTestDB: connect: %v", err)
 	}
@@ -50,7 +54,7 @@ func NewTestDB(t *testing.T) *gorm.DB {
 		schemaDSN = dsn + "?search_path=" + schema
 	}
 
-	db, err := gorm.Open(postgres.Open(schemaDSN), cfg)
+	db, err := gorm.Open(postgres.Open(schemaDSN), newCfg())
 	if err != nil {
 		t.Fatalf("testutil.NewTestDB: connect for schema: %v", err)
 	}
@@ -83,7 +87,7 @@ func NewTestDB(t *testing.T) *gorm.DB {
 	t.Cleanup(func() {
 		_ = sqlDB.Close()
 
-		clean, _ := gorm.Open(postgres.Open(dsn), cfg)
+		clean, _ := gorm.Open(postgres.Open(dsn), newCfg())
 		clean.Exec("DROP SCHEMA " + schema + " CASCADE")
 		if cleanSQL, err := clean.DB(); err == nil {
 			_ = cleanSQL.Close()

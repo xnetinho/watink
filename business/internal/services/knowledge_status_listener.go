@@ -1,7 +1,10 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
+	"github.com/google/uuid"
 	"log"
 	"strings"
 	"time"
@@ -83,7 +86,15 @@ func (l *KnowledgeStatusListener) handle(d amqp.Delivery) error {
 		updates["lastIngestedAt"] = time.Now()
 	}
 
-	res := l.db.Session(&gorm.Session{NewDB: true}).
+	tenantUUID, perr := uuid.Parse(tenant)
+	if perr != nil {
+		log.Printf("[knowledge] tenant inválido na routing key %q — descartando", d.RoutingKey)
+		return nil
+	}
+	// Escopo da empresa do evento (RLS, ADR 0034).
+	ctx, done := tenantdb.TenantCtx(context.Background(), l.db, tenantUUID)
+	defer done()
+	res := l.db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).
 		Model(&models.KnowledgeBaseSource{}).
 		Where(`id = ? AND "tenantId" = ?`, p.SourceID, tenant).
 		Updates(updates)

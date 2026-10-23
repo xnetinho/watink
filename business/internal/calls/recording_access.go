@@ -24,8 +24,8 @@ const RecordingExcluded = "deleted"
 // recordingOf devolve a chamada SE o usuário pode vê-la e ela tem gravação. Fora do
 // alcance, de outra empresa ou sem gravação: sempre ErrNotFound, para nunca revelar
 // que a gravação existe.
-func (s *Service) recordingOf(sc HistoryScope, callID string) (*models.CallLog, error) {
-	l, err := s.Get(sc, callID)
+func (s *Service) recordingOf(ctx context.Context, sc HistoryScope, callID string) (*models.CallLog, error) {
+	l, err := s.Get(ctx, sc, callID)
 	if err != nil {
 		return nil, ErrNotFound
 	}
@@ -37,22 +37,22 @@ func (s *Service) recordingOf(sc HistoryScope, callID string) (*models.CallLog, 
 
 // audit grava quem fez o quê e quando. O registro é parte do ato: se falhar, o ato
 // não acontece (a escuta não entrega a URL; a exclusão não apaga).
-func (s *Service) audit(sc HistoryScope, callID, action string) error {
-	return s.fresh().Create(&models.CallRecordingAccess{
+func (s *Service) audit(ctx context.Context, sc HistoryScope, callID, action string) error {
+	return s.fresh(ctx).Create(&models.CallRecordingAccess{
 		TenantID: sc.TenantID, CallID: callID, UserID: sc.UserID, Action: action, At: s.now(),
 	}).Error
 }
 
 // ListenURL devolve uma URL assinada e temporária da gravação e registra a escuta.
 func (s *Service) ListenURL(ctx context.Context, sc HistoryScope, callID string) (string, error) {
-	l, err := s.recordingOf(sc, callID)
+	l, err := s.recordingOf(ctx, sc, callID)
 	if err != nil {
 		return "", err
 	}
 	if !s.rec.Available() {
 		return "", ErrRecordingNoS3
 	}
-	if err := s.audit(sc, callID, AccessListen); err != nil {
+	if err := s.audit(ctx, sc, callID, AccessListen); err != nil {
 		return "", err
 	}
 	return s.rec.store.PresignedGetURL(ctx, l.RecordingKey, RecordingURLTTL)
@@ -61,20 +61,20 @@ func (s *Service) ListenURL(ctx context.Context, sc HistoryScope, callID string)
 // DeleteRecording remove o arquivo do armazenamento, marca o histórico como
 // excluído e registra quem excluiu. Excluir duas vezes devolve ErrNotFound.
 func (s *Service) DeleteRecording(ctx context.Context, sc HistoryScope, callID string) error {
-	l, err := s.recordingOf(sc, callID)
+	l, err := s.recordingOf(ctx, sc, callID)
 	if err != nil {
 		return err
 	}
 	if !s.rec.Available() {
 		return ErrRecordingNoS3
 	}
-	if err := s.audit(sc, callID, AccessDelete); err != nil {
+	if err := s.audit(ctx, sc, callID, AccessDelete); err != nil {
 		return err
 	}
 	if err := s.rec.store.Delete(ctx, l.RecordingKey); err != nil {
 		return err
 	}
-	return s.fresh().Model(&models.CallLog{}).
+	return s.fresh(ctx).Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "callId" = ?`, sc.TenantID, callID).
 		Updates(map[string]interface{}{"recordingKey": "", "recordingStatus": RecordingExcluded}).Error
 }

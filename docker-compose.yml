@@ -64,6 +64,27 @@ services:
     restart: unless-stopped
 
   # ── Aplicação ────────────────────────────────────────────────
+  # Job de migração (ADR 0034): único processo com credencial de administrador do banco. Cria os papéis
+  # watink_app/watink_system, o esquema e as políticas RLS, e termina. O servidor só sobe depois dele.
+  watink-migrate:
+    image: ronaldodavi/watink-business:${IMAGE_TAG:-latest}
+    command: ["./watink-business", "migrate"]
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=watink
+      - DB_ADMIN_USER=postgres
+      - DB_ADMIN_PASS=${DB_PASS:?defina DB_PASS no .env}
+      - DB_APP_PASS=${DB_APP_PASS:?defina DB_APP_PASS no .env}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS:?defina DB_SYSTEM_PASS no .env}
+      - DB_ENGINE_PASS=${DB_ENGINE_PASS:?defina DB_ENGINE_PASS no .env}
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [watink_net]
+    restart: "no"
+
   watink-business:
     image: ronaldodavi/watink-business:${IMAGE_TAG:-latest}
     container_name: watink-business
@@ -74,8 +95,8 @@ services:
       - GIN_MODE=release
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS:?defina DB_PASS no .env}
+      - DB_APP_PASS=${DB_APP_PASS:?defina DB_APP_PASS no .env}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS:?defina DB_SYSTEM_PASS no .env}
       - DB_NAME=watink
       - AMQP_URL=amqp://${RABBITMQ_USER:-watink}:${RABBITMQ_PASS:?defina RABBITMQ_PASS no .env}@rabbitmq:5672
       - REDIS_URL=redis://redis:6379
@@ -91,6 +112,8 @@ services:
       - DOCS_PUBLIC=false
       - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -120,14 +143,17 @@ services:
       - AMQP_URL=amqp://${RABBITMQ_USER:-watink}:${RABBITMQ_PASS:?defina RABBITMQ_PASS no .env}@rabbitmq:5672
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS:?defina DB_PASS no .env}
+      - DB_USER=watink_engine
+      - DB_PASS=${DB_ENGINE_PASS:?defina DB_ENGINE_PASS no .env}
+      - DB_SEARCH_PATH=whatsmeow
       - DB_NAME=watink
       - HEALTH_PORT=8083
       # Canal de áudio das chamadas (ADR 0031): só a rede interna (porta não publicada).
       # Precisa de saída UDP para os relays do WhatsApp.
       - CALLS_AUDIO_PORT=8085
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       rabbitmq:

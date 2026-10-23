@@ -26,7 +26,7 @@ type webhookTestChannel struct {
 	kind domain.ChannelKind
 }
 
-func (w *webhookTestChannel) Kind() domain.ChannelKind         { return w.kind }
+func (w *webhookTestChannel) Kind() domain.ChannelKind          { return w.kind }
 func (w *webhookTestChannel) Capabilities() domain.Capabilities { return domain.Capabilities{} }
 func (w *webhookTestChannel) Connect(_ context.Context, _ *models.ChannelConnection, _ domain.ConnectInput) (domain.ConnectResult, error) {
 	return domain.ConnectResult{}, nil

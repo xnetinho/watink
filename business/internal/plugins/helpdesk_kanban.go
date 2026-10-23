@@ -39,7 +39,7 @@ func handleKanban(core sdk.WatinkCore) gin.HandlerFunc {
 		}
 
 		var protocols []models.Protocol
-		core.GetDB().Preload("Contact").Preload("Contact.Client").
+		core.GetDB().WithContext(c.Request.Context()).Preload("Contact").Preload("Contact.Client").
 			Where(`"tenantId" = ?`, tenantID).
 			Order(`"createdAt" DESC`).Find(&protocols)
 
@@ -93,7 +93,7 @@ func handleDashboard(core sdk.WatinkCore) gin.HandlerFunc {
 			return
 		}
 
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 
 		var statusCounts []statusCount
 		db.Model(&models.Protocol{}).

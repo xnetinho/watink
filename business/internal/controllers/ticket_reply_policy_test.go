@@ -25,7 +25,7 @@ type dummyChannel struct {
 	caps domain.Capabilities
 }
 
-func (d *dummyChannel) Kind() domain.ChannelKind { return d.kind }
+func (d *dummyChannel) Kind() domain.ChannelKind          { return d.kind }
 func (d *dummyChannel) Capabilities() domain.Capabilities { return d.caps }
 func (d *dummyChannel) Connect(_ context.Context, _ *models.ChannelConnection, _ domain.ConnectInput) (domain.ConnectResult, error) {
 	return domain.ConnectResult{}, nil

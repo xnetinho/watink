@@ -32,7 +32,7 @@ func (s *Service) HandleEnded(ctx context.Context, tenantID uuid.UUID, raw json.
 	if err := json.Unmarshal(raw, &ev); err != nil {
 		return err
 	}
-	l, err := s.load(tenantID, ev.CallID)
+	l, err := s.load(ctx, tenantID, ev.CallID)
 	if err != nil {
 		return nil
 	}
@@ -52,7 +52,7 @@ func (s *Service) HandleEnded(ctx context.Context, tenantID uuid.UUID, raw json.
 		upd["mosEstimated"] = r.Mos
 		upd["qualitySamples"] = sum.N
 	}
-	res := s.fresh().Model(&models.CallLog{}).
+	res := s.fresh(ctx).Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "callId" = ? AND "endedAt" IS NULL`, tenantID, ev.CallID).
 		Updates(upd)
 	if res.Error != nil {
@@ -61,12 +61,12 @@ func (s *Service) HandleEnded(ctx context.Context, tenantID uuid.UUID, raw json.
 	if res.RowsAffected == 0 {
 		return nil
 	}
-	done, err := s.load(tenantID, ev.CallID)
+	done, err := s.load(ctx, tenantID, ev.CallID)
 	if err != nil {
 		return err
 	}
 	s.finalizeRecording(ctx, tenantID, ev.CallID)
-	if again, err := s.load(tenantID, ev.CallID); err == nil {
+	if again, err := s.load(ctx, tenantID, ev.CallID); err == nil {
 		done = again
 	}
 	s.writeSystemMessage(ctx, tenantID, done)
@@ -88,7 +88,7 @@ func (s *Service) HandleReset(ctx context.Context, tenantID uuid.UUID, raw json.
 		return nil
 	}
 	var open []models.CallLog
-	if err := s.fresh().
+	if err := s.fresh(ctx).
 		Where(`"tenantId" = ? AND "whatsappId" = ? AND "endedAt" IS NULL AND status IN ?`,
 			tenantID, waID, []string{StatusRinging, StatusActive}).
 		Find(&open).Error; err != nil {
@@ -97,7 +97,7 @@ func (s *Service) HandleReset(ctx context.Context, tenantID uuid.UUID, raw json.
 	for i := range open {
 		l := open[i]
 		now := s.now()
-		res := s.fresh().Model(&models.CallLog{}).
+		res := s.fresh(ctx).Model(&models.CallLog{}).
 			Where(`"tenantId" = ? AND "callId" = ? AND "endedAt" IS NULL`, tenantID, l.CallID).
 			Updates(map[string]interface{}{"status": StatusInterrupted, "endReason": "interrupted", "endedAt": now})
 		if res.Error != nil || res.RowsAffected == 0 {
@@ -121,7 +121,7 @@ func (s *Service) HandleQuality(ctx context.Context, tenantID uuid.UUID, raw jso
 	if err := json.Unmarshal(raw, &ev); err != nil {
 		return err
 	}
-	l, err := s.load(tenantID, ev.CallID)
+	l, err := s.load(ctx, tenantID, ev.CallID)
 	if err != nil || l.EndedAt != nil || l.HandledByUserID == nil {
 		return nil
 	}
