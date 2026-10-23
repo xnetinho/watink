@@ -60,9 +60,9 @@ const Settings: React.FC = () => {
             user={user}
             perform="settings:update"
             yes={() => (
-              <Button variant="ghost" onClick={() => navigate("/admin/settings/marketplace")}>
+              <Button variant="ghost" onClick={() => navigate("/admin/settings/plugins")}>
                 <Puzzle className="mr-2 h-4 w-4" />
-                Marketplace de Plugins
+                Plugins
               </Button>
             )}
           />

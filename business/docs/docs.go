@@ -3179,26 +3179,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/internal/plugin-manager/instance-stats": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "internal-plugin-manager"
-                ],
-                "summary": "Uso agregado da instância (plugin-manager)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/internal/saas/instance/policy": {
             "put": {
                 "consumes": [
@@ -4514,109 +4494,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/plugins/cart/checkout": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Resolve vários plugins pro (cada um com seu ciclo) e devolve UMA URL de redirect pro Checkout Pro pela soma — a licença de cada item só nasce quando o webhook confirma o pagamento.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Iniciar checkout de carrinho via Cartão",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CartCheckoutResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/cart/checkout/pix": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Equivalente Pix de POST /plugins/cart/checkout — devolve UM QR code/copia-e-cola pela soma dos itens pagos.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Iniciar checkout de carrinho via Pix",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CartCheckoutResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/catalog": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Proxy para GET /api/v1/plugins/catalog do plugin-manager (que proxeia o Hub). Fail-safe: em erro ou proxy ausente, responde 200 com {offline:true, plugins:[]}.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Catálogo de plugins",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CatalogResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/checkout": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Endpoint legado -- superado por POST /plugins/:slug/activate.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Ativar/instalar plugin (legado)",
-                "responses": {
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/plugins/installed": {
             "get": {
                 "security": [
@@ -4630,38 +4507,13 @@ const docTemplate = `{
                 "tags": [
                     "plugins"
                 ],
-                "summary": "Plugins instalados",
+                "summary": "Plugins ativos da empresa",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/instance": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Proxy para GET /api/v1/plugins/instance do plugin-manager. Fail-safe: em erro ou proxy ausente, responde 200 com {\"instanceId\":\"\"}.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "ID da instância",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.InstanceResponse"
                         }
                     }
                 }
@@ -4674,7 +4526,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Ativa/aloca um plugin para o tenant atual. 402 se sem licença válida (dispara checkout best-effort junto ao Hub via plugin-manager) ou se o teto de tenants foi atingido.",
+                "description": "Ativa/aloca um plugin embarcado para a empresa atual.",
                 "produces": [
                     "application/json"
                 ],
@@ -4688,63 +4540,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    },
-                    "402": {
-                        "description": "plugin_unlicensed (com checkoutRequested indicando se o pedido de licença foi disparado) ou plugin_tenant_cap_reached",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/{slug}/checkout": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Cria (ou reaproveita, idempotente) um pedido de compra pending para o ciclo (ou pagamento único) escolhido do plugin ` + "`" + `pro` + "`" + ` indicado e devolve a URL de redirect pro Checkout Pro do Mercado Pago — a licença só nasce quando o webhook confirma o pagamento.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Iniciar checkout de plugin pro via Cartão (Checkout Pro — pagamento real)",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CheckoutOrderResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/{slug}/checkout/pix": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Cria (ou reaproveita, idempotente) um pedido de compra pending para o ciclo (ou pagamento único) escolhido do plugin ` + "`" + `pro` + "`" + ` indicado e devolve o QR code/copia-e-cola — a licença só nasce quando o webhook confirma o pagamento (Pix não confirma na hora).",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Iniciar checkout de plugin pro via Pix",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CheckoutPixResponse"
                         }
                     }
                 }
@@ -7220,6 +7015,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/webhooks/channels/{kind}/{connectionId}": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "Receber webhook de canal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tipo do canal (telegram, mercadolivre, instagram, etc.)",
+                        "name": "kind",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID da ChannelConnection",
+                        "name": "connectionId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/whatsapp": {
             "get": {
                 "security": [
@@ -8265,6 +8117,60 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ChannelConnection": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "farewellMessage": {
+                    "type": "string"
+                },
+                "greetingMessage": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "isDefault": {
+                    "type": "boolean"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "lastError": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "queues": {
+                    "description": "Relations",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Queue"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tenantId": {
+                    "type": "string"
+                },
+                "tickets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Ticket"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Client": {
             "type": "object",
             "properties": {
@@ -8396,6 +8302,12 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "identities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ContactIdentity"
+                    }
+                },
                 "isGroup": {
                     "type": "boolean"
                 },
@@ -8430,6 +8342,49 @@ const docTemplate = `{
                 },
                 "walletUserId": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.ContactIdentity": {
+            "type": "object",
+            "properties": {
+                "avatarUrl": {
+                    "type": "string"
+                },
+                "channel": {
+                    "type": "string"
+                },
+                "contact": {
+                    "description": "Relations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Contact"
+                        }
+                    ]
+                },
+                "contactId": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "externalId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "meta": {
+                    "type": "string"
+                },
+                "tenantId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
                 }
             }
         },
@@ -8654,6 +8609,12 @@ const docTemplate = `{
         "models.Queue": {
             "type": "object",
             "properties": {
+                "channelConnections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ChannelConnection"
+                    }
+                },
                 "color": {
                     "description": "Color é cosmético — NÃO é único (o unique global antigo uni_Queues_color\nimpedia dois tenants de usarem a mesma cor). Dropado na migração.",
                     "type": "string"
@@ -8796,6 +8757,12 @@ const docTemplate = `{
         "models.Ticket": {
             "type": "object",
             "properties": {
+                "channelConnection": {
+                    "$ref": "#/definitions/models.ChannelConnection"
+                },
+                "channelConnectionId": {
+                    "type": "integer"
+                },
                 "contact": {
                     "description": "Relations",
                     "allOf": [
@@ -8806,6 +8773,9 @@ const docTemplate = `{
                 },
                 "contactId": {
                     "type": "integer"
+                },
+                "conversationKey": {
+                    "type": "string"
                 },
                 "createdAt": {
                     "type": "string"
@@ -8994,6 +8964,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "queues": {
+                    "description": "Relations\nTickets não é associação: tickets de canais sem WhatsApp têm whatsappId = 0,\ne a FK gerada por esta has-many bloqueava o inbound de canal (ADR 0033).",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.Queue"
@@ -9017,187 +8988,11 @@ const docTemplate = `{
                 "tenantId": {
                     "type": "string"
                 },
-                "tickets": {
-                    "description": "Relations",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Ticket"
-                    }
-                },
                 "updatedAt": {
                     "type": "string"
                 },
                 "wid": {
                     "type": "string"
-                }
-            }
-        },
-        "pluginlicense.CartCheckoutResponse": {
-            "type": "object",
-            "properties": {
-                "allTrial": {
-                    "type": "boolean"
-                },
-                "amountCents": {
-                    "type": "integer"
-                },
-                "cartId": {
-                    "type": "string"
-                },
-                "checkoutUrl": {
-                    "type": "string"
-                },
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pluginlicense.CartItemResult"
-                    }
-                },
-                "qrCode": {
-                    "type": "string"
-                },
-                "qrCodeBase64": {
-                    "type": "string"
-                }
-            }
-        },
-        "pluginlicense.CartItemResult": {
-            "type": "object",
-            "properties": {
-                "amountCents": {
-                    "type": "integer"
-                },
-                "cycle": {
-                    "type": "string"
-                },
-                "pluginSlug": {
-                    "type": "string"
-                },
-                "trial": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "pluginlicense.CatalogPlugin": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "iconUrl": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "longDescription": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "number"
-                },
-                "pricingCycles": {
-                    "description": "PricingCycles são os ciclos de recorrência cadastrados no Hub (mensal,\nanual, o que o dono cadastrar) — o frontend usa isto pra deixar o\ncliente escolher o ciclo antes de chamar Checkout(Card|Pix). Vazio\npara plugin free.",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pluginlicense.PricingCycleEntry"
-                    }
-                },
-                "screenshots": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "singlePaymentEnabled": {
-                    "description": "SinglePaymentEnabled indica se o cliente pode comprar este plugin com\npagamento único (licença perpétua, Price) além de/ao invés dos\nPricingCycles — as duas opções podem coexistir; o cliente escolhe no\ncheckout (cycle=\"\" para pagamento único).",
-                    "type": "boolean"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "taxRatePercent": {
-                    "description": "TaxRatePercent é a taxa global de imposto (ex.: 8) exibida sobre o\npreço no Marketplace — mesma taxa para todo plugin, vem do Hub via\nplugin-manager (HubPlugin.TaxRatePercent).",
-                    "type": "integer"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "version": {
-                    "type": "string"
-                }
-            }
-        },
-        "pluginlicense.CatalogResponse": {
-            "type": "object",
-            "properties": {
-                "offline": {
-                    "type": "boolean"
-                },
-                "plugins": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pluginlicense.CatalogPlugin"
-                    }
-                }
-            }
-        },
-        "pluginlicense.CheckoutOrderResponse": {
-            "type": "object",
-            "properties": {
-                "amountCents": {
-                    "type": "integer"
-                },
-                "checkoutUrl": {
-                    "type": "string"
-                },
-                "orderId": {
-                    "type": "integer"
-                }
-            }
-        },
-        "pluginlicense.CheckoutPixResponse": {
-            "type": "object",
-            "properties": {
-                "amountCents": {
-                    "type": "integer"
-                },
-                "orderId": {
-                    "type": "integer"
-                },
-                "qrCode": {
-                    "type": "string"
-                },
-                "qrCodeBase64": {
-                    "type": "string"
-                }
-            }
-        },
-        "pluginlicense.InstanceResponse": {
-            "type": "object",
-            "properties": {
-                "instanceId": {
-                    "type": "string"
-                }
-            }
-        },
-        "pluginlicense.PricingCycleEntry": {
-            "type": "object",
-            "properties": {
-                "cycle": {
-                    "type": "string"
-                },
-                "periodDays": {
-                    "type": "integer"
-                },
-                "priceCents": {
-                    "type": "integer"
                 }
             }
         }

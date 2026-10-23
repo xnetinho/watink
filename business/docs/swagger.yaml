@@ -468,6 +468,42 @@ definitions:
       updatedAt:
         type: string
     type: object
+  models.ChannelConnection:
+    properties:
+      config:
+        type: string
+      createdAt:
+        type: string
+      farewellMessage:
+        type: string
+      greetingMessage:
+        type: string
+      id:
+        type: integer
+      isDefault:
+        type: boolean
+      kind:
+        type: string
+      lastError:
+        type: string
+      name:
+        type: string
+      queues:
+        description: Relations
+        items:
+          $ref: '#/definitions/models.Queue'
+        type: array
+      status:
+        type: string
+      tenantId:
+        type: string
+      tickets:
+        items:
+          $ref: '#/definitions/models.Ticket'
+        type: array
+      updatedAt:
+        type: string
+    type: object
   models.Client:
     properties:
       addresses:
@@ -579,6 +615,10 @@ definitions:
         type: integer
       id:
         type: integer
+      identities:
+        items:
+          $ref: '#/definitions/models.ContactIdentity'
+        type: array
       isGroup:
         type: boolean
       lid:
@@ -607,6 +647,33 @@ definitions:
         $ref: '#/definitions/models.User'
       walletUserId:
         type: integer
+    type: object
+  models.ContactIdentity:
+    properties:
+      avatarUrl:
+        type: string
+      channel:
+        type: string
+      contact:
+        allOf:
+        - $ref: '#/definitions/models.Contact'
+        description: Relations
+      contactId:
+        type: integer
+      createdAt:
+        type: string
+      displayName:
+        type: string
+      externalId:
+        type: string
+      id:
+        type: integer
+      meta:
+        type: string
+      tenantId:
+        type: string
+      updatedAt:
+        type: string
     type: object
   models.InventoryMovement:
     properties:
@@ -758,6 +825,10 @@ definitions:
     type: object
   models.Queue:
     properties:
+      channelConnections:
+        items:
+          $ref: '#/definitions/models.ChannelConnection'
+        type: array
       color:
         description: |-
           Color é cosmético — NÃO é único (o unique global antigo uni_Queues_color
@@ -856,12 +927,18 @@ definitions:
     type: object
   models.Ticket:
     properties:
+      channelConnection:
+        $ref: '#/definitions/models.ChannelConnection'
+      channelConnectionId:
+        type: integer
       contact:
         allOf:
         - $ref: '#/definitions/models.Contact'
         description: Relations
       contactId:
         type: integer
+      conversationKey:
+        type: string
       createdAt:
         type: string
       id:
@@ -994,6 +1071,10 @@ definitions:
       qrcode:
         type: string
       queues:
+        description: |-
+          Relations
+          Tickets não é associação: tickets de canais sem WhatsApp têm whatsappId = 0,
+          e a FK gerada por esta has-many bloqueava o inbound de canal (ADR 0033).
         items:
           $ref: '#/definitions/models.Queue'
         type: array
@@ -1009,137 +1090,10 @@ definitions:
         type: string
       tenantId:
         type: string
-      tickets:
-        description: Relations
-        items:
-          $ref: '#/definitions/models.Ticket'
-        type: array
       updatedAt:
         type: string
       wid:
         type: string
-    type: object
-  pluginlicense.CartCheckoutResponse:
-    properties:
-      allTrial:
-        type: boolean
-      amountCents:
-        type: integer
-      cartId:
-        type: string
-      checkoutUrl:
-        type: string
-      items:
-        items:
-          $ref: '#/definitions/pluginlicense.CartItemResult'
-        type: array
-      qrCode:
-        type: string
-      qrCodeBase64:
-        type: string
-    type: object
-  pluginlicense.CartItemResult:
-    properties:
-      amountCents:
-        type: integer
-      cycle:
-        type: string
-      pluginSlug:
-        type: string
-      trial:
-        type: boolean
-    type: object
-  pluginlicense.CatalogPlugin:
-    properties:
-      category:
-        type: string
-      description:
-        type: string
-      iconUrl:
-        type: string
-      id:
-        type: string
-      longDescription:
-        type: string
-      name:
-        type: string
-      price:
-        type: number
-      pricingCycles:
-        description: |-
-          PricingCycles são os ciclos de recorrência cadastrados no Hub (mensal,
-          anual, o que o dono cadastrar) — o frontend usa isto pra deixar o
-          cliente escolher o ciclo antes de chamar Checkout(Card|Pix). Vazio
-          para plugin free.
-        items:
-          $ref: '#/definitions/pluginlicense.PricingCycleEntry'
-        type: array
-      screenshots:
-        items:
-          type: string
-        type: array
-      singlePaymentEnabled:
-        description: |-
-          SinglePaymentEnabled indica se o cliente pode comprar este plugin com
-          pagamento único (licença perpétua, Price) além de/ao invés dos
-          PricingCycles — as duas opções podem coexistir; o cliente escolhe no
-          checkout (cycle="" para pagamento único).
-        type: boolean
-      slug:
-        type: string
-      taxRatePercent:
-        description: |-
-          TaxRatePercent é a taxa global de imposto (ex.: 8) exibida sobre o
-          preço no Marketplace — mesma taxa para todo plugin, vem do Hub via
-          plugin-manager (HubPlugin.TaxRatePercent).
-        type: integer
-      type:
-        type: string
-      version:
-        type: string
-    type: object
-  pluginlicense.CatalogResponse:
-    properties:
-      offline:
-        type: boolean
-      plugins:
-        items:
-          $ref: '#/definitions/pluginlicense.CatalogPlugin'
-        type: array
-    type: object
-  pluginlicense.CheckoutOrderResponse:
-    properties:
-      amountCents:
-        type: integer
-      checkoutUrl:
-        type: string
-      orderId:
-        type: integer
-    type: object
-  pluginlicense.CheckoutPixResponse:
-    properties:
-      amountCents:
-        type: integer
-      orderId:
-        type: integer
-      qrCode:
-        type: string
-      qrCodeBase64:
-        type: string
-    type: object
-  pluginlicense.InstanceResponse:
-    properties:
-      instanceId:
-        type: string
-    type: object
-  pluginlicense.PricingCycleEntry:
-    properties:
-      cycle:
-        type: string
-      periodDays:
-        type: integer
-      priceCents:
-        type: integer
     type: object
 host: localhost:8082
 info:
@@ -3143,19 +3097,6 @@ paths:
       summary: Verificar setup inicial
       tags:
       - setup
-  /internal/plugin-manager/instance-stats:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Uso agregado da instância (plugin-manager)
-      tags:
-      - internal-plugin-manager
   /internal/saas/instance/policy:
     put:
       consumes:
@@ -3984,9 +3925,7 @@ paths:
       - pipelines
   /plugins/{slug}/activate:
     post:
-      description: Ativa/aloca um plugin para o tenant atual. 402 se sem licença válida
-        (dispara checkout best-effort junto ao Hub via plugin-manager) ou se o teto
-        de tenants foi atingido.
+      description: Ativa/aloca um plugin embarcado para a empresa atual.
       produces:
       - application/json
       responses:
@@ -3995,52 +3934,9 @@ paths:
           schema:
             additionalProperties: true
             type: object
-        "402":
-          description: plugin_unlicensed (com checkoutRequested indicando se o pedido
-            de licença foi disparado) ou plugin_tenant_cap_reached
-          schema:
-            additionalProperties: true
-            type: object
       security:
       - BearerAuth: []
       summary: Ativar plugin
-      tags:
-      - plugins
-  /plugins/{slug}/checkout:
-    post:
-      description: Cria (ou reaproveita, idempotente) um pedido de compra pending
-        para o ciclo (ou pagamento único) escolhido do plugin `pro` indicado e devolve
-        a URL de redirect pro Checkout Pro do Mercado Pago — a licença só nasce quando
-        o webhook confirma o pagamento.
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pluginlicense.CheckoutOrderResponse'
-      security:
-      - BearerAuth: []
-      summary: Iniciar checkout de plugin pro via Cartão (Checkout Pro — pagamento
-        real)
-      tags:
-      - plugins
-  /plugins/{slug}/checkout/pix:
-    post:
-      description: Cria (ou reaproveita, idempotente) um pedido de compra pending
-        para o ciclo (ou pagamento único) escolhido do plugin `pro` indicado e devolve
-        o QR code/copia-e-cola — a licença só nasce quando o webhook confirma o pagamento
-        (Pix não confirma na hora).
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pluginlicense.CheckoutPixResponse'
-      security:
-      - BearerAuth: []
-      summary: Iniciar checkout de plugin pro via Pix
       tags:
       - plugins
   /plugins/{slug}/deactivate:
@@ -4058,73 +3954,6 @@ paths:
       summary: Desativar plugin
       tags:
       - plugins
-  /plugins/cart/checkout:
-    post:
-      description: Resolve vários plugins pro (cada um com seu ciclo) e devolve UMA
-        URL de redirect pro Checkout Pro pela soma — a licença de cada item só nasce
-        quando o webhook confirma o pagamento.
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pluginlicense.CartCheckoutResponse'
-      security:
-      - BearerAuth: []
-      summary: Iniciar checkout de carrinho via Cartão
-      tags:
-      - plugins
-  /plugins/cart/checkout/pix:
-    post:
-      description: Equivalente Pix de POST /plugins/cart/checkout — devolve UM QR
-        code/copia-e-cola pela soma dos itens pagos.
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pluginlicense.CartCheckoutResponse'
-      security:
-      - BearerAuth: []
-      summary: Iniciar checkout de carrinho via Pix
-      tags:
-      - plugins
-  /plugins/catalog:
-    get:
-      description: 'Proxy para GET /api/v1/plugins/catalog do plugin-manager (que
-        proxeia o Hub). Fail-safe: em erro ou proxy ausente, responde 200 com {offline:true,
-        plugins:[]}.'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pluginlicense.CatalogResponse'
-      security:
-      - BearerAuth: []
-      summary: Catálogo de plugins
-      tags:
-      - plugins
-  /plugins/checkout:
-    post:
-      description: Endpoint legado -- superado por POST /plugins/:slug/activate.
-      produces:
-      - application/json
-      responses:
-        "503":
-          description: Service Unavailable
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Ativar/instalar plugin (legado)
-      tags:
-      - plugins
   /plugins/installed:
     get:
       produces:
@@ -4137,23 +3966,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Plugins instalados
-      tags:
-      - plugins
-  /plugins/instance:
-    get:
-      description: 'Proxy para GET /api/v1/plugins/instance do plugin-manager. Fail-safe:
-        em erro ou proxy ausente, responde 200 com {"instanceId":""}.'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pluginlicense.InstanceResponse'
-      security:
-      - BearerAuth: []
-      summary: ID da instância
+      summary: Plugins ativos da empresa
       tags:
       - plugins
   /proxies:
@@ -5688,6 +5501,44 @@ paths:
       summary: Atualizar usuário
       tags:
       - users
+  /webhooks/channels/{kind}/{connectionId}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tipo do canal (telegram, mercadolivre, instagram, etc.)
+        in: path
+        name: kind
+        required: true
+        type: string
+      - description: ID da ChannelConnection
+        in: path
+        name: connectionId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Receber webhook de canal
+      tags:
+      - channels
   /whatsapp:
     get:
       produces:

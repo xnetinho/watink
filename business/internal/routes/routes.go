@@ -14,7 +14,6 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/mediawait"
 	"github.com/alltomatos/watinkdev/business/internal/middleware"
 	"github.com/alltomatos/watinkdev/business/internal/models"
-	"github.com/alltomatos/watinkdev/business/internal/pluginlicense"
 	"github.com/alltomatos/watinkdev/business/internal/plugins"
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
@@ -59,7 +58,7 @@ type RouteRabbitMQ interface {
 // flow.Skeleton too, so the on-demand endpoints here and the real inbound
 // WhatsApp message path never disagree about which implementation answers a
 // query).
-func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *application.Container, s3Store domain.ObjectStore, build controllers.BuildInfo, ragRetriever flow.Retriever, ragResponder flow.AgentResponder, mediaWaiter *mediawait.Waiter) {
+func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *application.Container, s3Store domain.ObjectStore, ragRetriever flow.Retriever, ragResponder flow.AgentResponder, mediaWaiter *mediawait.Waiter) {
 	db := container.DB
 	messageController := controllers.NewMessageController(rabbitMQ, container.Broadcast, container.SessionService).WithTranscription(db, mediaWaiter)
 	systemController := controllers.NewSystemController(container.SystemRepo, rabbitMQ)
@@ -76,7 +75,6 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// TTL 60s — ver middleware.SaaSTokenCache/services.SaaSContractService.
 	saasContractSvc := services.NewSaaSContractService(db)
 	saasTokenCache := middleware.NewSaaSTokenCache(saasContractSvc)
-	pluginManagerInternalController := controllers.NewPluginManagerInternalController(db, build)
 	registerController := controllers.NewRegisterController(saasclient.NewFromEnv(), saasclient.NewCaptchaVerifierFromEnv())
 	userController := controllers.NewUserController(container.UserRepo, container.PlanLimitSvc)
 	queueController := controllers.NewQueueController()
@@ -95,15 +93,9 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	connectionGroupController := controllers.NewConnectionGroupController()
 	setorController := controllers.NewSetorController()
 	cargoController := controllers.NewCargoController()
-	// Plugin licensing (ADR 0024): the business never talks to the Hub
-	// directly -- only to the local plugin-manager, via pluginlicense.Client
-	// (pull + cache ~60s). PluginRegistry crosses that license with the
-	// PluginInstallations allocation table.
-	pluginLicenseClient := pluginlicense.NewClient()
-	pluginLicenseFetcher := plugins.NewLicenseFetcher(pluginLicenseClient)
-	pluginCatalogFetcher := plugins.NewCatalogFetcher(pluginLicenseClient)
-	pluginRegistry := plugins.NewPluginRegistry(db, pluginLicenseFetcher, pluginCatalogFetcher)
-	pluginController := controllers.NewPluginController(container.PlanLimitSvc, db, pluginRegistry, pluginLicenseFetcher, pluginLicenseClient)
+	// Plugins embarcados: sem marketplace nem licença. O único gate é a alocação por empresa (PluginInstallations).
+	pluginRegistry := plugins.NewPluginRegistry(db)
+	pluginController := controllers.NewPluginController(container.PlanLimitSvc, db, pluginRegistry)
 	authController := controllers.NewAuthController(container.UserRepo).WithTenantStatusService(tenantStatusSvc)
 	settingController := controllers.NewSettingController(container.SettingRepo, container.Broadcast)
 	tagController := controllers.NewTagController()
@@ -199,18 +191,6 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		internalSaaS.PUT("/instance/policy", saasInternalController.SetInstancePolicy)
 	}
 
-	// Internal control-plane (Watink Hub via plugin-manager local) — mesmo
-	// padrão do bloco acima: SEM JWT, protegido por InternalPluginManagerOnly
-	// (X-Internal-Token vs env PLUGIN_MANAGER_INTERNAL_TOKEN, fail-closed).
-	// O plugin-manager consulta esses números pra popular `counters` no
-	// heartbeat do Hub — soma TODOS os tenants da instância, sem filtro (o
-	// Hub não conhece cada tenant em separado, ADR 0003).
-	internalPluginManager := group.Group("/internal/plugin-manager")
-	internalPluginManager.Use(middleware.InternalPluginManagerOnly(), sysScope)
-	{
-		internalPluginManager.GET("/instance-stats", pluginManagerInternalController.InstanceStats)
-	}
-
 	// Protected Routes (IsAuth + TenantMiddleware required)
 	protected := group.Group("/")
 	protected.Use(controllers.MaintenanceMiddleware())
@@ -238,16 +218,9 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		}
 
 		// Plugins (tenant-scoped — moved inside protected group)
-		protected.GET("/plugins/catalog", pluginController.Catalog)
 		protected.GET("/plugins/installed", pluginController.Installed)
-		protected.POST("/plugins/checkout", pluginController.Checkout)
-		protected.GET("/plugins/instance", pluginController.Instance)
 		protected.POST("/plugins/:slug/activate", pluginController.Activate)
 		protected.POST("/plugins/:slug/deactivate", pluginController.Deactivate)
-		protected.POST("/plugins/:slug/checkout", pluginController.CreateCheckoutOrder)
-		protected.POST("/plugins/:slug/checkout/pix", pluginController.CreatePixCheckoutOrder)
-		protected.POST("/plugins/cart/checkout", pluginController.CreateCartCheckoutOrder)
-		protected.POST("/plugins/cart/checkout/pix", pluginController.CreateCartPixCheckoutOrder)
 
 		// Plugin CONTENT routes (helpdesk/webchat business routes, registered
 		// via WatinkCore.RegisterRoute inside each plugin's OnActivate). router

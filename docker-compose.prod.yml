@@ -129,7 +129,6 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - PROXY_ENC_KEY=${PROXY_ENC_KEY}
-      - PLUGIN_MANAGER_INTERNAL_TOKEN=${PLUGIN_MANAGER_INTERNAL_TOKEN}
       - DOCS_PUBLIC=false
       - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
       # Object store da Base de Conhecimento (upload/download de fontes de
@@ -216,31 +215,6 @@ services:
     networks: [watink_net]
     restart: unless-stopped
 
-  # Plugin Manager (licenciamento + catálogo). Imagem PÚBLICA no Docker Hub.
-  # HUB_URL aponta para a API PÚBLICA do Watink Hub (apiv1-hub.watink.com, sem
-  # Cloudflare Access — ver RUNBOOK do repo hub); os subpaths /register,/heartbeat,
-  # /catalog,/checkout são anexados. PM_ENV=production = modo Hub real (verifica
-  # tokens Ed25519, fail-closed). O business alcança este serviço pelo nome
-  # hardcoded `plugin-manager:8081` (ADR 0024) — SERVICE key = exatamente `plugin-manager`.
-  # BUSINESS_INTERNAL_URL/TOKEN: o plugin-manager consulta o business (mesmo
-  # sentido inverso, nome de serviço hardcoded `watink-business:8082`) em
-  # GET /internal/plugin-manager/instance-stats a cada heartbeat, pra popular
-  # `counters` de verdade — best-effort, sem essas envs o heartbeat segue
-  # normal com counters vazio. Mesmo valor de PLUGIN_MANAGER_INTERNAL_TOKEN
-  # dos dois lados (business valida esse token, ver middleware.InternalPluginManagerOnly).
-  plugin-manager:
-    image: ronaldodavi/watink-plugin-manager:latest
-    environment:
-      - PORT=8081
-      - HUB_URL=https://apiv1-hub.watink.com/api/v1/plugins
-      - PM_ENV=production
-      - BUSINESS_INTERNAL_URL=http://watink-business:8082
-      - BUSINESS_INTERNAL_TOKEN=${PLUGIN_MANAGER_INTERNAL_TOKEN}
-    volumes:
-      - plugin_manager_data:/data
-    networks: [watink_net]
-    restart: unless-stopped
-
   # Object store da Base de Conhecimento (upload/download de arquivos de
   # fontes). Sem porta pública — só a rede interna do stack fala com ele; o
   # `watink-business` é o único a acessá-lo (S3_* acima). Sem healthcheck
@@ -284,4 +258,3 @@ volumes:
   rabbitmq_data:
   uploads_data:
   minio_data:
-  plugin_manager_data:

@@ -116,9 +116,6 @@ services:
       - PROXY_ENC_KEY=${PROXY_ENC_KEY:-dev_proxy_enc_key_change_in_prod}
       - DOCS_PUBLIC=${DOCS_PUBLIC:-false}
       - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
-      # PLUGIN_MANAGER_URL não é configurável: fixa em código
-      # (business/internal/pluginlicense/client.go) como http://plugin-manager:8081,
-      # de propósito — ver comentário na constante pluginManagerBaseURL.
       # Dev: o gateway de IA (omniroute) roda no host em localhost:20128; de dentro
       # do container isso vira host.docker.internal (aiclient.rewriteDevHost).
       - AI_BASEURL_HOST_REWRITE=host.docker.internal
@@ -213,30 +210,6 @@ services:
       - watink_net
     restart: unless-stopped
 
-  plugin-manager:
-    # Componente PROPRIETÁRIO (ADR 0024) — fonte no repo privado
-    # alltomatos/watink-plugin-manager, distribuído APENAS como imagem compilada
-    # (GHCR). O core NÃO builda do source e NÃO expõe forma de trocar a imagem
-    # ou o endpoint do Hub: é a trava real de licenciamento, fonte fechado, tag
-    # fixa. Desenvolvimento do plugin-manager em si acontece só dentro do
-    # próprio repo privado, fora deste compose.
-    image: ghcr.io/alltomatos/watink-plugin-manager:latest
-    container_name: watink-plugin-manager
-    ports:
-      - "8081:8081"
-    environment:
-      - PORT=8081
-      - HUB_URL=
-      # PM_ENV=dev libera o modo stub de dev (fail-open, active/tenantCap=0
-      # p/ knownPluginSlugs) sem HUB_URL — sem isto, PM_ENV default é
-      # "production" e o boot falha (fatal) sem HUB_URL configurado.
-      - PM_ENV=dev
-    volumes:
-      - plugin_manager_data:/data
-    networks:
-      - watink_net
-    restart: unless-stopped
-
   # ──────────────────────────────────────────────
   # Frontend (standalone — only if NOT using the
   # embedded frontend inside watink-business)
@@ -311,4 +284,3 @@ volumes:
     # O bind mount ./frontend:/app cobre o código-fonte; este volume "sombra"
     # /app/node_modules para que npm install dentro do container não conflite
     # com node_modules do Windows no host.
-  plugin_manager_data:
