@@ -42,7 +42,7 @@ const toastError = (err: unknown): void => {
 
   if (status === 402) {
     toast.error(
-      "Assinatura requerida ou expirada. Verifique seus planos no Marketplace.",
+      "Recurso indisponível. Ative o plugin em Configurações > Plugins.",
       {
         toastId: "PAYMENT_REQUIRED",
         onClick: () => {

@@ -11,7 +11,7 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
                                                ↕ AMQP
                                           RabbitMQ ←── Engine Go (whatsmeow) → WhatsApp
                                                ↕
-                          Plugin Manager · Marketplace Hub (ambos fora deste repo)
+                          
 ```
 
 ## Status Atual (jun/2026)
@@ -58,9 +58,9 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
 | Conexões — Subsistema de proxy anti-ban (cripto-at-rest, import Webshare, grupos+rotação, geo cidade/país, teste/test-all, auto-isolação no ban, filtros) | ✅ Concluída (PRs #292-#296) |
 | Acessos (ADR 0022) — modelo Cargo/Setor/Alcance + `RequirePermission` fail-closed + anti-lockout | ✅ Concluída (PR #302) |
 | Onboarding — Wizard `POST /initial-setup` (Nome Fantasia) + Checklist derivado no Dashboard | ✅ Concluída (PR #303) |
-| Plugins — Redesenho Marketplace + Licenciamento via Hub (ADR 0024; Hub em `watink-ecosistema/hub`) | ✅ Concluída (auditado 2026-07-04) |
-| Plugins — Marketplace de terceiros (ADR 0025 + Hub ADR 0004; plano em `docs/agents/marketplace-terceiros.md`) | 🔧 Fase 0 implementada (2026-07-04) — pendente review/commit; Fase 1 não iniciada |
-| Plugins — Marketplace respeita instância gerida por Watink SaaS (ADR 0026; ADRs irmãos: Hub ADR 0005, watink-saas ADR 0008) | ✅ Concluída — `InstancePolicy`+rota, `marketplaceMode()` resolver, gates no `Activate` (ordem + 4 mensagens 402), reconciliação de desativação no downgrade ([alltomatos/watink#624](https://github.com/alltomatos/watink/pull/624), issues #618–#623) |
+| Plugins — Marketplace + Licenciamento via Hub (ADRs 0024 a 0026) | ⛔ Removido (ADR 0035): plugins embarcados ativados por empresa |
+| Plugins — Marketplace de terceiros (ADR 0025) | ⛔ Removido (ADR 0035) |
+| Plugins — Marketplace respeita instância gerida por Watink SaaS (ADR 0026) | ⛔ Removido (ADR 0035) |
 | Control plane Watink SaaS — API interna `/internal/saas/*` + enforcement (Onda 2 do watink-saas, `docs/integration-core.md`) | ✅ Concluída — Trilha A completa: rotas internas (A.1–A.2), `TenantStatusGate` com bypass de logout (A.3), `PlanLimitService.CheckLimit` real para users/connections/queues (A.4), tela "Conta suspensa" + toast de limite de plano (A.5) — [alltomatos/watink#625](https://github.com/alltomatos/watink/pull/625) |
 | Frontend — Redesign corporativo: paleta, componentes compartilhados (DataTable/EmptyState/ErrorState/FormField/notify), telas de referência | ✅ Concluída (PRs #507-#510) — rollout das ~25 páginas restantes é trabalho incremental futuro, ver [`docs/frontend/design-system.md`](docs/frontend/design-system.md) |
 | Plugins — Grupos e Comunidades (slug `groups`, `pro`): API interna de grupos no engine-go, provider `enginego`, plugin embarcado, frontend, catálogo do Hub (plano em `docs/agents/plugin-grupos-comunidades.md`) | ✅ Concluída (código+testes; issues #515-#524) — catálogo do Hub em `status: draft`, preço pendente de definição pelo dono antes de publicar. Provider alternativo izapia removido (SaaS externo descontinuado, 2026-10) |
@@ -76,7 +76,6 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
 | Backend Go | `business/` | Go 1.24 / Gin / GORM | 8082 |
 | Engine Go | `engine-go/` | Go 1.24 / whatsmeow | — |
 | Frontend | `frontend/` | React 18 / Vite / TypeScript / shadcn+Tailwind v4 | 3000 |
-| Plugin Manager (proprietário) | repo privado `alltomatos/watink-plugin-manager` → imagem GHCR | Go / gorilla-mux | 8081 |
 
 ## Commands
 
@@ -198,14 +197,14 @@ MUI v4 **completamente removido** — `@material-ui/*` não é dependência do p
 
 - **NUNCA** commite `.env`, credenciais ou secrets.
 - PostgreSQL RLS + JWT `tenantId` — inclua sempre `tenantId` nas queries.
-- Plugin license validation é server-side no **Watink Hub** — token assinado Ed25519 verificado offline pelo `plugin-manager` local; `PluginInstallations.active` é só **alocação**, não autoridade de licença (ADR 0024). O `business` nunca fala com o Hub direto.
+- Plugins: sem licença nem marketplace (ADR 0035); `PluginInstallations.active` é a alocação por empresa e o único gate de runtime.
 
 ## Key Patterns
 
 - **Frontend config**: `src/config.ts` lê `import.meta.env` com fallback `window.ENV`.
 - **Engine sessions**: `.sessions_auth/` deve ser Docker volume — perder desconecta todas as sessões WhatsApp.
 - **Redis cache**: mensagens com TTL 24h em `wbot:msg:{jid}:{id}`.
-- **Plugin activation**: opt-in por tenant via Marketplace grava `PluginInstallations.active` (alocação); plugin `pro` exige licença válida do Hub (via `plugin-manager`, pull+cache ~60s) + teto de tenants. Ver [`docs/agents/plugins.md`](docs/agents/plugins.md) e ADR 0024.
+- **Plugin activation**: opt-in por empresa em Configurações > Plugins; grava `PluginInstallations.active` (alocação), único gate de runtime. Sem licença nem marketplace (ADR 0035).
 
 ## ⚠️ Débito técnico conhecido — filas RabbitMQ globais (não por tenant)
 
@@ -541,7 +540,7 @@ era uma condição de exibição de menu, nunca uma dependência arquitetural re
 Divulgação Progressiva de Complexidade (PRD original): schema sempre unificado; Modo Simples
 (core, grátis, sempre ligado) resolve Armazém/Tabela de Preço "padrão" automaticamente; Modo
 Avançado (plugin PRO `inventory-advanced`) libera múltiplos armazéns, transferências, fichas
-técnicas (BOM) e tabelas de preço extras via licença do Marketplace.
+técnicas (BOM) e tabelas de preço extras, ativados em Configurações > Plugins.
 
 **Invariants:**
 - Sempre `auth.GetScoped(c, "Inventory")` — nunca `c.Get("tenantId")` bruto.
@@ -572,30 +571,23 @@ técnicas (BOM) e tabelas de preço extras via licença do Marketplace.
 
 **Referência:** [`docs/agents/inventory.md`](docs/agents/inventory.md)
 
-## Módulo: Plugins (Marketplace + Licenciamento)
+## Módulo: Plugins (embarcados, sem marketplace)
 
-**Responsabilidade:** Ativação **opt-in por tenant** de features (plugins) via Marketplace, com gating real de licença para as pagas. O core é **cliente** do licenciamento; a autoridade de catálogo/licença é o **Watink Hub** (`watink-ecosistema/hub`), alcançado sempre pelo `plugin-manager` local — nunca direto. Substitui o modelo "flag no banco" (ADR 0024, supera 0003).
+**Responsabilidade:** Ativação **opt-in por empresa** dos plugins embarcados no binário (Helpdesk, Webchat, Assistentes de IA, Grupos e Estoque Avançado). **Não há marketplace nem licença** (ADR 0035, que supera os ADRs 0024 a 0026): o administrador da empresa liga ou desliga cada plugin em **Configurações > Plugins**, e a alocação (`PluginInstallations.active`) é o único gate de runtime.
 
-**Fronteira core vs plugin:** é plugin o que precisa ser **ativado via Marketplace** (`free` ou `pro`); é core o que está sempre-ligado (atendimento, Clientes, Pipeline, FlowBuilder, RAG). Por isso Clientes virou core (ADR 0023) e o `saas-plugin` foi **removido** (control plane é o `watink-saas`). Plugins embarcados hoje: `helpdesk`, `webchat`, `assistant`, `groups` e `inventory-advanced` (conferido no log de boot do `business`).
+**Fronteira core vs plugin:** é plugin o que o administrador ativa por empresa; é core o que está sempre ligado (atendimento, Clientes, Pipeline, FlowBuilder, RAG).
 
 **Invariants:**
-- Sempre `auth.GetScoped(c, "Plugins")` — nunca `c.Get("tenantId")` bruto; escritas/agregações em `Session(NewDB:true)`.
-- `business` consulta **só** o `plugin-manager` (pull+cache ~60s); nunca o Hub direto.
-- `plugin-manager` é **proprietário**: fonte só no repo privado `alltomatos/watink-plugin-manager`, distribuído como imagem `ghcr.io/alltomatos/watink-plugin-manager` (compose usa `image:`, **nunca** `build:`). O core (público) fala com ele só pelo contrato HTTP `GET /internal/licenses`.
-- Licença = **token Ed25519 verificado offline** (pacote `licensetoken`, dentro do repo privado do plugin-manager — não mais em `business/pkg`) — nunca flag local nem "confiar no corpo do heartbeat".
-- Licença é por **instância + teto de tenants**; a **alocação** nominal (qual tenant) é do core (`PluginInstallations`). Teto aplicado na alocação (**fail-closed** em crescimento).
-- Plugin `free` não toca o Hub; `pro` exige token válido + teto livre.
-- `degradeMode` (`readonly`|`blocked` na expiração) vem do **manifesto do plugin**, por plugin.
+- Sempre `auth.GetScoped(c, "Plugins")` — nunca `c.Get("tenantId")` bruto; escritas em `Session(NewDB:true)`.
+- `PluginRegistry.GetStatus` devolve `active` se alocado e `blocked` caso contrário (inclusive em erro de consulta, fail-closed).
+- Só slugs de `plugins.EmbeddedSlugs()` são ativáveis; slug desconhecido responde 404 e não grava.
+- Desativar faz `active=false`, nunca `DELETE` (preserva `ActivatedAt` e o histórico).
 
 **O que NÃO fazer:**
-- Não ler `PluginInstallations.active` como autoridade de licença — é só alocação.
-- Não chamar o Hub a partir do `business` — sempre via `plugin-manager`.
-- Não reportar licença válida sem verificar assinatura Ed25519 + `exp`.
-- Não montar teto/licença no frontend (só envia `slug + tenant/ticket` e reflete o status).
-- Não reintroduzir `saas-plugin` nem o `marketplace-hub` Node; não distribuir código de plugin dinamicamente (embarcado — anti-supply-chain).
-- Não trazer o **source do `plugin-manager`** de volta ao core (`watinkdev` é público) — é compiled-only, vive só no repo privado `alltomatos/watink-plugin-manager` e é consumido como imagem GHCR (não usar `build:` no compose).
+- Não reintroduzir `plugin-manager`, catálogo, checkout nem licença sem um novo ADR.
+- Não carregar código de plugin dinamicamente (embarcado — anti-supply-chain).
 
-**Referência:** [`docs/agents/plugins.md`](docs/agents/plugins.md) · ADR 0024 (supera 0003) · ADR 0025 + plano [`docs/agents/marketplace-terceiros.md`](docs/agents/marketplace-terceiros.md) (expansão para terceiros) · Hub: `watink-ecosistema/hub`
+**Referência:** ADR 0035 · [`docs/agents/plugins.md`](docs/agents/plugins.md) (histórico do desenho anterior).
 
 ## Módulo: Assistants (Assistentes de IA)
 

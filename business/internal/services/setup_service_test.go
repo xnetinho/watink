@@ -251,7 +251,7 @@ func TestSetupServiceDoubleSetupPrevention(t *testing.T) {
 }
 
 // =====================================================================
-// PushSubscription — reconcileDeactivations (issue #622)
+// PushSubscription — alocação de plugins (ADR 0035)
 // =====================================================================
 
 func seedTenantForReconciliation(t *testing.T, db *gorm.DB) uuid.UUID {
@@ -282,49 +282,10 @@ func installationActive(t *testing.T, db *gorm.DB, tenantID uuid.UUID, slug stri
 	return inst.Active
 }
 
-func TestPushSubscription_PlanOnly_DeactivatesProPluginNotEntitled(t *testing.T) {
+func TestPushSubscription_NuncaAlteraAlocacaoDePlugin(t *testing.T) {
 	db := newSetupTestDB(t)
 	tenantID := seedTenantForReconciliation(t, db)
 	seedActiveInstallation(t, db, tenantID, "helpdesk")
-	if err := db.Create(&models.InstancePolicy{MarketplaceMode: "plan_only"}).Error; err != nil {
-		t.Fatalf("seed instance policy: %v", err)
-	}
-
-	svc := NewSetupService(db)
-	spec := domain.ProvisionPlanSpec{Name: "Basic", PluginEntitlements: []string{}}
-	if err := svc.PushSubscription(tenantID, spec, "active", nil); err != nil {
-		t.Fatalf("PushSubscription: %v", err)
-	}
-
-	if installationActive(t, db, tenantID, "helpdesk") {
-		t.Fatal("helpdesk should have been deactivated (pro, absent from new plan's entitlements)")
-	}
-}
-
-func TestPushSubscription_PlanOnly_KeepsEntitledPluginActive(t *testing.T) {
-	db := newSetupTestDB(t)
-	tenantID := seedTenantForReconciliation(t, db)
-	seedActiveInstallation(t, db, tenantID, "helpdesk")
-	if err := db.Create(&models.InstancePolicy{MarketplaceMode: "plan_only"}).Error; err != nil {
-		t.Fatalf("seed instance policy: %v", err)
-	}
-
-	svc := NewSetupService(db)
-	spec := domain.ProvisionPlanSpec{Name: "Pro", PluginEntitlements: []string{"helpdesk"}}
-	if err := svc.PushSubscription(tenantID, spec, "active", nil); err != nil {
-		t.Fatalf("PushSubscription: %v", err)
-	}
-
-	if !installationActive(t, db, tenantID, "helpdesk") {
-		t.Fatal("helpdesk should remain active (still in the new plan's entitlements)")
-	}
-}
-
-func TestPushSubscription_SelfService_NeverDeactivates(t *testing.T) {
-	db := newSetupTestDB(t)
-	tenantID := seedTenantForReconciliation(t, db)
-	seedActiveInstallation(t, db, tenantID, "helpdesk")
-	// Sem InstancePolicy nem SAAS_INTERNAL_TOKEN -> self_service (default).
 
 	svc := NewSetupService(db)
 	spec := domain.ProvisionPlanSpec{Name: "Basic", PluginEntitlements: []string{}}
@@ -333,6 +294,6 @@ func TestPushSubscription_SelfService_NeverDeactivates(t *testing.T) {
 	}
 
 	if !installationActive(t, db, tenantID, "helpdesk") {
-		t.Fatal("self_service mode must never touch allocations via reconciliation")
+		t.Fatal("plano não gerencia plugins (ADR 0035): a alocação por empresa não pode mudar")
 	}
 }

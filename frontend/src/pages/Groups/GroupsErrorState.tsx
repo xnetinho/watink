@@ -25,10 +25,10 @@ const GroupsErrorState: React.FC<GroupsErrorStateProps> = ({ error }) => {
                 <div>
                     <h3 className="text-lg font-semibold">Plugin bloqueado</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                        A gestão de Grupos e Comunidades exige o plugin "Grupos e Comunidades" ativo e licenciado.
+                        A gestão de Grupos e Comunidades exige o plugin "Grupos e Comunidades" ativo.
                     </p>
                 </div>
-                <Button onClick={() => navigate("/admin/settings/marketplace")}>Ir para o Marketplace</Button>
+                <Button onClick={() => navigate("/admin/settings/plugins")}>Ir para Plugins</Button>
             </div>
         );
     }
