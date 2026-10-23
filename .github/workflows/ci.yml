@@ -27,6 +27,7 @@ env:
 jobs:
   build-backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -112,6 +113,7 @@ jobs:
 
   build-frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -144,6 +146,7 @@ jobs:
 
   build-engine-go:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -176,6 +179,7 @@ jobs:
 
   smoke-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: build-backend
     services:
       postgres:
@@ -314,6 +318,7 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [build-backend, build-frontend]
     services:
       postgres:
