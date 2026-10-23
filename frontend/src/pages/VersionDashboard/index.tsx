@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { useVersionDashboard } from "./hooks/useVersionDashboard";
 import DashboardHeader from "./components/DashboardHeader";
@@ -14,7 +14,6 @@ export default function VersionDashboard() {
     isSuperAdmin,
     stats,
     loading,
-    updating,
     openUpdateModal,
     setOpenUpdateModal,
     error,
@@ -24,10 +23,8 @@ export default function VersionDashboard() {
     availableVersion,
     changelog,
     releaseMeta,
-    updateStatus,
     hasUpdateAvailable,
     blockedByCompatibility,
-    handleUpdate,
   } = useVersionDashboard();
 
   if (!isSuperAdmin) {
@@ -51,8 +48,6 @@ export default function VersionDashboard() {
       <DashboardHeader
         hasUpdateAvailable={hasUpdateAvailable}
         availableVersion={availableVersion}
-        updating={updating}
-        updateStatus={updateStatus}
         onUpdateClick={() => setOpenUpdateModal(true)}
       />
 
@@ -66,13 +61,6 @@ export default function VersionDashboard() {
       </div>
 
       <TenantConsumptionTable stats={stats} />
-
-      {updateStatus === "ok" && (
-        <p className="flex items-center gap-1.5 font-semibold" style={{ color: "var(--status-success)" }}>
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          Atualização concluída com sucesso. Sistema 100% atualizado.
-        </p>
-      )}
 
       <p className="text-center text-xs text-muted-foreground">
         Watink Business v{frontendVersion} • Build ID: {stats?.timestamp}
@@ -89,7 +77,6 @@ export default function VersionDashboard() {
         releaseMeta={releaseMeta}
         changelog={changelog}
         blockedByCompatibility={blockedByCompatibility}
-        onConfirm={handleUpdate}
       />
     </div>
   );
