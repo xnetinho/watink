@@ -1,0 +1,74 @@
+name: Publish GHCR (watink-business, watink-engine, watink-postgres)
+
+# Publicação de imagens SÓ na branch principal. `develop` roda apenas CI (ci.yml, runners do GitHub) para detectar bugs e
+# validar alterações; nenhuma imagem sai dela. Dispara em push a main (+ manual, também restrito a main pelo `if` do job).
+# NUNCA em pull_request: o token deste workflow tem permissão de escrita em pacotes.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: publish-ghcr-${{ github.ref }}
+  cancel-in-progress: false # não interrompe uma publicação em andamento
+
+permissions:
+  contents: read
+
+jobs:
+  # Stack mínimo distribuível: sem qualquer uma destas 3 imagens, quem faz `docker pull` não consegue rodar o Watink de
+  # verdade — watink-business sem watink-engine não conecta WhatsApp (o engine é o cliente whatsmeow); postgres vanilla
+  # não tem PostGIS+pgvector, então watink-postgres é quem carrega essas extensões pré-instaladas.
+  # O código que chega aqui já passou pelo ci.yml no PR; os Dockerfiles compilam (go build) dentro do próprio build.
+  build-and-push:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: watink-business
+            dockerfile: Dockerfile.business
+            context: .
+          - image: watink-engine
+            dockerfile: engine-go/Dockerfile
+            context: ./engine-go
+          - image: watink-postgres
+            dockerfile: infra/postgres/Dockerfile
+            context: ./infra/postgres
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: tags
+        run: |
+          # O nome do pacote no GHCR é sempre minúsculo; o dono é o do repositório que roda o workflow (fork ou upstream).
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          IMAGE="ghcr.io/${OWNER}/${{ matrix.image }}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "tags=${IMAGE}:latest,${IMAGE}:sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "Tags: ${IMAGE}:latest ${IMAGE}:sha-${SHORT_SHA}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push ${{ matrix.image }}
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}

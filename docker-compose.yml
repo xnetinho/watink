@@ -1,4 +1,4 @@
-# Watink — Distribuição em produção (Docker Hub)
+# Watink — Distribuição em produção (GHCR)
 #
 # Stack mínimo distribuível: sem qualquer uma das 3 imagens abaixo o Watink não
 # funciona de verdade — watink-business sem watink-engine não conecta WhatsApp
@@ -10,14 +10,14 @@
 #   docker compose pull
 #   docker compose up -d
 #
-# As imagens são publicadas por .github/workflows/publish-dockerhub.yml em
-# push a develop/main (tags: latest em main, develop em develop, sha-<hash>
-# sempre). Defina IMAGE_TAG no .env para fixar uma versão específica.
+# As imagens são publicadas no GHCR por .github/workflows/publish-ghcr.yml, SOMENTE em push à branch main
+# (tags: latest e sha-<hash>). A branch develop não publica imagem: ela só roda CI. Defina IMAGE_TAG no .env para fixar
+# uma versão específica e WATINK_REGISTRY_OWNER para o dono do registry (o do repositório que publicou; padrão xnetinho).
 
 services:
   # ── Infraestrutura ────────────────────────────────────────────
   postgres:
-    image: ronaldodavi/watink-postgres:${IMAGE_TAG:-latest}
+    image: ghcr.io/${WATINK_REGISTRY_OWNER:-xnetinho}/watink-postgres:${IMAGE_TAG:-latest}
     container_name: watink-postgres
     environment:
       POSTGRES_DB: watink
@@ -67,7 +67,7 @@ services:
   # Job de migração (ADR 0034): único processo com credencial de administrador do banco. Cria os papéis
   # watink_app/watink_system, o esquema e as políticas RLS, e termina. O servidor só sobe depois dele.
   watink-migrate:
-    image: ronaldodavi/watink-business:${IMAGE_TAG:-latest}
+    image: ghcr.io/${WATINK_REGISTRY_OWNER:-xnetinho}/watink-business:${IMAGE_TAG:-latest}
     command: ["./watink-business", "migrate"]
     environment:
       - DB_HOST=postgres
@@ -86,7 +86,7 @@ services:
     restart: "no"
 
   watink-business:
-    image: ronaldodavi/watink-business:${IMAGE_TAG:-latest}
+    image: ghcr.io/${WATINK_REGISTRY_OWNER:-xnetinho}/watink-business:${IMAGE_TAG:-latest}
     container_name: watink-business
     ports:
       - "${PORT:-80}:8082"   # HTTP — API + UI embutida (same-origin)
@@ -132,7 +132,7 @@ services:
     restart: unless-stopped
 
   watink-engine:
-    image: ronaldodavi/watink-engine:${IMAGE_TAG:-latest}
+    image: ghcr.io/${WATINK_REGISTRY_OWNER:-xnetinho}/watink-engine:${IMAGE_TAG:-latest}
     container_name: watink-engine
     # Resolvers públicos — o resolver embutido do Docker (127.0.0.11) às vezes
     # falha em resolver web.whatsapp.com, quebrando reconexões.
