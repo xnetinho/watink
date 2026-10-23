@@ -36,8 +36,8 @@ func GetDB(c *gin.Context) *gorm.DB {
 	if db, ok := c.Get("db"); ok {
 		return db.(*gorm.DB)
 	}
-	// Fail-fast: RLS middleware MUST inject DB into context
-	panic("DB NOT INJECTED INTO CONTEXT - RLS MISCONFIGURED")
+	// Fail-fast: o middleware IsAuth DEVE injetar o db no contexto
+	panic("DB NOT INJECTED INTO CONTEXT - IsAuth MISSING")
 }
 
 // GetScopedDB applies table-specific scoping rules to the database context.
@@ -87,7 +87,7 @@ func GetScopedDB(c *gin.Context, table string) *gorm.DB {
 	}
 }
 
-// GetScoped extracts the RLS-scoped DB and validated tenantID from the Gin context.
+// GetScoped extracts the tenant-scoped DB (filtro "tenantId" explícito, ADR 0001) and the validated tenantID.
 // If tenantID is missing or invalid, it responds with a safe error and returns ok=false.
 // Usage: db, tenantID, ok := auth.GetScoped(c, "Tickets"); if !ok { return }
 func GetScoped(c *gin.Context, table string) (*gorm.DB, uuid.UUID, bool) {
@@ -98,7 +98,6 @@ func GetScoped(c *gin.Context, table string) (*gorm.DB, uuid.UUID, bool) {
 	}
 
 	db := GetScopedDB(c, table)
-	// GetScopedDB uses GetDB which panics on nil — catch that via recover
-	// is not needed here since GetDB panic means RLS is misconfigured (fail-fast is correct).
+	// GetScopedDB usa GetDB, que dá panic se o IsAuth não rodou: fail-fast é o certo (rota sem autenticação).
 	return db, tenantID, true
 }

@@ -11,6 +11,9 @@ interface AckProps {
 
 export const MessageAck: React.FC<AckProps & { onRetry?: () => void }> = ({ message, isGroup, onRetry }) => {
   if (!message.fromMe) return null;
+  // Registro de chamada é mensagem de sistema: não há entrega/leitura, e o ack fica em 0 para sempre
+  // (o relógio de "enviando" nunca sairia).
+  if (message.mediaType === "call") return null;
   // In groups, per-recipient delivered/read is ambiguous, so the sent/delivered/
   // read ticks are hidden — but a hard send failure (ack 5) must still surface.
   if (isGroup && message.ack !== 5) return null;

@@ -31,7 +31,7 @@ type Cargo struct {
 func (Cargo) TableName() string { return "Cargos" }
 
 // CargoPermissao is the explicit join table for the Cargo<->Permission
-// many2many relation. Defined here (like UserQueue/UserSetor/SetorFila) so
+// many2many relation. Defined here (like UserSetor/SetorFila) so
 // AutoMigrate creates camelCase columns (cargoId, permissionId) consistent
 // with the rest of the schema — without it, GORM's implicit join table
 // defaults to snake_case (cargo_id, permission_id).

@@ -108,6 +108,10 @@ func syncConnectionProfilePic(ctx context.Context, sessions domain.ChannelSessio
 			"action":  "update",
 			"session": map[string]interface{}{"id": session.ID, "profilePicUrl": p.Contact.ProfilePicUrl},
 		})
+		domain.BroadcastOrNop(b).EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{
+			"action":     "update",
+			"connection": map[string]interface{}{"id": session.ID, "profilePicUrl": p.Contact.ProfilePicUrl},
+		})
 		return nil
 	}
 	return nil
@@ -131,7 +135,7 @@ func handleContactImport(ctx context.Context, contacts domain.ContactRepository,
 		if name == "" {
 			name = c.PushName
 		}
-		if _, err := contacts.FindOrCreate(ctx, tenantID, c.Number, name, "", false, false, ""); err != nil {
+		if _, err := contacts.FindOrCreate(ctx, tenantID, c.Number, name, "", false, false, "", ""); err != nil {
 			log.Printf("[ContactImport] failed to upsert contact %s: %v", c.Number, err)
 			continue
 		}

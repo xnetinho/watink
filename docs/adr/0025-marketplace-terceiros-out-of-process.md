@@ -1,6 +1,6 @@
 # Marketplace de terceiros: publishers, artefatos assinados e runtime out-of-process
 
-**Status:** Aceito (jul/2026) — execução faseada, Fase 0 bloqueante. Plano executável em
+**Status:** Superado pelo [ADR 0035](0035-plugins-embarcados-sem-marketplace.md) (marketplace removido em out/2026). Estava: Aceito (jul/2026) — execução faseada, Fase 0 bloqueante. Plano executável em
 [`docs/agents/marketplace-terceiros.md`](../agents/marketplace-terceiros.md). ADR irmão no Hub: `hub/docs/adr/0004`.
 
 Com o ADR 0024 implementado ponta-a-ponta (auditado em 2026-07-04), o marketplace hoje é

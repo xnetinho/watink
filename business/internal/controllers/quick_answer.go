@@ -59,7 +59,7 @@ func isUniqueViolation(err error, indexName string) bool {
 // BuildQuickAnswerCommand para exatamente esse tipo de função. Ver issue
 // #592.
 
-// QuickAnswerController encapsulates quick answer operations with RLS-scoped DB from auth middleware.
+// QuickAnswerController encapsulates quick answer operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetDB(c).
 type QuickAnswerController struct {
 	rabbit    domain.CommandPublisher
@@ -363,7 +363,7 @@ func (qac *QuickAnswerController) Send(c *gin.Context) {
 	}
 
 	if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
-		// Non-AMQP engines (e.g. izapia) are dispatched via domain.WhatsAppEngine.
+		// Non-AMQP engines are dispatched via domain.WhatsAppEngine.
 		// text/media go through SendText/SendMedia; rich types (interactive/
 		// list/poll/carousel/pix) go through RichMessageEngine when the engine
 		// implements it. An engine with neither fails loud instead of silently

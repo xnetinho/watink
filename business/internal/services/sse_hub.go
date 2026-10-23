@@ -97,3 +97,17 @@ func (h *SSEHub) StartHeartbeat(interval time.Duration) {
 		}
 	}()
 }
+
+// HasSubscribers diz se existe ao menos uma conexão SSE inscrita na sala.
+// Usado para saber se um usuário está online antes de decidir quem recebe um
+// toque de chamada: sem ninguém online a oferta não deve ser atendida.
+func (h *SSEHub) HasSubscribers(room string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	for _, conn := range h.conns {
+		if conn.rooms[room] {
+			return true
+		}
+	}
+	return false
+}

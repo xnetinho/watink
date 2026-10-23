@@ -3,38 +3,14 @@ package database
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/alltomatos/watinkdev/business/internal/knowledge"
 	"github.com/alltomatos/watinkdev/business/internal/models"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
-
-func Connect() {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASS"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_PORT"),
-	)
-
-	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
-
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-
-	fmt.Println("Connected to database successfully")
-}
 
 func Migrate() {
 	if err := dropLegacyRBAC(); err != nil {
@@ -48,9 +24,11 @@ func Migrate() {
 		&models.User{},
 		&models.Setting{},
 		&models.Contact{},
+		&models.ContactIdentity{},
 		&models.Client{},
 		&models.ClientAddress{},
 		&models.Whatsapp{},
+		&models.ChannelConnection{},
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},
@@ -77,7 +55,6 @@ func Migrate() {
 		&models.PollResult{},
 		&models.Proxy{},
 		&models.ProxyGroup{},
-		&models.IzapiaConfig{},
 		&models.ConnectionGroup{},
 		&models.PluginInstallation{},
 		&models.Protocol{},
@@ -111,21 +88,39 @@ func Migrate() {
 		&models.Warehouse{},
 		&models.WarehouseBalance{},
 		&models.InventoryMovement{},
+		&models.CallLog{},
+		&models.CallRecordingAccess{},
 	)
 
 	if err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
-	if err := applyRLS(); err != nil {
-		log.Printf("Warning: failed to apply RLS policies: %v", err)
+	if err := dropIzapiaSchema(DB); err != nil {
+		log.Fatalf("Failed to drop retired izapia schema: %v", err)
 	}
 
 	if err := addCustomIndexes(); err != nil {
 		log.Printf("Warning: failed to create custom indexes: %v", err)
 	}
 
+	// Tickets de canais não-WhatsApp gravam whatsappId = 0 (sentinel: "sem WhatsApp").
+	// A FK legada fk_Whatsapps_tickets rejeitava esse valor e derrubava todo o
+	// inbound de canal (violação SQLSTATE 23503). WhatsApp continua validado na
+	// aplicação (resolveConnection).
+	if err := DB.Exec(`ALTER TABLE "Tickets" DROP CONSTRAINT IF EXISTS "fk_Whatsapps_tickets"`).Error; err != nil {
+		log.Printf("Warning: failed to drop legacy fk_Whatsapps_tickets: %v", err)
+	}
+
 	addClientAddressGeography()
+
+	if err := BackfillContactIdentities(DB); err != nil {
+		log.Printf("Warning: failed to backfill contact identities: %v", err)
+	}
+
+	if err := BackfillTicketConversationKeys(DB); err != nil {
+		log.Printf("Warning: failed to backfill ticket conversation keys: %v", err)
+	}
 
 	// KBChunk (halfvec/HNSW) is not GORM-modelable, same reasoning as
 	// addCustomIndexes()/PostGIS above — raw idempotent DDL, best-effort.
@@ -133,6 +128,28 @@ func Migrate() {
 
 	fmt.Println("Database migration completed")
 	Seed()
+}
+
+// dropIzapiaSchema normalizes any legacy engineType marker and removes the tables/columns that
+// belonged to the retired external izapia engine. Active izapia connections were confirmed absent
+// from production/homologation before this idempotent startup cleanup was approved.
+// AutoMigrate does not drop removed model fields, hence the explicit DDL.
+func dropIzapiaSchema(db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(`UPDATE "Whatsapps" SET "engineType" = 'whatsmeow' WHERE "engineType" = 'izapia'`).Error; err != nil {
+			return err
+		}
+		for _, ddl := range []string{
+			`DROP TABLE IF EXISTS "IzapiaConfigs"`,
+			`ALTER TABLE "Whatsapps" DROP COLUMN IF EXISTS "izapiaSessionId"`,
+			`ALTER TABLE "Whatsapps" DROP COLUMN IF EXISTS "izapiaWebhookSecretEnc"`,
+		} {
+			if err := tx.Exec(ddl).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // addClientAddressGeography adds the PostGIS spatial column backing
@@ -144,6 +161,46 @@ func addClientAddressGeography() {
 	if err := DB.Exec(`ALTER TABLE "ClientAddresses" ADD COLUMN IF NOT EXISTS geog geography(Point,4326)`).Error; err != nil {
 		log.Printf("Warning: failed to add ClientAddresses.geog (PostGIS extension may be missing): %v", err)
 	}
+}
+
+// BackfillContactIdentities cria registros em ContactIdentities para todos os Contacts existentes
+// com number ou lid válidos, atribuindo channel='whatsapp'. É 100% idempotente (ON CONFLICT DO NOTHING).
+// Task 2.1 (ADR 0033).
+func BackfillContactIdentities(db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Backfill por number
+		qNumber := `
+			INSERT INTO "ContactIdentities" ("tenantId", "contactId", "channel", "externalId", "displayName", "avatarUrl", "meta", "createdAt", "updatedAt")
+			SELECT c."tenantId", c.id, 'whatsapp', c.number, c.name, COALESCE(c."profilePicUrl", ''), '{}'::jsonb, NOW(), NOW()
+			FROM "Contacts" c
+			WHERE c.number IS NOT NULL AND c.number != ''
+			ON CONFLICT ("tenantId", "channel", "externalId") DO NOTHING;
+		`
+		if err := tx.Exec(qNumber).Error; err != nil {
+			return err
+		}
+
+		// Backfill por lid
+		qLid := `
+			INSERT INTO "ContactIdentities" ("tenantId", "contactId", "channel", "externalId", "displayName", "avatarUrl", "meta", "createdAt", "updatedAt")
+			SELECT c."tenantId", c.id, 'whatsapp', c.lid, c.name, COALESCE(c."profilePicUrl", ''), '{}'::jsonb, NOW(), NOW()
+			FROM "Contacts" c
+			WHERE c.lid IS NOT NULL AND c.lid != ''
+			ON CONFLICT ("tenantId", "channel", "externalId") DO NOTHING;
+		`
+		return tx.Exec(qLid).Error
+	})
+}
+
+// BackfillTicketConversationKeys preenche conversationKey com contactId::text para tickets legados
+// que ainda não possuem conversationKey definida (Task 2.3 / ADR 0033). É 100% idempotente.
+func BackfillTicketConversationKeys(db *gorm.DB) error {
+	q := `
+		UPDATE "Tickets"
+		SET "conversationKey" = "contactId"::text
+		WHERE "conversationKey" IS NULL OR "conversationKey" = '';
+	`
+	return db.Exec(q).Error
 }
 
 // Seed recria o catálogo de Permissions em granularidade recurso:ação
@@ -234,6 +291,13 @@ func Seed() {
 		{Resource: "whatsappGroups", Action: "read", Description: "Visualizar grupos e comunidades do WhatsApp"},
 		{Resource: "whatsappGroups", Action: "manage", Description: "Criar/configurar grupos e comunidades, vincular/desvincular subgrupos"},
 		{Resource: "whatsappGroups", Action: "admin", Description: "Gerenciar participantes (adicionar/remover/promover/rebaixar), aprovar solicitações de entrada, sair de grupos"},
+		// calls (chamadas de voz do WhatsApp). Nenhuma é anexada a cargo do seed:
+		// só o alcance de empresa (Administrador/Gerente Geral) passa sozinho.
+		{Resource: "calls", Action: "receive", Description: "Atender e recusar chamadas de voz do WhatsApp"},
+		{Resource: "calls", Action: "place", Description: "Efetuar chamadas de voz pelo WhatsApp"},
+		{Resource: "calls", Action: "read", Description: "Consultar o histórico de chamadas e ouvir gravações"},
+		{Resource: "calls", Action: "delete", Description: "Excluir gravações de chamadas"},
+		{Resource: "calls", Action: "manage", Description: "Configurar a gravação de chamadas"},
 		// swagger
 		{Resource: "swagger", Action: "view", Description: "Visualizar documentação Swagger"},
 	}
@@ -334,9 +398,37 @@ func addCustomIndexes() error {
 		}
 	}
 
+	// Migração multi-tenant: Contacts.number/lid eram unique GLOBAL
+	// (uni_Contacts_number/uni_Contacts_lid), então dois tenants não podiam ter o
+	// mesmo contato e a duplicata virava erro 500. Passam a ser únicos por tenant.
+	// Contatos de grupo e de conversa 1:1 compartilham a coluna number, mas o par
+	// (tenant, number) continua identificando um contato só.
+	for _, ddl := range []string{
+		`ALTER TABLE "Contacts" DROP CONSTRAINT IF EXISTS "uni_Contacts_number"`,
+		`ALTER TABLE "Contacts" DROP CONSTRAINT IF EXISTS "uni_Contacts_lid"`,
+	} {
+		if err := DB.Exec(ddl).Error; err != nil {
+			log.Printf("addCustomIndexes (drop legacy Contact uniques): %q: %v", ddl, err)
+		}
+	}
+
+	// Contatos de canais sem telefone (Telegram etc.) têm number vazio. O índice
+	// único por tenant precisa ignorar vazios, senão o 2º contato do tenant colide
+	// (SQLSTATE 23505 ao criar contato de canal).
+	var legacyNumberIndex bool
+	if err := DB.Raw(`SELECT count(*) > 0 FROM pg_indexes
+		WHERE indexname = 'idx_contacts_tenant_number' AND indexdef NOT LIKE '%WHERE%'`).Scan(&legacyNumberIndex).Error; err == nil && legacyNumberIndex {
+		if err := DB.Exec(`DROP INDEX IF EXISTS idx_contacts_tenant_number`).Error; err != nil {
+			log.Printf("addCustomIndexes (drop idx_contacts_tenant_number): %v", err)
+		}
+	}
+
 	indexes := []string{
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number) WHERE number <> ''`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_status ON "Tickets" ("tenantId", "status")`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_queue_status ON "Tickets" ("tenantId", "queueId", "status")`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_open_conversation ON "Tickets" ("tenantId", "channelConnectionId", "conversationKey") WHERE "status" IN ('open', 'pending') AND "channelConnectionId" IS NOT NULL AND "conversationKey" IS NOT NULL AND "conversationKey" != ''`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_tenant_ticket_fromme ON "Messages" ("tenantId", "ticketId", "fromMe")`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_tenant_fromme_createdat ON "Messages" ("tenantId", "fromMe", "createdAt")`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_quick_answers_tenant_shortcut ON "QuickAnswers" ("tenantId", shortcut)`,
@@ -472,31 +564,5 @@ func addCustomIndexes() error {
 			log.Printf("addCustomIndexes (RBAC best-effort): %q falhou (provável dado repetido legado): %v", ddl, err)
 		}
 	}
-	return nil
-}
-
-func applyRLS() error {
-	tables := []string{"Users", "Tickets", "Messages", "Contacts", "Settings", "ConversationEmbeddings", "FlowRuns", "FlowRunLogs", "Clients", "ClientAddresses"}
-
-	for _, t := range tables {
-		if err := DB.Exec(fmt.Sprintf("ALTER TABLE \"%s\" ENABLE ROW LEVEL SECURITY", t)).Error; err != nil {
-			return fmt.Errorf("enable rls %s: %w", t, err)
-		}
-		if err := DB.Exec(fmt.Sprintf("ALTER TABLE \"%s\" FORCE ROW LEVEL SECURITY", t)).Error; err != nil {
-			return fmt.Errorf("force rls %s: %w", t, err)
-		}
-
-		policy := fmt.Sprintf("%s_tenant_isolation", strings.ToLower(t))
-		if err := DB.Exec(fmt.Sprintf("DROP POLICY IF EXISTS \"%s\" ON \"%s\"", policy, t)).Error; err != nil {
-			return fmt.Errorf("drop policy %s: %w", t, err)
-		}
-		if err := DB.Exec(fmt.Sprintf(
-			"CREATE POLICY \"%s\" ON \"%s\" USING ((\"tenantId\")::text = current_setting('app.current_tenant', true))",
-			policy, t,
-		)).Error; err != nil {
-			return fmt.Errorf("policy %s: %w", t, err)
-		}
-	}
-
 	return nil
 }

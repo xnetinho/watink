@@ -32,3 +32,21 @@ func TestHealthHandler_Returns200WithJSON(t *testing.T) {
 		t.Fatalf("expected Content-Type application/json, got %q", ct)
 	}
 }
+
+func TestHandler_ReportsCallsLoad(t *testing.T) {
+	h := Handler(func() (int, int) { return 3, 17 })
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/health", nil))
+	body := w.Body.String()
+	if w.Code != http.StatusOK || !strings.Contains(body, `"active":3`) || !strings.Contains(body, `"audioQueued":17`) || !strings.Contains(body, `"status":"ok"`) {
+		t.Fatalf("code=%d body=%s", w.Code, body)
+	}
+}
+
+func TestHandler_WithoutLoadOmitsCalls(t *testing.T) {
+	w := httptest.NewRecorder()
+	Handler(nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/health", nil))
+	if strings.Contains(w.Body.String(), "calls") || !strings.Contains(w.Body.String(), `"status":"ok"`) {
+		t.Fatalf("body=%s", w.Body.String())
+	}
+}

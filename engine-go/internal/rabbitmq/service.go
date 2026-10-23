@@ -92,6 +92,37 @@ func (s *RabbitMQService) ConsumeCommands(queueName string, routingKeys []string
 	return nil
 }
 
+// ConsumeCommandsConcurrent é o consumidor das chamadas (engine.go.calls): usa um
+// CANAL PRÓPRIO (o QoS e o ack da fila de mensagens não o afetam) e despacha cada
+// Delivery em uma goroutine, sem laço serial. Quem chama faz o Ack dentro do handler.
+//
+// Uma chamada não pode esperar atrás do envio de mensagens de nenhuma empresa:
+// "Atender" ou "Encerrar" precisam chegar ao engine na hora.
+func (s *RabbitMQService) ConsumeCommandsConcurrent(queueName string, routingKeys []string, handler func(amqp.Delivery)) error {
+	ch, err := s.conn.Channel()
+	if err != nil {
+		return fmt.Errorf("channel %s: %w", queueName, err)
+	}
+	if _, err := ch.QueueDeclare(queueName, true, false, false, false, nil); err != nil {
+		return fmt.Errorf("queue %s: %w", queueName, err)
+	}
+	for _, key := range routingKeys {
+		if err := ch.QueueBind(queueName, key, "wbot.commands", false, nil); err != nil {
+			return fmt.Errorf("bind %s: %w", key, err)
+		}
+	}
+	msgs, err := ch.Consume(queueName, "", false, false, false, false, nil)
+	if err != nil {
+		return fmt.Errorf("consume %s: %w", queueName, err)
+	}
+	go func() {
+		for d := range msgs {
+			go handler(d)
+		}
+	}()
+	return nil
+}
+
 // PublishEvent publishes a JSON-serialised payload to the wbot.events exchange.
 func (s *RabbitMQService) PublishEvent(routingKey string, payload interface{}) error {
 	body, err := json.Marshal(payload)

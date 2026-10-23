@@ -11,7 +11,7 @@ func TestTagMatches_Contains(t *testing.T) {
 	tag := models.GroupWatchTag{Phrase: "ajuda", MatchMode: models.GroupWatchMatchContains}
 	assert.True(t, tagMatches(tag, "preciso de ajuda urgente"))
 	assert.True(t, tagMatches(tag, "ajudante"))
-	assert.False(t, tagMatches(tag, "sem relação"))
+	assert.False(t, tagMatches(tag, "sem vínculo"))
 }
 
 func TestTagMatches_Exact(t *testing.T) {

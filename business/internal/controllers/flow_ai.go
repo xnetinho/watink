@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"net/http"
 	"strings"
 
@@ -135,6 +136,8 @@ func (fc *FlowController) AISuggest(c *gin.Context) {
 		msgs = append(msgs, aiclient.Message{Role: "user", Content: req.Prompt})
 	}
 
+	// Chamada externa lenta (até dezenas de segundos): solta a conexão do banco antes de esperar (RLS, ADR 0034, D4).
+	tenantdb.Release(c.Request.Context())
 	result, err := aiclient.Complete(aiclient.Config{
 		Provider: provider,
 		Model:    sm["aiModel"],

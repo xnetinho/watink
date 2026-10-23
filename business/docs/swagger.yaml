@@ -1,5 +1,19 @@
 basePath: /api/v1
 definitions:
+  calls.RecordingConfig:
+    properties:
+      ackAt:
+        type: string
+      ackBy:
+        type: integer
+      available:
+        description: |-
+          Available é falso quando a instalação não tem armazenamento de objetos: as
+          opções de gravação não são oferecidas.
+        type: boolean
+      mode:
+        type: string
+    type: object
   controllers.ActivitySLAConfig:
     properties:
       high:
@@ -167,12 +181,27 @@ definitions:
     required:
     - clientSignature
     type: object
-  controllers.izapiaConfigResponse:
+  controllers.pauseRequest:
     properties:
-      baseUrl:
-        type: string
-      hasApiKey:
+      paused:
         type: boolean
+    type: object
+  controllers.placeCallRequest:
+    properties:
+      ticketId:
+        type: integer
+    required:
+    - ticketId
+    type: object
+  controllers.recordingConfigRequest:
+    properties:
+      ack:
+        description: Ack confirma que o administrador leu e aceitou o termo de responsabilidade.
+        type: boolean
+      mode:
+        type: string
+    required:
+    - mode
     type: object
   controllers.updateActivityAssigneesRequest:
     properties:
@@ -348,6 +377,76 @@ definitions:
       type:
         type: string
     type: object
+  models.CallLog:
+    properties:
+      answeredAt:
+        type: string
+      callId:
+        type: string
+      callerPn:
+        type: string
+      contactId:
+        type: integer
+      createdAt:
+        type: string
+      direction:
+        description: 'Direction: incoming | outgoing.'
+        type: string
+      durationSec:
+        type: integer
+      endReason:
+        description: |-
+          EndReason: user_ended | declined | timeout | busy | cancelled | failed |
+          no_operator | proxy_blocked | unsupported_type | accepted_elsewhere | interrupted.
+        type: string
+      endedAt:
+        type: string
+      handledByUserId:
+        type: integer
+      id:
+        type: integer
+      jitterAvg:
+        type: number
+      jitterMax:
+        type: number
+      lossAvg:
+        type: number
+      lossMax:
+        type: number
+      media:
+        description: 'Media: audio | video. Ausente (registros anteriores ao vídeo)
+          vale audio.'
+        type: string
+      mosEstimated:
+        type: number
+      peerJid:
+        description: PeerJid/CallerPn identificam o chamador mesmo quando ainda não
+          há contato.
+        type: string
+      recordingDurationSec:
+        type: integer
+      recordingStatus:
+        type: string
+      rttAvg:
+        description: |-
+          Resumo agregado de qualidade (não guarda a série temporal). O índice é uma
+          ESTIMATIVA (modelo E simplificado) e a perda só cobre contato→operador.
+        type: number
+      rttMax:
+        type: number
+      startedAt:
+        type: string
+      status:
+        description: 'Status: ringing | active | ended | missed | rejected | failed
+          | interrupted.'
+        type: string
+      ticketId:
+        type: integer
+      updatedAt:
+        type: string
+      whatsappId:
+        type: integer
+    type: object
   models.Cargo:
     properties:
       createdAt:
@@ -366,6 +465,42 @@ definitions:
         type: array
       tenantId:
         type: string
+      updatedAt:
+        type: string
+    type: object
+  models.ChannelConnection:
+    properties:
+      config:
+        type: string
+      createdAt:
+        type: string
+      farewellMessage:
+        type: string
+      greetingMessage:
+        type: string
+      id:
+        type: integer
+      isDefault:
+        type: boolean
+      kind:
+        type: string
+      lastError:
+        type: string
+      name:
+        type: string
+      queues:
+        description: Relations
+        items:
+          $ref: '#/definitions/models.Queue'
+        type: array
+      status:
+        type: string
+      tenantId:
+        type: string
+      tickets:
+        items:
+          $ref: '#/definitions/models.Ticket'
+        type: array
       updatedAt:
         type: string
     type: object
@@ -480,6 +615,10 @@ definitions:
         type: integer
       id:
         type: integer
+      identities:
+        items:
+          $ref: '#/definitions/models.ContactIdentity'
+        type: array
       isGroup:
         type: boolean
       lid:
@@ -487,6 +626,11 @@ definitions:
       name:
         type: string
       number:
+        description: |-
+          number e lid são únicos POR TENANT (idx_contacts_tenant_number e
+          idx_contacts_tenant_lid, criados em database.addCustomIndexes). O unique
+          global antigo (uni_Contacts_number/uni_Contacts_lid) impedia dois tenants
+          de terem o mesmo contato e transformava a duplicata em erro 500.
         type: string
       profilePicUrl:
         type: string
@@ -503,6 +647,33 @@ definitions:
         $ref: '#/definitions/models.User'
       walletUserId:
         type: integer
+    type: object
+  models.ContactIdentity:
+    properties:
+      avatarUrl:
+        type: string
+      channel:
+        type: string
+      contact:
+        allOf:
+        - $ref: '#/definitions/models.Contact'
+        description: Relations
+      contactId:
+        type: integer
+      createdAt:
+        type: string
+      displayName:
+        type: string
+      externalId:
+        type: string
+      id:
+        type: integer
+      meta:
+        type: string
+      tenantId:
+        type: string
+      updatedAt:
+        type: string
     type: object
   models.InventoryMovement:
     properties:
@@ -551,6 +722,12 @@ definitions:
         type: string
       participant:
         type: string
+      quotedMsg:
+        allOf:
+        - $ref: '#/definitions/models.Message'
+        description: |-
+          QuotedMsg é a mensagem citada, preenchida só na listagem (GET /messages/:ticketId) para o
+          balão mostrar "em resposta a…". Não é coluna.
       quotedMsgId:
         type: string
       reactions:
@@ -648,6 +825,10 @@ definitions:
     type: object
   models.Queue:
     properties:
+      channelConnections:
+        items:
+          $ref: '#/definitions/models.ChannelConnection'
+        type: array
       color:
         description: |-
           Color é cosmético — NÃO é único (o unique global antigo uni_Queues_color
@@ -746,12 +927,18 @@ definitions:
     type: object
   models.Ticket:
     properties:
+      channelConnection:
+        $ref: '#/definitions/models.ChannelConnection'
+      channelConnectionId:
+        type: integer
       contact:
         allOf:
         - $ref: '#/definitions/models.Contact'
         description: Relations
       contactId:
         type: integer
+      conversationKey:
+        type: string
       createdAt:
         type: string
       id:
@@ -847,11 +1034,6 @@ definitions:
         type: integer
       isDefault:
         type: boolean
-      izapiaSessionId:
-        description: |-
-          IzapiaSessionID is the session id assigned by the izapia API (distinct from
-          this row's own ID). Only set when EngineType == "izapia".
-        type: string
       keepAlive:
         type: boolean
       lastConnectedAt:
@@ -889,6 +1071,10 @@ definitions:
       qrcode:
         type: string
       queues:
+        description: |-
+          Relations
+          Tickets não é associação: tickets de canais sem WhatsApp têm whatsappId = 0,
+          e a FK gerada por esta has-many bloqueava o inbound de canal (ADR 0033).
         items:
           $ref: '#/definitions/models.Queue'
         type: array
@@ -904,137 +1090,10 @@ definitions:
         type: string
       tenantId:
         type: string
-      tickets:
-        description: Relations
-        items:
-          $ref: '#/definitions/models.Ticket'
-        type: array
       updatedAt:
         type: string
       wid:
         type: string
-    type: object
-  pluginlicense.CartCheckoutResponse:
-    properties:
-      allTrial:
-        type: boolean
-      amountCents:
-        type: integer
-      cartId:
-        type: string
-      checkoutUrl:
-        type: string
-      items:
-        items:
-          $ref: '#/definitions/pluginlicense.CartItemResult'
-        type: array
-      qrCode:
-        type: string
-      qrCodeBase64:
-        type: string
-    type: object
-  pluginlicense.CartItemResult:
-    properties:
-      amountCents:
-        type: integer
-      cycle:
-        type: string
-      pluginSlug:
-        type: string
-      trial:
-        type: boolean
-    type: object
-  pluginlicense.CatalogPlugin:
-    properties:
-      category:
-        type: string
-      description:
-        type: string
-      iconUrl:
-        type: string
-      id:
-        type: string
-      longDescription:
-        type: string
-      name:
-        type: string
-      price:
-        type: number
-      pricingCycles:
-        description: |-
-          PricingCycles são os ciclos de recorrência cadastrados no Hub (mensal,
-          anual, o que o dono cadastrar) — o frontend usa isto pra deixar o
-          cliente escolher o ciclo antes de chamar Checkout(Card|Pix). Vazio
-          para plugin free.
-        items:
-          $ref: '#/definitions/pluginlicense.PricingCycleEntry'
-        type: array
-      screenshots:
-        items:
-          type: string
-        type: array
-      singlePaymentEnabled:
-        description: |-
-          SinglePaymentEnabled indica se o cliente pode comprar este plugin com
-          pagamento único (licença perpétua, Price) além de/ao invés dos
-          PricingCycles — as duas opções podem coexistir; o cliente escolhe no
-          checkout (cycle="" para pagamento único).
-        type: boolean
-      slug:
-        type: string
-      taxRatePercent:
-        description: |-
-          TaxRatePercent é a taxa global de imposto (ex.: 8) exibida sobre o
-          preço no Marketplace — mesma taxa para todo plugin, vem do Hub via
-          plugin-manager (HubPlugin.TaxRatePercent).
-        type: integer
-      type:
-        type: string
-      version:
-        type: string
-    type: object
-  pluginlicense.CatalogResponse:
-    properties:
-      offline:
-        type: boolean
-      plugins:
-        items:
-          $ref: '#/definitions/pluginlicense.CatalogPlugin'
-        type: array
-    type: object
-  pluginlicense.CheckoutOrderResponse:
-    properties:
-      amountCents:
-        type: integer
-      checkoutUrl:
-        type: string
-      orderId:
-        type: integer
-    type: object
-  pluginlicense.CheckoutPixResponse:
-    properties:
-      amountCents:
-        type: integer
-      orderId:
-        type: integer
-      qrCode:
-        type: string
-      qrCodeBase64:
-        type: string
-    type: object
-  pluginlicense.InstanceResponse:
-    properties:
-      instanceId:
-        type: string
-    type: object
-  pluginlicense.PricingCycleEntry:
-    properties:
-      cycle:
-        type: string
-      periodDays:
-        type: integer
-      priceCents:
-        type: integer
     type: object
 host: localhost:8082
 info:
@@ -1523,6 +1582,382 @@ paths:
       summary: Refresh token
       tags:
       - auth
+  /calls:
+    get:
+      description: Lista as chamadas da empresa (ou só as de tickets visíveis ao usuário,
+        sem alcance de empresa).
+      parameters:
+      - description: ringing|active|ended|missed|rejected|failed|interrupted
+        in: query
+        name: status
+        type: string
+      - description: incoming|outgoing
+        in: query
+        name: direction
+        type: string
+      - description: Filtrar por ticket
+        in: query
+        name: ticketId
+        type: integer
+      - description: Página
+        in: query
+        name: page
+        type: integer
+      - description: Itens por página (máx. 100)
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Histórico de chamadas
+      tags:
+      - calls
+    post:
+      consumes:
+      - application/json
+      description: Inicia uma chamada de voz 1:1 para o contato de um ticket individual,
+        pela conexão do ticket.
+      parameters:
+      - description: Ticket
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.placeCallRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Efetuar chamada de voz
+      tags:
+      - calls
+  /calls/{id}:
+    get:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CallLog'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Detalhe de uma chamada
+      tags:
+      - calls
+  /calls/{id}/accept:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CallLog'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Atender chamada
+      tags:
+      - calls
+  /calls/{id}/audio:
+    get:
+      description: Abre o canal de áudio PCM 16 kHz mono Int16 (quadros de 640 bytes)
+        do operador que assumiu a chamada. Auth por token na query, como o SSE.
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: JWT
+        in: query
+        name: token
+        required: true
+        type: string
+      responses:
+        "101":
+          description: Switching Protocols
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+      summary: Áudio da chamada (WebSocket)
+      tags:
+      - calls
+  /calls/{id}/end:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Encerrar chamada
+      tags:
+      - calls
+  /calls/{id}/recording:
+    delete:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Excluir a gravação
+      tags:
+      - calls
+    get:
+      description: Devolve uma URL assinada e temporária e registra quem ouviu. Fora
+        do alcance do usuário responde 404.
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ouvir a gravação
+      tags:
+      - calls
+  /calls/{id}/recording/start:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Iniciar gravação da chamada (modo opcional)
+      tags:
+      - calls
+  /calls/{id}/recording/stop:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Parar a gravação da chamada (modo opcional)
+      tags:
+      - calls
+  /calls/{id}/reject:
+    post:
+      parameters:
+      - description: ID da chamada
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Recusar chamada
+      tags:
+      - calls
+  /calls/pause:
+    put:
+      consumes:
+      - application/json
+      description: Avisa o servidor que este operador pausou o toque, para ele não
+        contar como elegível.
+      parameters:
+      - description: Estado
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.pauseRequest'
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Pausar ou retomar o recebimento de chamadas
+      tags:
+      - calls
+  /calls/recording-config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/calls.RecordingConfig'
+      security:
+      - BearerAuth: []
+      summary: Configuração de gravação de chamadas
+      tags:
+      - calls
+    put:
+      consumes:
+      - application/json
+      description: Sair de "off" exige ack=true (aceite do termo); o aceite grava
+        usuário e horário.
+      parameters:
+      - description: Modo e aceite
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.recordingConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/calls.RecordingConfig'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Alterar o modo de gravação de chamadas
+      tags:
+      - calls
   /cargos:
     get:
       produces:
@@ -2113,8 +2548,7 @@ paths:
       - contacts
   /contacts/{contactId}/sync:
     post:
-      description: Busca a foto de perfil atualizada do contato. Para conexões izapia,
-        roda de forma síncrona e responde 200; para engine-go, publica a mensagem
+      description: Busca a foto de perfil atualizada do contato; publica a mensagem
         assíncrona via AMQP e responde 202.
       parameters:
       - description: ID do contato
@@ -2125,12 +2559,6 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
         "202":
           description: Accepted
           schema:
@@ -2382,7 +2810,8 @@ paths:
         name: token
         required: true
         type: string
-      - description: 'Extra rooms (csv): chat:{id}, tickets:{status}, notification,
+      - description: 'Extra rooms (csv), filtradas por lista permitida: chat:{id}
+          (ticket visível ao usuário), tickets:{open|pending|closed}, notification,
           helpdesk-kanban'
         in: query
         name: rooms
@@ -2668,19 +3097,6 @@ paths:
       summary: Verificar setup inicial
       tags:
       - setup
-  /internal/plugin-manager/instance-stats:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Uso agregado da instância (plugin-manager)
-      tags:
-      - internal-plugin-manager
   /internal/saas/instance/policy:
     put:
       consumes:
@@ -2906,36 +3322,6 @@ paths:
       summary: Atualizar produto
       tags:
       - inventory
-  /izapia-config:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controllers.izapiaConfigResponse'
-      security:
-      - BearerAuth: []
-      summary: Consultar credencial izapia do tenant
-      tags:
-      - izapia
-    put:
-      consumes:
-      - application/json
-      description: Só recebe a API key — a base URL é sempre api.izapia.com.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controllers.izapiaConfigResponse'
-      security:
-      - BearerAuth: []
-      summary: Salvar a API key izapia do tenant
-      tags:
-      - izapia
   /knowledge-bases:
     get:
       produces:
@@ -3539,9 +3925,7 @@ paths:
       - pipelines
   /plugins/{slug}/activate:
     post:
-      description: Ativa/aloca um plugin para o tenant atual. 402 se sem licença válida
-        (dispara checkout best-effort junto ao Hub via plugin-manager) ou se o teto
-        de tenants foi atingido.
+      description: Ativa/aloca um plugin embarcado para a empresa atual.
       produces:
       - application/json
       responses:
@@ -3550,52 +3934,9 @@ paths:
           schema:
             additionalProperties: true
             type: object
-        "402":
-          description: plugin_unlicensed (com checkoutRequested indicando se o pedido
-            de licença foi disparado) ou plugin_tenant_cap_reached
-          schema:
-            additionalProperties: true
-            type: object
       security:
       - BearerAuth: []
       summary: Ativar plugin
-      tags:
-      - plugins
-  /plugins/{slug}/checkout:
-    post:
-      description: Cria (ou reaproveita, idempotente) um pedido de compra pending
-        para o ciclo (ou pagamento único) escolhido do plugin `pro` indicado e devolve
-        a URL de redirect pro Checkout Pro do Mercado Pago — a licença só nasce quando
-        o webhook confirma o pagamento.
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pluginlicense.CheckoutOrderResponse'
-      security:
-      - BearerAuth: []
-      summary: Iniciar checkout de plugin pro via Cartão (Checkout Pro — pagamento
-        real)
-      tags:
-      - plugins
-  /plugins/{slug}/checkout/pix:
-    post:
-      description: Cria (ou reaproveita, idempotente) um pedido de compra pending
-        para o ciclo (ou pagamento único) escolhido do plugin `pro` indicado e devolve
-        o QR code/copia-e-cola — a licença só nasce quando o webhook confirma o pagamento
-        (Pix não confirma na hora).
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pluginlicense.CheckoutPixResponse'
-      security:
-      - BearerAuth: []
-      summary: Iniciar checkout de plugin pro via Pix
       tags:
       - plugins
   /plugins/{slug}/deactivate:
@@ -3613,73 +3954,6 @@ paths:
       summary: Desativar plugin
       tags:
       - plugins
-  /plugins/cart/checkout:
-    post:
-      description: Resolve vários plugins pro (cada um com seu ciclo) e devolve UMA
-        URL de redirect pro Checkout Pro pela soma — a licença de cada item só nasce
-        quando o webhook confirma o pagamento.
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pluginlicense.CartCheckoutResponse'
-      security:
-      - BearerAuth: []
-      summary: Iniciar checkout de carrinho via Cartão
-      tags:
-      - plugins
-  /plugins/cart/checkout/pix:
-    post:
-      description: Equivalente Pix de POST /plugins/cart/checkout — devolve UM QR
-        code/copia-e-cola pela soma dos itens pagos.
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pluginlicense.CartCheckoutResponse'
-      security:
-      - BearerAuth: []
-      summary: Iniciar checkout de carrinho via Pix
-      tags:
-      - plugins
-  /plugins/catalog:
-    get:
-      description: 'Proxy para GET /api/v1/plugins/catalog do plugin-manager (que
-        proxeia o Hub). Fail-safe: em erro ou proxy ausente, responde 200 com {offline:true,
-        plugins:[]}.'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pluginlicense.CatalogResponse'
-      security:
-      - BearerAuth: []
-      summary: Catálogo de plugins
-      tags:
-      - plugins
-  /plugins/checkout:
-    post:
-      description: Endpoint legado -- superado por POST /plugins/:slug/activate.
-      produces:
-      - application/json
-      responses:
-        "503":
-          description: Service Unavailable
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Ativar/instalar plugin (legado)
-      tags:
-      - plugins
   /plugins/installed:
     get:
       produces:
@@ -3692,23 +3966,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Plugins instalados
-      tags:
-      - plugins
-  /plugins/instance:
-    get:
-      description: 'Proxy para GET /api/v1/plugins/instance do plugin-manager. Fail-safe:
-        em erro ou proxy ausente, responde 200 com {"instanceId":""}.'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pluginlicense.InstanceResponse'
-      security:
-      - BearerAuth: []
-      summary: ID da instância
+      summary: Plugins ativos da empresa
       tags:
       - plugins
   /proxies:
@@ -4601,7 +4859,7 @@ paths:
       - setores
   /settings:
     get:
-      description: Devolve as configurações do tenant. Valores secretos (chaves de
+      description: Devolve as configurações do tenant. Valores sigilosos (chaves de
         API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais
         recebem um placeholder.
       produces:
@@ -5243,16 +5501,19 @@ paths:
       summary: Atualizar usuário
       tags:
       - users
-  /webhooks/izapia/{sessionId}:
+  /webhooks/channels/{kind}/{connectionId}:
     post:
       consumes:
       - application/json
-      description: Recebe eventos de mensagem/status da sessão izapia. Autenticado
-        por assinatura HMAC (X-izapia-Signature), não por JWT.
       parameters:
-      - description: ID da conexão (Whatsapps.id)
+      - description: Tipo do canal (telegram, mercadolivre, instagram, etc.)
         in: path
-        name: sessionId
+        name: kind
+        required: true
+        type: string
+      - description: ID da ChannelConnection
+        in: path
+        name: connectionId
         required: true
         type: integer
       produces:
@@ -5263,9 +5524,21 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Webhook izapia (inbound)
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Receber webhook de canal
       tags:
-      - izapia
+      - channels
   /whatsapp:
     get:
       produces:

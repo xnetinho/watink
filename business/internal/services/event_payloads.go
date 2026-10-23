@@ -54,9 +54,13 @@ type MessagePayload struct {
 	SenderPicUrl  string `json:"senderPicUrl"`
 	IsLid         bool   `json:"isLid"`
 	Participant   string `json:"participant"`
-	IsGroup       bool   `json:"isGroup"`
-	IsCommunity   bool   `json:"isCommunity"`
-	IsSubGroup    bool   `json:"isSubGroup"`
+	// ChatPn é o telefone ("5511...@s.whatsapp.net") do chat 1:1 quando o
+	// WhatsApp o entregou como LID e o engine conseguiu resolver o par. Vazio
+	// quando não é LID, é grupo ou o telefone ainda não é conhecido.
+	ChatPn      string `json:"chatPn"`
+	IsGroup     bool   `json:"isGroup"`
+	IsCommunity bool   `json:"isCommunity"`
+	IsSubGroup  bool   `json:"isSubGroup"`
 	// MentionedJids carries the @-mentioned JIDs from the message's WhatsApp
 	// ContextInfo (engine-go, extractMentionedJIDs) — used to decide whether
 	// an Assistant configured to only respond when mentioned in a group

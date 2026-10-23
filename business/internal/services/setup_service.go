@@ -4,14 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
-	"os"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"strings"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
-	"github.com/alltomatos/watinkdev/business/internal/plugins"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -42,6 +40,8 @@ func NewSetupService(db *gorm.DB) *SetupService {
 type TenantSeedData = domain.TenantSeedData
 
 func (s *SetupService) NeedsSetup(ctx context.Context) (bool, error) {
+	ctx, done := tenantdb.SystemCtx(ctx, s.db)
+	defer done()
 	var usersCount, tenantsCount int64
 	if err := s.db.WithContext(ctx).Model(&models.User{}).Count(&usersCount).Error; err != nil {
 		return false, err
@@ -56,7 +56,9 @@ func (s *SetupService) NeedsSetup(ctx context.Context) (bool, error) {
 // barreira single-tenant e usa o plano "Community" fixo. O seed em si vive em
 // seedTenant, compartilhado com ProvisionTenant (control plane SaaS).
 func (s *SetupService) InitializeTenant(data TenantSeedData) error {
-	return s.db.Transaction(func(tx *gorm.DB) error {
+	ctx, done := tenantdb.SystemCtx(context.Background(), s.db)
+	defer done()
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 0. Barreira concorrente (P3-3): NeedsSetup no controller é
 		// check-then-act fora de transação — dois POST /initial-setup
 		// simultâneos numa instalação virgem (emails diferentes) escapariam e
@@ -105,7 +107,9 @@ func (s *SetupService) InitializeTenant(data TenantSeedData) error {
 // MESMA chave devolve o tenant já criado em vez de duplicar ou estourar 409.
 func (s *SetupService) ProvisionTenant(data TenantSeedData, spec domain.ProvisionPlanSpec, idempotencyKey string) (domain.ProvisionResult, error) {
 	var result domain.ProvisionResult
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	ctx, done := tenantdb.SystemCtx(context.Background(), s.db)
+	defer done()
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Idempotência: serializa provisões com a MESMA chave e devolve o tenant
 		// existente se já houver. Best-effort no advisory lock (bancos sem
 		// suporte só perdem a serialização, não o pre-check). No Postgres o lock
@@ -152,7 +156,9 @@ func (s *SetupService) ProvisionTenant(data TenantSeedData, spec domain.Provisio
 // no vocabulário do core (active/trialing/expired/canceled) — o mapeamento é
 // feito no lado do SaaS. Idempotente por construção.
 func (s *SetupService) PushSubscription(tenantID uuid.UUID, spec domain.ProvisionPlanSpec, status string, expiresAt *time.Time) error {
-	return s.db.Transaction(func(tx *gorm.DB) error {
+	ctx, done := tenantdb.SystemCtx(context.Background(), s.db)
+	defer done()
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var count int64
 		if err := tx.Model(&models.Tenant{}).Where("id = ?", tenantID).Count(&count).Error; err != nil {
 			return err
@@ -181,7 +187,7 @@ func (s *SetupService) PushSubscription(tenantID uuid.UUID, spec domain.Provisio
 			if err := tx.Create(&sub).Error; err != nil {
 				return err
 			}
-			return reconcileDeactivations(tx, tenantID, spec.PluginEntitlements)
+			return nil
 		}
 		sub.PlanID = plan.ID
 		sub.Status = status
@@ -189,83 +195,8 @@ func (s *SetupService) PushSubscription(tenantID uuid.UUID, spec domain.Provisio
 		if err := tx.Save(&sub).Error; err != nil {
 			return err
 		}
-		return reconcileDeactivations(tx, tenantID, spec.PluginEntitlements)
-	})
-}
-
-// reconcileDeactivations desativa em tempo real os plugins `pro` que o novo
-// plano não concede mais (downgrade, issue #622) -- sem isso, um tenant
-// continuaria com acesso a um plugin que o próprio Watink SaaS acabou de
-// remover do plano dele até a próxima ação manual. Só age em modo
-// plan_only (marketplaceMode): em catalog_visible/self_service, a licença
-// do Hub segue sendo a única autoridade de crescimento, e cortar um plugin
-// aqui derrubaria acesso que o dono da instância nunca delegou ao SaaS.
-//
-// active=false SEMPRE, nunca DELETE -- preserva ActivatedAt/histórico de
-// auditoria (mesmo invariante do PluginController.Deactivate).
-func reconcileDeactivations(tx *gorm.DB, tenantID uuid.UUID, entitlements []string) error {
-	if ResolveMarketplaceMode(tx) != "plan_only" {
 		return nil
-	}
-
-	entitled := make(map[string]bool, len(entitlements))
-	for _, slug := range entitlements {
-		entitled[slug] = true
-	}
-	proSlugs := plugins.KnownProSlugs()
-
-	var installations []models.PluginInstallation
-	if err := tx.Session(&gorm.Session{NewDB: true}).
-		Where(`"tenantId" = ? AND active = ?`, tenantID, true).
-		Find(&installations).Error; err != nil {
-		return err
-	}
-
-	var deactivated []string
-	for _, inst := range installations {
-		if !proSlugs[inst.PluginID] || entitled[inst.PluginID] {
-			continue
-		}
-		if err := tx.Session(&gorm.Session{NewDB: true}).
-			Model(&models.PluginInstallation{}).
-			Where(`"tenantId" = ? AND "pluginId" = ?`, tenantID, inst.PluginID).
-			Update("active", false).Error; err != nil {
-			return err
-		}
-		deactivated = append(deactivated, inst.PluginID)
-	}
-
-	if len(deactivated) > 0 {
-		log.Printf("[setup] reconcileDeactivations: tenant=%s desativou %d plugin(s) fora do plano novo: %v", tenantID, len(deactivated), deactivated)
-	}
-	return nil
-}
-
-// ResolveMarketplaceMode resolve o modo de marketplace desta instância (ADR
-// 0026), em ordem de precedência: (1) InstancePolicy gravada — sempre vence
-// quando existe; (2) env SAAS_INTERNAL_TOKEN setada (instância gerida por um
-// Watink SaaS auto-hospedado, mas sem política explícita gravada) →
-// "catalog_visible"; (3) nenhum dos dois → "self_service" (Checkout direto no
-// Hub, sem intermediação de plano).
-//
-// Fica em services (não em controllers) porque controllers já importa
-// services (saas_internal.go) — a direção inversa cicla o build. É a única
-// implementação: controllers.marketplaceMode e o reconciler de assinaturas
-// chamam esta função em vez de duplicar a lógica (issue #630).
-func ResolveMarketplaceMode(tx *gorm.DB) string {
-	var policy models.InstancePolicy
-	// Session(NewDB:true) obrigatório: tx aqui é tipicamente um handle já
-	// escopado por tenant (auth.GetScoped ou uma transação de provisionamento)
-	// — InstancePolicy não tem tenantId, e reusar o handle sem sessão nova
-	// acumula esse Where nas queries seguintes feitas no mesmo tx.
-	err := tx.Session(&gorm.Session{NewDB: true}).First(&policy).Error
-	if err == nil {
-		return policy.MarketplaceMode
-	}
-	if os.Getenv("SAAS_INTERNAL_TOKEN") != "" {
-		return "catalog_visible"
-	}
-	return "self_service"
+	})
 }
 
 func tenantToResult(t models.Tenant) domain.ProvisionResult {

@@ -9,8 +9,7 @@ import (
 // throttle is the DEFENSE-IN-DEPTH rate limiter for group write actions
 // (T1.4, plan invariant 4) — keyed by sessionID only, since this API has no
 // tenant concept of its own (see groups_client.go's tenantId doc comment).
-// The PRIMARY limiter, which also covers izapia connections (never routed
-// through this API at all), lives in business/internal/plugins/groups_throttle.go
+// The PRIMARY limiter lives in business/internal/plugins/groups_throttle.go
 // (#521). This one exists so a single misbehaving enginego connection can't
 // hammer whatsmeow even if the business-side limiter is ever bypassed or
 // misconfigured.

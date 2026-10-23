@@ -8,7 +8,7 @@ import (
 )
 
 func TestBuildTextMessage_PlainConversation(t *testing.T) {
-	msg := buildTextMessage("hello", "", "", nil)
+	msg := buildTextMessage("hello", "", "", "", nil)
 	if msg.GetConversation() != "hello" {
 		t.Fatalf("expected plain conversation, got %q", msg.GetConversation())
 	}
@@ -18,7 +18,7 @@ func TestBuildTextMessage_PlainConversation(t *testing.T) {
 }
 
 func TestBuildTextMessage_WithQuote(t *testing.T) {
-	msg := buildTextMessage("reply", "QUOTED1", "5511@s.whatsapp.net", nil)
+	msg := buildTextMessage("reply", "QUOTED1", "5511@s.whatsapp.net", "", nil)
 	ext := msg.GetExtendedTextMessage()
 	if ext == nil {
 		t.Fatal("quoted message should use ExtendedTextMessage")
@@ -33,7 +33,7 @@ func TestBuildTextMessage_WithQuote(t *testing.T) {
 
 func TestBuildTextMessage_WithMentions(t *testing.T) {
 	mentions := []string{"5511@s.whatsapp.net", "5522@s.whatsapp.net"}
-	msg := buildTextMessage("hi @a @b", "", "", mentions)
+	msg := buildTextMessage("hi @a @b", "", "", "", mentions)
 	ext := msg.GetExtendedTextMessage()
 	if ext == nil {
 		t.Fatal("mention message should use ExtendedTextMessage")
@@ -98,5 +98,45 @@ func TestBuildMediaMessage_DocumentDefault(t *testing.T) {
 	}
 	if msg.GetDocumentMessage().GetFileName() != "f.zip" {
 		t.Errorf("fileName = %q", msg.GetDocumentMessage().GetFileName())
+	}
+}
+
+// O celular desenha a caixa de citação a partir do CONTEÚDO da mensagem citada (ContextInfo.QuotedMessage).
+// Só com o StanzaID a resposta chegava sem a citação visível para o destinatário.
+func TestBuildTextMessage_QuoteCarriesTheQuotedContent(t *testing.T) {
+	msg := buildTextMessage("5 dias", "Q1", "5511@s.whatsapp.net", "qual o prazo?", nil)
+	ci := msg.GetExtendedTextMessage().GetContextInfo()
+	if ci.GetStanzaID() != "Q1" {
+		t.Fatalf("stanzaID = %q", ci.GetStanzaID())
+	}
+	if got := ci.GetQuotedMessage().GetConversation(); got != "qual o prazo?" {
+		t.Fatalf("QuotedMessage = %q, esperado o texto citado", got)
+	}
+}
+
+func TestBuildTextMessage_QuoteWithoutBodyStillQuotesByID(t *testing.T) {
+	ci := buildTextMessage("ok", "Q1", "", "", nil).GetExtendedTextMessage().GetContextInfo()
+	if ci.GetStanzaID() != "Q1" || ci.GetQuotedMessage() != nil {
+		t.Fatalf("sem corpo citado deve citar só pelo id: %+v", ci)
+	}
+}
+
+func TestBuildMediaMessage_QuoteCarriesTheQuotedContent(t *testing.T) {
+	for _, mt := range []string{"image", "video", "audio", "document"} {
+		msg := buildMediaMessage(MediaCommandPayload{MediaType: mt, QuotedMsgID: "Q1", QuotedJID: "5511@s.whatsapp.net", QuotedBody: "oi"}, whatsmeow.UploadResponse{})
+		var got string
+		switch mt {
+		case "image":
+			got = msg.GetImageMessage().GetContextInfo().GetQuotedMessage().GetConversation()
+		case "video":
+			got = msg.GetVideoMessage().GetContextInfo().GetQuotedMessage().GetConversation()
+		case "audio":
+			got = msg.GetAudioMessage().GetContextInfo().GetQuotedMessage().GetConversation()
+		default:
+			got = msg.GetDocumentMessage().GetContextInfo().GetQuotedMessage().GetConversation()
+		}
+		if got != "oi" {
+			t.Errorf("%s: QuotedMessage = %q, esperado %q", mt, got, "oi")
+		}
 	}
 }

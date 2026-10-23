@@ -23,7 +23,7 @@ func (s *WhatsAppService) SendText(sessionID int, tenantID string, payload TextC
 		return fmt.Errorf("invalid JID %q: %w", payload.To, err)
 	}
 
-	msg := buildTextMessage(payload.Body, payload.QuotedMsgID, payload.QuotedJID, payload.Mentions)
+	msg := buildTextMessage(payload.Body, payload.QuotedMsgID, payload.QuotedJID, payload.QuotedBody, payload.Mentions)
 	_, err = client.SendMessage(context.Background(), to, msg, whatsmeow.SendRequestExtra{ID: types.MessageID(payload.MessageID)})
 	if err != nil {
 		s.reportIfRiskSignal(sessionID, tenantID, "message.send", err)

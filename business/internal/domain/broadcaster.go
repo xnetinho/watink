@@ -1,7 +1,8 @@
 package domain
 
 // Broadcaster is the interface for real-time event delivery.
-// RedisBroadcast (Socket.IO, legacy) and SSEBroadcast both implement it.
+// SSEBroadcast delivers to the local SSE hub and RedisBroadcast fans out across nodes via Redis
+// Pub/Sub (ADR 0010: Socket.IO was removed); both implement it.
 type Broadcaster interface {
 	EmitToRoom(nsp, room, event string, payload interface{})
 	EmitToTenantRoom(tenantID, event string, payload interface{})

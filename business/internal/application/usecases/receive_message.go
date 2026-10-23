@@ -28,6 +28,7 @@ type ReceiveMessageInput struct {
 	SenderPicURL  string
 	IsLID         bool
 	Participant   string
+	ChatPN        string // telefone do chat 1:1 quando entregue como LID (ver ContactRepository.FindOrCreate)
 	IsGroup       bool
 	IsCommunity   bool
 	IsSubGroup    bool
@@ -115,6 +116,7 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		input.IsGroup,
 		input.IsLID,
 		input.From,
+		jidNumber(input.ChatPN),
 	)
 	if err != nil {
 		return nil, err
@@ -210,9 +212,14 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		createdAt = time.Now()
 	}
 
+	body := input.Body
+	if mediaType == "view_once" && body == "" {
+		body = viewOnceNotice
+	}
+
 	msg := &domain.Message{
 		ID:          input.ID,
-		Body:        input.Body,
+		Body:        body,
 		TicketID:    ticket.ID,
 		ContactID:   &contact.ID,
 		FromMe:      input.FromMe,
@@ -240,6 +247,9 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 	}
 
 	lastMsg := msg.Body
+	if mediaType == "view_once" {
+		lastMsg = "👁 Visualização única"
+	}
 	if lastMsg == "" {
 		lastMsg = mimeTypeLabel(input.Mimetype)
 	}

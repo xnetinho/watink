@@ -31,6 +31,7 @@ import (
 
 	_ "github.com/alltomatos/watinkdev/business/docs"
 	"github.com/alltomatos/watinkdev/business/internal/application"
+	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/database"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -42,6 +43,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/internal/web"
+	"github.com/alltomatos/watinkdev/business/pkg/engineaddr"
 	"github.com/alltomatos/watinkdev/business/pkg/s3store"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -57,16 +59,25 @@ var (
 func main() {
 	_ = godotenv.Load()
 
+	// `watink-business migrate` é o job de migração: roda como administrador, cria papéis, esquema e políticas RLS e
+	// termina. O servidor nunca recebe a credencial de administrador.
+	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+		if err := database.RunMigrations(); err != nil {
+			log.Fatalf("migration failed: %v", err)
+		}
+		return
+	}
+
 	shutdown, err := services.InitTelemetry(context.Background())
 	if err != nil {
 		log.Printf("Warning: OTel init failed: %v", err)
 	} else {
-		defer shutdown(context.Background())
+		defer func() { _ = shutdown(context.Background()) }()
 	}
 
 	log.Println("Watink Business starting...")
 	database.Connect()
-	database.Migrate()
+	defer database.Close()
 
 	// Instanciação explícita — Injeção via construtor (DI Pura)
 	redisSvc, err := services.NewRedisServiceFromEnv()
@@ -144,13 +155,18 @@ func main() {
 	// FlowBuilder FASE 1: the inbound seam is plugged into the EventListener
 	// (NewEventListener wires flow.NewSkeleton with the interpreter+registry),
 	// replacing the two previously-dead workers. No separate AMQP flow worker.
-	// Built unconditionally (not just when RabbitMQ connects) — the izapia
-	// webhook handler below reuses it as a transport-agnostic inbound seam.
 	eventListener := services.NewEventListener(container.ChannelSessionRepo, container.MessageRepo, container.ContactRepo, container.TicketRepo, container.ReceiveMessage, broadcast, database.DB, channelRegistry, redisSvc, rabbitMQ, mediaWaiter)
 	eventListener.ConfigureKnowledge(ragRetriever, ragResponder)
 
-	if err := rabbitMQ.Connect(); err == nil {
+	// Chamadas de voz: serviço de regras (elegibilidade, registro, atribuição) com
+	// fila de eventos PRÓPRIA. A presença vem do mesmo SSEHub do stream de eventos.
+	callService := container.Calls.WithRecording(calls.NewRecording(s3Store, os.TempDir()))
+
+	startRabbitConsumers := func() {
 		services.StartEventListener(rabbitMQ, eventListener)
+		if err := callService.Start(rabbitMQ); err != nil {
+			log.Printf("[calls] event consumer: %v", err)
+		}
 
 		// Ingestion worker (fetch→parse→chunk→embed→store) + stuck-source
 		// reconciler.
@@ -169,22 +185,23 @@ func main() {
 		if err := knowledgeStatus.Start(rabbitMQ); err != nil {
 			log.Printf("[knowledge] status listener: %v", err)
 		}
-	} else {
-		log.Printf("⚠️ Warning: RabbitMQ connection failed: %v", err)
 	}
+	rabbitMQ.ConnectWithRetry(startRabbitConsumers)
 
 	r.Static("/public/media", "public/media")
 
 	// SSE stream — registrado SEM gin.Logger para evitar que o token JWT
 	// presente na query string (?token=...) apareça no access-log.
-	sseController := controllers.NewSSEController(container.SSEHub, redisSvc)
+	sseController := controllers.NewSSEController(container.SSEHub, redisSvc, database.DB)
 	r.GET("/api/v1/events", sseController.Stream)
 
-	// izapia webhook — public route (no JWT), authenticated per-session by
-	// HMAC signature (X-izapia-Signature). See izapia.Provider.ensureSession
-	// for where the webhook secret/URL is configured on session creation.
-	izapiaWebhookController := controllers.NewIzapiaWebhookController(database.DB, eventListener, container.IzapiaProvider)
-	r.POST("/webhooks/izapia/:sessionId", izapiaWebhookController.HandleWebhook)
+	// Áudio das chamadas (WebSocket do navegador). Também FORA do grupo com
+	// IsAuth: o navegador não manda Authorization num WebSocket; o controller
+	// valida o token da query, a permissão e a posse da chamada. O endereço do canal
+	// do engine vem só de ENGINE_HOST; sem ele nenhuma chamada tem áudio.
+	callAudioController := controllers.NewCallAudioController(container.Calls, calls.NewAudio(),
+		calls.NewEngineDialer(engineaddr.CallsAudioURL()), database.DB)
+	r.GET("/api/v1/calls/:id/audio", callAudioController.Stream)
 
 	apiGroup := r.Group("/api/v1")
 	apiGroup.Use(gin.Logger())
@@ -224,11 +241,7 @@ func main() {
 			})
 		})
 
-		routes.SetupRoutes(apiGroup, rabbitMQ, container, s3Store, controllers.BuildInfo{
-			GitCommit:     GitCommit,
-			GitBranch:     GitBranch,
-			GitCommitDate: GitCommitDate,
-		}, ragRetriever, ragResponder, mediaWaiter)
+		routes.SetupRoutes(apiGroup, rabbitMQ, container, s3Store, ragRetriever, ragResponder, mediaWaiter)
 	}
 
 	r.GET("/api/health", func(c *gin.Context) {
@@ -250,7 +263,7 @@ func main() {
 
 		f, err := publicFS.Open(strings.TrimPrefix(path, "/"))
 		if err == nil {
-			f.Close()
+			_ = f.Close()
 			if strings.HasPrefix(path, "/assets/") {
 				c.Header("Cache-Control", "public, max-age=31536000, immutable")
 			}

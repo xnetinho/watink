@@ -1,8 +1,10 @@
 package plugins
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/sdk"
@@ -37,7 +39,10 @@ func registerInventoryMovement(core sdk.WatinkCore, in inventoryMovementInput) (
 	if in.Quantity <= 0 {
 		return nil, fmt.Errorf("quantidade do movimento deve ser positiva")
 	}
-	db := core.GetDB()
+	// Movimento de estoque da empresa do input: escopo curto da empresa (RLS, ADR 0034).
+	ctx, done := tenantdb.TenantCtx(context.Background(), core.GetDB(), in.TenantID)
+	defer done()
+	db := core.GetDB().WithContext(ctx)
 
 	var movement models.InventoryMovement
 	var lowStock bool

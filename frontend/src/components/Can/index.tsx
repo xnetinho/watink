@@ -1,7 +1,12 @@
 import React from "react";
 import { User } from "../../types/domain";
 
-const check = (user: User | undefined, action: string, _data?: unknown) => {
+/**
+ * Regra única de permissão do frontend (espelha o RequirePermission do backend).
+ * Exportada para quem decide fora de JSX (hooks, provedores) usar a MESMA regra
+ * do componente <Can>, sem duplicá-la.
+ */
+export const check = (user: User | undefined, action: string, _data?: unknown) => {
   const userPermissions = user?.permissions || [];
   const alcance = (user as unknown as { alcance?: string })?.alcance;
 

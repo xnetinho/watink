@@ -38,9 +38,10 @@ func (tc *TicketController) UpdateTicket(c *gin.Context) {
 	}
 
 	var input struct {
-		Status  string `json:"status"`
-		UserID  *int   `json:"userId"`
-		QueueID *int   `json:"queueId"`
+		Status         string `json:"status"`
+		UserID         *int   `json:"userId"`
+		QueueID        *int   `json:"queueId"`
+		UnreadMessages *int   `json:"unreadMessages"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -58,6 +59,8 @@ func (tc *TicketController) UpdateTicket(c *gin.Context) {
 		Status:   input.Status,
 		UserID:   input.UserID,
 		QueueID:  input.QueueID,
+		// O cliente só pode zerar o contador; qualquer outro valor é ignorado.
+		MarkRead: input.UnreadMessages != nil && *input.UnreadMessages == 0,
 	}
 
 	if userID, exists := c.Get("userId"); exists {

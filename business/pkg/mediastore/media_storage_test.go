@@ -146,3 +146,44 @@ func TestExtensionForMime(t *testing.T) {
 		}
 	}
 }
+
+func TestReadLocal(t *testing.T) {
+	tmp := t.TempDir()
+	origDir := mediaPublicDir
+	mediaPublicDir = filepath.Join(tmp, "public", "media")
+	defer func() { mediaPublicDir = origDir }()
+
+	url, err := SaveMediaReader(bytes.NewReader([]byte("conteudo")), "image/png")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("lê o arquivo que o próprio SaveMedia gravou", func(t *testing.T) {
+		got, ok, err := ReadLocal(url)
+		if err != nil || !ok || string(got) != "conteudo" {
+			t.Fatalf("ReadLocal = %q, %v, %v", got, ok, err)
+		}
+	})
+	t.Run("URL externa não é local: quem chama passa a URL adiante", func(t *testing.T) {
+		if _, ok, err := ReadLocal("https://cdn.exemplo.com/a.png"); ok || err != nil {
+			t.Fatalf("URL externa: ok=%v err=%v", ok, err)
+		}
+	})
+	t.Run("arquivo local que sumiu é erro, não silêncio", func(t *testing.T) {
+		if _, ok, err := ReadLocal("/public/media/naoexiste.png"); !ok || err == nil {
+			t.Fatalf("esperava local+erro, veio ok=%v err=%v", ok, err)
+		}
+	})
+	t.Run("não escapa da pasta de mídia", func(t *testing.T) {
+		secret := filepath.Join(tmp, "segredo.txt")
+		if err := os.WriteFile(secret, []byte("nao-pode-ler"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		for _, evil := range []string{"/public/media/../../segredo.txt", "/public/media/..%2f..%2fsegredo.txt", "/public/media/a/../../../segredo.txt"} {
+			got, _, _ := ReadLocal(evil)
+			if strings.Contains(string(got), "nao-pode-ler") {
+				t.Fatalf("%q vazou arquivo fora da pasta de mídia", evil)
+			}
+		}
+	})
+}

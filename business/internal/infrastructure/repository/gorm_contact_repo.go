@@ -58,7 +58,16 @@ func (r *GORMContactRepository) FindByLID(ctx context.Context, tenantID uuid.UUI
 
 // FindOrCreate creates a contact if it doesn't exist, or returns the existing one.
 // This method encapsulates the complex find-or-create logic from processMessage.
-func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLid bool, lid string) (*domain.Contact, error) {
+//
+// Identidade 1:1: o WhatsApp entrega a mesma pessoa ora pelo telefone, ora por um
+// LID opaco ("...@lid"). Quando a mensagem chega por LID, `lid` é o endereço do
+// chat e `knownNumber` é o telefone que o engine resolveu (vazio se não souber).
+// A busca segue esta ordem, sempre dentro do tenant:
+//  1. por LID (contato já visto por esse endereço);
+//  2. por telefone (contato cadastrado pela agenda), gravando o LID nele;
+//  3. senão, cria. Com telefone conhecido o number é o telefone; sem ele, o LID
+//     (comportamento anterior, único jeito de identificar quem não expõe número).
+func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLid bool, lid string, knownNumber string) (*domain.Contact, error) {
 	var m models.Contact
 	query := r.db.WithContext(ctx).Where("\"tenantId\" = ? AND \"isGroup\" = ?", tenantID, isGroup)
 	if isLid {
@@ -67,20 +76,40 @@ func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.
 		query = query.Where("number = ?", number)
 	}
 
-	if err := query.First(&m).Error; err != nil {
+	err := query.First(&m).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) && isLid && !isGroup && knownNumber != "" {
+		// Sessão nova por consulta: query acima já acumulou condições.
+		err = r.db.WithContext(ctx).
+			Where("\"tenantId\" = ? AND \"isGroup\" = ? AND number = ?", tenantID, false, knownNumber).
+			First(&m).Error
+		if err == nil && m.Lid == nil {
+			if upErr := r.db.WithContext(ctx).Model(&models.Contact{}).
+				Where("id = ? AND \"tenantId\" = ?", m.ID, tenantID).
+				Update("lid", lid).Error; upErr != nil {
+				return nil, upErr
+			}
+			m.Lid = &lid
+		}
+	}
+
+	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		// Create new contact
+		storedNumber := number
+		if isLid && !isGroup && knownNumber != "" {
+			storedNumber = knownNumber
+		}
 		m = models.Contact{
 			Name:          pushName,
-			Number:        number,
+			Number:        storedNumber,
 			TenantID:      tenantID,
 			IsGroup:       isGroup,
 			ProfilePicUrl: profilePicUrl,
 		}
 		if m.Name == "" {
-			m.Name = number
+			m.Name = storedNumber
 		}
 		if isLid {
 			m.Lid = &lid
@@ -115,6 +144,77 @@ func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.
 		}
 	}
 	return contactModelToDomain(&m), nil
+}
+
+// FindOrCreateByIdentity resolve o Contact através de uma ContactIdentity externa (ADR 0033).
+func (r *GORMContactRepository) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
+	var ident models.ContactIdentity
+	err := r.db.WithContext(ctx).
+		Where(`"tenantId" = ? AND "channel" = ? AND "externalId" = ?`, tenantID, string(channel), externalID).
+		First(&ident).Error
+
+	if err == nil {
+		// Identidade encontrada: carrega o contato relacionado
+		var contact models.Contact
+		if err := r.db.WithContext(ctx).Where(`id = ? AND "tenantId" = ?`, ident.ContactID, tenantID).First(&contact).Error; err != nil {
+			return nil, nil, err
+		}
+		// Atualiza dados cadastrais se necessário
+		updates := make(map[string]interface{})
+		if name != "" && (ident.DisplayName == "" || ident.DisplayName != name) {
+			updates["displayName"] = name
+		}
+		if avatarURL != "" && ident.AvatarURL != avatarURL {
+			updates["avatarUrl"] = avatarURL
+		}
+		if len(updates) > 0 {
+			_ = r.db.WithContext(ctx).Model(&ident).Updates(updates).Error
+		}
+		return contactModelToDomain(&contact), &ident, nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, err
+	}
+
+	// Não existe: cria o Contact e a ContactIdentity dentro de uma transação
+	var createdContact models.Contact
+	var createdIdent models.ContactIdentity
+
+	txErr := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		contactName := name
+		if contactName == "" {
+			contactName = externalID
+		}
+		createdContact = models.Contact{
+			Name:          contactName,
+			TenantID:      tenantID,
+			ProfilePicUrl: avatarURL,
+		}
+		if err := tx.Create(&createdContact).Error; err != nil {
+			return fmt.Errorf("failed to create contact: %w", err)
+		}
+
+		createdIdent = models.ContactIdentity{
+			TenantID:    tenantID,
+			ContactID:   createdContact.ID,
+			Channel:     string(channel),
+			ExternalID:  externalID,
+			DisplayName: contactName,
+			AvatarURL:   avatarURL,
+			Meta:        "{}",
+		}
+		if err := tx.Create(&createdIdent).Error; err != nil {
+			return fmt.Errorf("failed to create contact identity: %w", err)
+		}
+		return nil
+	})
+
+	if txErr != nil {
+		return nil, nil, txErr
+	}
+
+	return contactModelToDomain(&createdContact), &createdIdent, nil
 }
 
 // FindByID returns a single contact by ID scoped to tenantID, or nil if not found.
@@ -202,7 +302,16 @@ func (r *GORMContactRepository) deleteAffectedCount(ctx context.Context, tenantI
 		if err := tx.Exec(`DELETE FROM "Messages" WHERE "ticketId" IN (SELECT id FROM "Tickets" WHERE "contactId" IN ? AND "tenantId" = ?)`, ids, tenantID).Error; err != nil {
 			return err
 		}
+		if err := tx.Exec(`DELETE FROM "TicketLogs" WHERE "ticketId" IN (SELECT id FROM "Tickets" WHERE "contactId" IN ? AND "tenantId" = ?)`, ids, tenantID).Error; err != nil {
+			return err
+		}
 		if err := tx.Exec(`DELETE FROM "ConversationEmbeddings" WHERE "contactId" IN ? AND "tenantId" = ?`, ids, tenantID).Error; err != nil {
+			return err
+		}
+		if err := tx.Exec(`DELETE FROM "AssistantGroups" WHERE "contactId" IN ? AND "tenantId" = ?`, ids, tenantID).Error; err != nil {
+			return err
+		}
+		if err := tx.Exec(`DELETE FROM "Activities" WHERE "protocolId" IN (SELECT id FROM "Protocols" WHERE "contactId" IN ? AND "tenantId" = ?) AND "tenantId" = ?`, ids, tenantID, tenantID).Error; err != nil {
 			return err
 		}
 		if err := tx.Exec(`DELETE FROM "Protocols" WHERE "contactId" IN ? AND "tenantId" = ?`, ids, tenantID).Error; err != nil {

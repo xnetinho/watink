@@ -18,8 +18,7 @@ import (
 // fakeGroupEngine implements domain.GroupEngine (and, via the embedded
 // nonGroupEngine, the base domain.WhatsAppEngine it must also satisfy to be
 // returned by a resolver) entirely in-memory — the point of the interface
-// boundary: full handler-level HTTP testing without a real izapia/enginego
-// provider.
+// boundary: full handler-level HTTP testing without a real engine provider.
 type fakeGroupEngine struct {
 	nonGroupEngine
 	groups    []domain.GroupInfo

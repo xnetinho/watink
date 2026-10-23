@@ -43,7 +43,7 @@ func (s *RabbitMQService) InspectQueue(queueName string) domain.QueueMetrics {
 		m.Error = err.Error()
 		return m
 	}
-	defer ch.Close()
+	defer func() { _ = ch.Close() }()
 
 	q, err := ch.QueueInspect(queueName)
 	if err != nil {
@@ -125,7 +125,7 @@ func (s *RabbitMQService) listQueuesViaManagementAPI() ([]domain.QueueMetrics, e
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("management api returned %d", resp.StatusCode)

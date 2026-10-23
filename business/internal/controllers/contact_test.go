@@ -34,7 +34,7 @@ func TestUpdateContactDoesNotAcceptTenantIDFromPayload(t *testing.T) {
 	db := testutil.NewTestDB(t)
 
 	mockRepo := &MockContactRepo{db: db}
-	controller := NewContactController(mockRepo, nil, nil, nil, nil)
+	controller := NewContactController(mockRepo, nil, nil, nil)
 
 	tenantA := uuid.New()
 	tenantB := uuid.New()
@@ -107,8 +107,11 @@ func (m *MockContactRepo) FindByNumber(ctx context.Context, tenantID uuid.UUID, 
 func (m *MockContactRepo) FindByLID(ctx context.Context, tenantID uuid.UUID, lid string, isGroup bool) (*domain.Contact, error) {
 	return nil, nil
 }
-func (m *MockContactRepo) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number, pushName, profilePicUrl string, isGroup, isLid bool, lid string) (*domain.Contact, error) {
+func (m *MockContactRepo) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number, pushName, profilePicUrl string, isGroup, isLid bool, lid, _ string) (*domain.Contact, error) {
 	return nil, nil
+}
+func (m *MockContactRepo) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
+	return nil, nil, nil
 }
 func (m *MockContactRepo) Create(ctx context.Context, contact *domain.Contact) error { return nil }
 func (m *MockContactRepo) Delete(ctx context.Context, id int, tenantID uuid.UUID) error {
@@ -136,7 +139,7 @@ func newContactRouter(db *gorm.DB, tenantID string) *gin.Engine {
 	r := gin.New()
 	r.Use(testScopedMiddleware(db, tenantID))
 	repo := &MockContactRepo{db: db}
-	ctrl := NewContactController(repo, nil, nil, nil, nil)
+	ctrl := NewContactController(repo, nil, nil, nil)
 	r.GET("/contacts", ctrl.ListContacts)
 	r.GET("/contacts/:contactId", ctrl.ShowContact)
 	r.POST("/contacts", ctrl.CreateContact)

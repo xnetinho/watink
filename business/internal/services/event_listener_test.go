@@ -337,6 +337,9 @@ func (m *ackMockTicketRepo) FindByID(_ context.Context, _ int, _ uuid.UUID) (*do
 func (m *ackMockTicketRepo) FindOpenByContact(_ context.Context, _ uuid.UUID, _ int, _ int) (*domain.Ticket, error) {
 	return nil, nil
 }
+func (m *ackMockTicketRepo) FindOpenByConversation(_ context.Context, _ uuid.UUID, _ int, _ string) (*domain.Ticket, error) {
+	return nil, nil
+}
 func (m *ackMockTicketRepo) FindOrCreatePending(_ context.Context, t *domain.Ticket) (*domain.Ticket, error) {
 	return t, nil
 }

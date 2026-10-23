@@ -1,7 +1,9 @@
 package services
 
 import (
+	"context"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
@@ -43,8 +45,11 @@ func NewPlanLimitService(db *gorm.DB) *PlanLimitService {
 // chegar aqui, e status "trialing" também deve ter o limite do plano
 // aplicado -- filtrar só "active" deixaria trial sem gate nenhum.
 func (s *PlanLimitService) CheckLimit(tenantID uuid.UUID, resource string) error {
+	ctx, done := tenantdb.TenantCtx(context.Background(), s.db, tenantID)
+	defer done()
+	db := s.db.WithContext(ctx)
 	var sub models.TenantSubscription
-	err := s.db.Session(&gorm.Session{NewDB: true}).
+	err := db.Session(&gorm.Session{NewDB: true}).
 		Where(`"tenantId" = ?`, tenantID).
 		Preload("Plan").
 		First(&sub).Error
@@ -57,7 +62,7 @@ func (s *PlanLimitService) CheckLimit(tenantID uuid.UUID, resource string) error
 			return fmt.Errorf("active subscription required for plugin features")
 		}
 		var count int64
-		if err := s.db.Session(&gorm.Session{NewDB: true}).
+		if err := db.Session(&gorm.Session{NewDB: true}).
 			Table("PluginInstallations").Where(`"tenantId" = ?`, tenantID).Count(&count).Error; err != nil {
 			return err
 		}
@@ -99,8 +104,10 @@ func (s *PlanLimitService) checkCount(tenantID uuid.UUID, resource string, limit
 	if limit <= 0 {
 		return nil
 	}
+	ctx, done := tenantdb.TenantCtx(context.Background(), s.db, tenantID)
+	defer done()
 	var count int64
-	if err := s.db.Session(&gorm.Session{NewDB: true}).
+	if err := s.db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).
 		Model(model).Where(`"tenantId" = ?`, tenantID).Count(&count).Error; err != nil {
 		return err
 	}

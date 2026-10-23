@@ -30,6 +30,11 @@ const sortByDate = (arr: Message[]): Message[] =>
     return String(a.id).localeCompare(String(b.id));
   });
 
+// Ack, mídia, reação e revogação reemitem a mensagem lida do banco, que não traz o quotedMsg (só a listagem e o
+// envio o anexam). Sem isto o update apagava a citação que acabara de aparecer.
+const keepQuote = (next: Message, prev: Message): Message =>
+  next.quotedMsg || !prev.quotedMsg ? next : { ...next, quotedMsg: prev.quotedMsg };
+
 export const messagesReducer = (
   state: Message[],
   action: MessagesAction
@@ -48,7 +53,7 @@ export const messagesReducer = (
     const newMessage = action.payload;
     const idx = state.findIndex((m) => m.id === newMessage.id);
     const updated = [...state];
-    if (idx !== -1) updated[idx] = newMessage;
+    if (idx !== -1) updated[idx] = keepQuote(newMessage, state[idx]);
     else updated.push(newMessage);
     return sortByDate(updated);
   }
@@ -56,7 +61,7 @@ export const messagesReducer = (
     const idx = state.findIndex((m) => m.id === action.payload.id);
     if (idx === -1) return state;
     const updated = [...state];
-    updated[idx] = action.payload;
+    updated[idx] = keepQuote(action.payload, state[idx]);
     return sortByDate(updated);
   }
   if (action.type === "RESET") return [];

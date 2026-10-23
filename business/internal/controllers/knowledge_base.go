@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// KnowledgeBaseController encapsulates knowledge base operations with RLS-scoped DB from auth middleware.
+// KnowledgeBaseController encapsulates knowledge base operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetDB(c).
 type KnowledgeBaseController struct {
 	publisher domain.KnowledgeJobPublisher

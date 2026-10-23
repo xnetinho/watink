@@ -12,6 +12,8 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/flow"
 	"github.com/alltomatos/watinkdev/business/internal/mediawait"
 	"github.com/alltomatos/watinkdev/business/internal/plugins"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/google/uuid"
 	amqp "github.com/streadway/amqp"
 	"gorm.io/gorm"
@@ -81,6 +83,8 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 		"wbot.*.*.session.jid_registered",
 		"wbot.*.*.message.poll_vote",
 	}
+	// Eventos call.* NÃO entram aqui: têm fila e consumidor próprios em
+	// internal/calls (Service.Start), para não esperarem atrás das mensagens.
 
 	err := rabbitMQ.ConsumeEvents("api.events.process.go", routingKeys, func(d amqp.Delivery) error {
 		var env EventEnvelope
@@ -96,7 +100,9 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 
 		log.Printf("[EventListener] Event received: %s (Tenant: %s)", env.Type, env.TenantID)
 
-		ctx := context.Background()
+		// Todo evento roda no escopo da empresa do envelope (RLS, ADR 0034): o banco só enxerga as linhas dela.
+		ctx, done := tenantdb.TenantCtx(context.Background(), eventListener.db, tid)
+		defer done()
 		switch env.Type {
 		case "session.qrcode":
 			return eventListener.handleQrCode(ctx, env.Payload, tid)
@@ -132,11 +138,13 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			// outros eventos), então rodar em goroutine própria é seguro e
 			// evita esse atraso sem mudar o contrato — ack imediato (best-effort,
 			// mesmo padrão de media.download no engine-go).
-			go func() {
-				if err := eventListener.handleMediaDownloaded(ctx, env.Payload, tid); err != nil {
+			bgCtx, bgDone := tenantdb.Detach(ctx)
+			safego.Go("event.handleMediaDownloaded", func() {
+				defer bgDone()
+				if err := eventListener.handleMediaDownloaded(bgCtx, env.Payload, tid); err != nil {
 					log.Printf("[EventListener] handleMediaDownloaded falhou: %v", err)
 				}
-			}()
+			})
 			return nil
 		case "contact.update":
 			if err := handleContactUpdate(ctx, eventListener.contacts, eventListener.bcast(), env.Payload, tid); err != nil {
@@ -162,9 +170,9 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 }
 
 // HandleInboundMessage is the exported entry point for non-AMQP transports
-// (izapia webhook) to feed an inbound message through the exact same
-// pipeline (ReceiveMessageUseCase + broadcasts + FlowBuilder routing) as the
-// engine-go AMQP consumer.
+// (e.g. a webhook-based engine) to feed an inbound message through the
+// exact same pipeline (ReceiveMessageUseCase + broadcasts + FlowBuilder
+// routing) as the engine-go AMQP consumer.
 func (el *EventListener) HandleInboundMessage(ctx context.Context, p MessagePayload, rawSessionID string, tenantID uuid.UUID) error {
 	return el.processMessage(ctx, p, rawSessionID, tenantID)
 }
@@ -187,8 +195,8 @@ func (el *EventListener) HandlePollVoteEvent(ctx context.Context, payload json.R
 }
 
 // HandleSessionRiskEvent is the exported entry point for non-AMQP transports
-// (izapia webhook) to apply a ban/throttle risk signal (401/403/429/463)
-// through the same logic as the engine-go AMQP consumer (handleSessionRisk):
+// to apply a ban/throttle risk signal (401/403/429/463) through the same
+// logic as the engine-go AMQP consumer (handleSessionRisk):
 // persists lastRiskCode/Action/Message/At on the connection, auto-isolates
 // the proxy for 429/463, and broadcasts whatsappSessionRisk to the tenant.
 func (el *EventListener) HandleSessionRiskEvent(ctx context.Context, payload json.RawMessage, tenantID uuid.UUID) error {
@@ -212,6 +220,7 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 		SenderPicURL:  p.SenderPicUrl,
 		IsLID:         p.IsLid,
 		Participant:   p.Participant,
+		ChatPN:        p.ChatPn,
 		IsGroup:       p.IsGroup,
 		IsCommunity:   p.IsCommunity,
 		IsSubGroup:    p.IsSubGroup,

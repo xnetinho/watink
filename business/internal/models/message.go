@@ -29,6 +29,10 @@ type Message struct {
 	CreatedAt     time.Time `gorm:"column:createdAt" json:"createdAt"`
 	UpdatedAt     time.Time `gorm:"column:updatedAt" json:"updatedAt"`
 
+	// QuotedMsg é a mensagem citada, preenchida só na listagem (GET /messages/:ticketId) para o
+	// balão mostrar "em resposta a…". Não é coluna.
+	QuotedMsg *Message `gorm:"-" json:"quotedMsg,omitempty"`
+
 	// Relations
 	Ticket Ticket `gorm:"foreignKey:TicketID" json:"ticket,omitempty"`
 }

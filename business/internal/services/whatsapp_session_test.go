@@ -6,9 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"errors"
+	"net/http"
+
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/testutil"
+	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -163,6 +167,20 @@ func TestStartWhatsAppSession_LockAlreadyAcquired(t *testing.T) {
 	}
 	if err.Error() != "ERR_SESSION_STARTING_ALREADY" {
 		t.Errorf("error = %q, want ERR_SESSION_STARTING_ALREADY", err.Error())
+	}
+
+	// Lock ocupado é um conflito ESPERADO (clique duplo / outra aba), não uma falha do servidor —
+	// precisa ser um *FriendlyError com 409, senão o controller responde 500 pro usuário final
+	// (bug real: sem isso RespondWithFriendlyOrInternalError caía no 500 genérico).
+	var fe *utils.FriendlyError
+	if !errors.As(err, &fe) {
+		t.Fatalf("erro deveria ser um *utils.FriendlyError para não virar 500, got %T", err)
+	}
+	if fe.Status != http.StatusConflict {
+		t.Errorf("status = %d, want %d (Conflict)", fe.Status, http.StatusConflict)
+	}
+	if fe.Message == "" {
+		t.Error("FriendlyError.Message vazio: o usuário veria uma mensagem genérica")
 	}
 }
 

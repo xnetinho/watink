@@ -322,8 +322,8 @@ func TestGroupCampaignReport_RepliesSeparatesQuotedAndWindowCounts(t *testing.T)
 	require.Equal(t, http.StatusOK, resp.Code)
 	var out struct {
 		Replies     []models.GroupCampaignReply `json:"replies"`
-		QuotedCount int64                        `json:"quotedCount"`
-		WindowCount int64                        `json:"windowCount"`
+		QuotedCount int64                       `json:"quotedCount"`
+		WindowCount int64                       `json:"windowCount"`
 	}
 	require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &out))
 	assert.Len(t, out.Replies, 3)

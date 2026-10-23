@@ -15,12 +15,25 @@ import InputToolbar from "./components/InputToolbar";
 import QuickAnswersList from "./components/QuickAnswersList";
 import MentionsList from "./components/MentionsList";
 
+export interface ReplyPolicyUI {
+  canReply?: boolean;
+  reason?: string;
+  message?: string;
+  validUntil?: string;
+  capabilities?: {
+    maxTextBytes?: number;
+    groups?: boolean;
+    media?: string[];
+  };
+}
+
 interface MessageInputProps {
   ticketStatus: string;
   whatsappStatus?: string;
+  replyPolicy?: ReplyPolicyUI;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatus }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatus, replyPolicy }) => {
   const { appTheme } = useThemeContext();
 
   const {
@@ -63,6 +76,19 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
         <span className="text-sm text-muted-foreground">
           {i18n.t("messagesInput.placeholderClosed")}
         </span>
+      </div>
+    );
+  }
+
+  if (replyPolicy && replyPolicy.canReply === false) {
+    return (
+      <div className="w-full shrink-0 border-t border-[var(--border-divider)] bg-[var(--bg-surface-alt)] px-4 py-3">
+        <div className="w-full text-center bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg p-3 flex flex-col items-center">
+          <span className="font-bold text-xs uppercase tracking-wider">Resposta Bloqueada pelo Canal</span>
+          <span className="text-xs mt-1">
+            {replyPolicy.message || "A janela de resposta deste canal está fechada para novas mensagens."}
+          </span>
+        </div>
       </div>
     );
   }

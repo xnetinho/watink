@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// WebchatPlugin — DB via core.GetDB() (DI), zero acesso a database.DB global.
+// WebchatPlugin — DB via core.GetDB().WithContext(c.Request.Context()) (DI), zero acesso a database.DB global.
 type WebchatPlugin struct{}
 
 func (wp *WebchatPlugin) GetManifest() sdk.PluginManifest {
@@ -31,7 +31,7 @@ func (wp *WebchatPlugin) OnActivate(core sdk.WatinkCore) error {
 	// GET /api/webchat/:whatsappId
 	core.RegisterRoute("GET", "/webchat/:whatsappId", func(c *gin.Context) {
 		whatsappId := c.Param("whatsappId")
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 		var whatsapp models.Whatsapp
 		if err := db.First(&whatsapp, whatsappId).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Webchat not found"})
@@ -48,7 +48,7 @@ func (wp *WebchatPlugin) OnActivate(core sdk.WatinkCore) error {
 	// POST /api/webchat/:whatsappId/tickets
 	core.RegisterRoute("POST", "/webchat/:whatsappId/tickets", func(c *gin.Context) {
 		whatsappId := c.Param("whatsappId")
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 		var body struct {
 			Name    string `json:"name"`
 			Email   string `json:"email"`

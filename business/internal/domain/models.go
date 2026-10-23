@@ -19,10 +19,12 @@ type Ticket struct {
 	IsCommunity    bool      `json:"isCommunity"`
 	IsSubGroup     bool      `json:"isSubGroup"`
 	UnreadMessages int       `json:"unreadMessages"`
-	QueueID        *int      `json:"queueId"`
-	TenantID       uuid.UUID `json:"tenantId"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	QueueID             *int      `json:"queueId"`
+	TenantID            uuid.UUID `json:"tenantId"`
+	ChannelConnectionID *int      `json:"channelConnectionId,omitempty"`
+	ConversationKey     string    `json:"conversationKey,omitempty"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
 }
 
 // Message represents a message in a ticket conversation
@@ -143,12 +145,6 @@ type ChannelSession struct {
 	// QUAL device store reusar no engine ao reconectar. Sem ele, resolveDeviceStore
 	// não acha o device existente e cria um NOVO — deslogando a conta real.
 	Wid string `json:"wid"`
-	// IzapiaSessionID/IzapiaWebhookSecretEnc precisam viajar por essa struct.
-	// Sem isso, o izapia.Provider.ensureSession() sempre acha que não há
-	// sessão criada ainda e cria uma NOVA a cada start/stop, estourando a quota
-	// max_sessions do tenant na izapia.
-	IzapiaSessionID        *string `json:"izapiaSessionId"`
-	IzapiaWebhookSecretEnc *string `json:"-"`
 
 	// LastRisk* — último sinal de risco de ban/throttle (whatsmeow IQ
 	// 401/403/429/463) recebido para esta conexão. Ver models.Whatsapp.

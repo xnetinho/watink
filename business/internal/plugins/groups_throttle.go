@@ -10,9 +10,10 @@ import (
 
 // groupsThrottle is the PRIMARY rate limiter for group write actions
 // (invariant 4, plan §2.2) — the engine-go-side limiter (T1.4) only ever
-// sees traffic from enginego connections; izapia connections talk straight
-// to api.izapia.com and never touch engine-go at all. This is the one
-// limiter that sees every write regardless of provider.
+// sees traffic from enginego connections; a non-enginego domain.GroupEngine
+// provider could talk straight to its own backend and never touch engine-go
+// at all. This is the one limiter that sees every write regardless of
+// provider.
 //
 // KNOWN LIMITATION (documented, not silently shipped): this bucket is
 // in-memory and per-process. In a multi-node business deployment the

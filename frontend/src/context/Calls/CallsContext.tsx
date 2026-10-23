@@ -1,0 +1,432 @@
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { AuthContext } from "../Auth/AuthContext";
+import { check } from "../../components/Can";
+import api from "../../services/api";
+import { subscribeToSocket } from "../../services/sse-client";
+import { callsReducer, initialCallsState, type CallsState } from "./callReducer";
+import type { ActiveCall, CallEventPayload, CallQuality } from "./types";
+import { useCallAudio, type AudioFailure, type CallTelemetry } from "../../lib/calls/useCallAudio";
+import { VideoSink } from "../../lib/calls/videoSink";
+import { CameraSender, browserCameraDeps, type CameraFailure } from "../../lib/calls/cameraSender";
+import {
+  VirtualBackgroundProcessor,
+  type BackgroundMode,
+  type VirtualBackgroundConfig,
+} from "../../lib/calls/virtualBackground";
+import { storeDevices } from "../../lib/calls/deviceManager";
+import { detectVideoSupport } from "../../lib/calls/videoSupport";
+import type { VideoFrame } from "../../lib/calls/videoFrame";
+import { notify } from "../../lib/notify";
+import { t } from "../../lib/calls/t";
+
+const PAUSE_KEY = "wt:calls:paused";
+
+export interface CallsContextValue {
+  state: CallsState;
+  canReceive: boolean;
+  canPlace: boolean;
+  ringing: ActiveCall[];
+  active: ActiveCall | null;
+  paused: boolean;
+  accept: (callId: string) => Promise<void>;
+  reject: (callId: string) => Promise<void>;
+  place: (ticketId: number) => Promise<void>;
+  end: () => Promise<void>;
+  setMuted: (muted: boolean) => void;
+  /** Liga/desliga a câmera do operador na videochamada (só Chromium: `canSendVideo`). */
+  setCamera: (on: boolean, deviceId?: string, bgConfig?: VirtualBackgroundConfig) => Promise<void>;
+  /** O navegador consegue ENVIAR a câmera (WebCodecs + MediaStreamTrackProcessor). */
+  canSendVideo: boolean;
+  setPaused: (paused: boolean) => void;
+  startRecording: () => Promise<void>;
+  stopRecording: () => Promise<void>;
+  dismiss: () => void;
+  audioLevels: { tx: number; rx: number };
+  /** Desenha o vídeo do contato num canvas; o painel o registra com `attach`. */
+  videoSink: VideoSink;
+  /** Stream local da câmera do operador (para preview e self-view). */
+  localStream: MediaStream | null;
+  /** Aplica preferências de microfone, câmera, speaker e fundo. */
+  applyDeviceSettings: (audioId: string, videoId: string, audioOutputId: string, bgMode: BackgroundMode, bgImageUrl?: string) => Promise<void>;
+}
+
+const noop = async () => undefined;
+
+export const CallsContext = createContext<CallsContextValue>({
+  state: initialCallsState(),
+  canReceive: false,
+  canPlace: false,
+  ringing: [],
+  active: null,
+  paused: false,
+  accept: noop,
+  reject: noop,
+  place: noop,
+  end: noop,
+  setMuted: () => undefined,
+  setCamera: noop,
+  canSendVideo: false,
+  setPaused: () => undefined,
+  startRecording: noop,
+  stopRecording: noop,
+  dismiss: () => undefined,
+  audioLevels: { tx: 0, rx: 0 },
+  videoSink: new VideoSink(undefined, undefined),
+  localStream: null,
+  applyDeviceSettings: noop,
+});
+
+export const useCalls = () => useContext(CallsContext);
+
+function readPaused(): boolean {
+  try {
+    return localStorage.getItem(PAUSE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+/** Interpreta o call.quality do servidor no formato da tela. */
+export function toQuality(p: Record<string, unknown>): CallQuality {
+  return {
+    rttMs: typeof p.rttMs === "number" ? p.rttMs : null,
+    lossPct: Number(p.lossPct ?? 0),
+    jitterMs: Number(p.jitterMs ?? 0),
+    level: ([1, 2, 3].includes(Number(p.level)) ? Number(p.level) : 3) as 1 | 2 | 3,
+    mosEstimated: typeof p.mosEstimated === "number" ? p.mosEstimated : null,
+    alerts: Array.isArray(p.alerts) ? (p.alerts as string[]) : [],
+    noPeerAudio: Boolean(p.noPeerAudio),
+    silentMs: Number(p.silentMs ?? 0),
+  };
+}
+
+export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useContext(AuthContext);
+  const canReceive = check(user, "calls:receive");
+  const canPlace = check(user, "calls:place");
+  const myId = Number(user?.id ?? 0);
+
+  const [state, dispatch] = useReducer(callsReducer, undefined, () => initialCallsState(readPaused()));
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  // Avisa o servidor do estado de pausa para ele não contar este operador como
+  // elegível. Ao reconectar/montar reenvia: o servidor guarda isso em memória.
+  const announcePause = useCallback(
+    (paused: boolean) => {
+      if (!canReceive) return;
+      api.put("/calls/pause", { paused }).catch(() => undefined);
+    },
+    [canReceive],
+  );
+
+  useEffect(() => {
+    announcePause(readPaused());
+  }, [announcePause]);
+
+  useEffect(() => {
+    if (!user || (!canReceive && !canPlace)) return undefined;
+    return subscribeToSocket({
+      "call.incoming": (p: CallEventPayload) => {
+        if (canReceive) dispatch({ type: "incoming", payload: p });
+      },
+      "call.answered": (p: { callId: string; handledByUserId: number }) =>
+        dispatch({ type: "answered", callId: p.callId, byMe: p.handledByUserId === myId }),
+      "call.state": (p: { callId: string; state: string }) => dispatch({ type: "state", callId: p.callId, state: p.state }),
+      "call.ended": (p: { callId: string; endReason?: string }) =>
+        dispatch({ type: "ended", callId: p.callId, endReason: p.endReason }),
+      "call.quality": (p: Record<string, unknown> & { callId: string }) =>
+        dispatch({ type: "quality", callId: p.callId, quality: toQuality(p) }),
+      "call.recording": (p: { callId: string; recording: boolean }) =>
+        dispatch({ type: "recording", callId: p.callId, recording: p.recording }),
+    });
+  }, [user, canReceive, canPlace, myId]);
+
+  const accept = useCallback(async (callId: string) => {
+    try {
+      const { data } = await api.post(`/calls/${encodeURIComponent(callId)}/accept`, {});
+      dispatch({
+        type: "accepted",
+        payload: {
+          callId,
+          whatsappId: data.whatsappId,
+          direction: "incoming",
+          media: stateRef.current.ringing[callId]?.media,
+          ticketId: data.ticketId ?? null,
+          contact: stateRef.current.ringing[callId]?.contact,
+        },
+      });
+    } catch (err) {
+      const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      dispatch({ type: "answered", callId, byMe: false });
+      if (code === "ALREADY_ANSWERED") notify.warning(t("calls.alreadyAnswered"));
+      else notify.error(err);
+    }
+  }, []);
+
+  const reject = useCallback(async (callId: string) => {
+    try {
+      await api.post(`/calls/${encodeURIComponent(callId)}/reject`, {});
+    } catch (err) {
+      notify.error(err);
+    }
+    dispatch({ type: "ended", callId, endReason: "declined" });
+  }, []);
+
+  const place = useCallback(async (ticketId: number) => {
+    try {
+      const { data } = await api.post("/calls", { ticketId });
+      dispatch({
+        type: "originate",
+        payload: { callId: data.callId, whatsappId: data.whatsappId, direction: "outgoing", ticketId, contact: { number: data.callerPn } },
+      });
+    } catch (err) {
+      notify.error(err);
+    }
+  }, []);
+
+  const end = useCallback(async () => {
+    const a = stateRef.current.active;
+    if (!a) return;
+    if (a.phase === "ended") {
+      dispatch({ type: "dismiss" });
+      return;
+    }
+    dispatch({ type: "endRequested", callId: a.callId });
+    try {
+      await api.post(`/calls/${encodeURIComponent(a.callId)}/end`, {});
+    } catch (err) {
+      notify.error(err);
+    }
+  }, []);
+
+  const setMuted = useCallback((muted: boolean) => dispatch({ type: "mute", muted }), []);
+
+  const setPaused = useCallback(
+    (paused: boolean) => {
+      try {
+        localStorage.setItem(PAUSE_KEY, String(paused));
+      } catch {
+        /* preferência local indisponível: segue só em memória */
+      }
+      dispatch({ type: "pause", paused });
+      announcePause(paused);
+    },
+    [announcePause],
+  );
+
+  const startRecording = useCallback(async () => {
+    const a = stateRef.current.active;
+    if (!a) return;
+    try {
+      await api.post(`/calls/${encodeURIComponent(a.callId)}/recording/start`, {});
+    } catch (err) {
+      notify.error(err);
+    }
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    const a = stateRef.current.active;
+    if (!a) return;
+    try {
+      await api.post(`/calls/${encodeURIComponent(a.callId)}/recording/stop`, {});
+    } catch (err) {
+      notify.error(err);
+    }
+  }, []);
+
+  const dismiss = useCallback(() => dispatch({ type: "dismiss" }), []);
+
+  const active = state.active;
+  const onFailure = useCallback((reason: AudioFailure) => {
+    const a = stateRef.current.active;
+    if (!a) return;
+    dispatch({ type: "failure", callId: a.callId, reason });
+    if (reason !== "socket" && reason !== "audio_unavailable") {
+      api.post(`/calls/${encodeURIComponent(a.callId)}/end`, {}).catch(() => undefined);
+    }
+  }, []);
+  const onTelemetry = useCallback((t: CallTelemetry) => {
+    const a = stateRef.current.active;
+    if (!a) return;
+    const prev = a.quality;
+    dispatch({
+      type: "quality",
+      callId: a.callId,
+      quality: {
+        rttMs: t.rttMs,
+        lossPct: t.lossPct,
+        jitterMs: t.jitterMs,
+        level: prev?.level ?? 3,
+        mosEstimated: prev?.mosEstimated ?? null,
+        alerts: prev?.alerts ?? [],
+        noPeerAudio: t.noPeerAudio,
+        silentMs: t.silentMs,
+        txBytesPerSec: t.txBytesPerSec,
+        rxBytesPerSec: t.rxBytesPerSec,
+        txLevel: t.txLevel,
+        rxLevel: t.rxLevel,
+      },
+    });
+  }, []);
+
+  // Um sink por provedor (e não por render): ele guarda o decoder e o canvas entre quadros.
+  const videoSink = useMemo(() => new VideoSink(), []);
+  useEffect(() => {
+    // Pedir um quadro-chave ao contato depende do SRTCP do engine (fase 2); por ora o decoder só
+    // descarta até o próximo quadro-chave que o contato mandar sozinho.
+    videoSink.onNeedKeyframe = undefined;
+    return () => videoSink.close();
+  }, [videoSink]);
+  const onVideoFrame = useCallback((f: VideoFrame) => videoSink.push(f), [videoSink]);
+
+  // A câmera do operador: um CameraSender por chamada. O contato pede quadro-chave (PLI) pelo canal.
+  const cameraRef = useRef<CameraSender | null>(null);
+  const bgProcessorRef = useRef<VirtualBackgroundProcessor>(new VirtualBackgroundProcessor());
+  const currentBgConfigRef = useRef<VirtualBackgroundConfig>({ mode: "none" });
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const audioApiRef = useRef<{ sendBinary: (m: Uint8Array) => boolean; sendCameraCommand: (on: boolean, o?: number) => boolean; setAudioOutput: (sinkId: string) => Promise<void> } | null>(null);
+  const canSendVideo = useMemo(() => detectVideoSupport().canSend, []);
+  const onKeyframeRequested = useCallback(() => cameraRef.current?.requestKeyframe(), []);
+  const stopCamera = useCallback(() => {
+    const cam = cameraRef.current;
+    cameraRef.current = null;
+    bgProcessorRef.current.stop();
+    setLocalStream(null);
+    if (cam?.active) {
+      cam.stop();
+      audioApiRef.current?.sendCameraCommand(false);
+    }
+  }, []);
+
+  const audio = useCallAudio({
+    callId: active?.callId ?? null,
+    enabled: !!active && (active.phase === "connecting" || active.phase === "active" || active.phase === "calling"),
+    muted: active?.muted ?? false,
+    onFailure,
+    onTelemetry,
+    onVideoFrame,
+    onKeyframeRequested,
+    onEstimatedBitrate: (bitrate) => cameraRef.current?.setBitrate(bitrate),
+  });
+  audioApiRef.current = audio;
+
+  const callId = active?.callId ?? null;
+  const phase = active?.phase ?? null;
+  // A câmera morre com a chamada, ao sair de connecting/active ou quando o canal cai.
+  useEffect(() => {
+    if (phase !== "active" && phase !== "connecting") stopCamera();
+  }, [phase, callId, stopCamera]);
+  useEffect(() => () => {
+    cameraRef.current?.stop();
+    cameraRef.current = null;
+    bgProcessorRef.current.stop();
+    setLocalStream(null);
+  }, [callId]);
+
+  const setCamera = useCallback(
+    async (on: boolean, deviceId?: string, bgConfig?: VirtualBackgroundConfig) => {
+      const a = stateRef.current.active;
+      if (!a || a.media !== "video") return;
+      if (!on) {
+        stopCamera();
+        dispatch({ type: "camera", on: false });
+        return;
+      }
+      if (cameraRef.current?.active || !canSendVideo) return;
+      if (bgConfig) {
+        currentBgConfigRef.current = bgConfig;
+      }
+      const activeBg = currentBgConfigRef.current;
+
+      const cam = new CameraSender({
+        deps: browserCameraDeps(),
+        send: (m) => { audioApiRef.current?.sendBinary(m); },
+        onFailure: (reason: CameraFailure) => {
+          cameraRef.current = null;
+          bgProcessorRef.current.stop();
+          setLocalStream(null);
+          audioApiRef.current?.sendCameraCommand(false);
+          dispatch({ type: "camera", on: false, failure: reason });
+        },
+      });
+      cameraRef.current = cam;
+
+      let customStream: MediaStream | undefined;
+      let rawStream: MediaStream | null = null;
+      if (activeBg.mode !== "none") {
+        try {
+          const videoConstraints: Record<string, unknown> = {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 15 },
+            facingMode: "user",
+          };
+          if (deviceId) {
+            videoConstraints.deviceId = { exact: deviceId };
+          }
+          rawStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+          customStream = await bgProcessorRef.current.start(rawStream, activeBg);
+        } catch {
+          /* fallback to normal camera */
+        }
+      }
+
+      if (await cam.start(deviceId, customStream as unknown as import("../../lib/calls/cameraSender").StreamLike)) {
+        if (cameraRef.current !== cam) { cam.stop(); return; }
+        setLocalStream(customStream || (cam.mediaStream as unknown as MediaStream) || rawStream);
+        audioApiRef.current?.sendCameraCommand(true, 0);
+        dispatch({ type: "camera", on: true });
+      }
+    },
+    [canSendVideo, stopCamera],
+  );
+
+  const applyDeviceSettings = useCallback(
+    async (audioId: string, videoId: string, audioOutputId: string, bgMode: BackgroundMode, bgImageUrl?: string) => {
+      storeDevices({ audioInputId: audioId, audioOutputId, videoInputId: videoId });
+      if (audioOutputId) {
+        void audioApiRef.current?.setAudioOutput(audioOutputId);
+      }
+      const newBg: VirtualBackgroundConfig = { mode: bgMode, imageUrl: bgImageUrl };
+      currentBgConfigRef.current = newBg;
+
+      if (cameraRef.current?.active) {
+        stopCamera();
+        setTimeout(() => {
+          void setCamera(true, videoId, newBg);
+        }, 150);
+      }
+    },
+    [setCamera, stopCamera],
+  );
+
+  const value = useMemo<CallsContextValue>(
+    () => ({
+      state,
+      canReceive,
+      canPlace,
+      ringing: Object.values(state.ringing),
+      active,
+      paused: state.paused,
+      accept,
+      reject,
+      place,
+      end,
+      setMuted,
+      setCamera,
+      canSendVideo,
+      setPaused,
+      startRecording,
+      stopRecording,
+      dismiss,
+      audioLevels: audio.levels,
+      videoSink,
+      localStream,
+      applyDeviceSettings,
+    }),
+    [state, canReceive, canPlace, active, accept, reject, place, end, setMuted, setCamera, canSendVideo, setPaused, startRecording, stopRecording, dismiss, audio.levels, videoSink, localStream, applyDeviceSettings],
+  );
+
+  return <CallsContext.Provider value={value}>{children}</CallsContext.Provider>;
+};

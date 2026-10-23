@@ -16,6 +16,8 @@ import BackdropLoading from "../components/BackdropLoading";
 import PageTransition from "../components/PageTransition";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { useThemeContext } from "../context/DarkMode";
+import { CallsProvider } from "../context/Calls/CallsContext";
+import CallsOverlay from "../components/Calls/CallsOverlay";
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
@@ -205,37 +207,42 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen w-full bg-background overflow-hidden">
-        {/* Sidebar */}
-        <MainSidebar
-          collapsed={!drawerOpen}
-          onToggle={toggleDrawer}
-        />
-
-        {/* Main Content Area */}
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
-          <MainTopBar
-            user={user}
-            systemTitle={systemTitle}
-            frontendVersion={frontendVersion}
-            onOpenUserModal={() => setUserModalOpen(true)}
-            onLogout={handleLogout}
+      <CallsProvider>
+        <div className="flex h-screen w-full bg-background overflow-hidden">
+          {/* Sidebar */}
+          <MainSidebar
+            collapsed={!drawerOpen}
+            onToggle={toggleDrawer}
           />
 
-          <main className="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-background/50 relative">
-            <PageTransition>
-              {children}
-            </PageTransition>
-          </main>
-        </div>
+          {/* Main Content Area */}
+          <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
+            <MainTopBar
+              user={user}
+              systemTitle={systemTitle}
+              frontendVersion={frontendVersion}
+              onOpenUserModal={() => setUserModalOpen(true)}
+              onLogout={handleLogout}
+            />
 
-        {/* Modals */}
-        <UserModal
-          open={userModalOpen}
-          onClose={() => setUserModalOpen(false)}
-          userId={user?.id}
-        />
-      </div>
+            <main className="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-background/50 relative">
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </main>
+          </div>
+
+          {/* Modals */}
+          <UserModal
+            open={userModalOpen}
+            onClose={() => setUserModalOpen(false)}
+            userId={user?.id}
+          />
+
+          {/* Chamadas de voz: toque e tela da chamada, em qualquer página */}
+          <CallsOverlay />
+        </div>
+      </CallsProvider>
     </TooltipProvider>
   );
 };

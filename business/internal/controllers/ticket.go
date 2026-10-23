@@ -102,14 +102,13 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 	// isGroup=false → only individual tickets (explicit)
 	// isGroup absent → default to individual tickets (exclude groups from status-based tabs)
 	isGroup := c.Query("isGroup")
-	if isGroup == "true" {
+	switch isGroup {
+	case "true":
 		query = query.Where("\"Tickets\".\"isGroup\" = ?", true)
 		// Groups are informal chats — status filter doesn't apply.
 		query = query.Where("status IS NOT NULL") // no-op but keeps query uniform
-	} else if isGroup == "false" {
-		query = query.Where("\"Tickets\".\"isGroup\" = ?", false)
-	} else {
-		// Default: exclude groups so status-based tabs never mix individual and group tickets.
+	default:
+		// "false" or absent: exclude groups so status-based tabs never mix individual and group tickets.
 		query = query.Where("\"Tickets\".\"isGroup\" = ?", false)
 	}
 
@@ -213,5 +212,55 @@ func (tc *TicketController) ShowTicket(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, ticket)
+	// Resolve a política de resposta baseada nas capacidades do canal (D2 / ADR 0033)
+	policy := resolveTicketReplyPolicy(db, &ticket)
+
+	var resp map[string]interface{}
+	ticketBytes, _ := json.Marshal(ticket)
+	_ = json.Unmarshal(ticketBytes, &resp)
+	resp["replyPolicy"] = policy
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// resolveTicketReplyPolicy calcula se o operador pode responder no ticket dado o canal e o histórico.
+func resolveTicketReplyPolicy(db *gorm.DB, ticket *models.Ticket) domain.ReplyPolicy {
+	now := time.Now()
+	// Default para canal WhatsApp
+	defaultWhatsAppCaps := domain.Capabilities{
+		InitiateConversation: true,
+		MaxTextBytes:         65535,
+		Groups:               true,
+		Auth:                 domain.AuthKindQR,
+		HasPhone:             true,
+	}
+
+	if ticket.ChannelConnectionID == nil {
+		return domain.EvaluateReplyPolicy(defaultWhatsAppCaps, nil, nil, now)
+	}
+
+	var conn models.ChannelConnection
+	if err := db.Session(&gorm.Session{NewDB: true}).Where("id = ?", *ticket.ChannelConnectionID).First(&conn).Error; err != nil {
+		return domain.EvaluateReplyPolicy(defaultWhatsAppCaps, nil, nil, now)
+	}
+
+	channelAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind))
+	var caps domain.Capabilities
+	if err != nil {
+		caps = defaultWhatsAppCaps
+	} else {
+		caps = channelAdapter.Capabilities()
+	}
+
+	// Busca o timestamp da última mensagem recebida do cliente
+	var lastInboundMsg models.Message
+	var lastInboundAt *time.Time
+	if err := db.Session(&gorm.Session{NewDB: true}).
+		Where(`"ticketId" = ? AND "fromMe" = ?`, ticket.ID, false).
+		Order(`"createdAt" desc`).
+		First(&lastInboundMsg).Error; err == nil && !lastInboundMsg.CreatedAt.IsZero() {
+		lastInboundAt = &lastInboundMsg.CreatedAt
+	}
+
+	return domain.EvaluateReplyPolicy(caps, &conn, lastInboundAt, now)
 }

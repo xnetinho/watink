@@ -50,7 +50,7 @@ func (r *fakeSchedulerRedis) Ping(context.Context) error                        
 func (r *fakeSchedulerRedis) Get(context.Context, string) (string, error)        { return "", nil }
 
 func TestCronScheduler_RejectsDuplicateName(t *testing.T) {
-	s := newCronScheduler(nil)
+	s := newCronScheduler(nil, nil)
 	if err := s.register("job-a", time.Hour, func(ctx context.Context) error { return nil }); err != nil {
 		t.Fatalf("first register should succeed: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestCronScheduler_RejectsDuplicateName(t *testing.T) {
 }
 
 func TestCronScheduler_RunOnce_WithoutRedis_AlwaysRuns(t *testing.T) {
-	s := newCronScheduler(nil)
+	s := newCronScheduler(nil, nil)
 	var calls int32
 	s.runOnce("no-redis-job", time.Second, func(ctx context.Context) error {
 		atomic.AddInt32(&calls, 1)
@@ -77,7 +77,7 @@ func TestCronScheduler_RunOnce_WithoutRedis_AlwaysRuns(t *testing.T) {
 
 func TestCronScheduler_RunOnce_WithRedis_LeaderLockPreventsDoubleRun(t *testing.T) {
 	redis := newFakeSchedulerRedis()
-	s := newCronScheduler(redis)
+	s := newCronScheduler(redis, nil)
 	var calls int32
 	fn := func(ctx context.Context) error {
 		atomic.AddInt32(&calls, 1)
@@ -95,7 +95,7 @@ func TestCronScheduler_RunOnce_WithRedis_LeaderLockPreventsDoubleRun(t *testing.
 func TestCronScheduler_RunOnce_LockErrorSkipsRun(t *testing.T) {
 	redis := newFakeSchedulerRedis()
 	redis.failAll = true
-	s := newCronScheduler(redis)
+	s := newCronScheduler(redis, nil)
 	var calls int32
 	s.runOnce("job", time.Minute, func(ctx context.Context) error {
 		atomic.AddInt32(&calls, 1)

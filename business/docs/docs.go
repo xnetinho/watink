@@ -782,6 +782,588 @@ const docTemplate = `{
                 }
             }
         },
+        "/calls": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista as chamadas da empresa (ou só as de tickets visíveis ao usuário, sem alcance de empresa).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Histórico de chamadas",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ringing|active|ended|missed|rejected|failed|interrupted",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "incoming|outgoing",
+                        "name": "direction",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filtrar por ticket",
+                        "name": "ticketId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Página",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Itens por página (máx. 100)",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Inicia uma chamada de voz 1:1 para o contato de um ticket individual, pela conexão do ticket.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Efetuar chamada de voz",
+                "parameters": [
+                    {
+                        "description": "Ticket",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.placeCallRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/pause": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Avisa o servidor que este operador pausou o toque, para ele não contar como elegível.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Pausar ou retomar o recebimento de chamadas",
+                "parameters": [
+                    {
+                        "description": "Estado",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.pauseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/calls/recording-config": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Configuração de gravação de chamadas",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/calls.RecordingConfig"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sair de \"off\" exige ack=true (aceite do termo); o aceite grava usuário e horário.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Alterar o modo de gravação de chamadas",
+                "parameters": [
+                    {
+                        "description": "Modo e aceite",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.recordingConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/calls.RecordingConfig"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Detalhe de uma chamada",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.CallLog"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/accept": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Atender chamada",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.CallLog"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/audio": {
+            "get": {
+                "description": "Abre o canal de áudio PCM 16 kHz mono Int16 (quadros de 640 bytes) do operador que assumiu a chamada. Auth por token na query, como o SSE.",
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Áudio da chamada (WebSocket)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "JWT",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/calls/{id}/end": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Encerrar chamada",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/recording": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devolve uma URL assinada e temporária e registra quem ouviu. Fora do alcance do usuário responde 404.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Ouvir a gravação",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Excluir a gravação",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/recording/start": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Iniciar gravação da chamada (modo opcional)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/calls/{id}/recording/stop": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Parar a gravação da chamada (modo opcional)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/calls/{id}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "calls"
+                ],
+                "summary": "Recusar chamada",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da chamada",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/cargos": {
             "get": {
                 "security": [
@@ -1840,7 +2422,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Busca a foto de perfil atualizada do contato. Para conexões izapia, roda de forma síncrona e responde 200; para engine-go, publica a mensagem assíncrona via AMQP e responde 202.",
+                "description": "Busca a foto de perfil atualizada do contato; publica a mensagem assíncrona via AMQP e responde 202.",
                 "produces": [
                     "application/json"
                 ],
@@ -1858,15 +2440,6 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
                     "202": {
                         "description": "Accepted",
                         "schema": {
@@ -2162,7 +2735,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Extra rooms (csv): chat:{id}, tickets:{status}, notification, helpdesk-kanban",
+                        "description": "Extra rooms (csv), filtradas por lista permitida: chat:{id} (ticket visível ao usuário), tickets:{open|pending|closed}, notification, helpdesk-kanban",
                         "name": "rooms",
                         "in": "query"
                     }
@@ -2606,26 +3179,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/internal/plugin-manager/instance-stats": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "internal-plugin-manager"
-                ],
-                "summary": "Uso agregado da instância (plugin-manager)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/internal/saas/instance/policy": {
             "put": {
                 "consumes": [
@@ -2976,56 +3529,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
-                        }
-                    }
-                }
-            }
-        },
-        "/izapia-config": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "izapia"
-                ],
-                "summary": "Consultar credencial izapia do tenant",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.izapiaConfigResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Só recebe a API key — a base URL é sempre api.izapia.com.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "izapia"
-                ],
-                "summary": "Salvar a API key izapia do tenant",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.izapiaConfigResponse"
                         }
                     }
                 }
@@ -3991,109 +4494,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/plugins/cart/checkout": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Resolve vários plugins pro (cada um com seu ciclo) e devolve UMA URL de redirect pro Checkout Pro pela soma — a licença de cada item só nasce quando o webhook confirma o pagamento.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Iniciar checkout de carrinho via Cartão",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CartCheckoutResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/cart/checkout/pix": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Equivalente Pix de POST /plugins/cart/checkout — devolve UM QR code/copia-e-cola pela soma dos itens pagos.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Iniciar checkout de carrinho via Pix",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CartCheckoutResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/catalog": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Proxy para GET /api/v1/plugins/catalog do plugin-manager (que proxeia o Hub). Fail-safe: em erro ou proxy ausente, responde 200 com {offline:true, plugins:[]}.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Catálogo de plugins",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CatalogResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/checkout": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Endpoint legado -- superado por POST /plugins/:slug/activate.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Ativar/instalar plugin (legado)",
-                "responses": {
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/plugins/installed": {
             "get": {
                 "security": [
@@ -4107,38 +4507,13 @@ const docTemplate = `{
                 "tags": [
                     "plugins"
                 ],
-                "summary": "Plugins instalados",
+                "summary": "Plugins ativos da empresa",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/instance": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Proxy para GET /api/v1/plugins/instance do plugin-manager. Fail-safe: em erro ou proxy ausente, responde 200 com {\"instanceId\":\"\"}.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "ID da instância",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.InstanceResponse"
                         }
                     }
                 }
@@ -4151,7 +4526,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Ativa/aloca um plugin para o tenant atual. 402 se sem licença válida (dispara checkout best-effort junto ao Hub via plugin-manager) ou se o teto de tenants foi atingido.",
+                "description": "Ativa/aloca um plugin embarcado para a empresa atual.",
                 "produces": [
                     "application/json"
                 ],
@@ -4165,63 +4540,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    },
-                    "402": {
-                        "description": "plugin_unlicensed (com checkoutRequested indicando se o pedido de licença foi disparado) ou plugin_tenant_cap_reached",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/{slug}/checkout": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Cria (ou reaproveita, idempotente) um pedido de compra pending para o ciclo (ou pagamento único) escolhido do plugin ` + "`" + `pro` + "`" + ` indicado e devolve a URL de redirect pro Checkout Pro do Mercado Pago — a licença só nasce quando o webhook confirma o pagamento.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Iniciar checkout de plugin pro via Cartão (Checkout Pro — pagamento real)",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CheckoutOrderResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/plugins/{slug}/checkout/pix": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Cria (ou reaproveita, idempotente) um pedido de compra pending para o ciclo (ou pagamento único) escolhido do plugin ` + "`" + `pro` + "`" + ` indicado e devolve o QR code/copia-e-cola — a licença só nasce quando o webhook confirma o pagamento (Pix não confirma na hora).",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plugins"
-                ],
-                "summary": "Iniciar checkout de plugin pro via Pix",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pluginlicense.CheckoutPixResponse"
                         }
                     }
                 }
@@ -5681,7 +5999,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devolve as configurações do tenant. Valores secretos (chaves de API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais recebem um placeholder.",
+                "description": "Devolve as configurações do tenant. Valores sigilosos (chaves de API, tokens, senhas) só vêm em claro para quem tem settings:update; os demais recebem um placeholder.",
                 "produces": [
                     "application/json"
                 ],
@@ -6697,9 +7015,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/webhooks/izapia/{sessionId}": {
+        "/webhooks/channels/{kind}/{connectionId}": {
             "post": {
-                "description": "Recebe eventos de mensagem/status da sessão izapia. Autenticado por assinatura HMAC (X-izapia-Signature), não por JWT.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6707,14 +7024,21 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "izapia"
+                    "channels"
                 ],
-                "summary": "Webhook izapia (inbound)",
+                "summary": "Receber webhook de canal",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Tipo do canal (telegram, mercadolivre, instagram, etc.)",
+                        "name": "kind",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "type": "integer",
-                        "description": "ID da conexão (Whatsapps.id)",
-                        "name": "sessionId",
+                        "description": "ID da ChannelConnection",
+                        "name": "connectionId",
                         "in": "path",
                         "required": true
                     }
@@ -6725,6 +7049,24 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -7127,6 +7469,24 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "calls.RecordingConfig": {
+            "type": "object",
+            "properties": {
+                "ackAt": {
+                    "type": "string"
+                },
+                "ackBy": {
+                    "type": "integer"
+                },
+                "available": {
+                    "description": "Available é falso quando a instalação não tem armazenamento de objetos: as\nopções de gravação não são oferecidas.",
+                    "type": "boolean"
+                },
+                "mode": {
+                    "type": "string"
+                }
+            }
+        },
         "controllers.ActivitySLAConfig": {
             "type": "object",
             "properties": {
@@ -7354,14 +7714,37 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.izapiaConfigResponse": {
+        "controllers.pauseRequest": {
             "type": "object",
             "properties": {
-                "baseUrl": {
-                    "type": "string"
-                },
-                "hasApiKey": {
+                "paused": {
                     "type": "boolean"
+                }
+            }
+        },
+        "controllers.placeCallRequest": {
+            "type": "object",
+            "required": [
+                "ticketId"
+            ],
+            "properties": {
+                "ticketId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "controllers.recordingConfigRequest": {
+            "type": "object",
+            "required": [
+                "mode"
+            ],
+            "properties": {
+                "ack": {
+                    "description": "Ack confirma que o administrador leu e aceitou o termo de responsabilidade.",
+                    "type": "boolean"
+                },
+                "mode": {
+                    "type": "string"
                 }
             }
         },
@@ -7610,6 +7993,98 @@ const docTemplate = `{
                 }
             }
         },
+        "models.CallLog": {
+            "type": "object",
+            "properties": {
+                "answeredAt": {
+                    "type": "string"
+                },
+                "callId": {
+                    "type": "string"
+                },
+                "callerPn": {
+                    "type": "string"
+                },
+                "contactId": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "direction": {
+                    "description": "Direction: incoming | outgoing.",
+                    "type": "string"
+                },
+                "durationSec": {
+                    "type": "integer"
+                },
+                "endReason": {
+                    "description": "EndReason: user_ended | declined | timeout | busy | cancelled | failed |\nno_operator | proxy_blocked | unsupported_type | accepted_elsewhere | interrupted.",
+                    "type": "string"
+                },
+                "endedAt": {
+                    "type": "string"
+                },
+                "handledByUserId": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "jitterAvg": {
+                    "type": "number"
+                },
+                "jitterMax": {
+                    "type": "number"
+                },
+                "lossAvg": {
+                    "type": "number"
+                },
+                "lossMax": {
+                    "type": "number"
+                },
+                "media": {
+                    "description": "Media: audio | video. Ausente (registros anteriores ao vídeo) vale audio.",
+                    "type": "string"
+                },
+                "mosEstimated": {
+                    "type": "number"
+                },
+                "peerJid": {
+                    "description": "PeerJid/CallerPn identificam o chamador mesmo quando ainda não há contato.",
+                    "type": "string"
+                },
+                "recordingDurationSec": {
+                    "type": "integer"
+                },
+                "recordingStatus": {
+                    "type": "string"
+                },
+                "rttAvg": {
+                    "description": "Resumo agregado de qualidade (não guarda a série temporal). O índice é uma\nESTIMATIVA (modelo E simplificado) e a perda só cobre contato→operador.",
+                    "type": "number"
+                },
+                "rttMax": {
+                    "type": "number"
+                },
+                "startedAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Status: ringing | active | ended | missed | rejected | failed | interrupted.",
+                    "type": "string"
+                },
+                "ticketId": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "whatsappId": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Cargo": {
             "type": "object",
             "properties": {
@@ -7636,6 +8111,60 @@ const docTemplate = `{
                 },
                 "tenantId": {
                     "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ChannelConnection": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "farewellMessage": {
+                    "type": "string"
+                },
+                "greetingMessage": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "isDefault": {
+                    "type": "boolean"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "lastError": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "queues": {
+                    "description": "Relations",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Queue"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tenantId": {
+                    "type": "string"
+                },
+                "tickets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Ticket"
+                    }
                 },
                 "updatedAt": {
                     "type": "string"
@@ -7773,6 +8302,12 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "identities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ContactIdentity"
+                    }
+                },
                 "isGroup": {
                     "type": "boolean"
                 },
@@ -7783,6 +8318,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "number": {
+                    "description": "number e lid são únicos POR TENANT (idx_contacts_tenant_number e\nidx_contacts_tenant_lid, criados em database.addCustomIndexes). O unique\nglobal antigo (uni_Contacts_number/uni_Contacts_lid) impedia dois tenants\nde terem o mesmo contato e transformava a duplicata em erro 500.",
                     "type": "string"
                 },
                 "profilePicUrl": {
@@ -7806,6 +8342,49 @@ const docTemplate = `{
                 },
                 "walletUserId": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.ContactIdentity": {
+            "type": "object",
+            "properties": {
+                "avatarUrl": {
+                    "type": "string"
+                },
+                "channel": {
+                    "type": "string"
+                },
+                "contact": {
+                    "description": "Relations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Contact"
+                        }
+                    ]
+                },
+                "contactId": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "externalId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "meta": {
+                    "type": "string"
+                },
+                "tenantId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
                 }
             }
         },
@@ -7878,6 +8457,14 @@ const docTemplate = `{
                 },
                 "participant": {
                     "type": "string"
+                },
+                "quotedMsg": {
+                    "description": "QuotedMsg é a mensagem citada, preenchida só na listagem (GET /messages/:ticketId) para o\nbalão mostrar \"em resposta a…\". Não é coluna.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Message"
+                        }
+                    ]
                 },
                 "quotedMsgId": {
                     "type": "string"
@@ -8022,6 +8609,12 @@ const docTemplate = `{
         "models.Queue": {
             "type": "object",
             "properties": {
+                "channelConnections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ChannelConnection"
+                    }
+                },
                 "color": {
                     "description": "Color é cosmético — NÃO é único (o unique global antigo uni_Queues_color\nimpedia dois tenants de usarem a mesma cor). Dropado na migração.",
                     "type": "string"
@@ -8164,6 +8757,12 @@ const docTemplate = `{
         "models.Ticket": {
             "type": "object",
             "properties": {
+                "channelConnection": {
+                    "$ref": "#/definitions/models.ChannelConnection"
+                },
+                "channelConnectionId": {
+                    "type": "integer"
+                },
                 "contact": {
                     "description": "Relations",
                     "allOf": [
@@ -8174,6 +8773,9 @@ const docTemplate = `{
                 },
                 "contactId": {
                     "type": "integer"
+                },
+                "conversationKey": {
+                    "type": "string"
                 },
                 "createdAt": {
                     "type": "string"
@@ -8317,10 +8919,6 @@ const docTemplate = `{
                 "isDefault": {
                     "type": "boolean"
                 },
-                "izapiaSessionId": {
-                    "description": "IzapiaSessionID is the session id assigned by the izapia API (distinct from\nthis row's own ID). Only set when EngineType == \"izapia\".",
-                    "type": "string"
-                },
                 "keepAlive": {
                     "type": "boolean"
                 },
@@ -8366,6 +8964,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "queues": {
+                    "description": "Relations\nTickets não é associação: tickets de canais sem WhatsApp têm whatsappId = 0,\ne a FK gerada por esta has-many bloqueava o inbound de canal (ADR 0033).",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.Queue"
@@ -8389,187 +8988,11 @@ const docTemplate = `{
                 "tenantId": {
                     "type": "string"
                 },
-                "tickets": {
-                    "description": "Relations",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Ticket"
-                    }
-                },
                 "updatedAt": {
                     "type": "string"
                 },
                 "wid": {
                     "type": "string"
-                }
-            }
-        },
-        "pluginlicense.CartCheckoutResponse": {
-            "type": "object",
-            "properties": {
-                "allTrial": {
-                    "type": "boolean"
-                },
-                "amountCents": {
-                    "type": "integer"
-                },
-                "cartId": {
-                    "type": "string"
-                },
-                "checkoutUrl": {
-                    "type": "string"
-                },
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pluginlicense.CartItemResult"
-                    }
-                },
-                "qrCode": {
-                    "type": "string"
-                },
-                "qrCodeBase64": {
-                    "type": "string"
-                }
-            }
-        },
-        "pluginlicense.CartItemResult": {
-            "type": "object",
-            "properties": {
-                "amountCents": {
-                    "type": "integer"
-                },
-                "cycle": {
-                    "type": "string"
-                },
-                "pluginSlug": {
-                    "type": "string"
-                },
-                "trial": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "pluginlicense.CatalogPlugin": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "iconUrl": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "longDescription": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "number"
-                },
-                "pricingCycles": {
-                    "description": "PricingCycles são os ciclos de recorrência cadastrados no Hub (mensal,\nanual, o que o dono cadastrar) — o frontend usa isto pra deixar o\ncliente escolher o ciclo antes de chamar Checkout(Card|Pix). Vazio\npara plugin free.",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pluginlicense.PricingCycleEntry"
-                    }
-                },
-                "screenshots": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "singlePaymentEnabled": {
-                    "description": "SinglePaymentEnabled indica se o cliente pode comprar este plugin com\npagamento único (licença perpétua, Price) além de/ao invés dos\nPricingCycles — as duas opções podem coexistir; o cliente escolhe no\ncheckout (cycle=\"\" para pagamento único).",
-                    "type": "boolean"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "taxRatePercent": {
-                    "description": "TaxRatePercent é a taxa global de imposto (ex.: 8) exibida sobre o\npreço no Marketplace — mesma taxa para todo plugin, vem do Hub via\nplugin-manager (HubPlugin.TaxRatePercent).",
-                    "type": "integer"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "version": {
-                    "type": "string"
-                }
-            }
-        },
-        "pluginlicense.CatalogResponse": {
-            "type": "object",
-            "properties": {
-                "offline": {
-                    "type": "boolean"
-                },
-                "plugins": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pluginlicense.CatalogPlugin"
-                    }
-                }
-            }
-        },
-        "pluginlicense.CheckoutOrderResponse": {
-            "type": "object",
-            "properties": {
-                "amountCents": {
-                    "type": "integer"
-                },
-                "checkoutUrl": {
-                    "type": "string"
-                },
-                "orderId": {
-                    "type": "integer"
-                }
-            }
-        },
-        "pluginlicense.CheckoutPixResponse": {
-            "type": "object",
-            "properties": {
-                "amountCents": {
-                    "type": "integer"
-                },
-                "orderId": {
-                    "type": "integer"
-                },
-                "qrCode": {
-                    "type": "string"
-                },
-                "qrCodeBase64": {
-                    "type": "string"
-                }
-            }
-        },
-        "pluginlicense.InstanceResponse": {
-            "type": "object",
-            "properties": {
-                "instanceId": {
-                    "type": "string"
-                }
-            }
-        },
-        "pluginlicense.PricingCycleEntry": {
-            "type": "object",
-            "properties": {
-                "cycle": {
-                    "type": "string"
-                },
-                "periodDays": {
-                    "type": "integer"
-                },
-                "priceCents": {
-                    "type": "integer"
                 }
             }
         }

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/alltomatos/watinkdev/business/internal/application"
-	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/testutil"
 	"github.com/gin-gonic/gin"
@@ -38,7 +37,7 @@ func TestPutSettings_RealRouteDeniesUserWithoutSettingsUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	r := gin.New()
-	SetupRoutes(r.Group("/api/v1"), nil, application.NewContainer(db, nil, nil, nil), nil, controllers.BuildInfo{}, nil, nil, nil)
+	SetupRoutes(r.Group("/api/v1"), nil, application.NewContainer(db, nil, nil, nil), nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/settings/systemTitle", bytes.NewReader([]byte(`{"value":"Hackeado"}`)))
 	req.Header.Set("Content-Type", "application/json")

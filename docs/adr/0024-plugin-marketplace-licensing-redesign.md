@@ -1,5 +1,7 @@
 # Redesenho do sistema de plugins: de flag no banco para entitlement licenciado via Hub
 
+**Status:** Superado pelo [ADR 0035](0035-plugins-embarcados-sem-marketplace.md) (marketplace e licenciamento removidos em out/2026). O texto abaixo é o histórico do desenho anterior.
+
 O sistema de plugins do core era, na prática, um arcabouço vazio. A documentação prometia
 "validação de licença server-side é autoridade", mas o código não validava nada: `GetStatus()`
 retornava `StatusActive` hardcoded (`business/internal/plugins/manager.go:28`), os endpoints

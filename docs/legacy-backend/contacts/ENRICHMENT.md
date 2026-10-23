@@ -1,3 +1,6 @@
+> **Documento histórico.** Descreve o backend Node/Sequelize, que **não existe mais neste repositório** (substituído pelo `business`, em Go). Mantido só como
+> referência da migração (ADR 0004). Não use como fonte de verdade: veja `CLAUDE.md` e `docs/agents/`.
+
 # Enriquecimento de Contatos
 
 Processo automático para completar informações de contatos (LID vs Telefone).

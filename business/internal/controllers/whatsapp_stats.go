@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
+	"github.com/alltomatos/watinkdev/business/pkg/engineaddr"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -17,7 +17,7 @@ import (
 // Returns -1 when the engine URL is not configured or unreachable, so the
 // frontend can render "—" instead of a fake number.
 func engineLatencyMs() int {
-	url := os.Getenv("ENGINE_HEALTH_URL")
+	url := engineaddr.HealthURL()
 	if url == "" {
 		return -1
 	}

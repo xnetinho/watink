@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { Puzzle, Loader2 } from "lucide-react";
 
 import { AuthContext } from "../../context/Auth/AuthContext";
-import { Can } from "../../components/Can";
+import { Can, check } from "../../components/Can";
 import { Button } from "../../components/ui/button";
 import {
   PageContainer,
@@ -16,7 +16,6 @@ import StorageSection from "./components/StorageSection";
 import SaaSModeSection from "./components/SaaSModeSection";
 import AboutSection from "./components/AboutSection";
 import ProxySection from "./components/ProxySection";
-import IzapiaSection from "./components/IzapiaSection";
 import AddressLookupSettings from "./components/AddressLookupSettings";
 
 import { useSettings } from "./hooks/useSettings";
@@ -26,6 +25,7 @@ import PersonalizationSection from "./components/PersonalizationSection";
 import HelpdeskSection from "./components/HelpdeskSection";
 import ActivitiesSection from "./components/ActivitiesSection";
 import AiGatewaysSection from "./components/AiGatewaysSection";
+import CallsSection from "./components/CallsSection";
 import SettingsSideNav from "./components/SettingsSideNav";
 
 const Settings: React.FC = () => {
@@ -50,6 +50,7 @@ const Settings: React.FC = () => {
 
   const sharedProps = { getSettingValue, handleUpdateSetting };
   const isSuperAdmin = (user as unknown as { alcance?: string })?.alcance === "plataforma";
+  const canManageCalls = check(user, "calls:manage");
 
   return (
     <PageContainer>
@@ -59,9 +60,9 @@ const Settings: React.FC = () => {
             user={user}
             perform="settings:update"
             yes={() => (
-              <Button variant="ghost" onClick={() => navigate("/admin/settings/marketplace")}>
+              <Button variant="ghost" onClick={() => navigate("/admin/settings/plugins")}>
                 <Puzzle className="mr-2 h-4 w-4" />
-                Marketplace de Plugins
+                Plugins
               </Button>
             )}
           />
@@ -74,6 +75,7 @@ const Settings: React.FC = () => {
           activePlugins={activePlugins}
           onSelect={setActiveSection}
           isSuperAdmin={isSuperAdmin}
+          canManageCalls={canManageCalls}
         />
 
         <div className="flex-1 min-w-0 w-full">
@@ -107,6 +109,7 @@ const Settings: React.FC = () => {
               {activeSection === "activities" && (
                 <ActivitiesSection />
               )}
+              {activeSection === "calls" && canManageCalls && <CallsSection />}
               {activeSection === "ai" && (
                 <AISettings {...sharedProps} />
               )}
@@ -118,9 +121,6 @@ const Settings: React.FC = () => {
               )}
               {activeSection === "proxy" && (
                 <ProxySection />
-              )}
-              {activeSection === "izapia" && (
-                <IzapiaSection />
               )}
               {activeSection === "storage" && isSuperAdmin && (
                 <StorageSection />

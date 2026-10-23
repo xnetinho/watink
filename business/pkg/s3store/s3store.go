@@ -134,5 +134,14 @@ func (s *Store) PresignedGetURL(ctx context.Context, key string, ttl time.Durati
 	return u.String(), nil
 }
 
+// Delete removes the object at key. Removing a key that does not exist is not an
+// error (S3 semantics), so deleting twice is safe.
+func (s *Store) Delete(ctx context.Context, key string) error {
+	if err := s.client.RemoveObject(ctx, s.bucket, key, minio.RemoveObjectOptions{}); err != nil {
+		return fmt.Errorf("s3store: delete %q: %w", key, err)
+	}
+	return nil
+}
+
 // Bucket returns the configured bucket name.
 func (s *Store) Bucket() string { return s.bucket }

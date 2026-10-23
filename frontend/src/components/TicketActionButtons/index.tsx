@@ -9,6 +9,7 @@ import api from "../../services/api";
 import TicketOptionsMenu from "../TicketOptionsMenu";
 import TicketQuickShortcuts from "../TicketQuickShortcuts";
 import ButtonWithSpinner from "../ButtonWithSpinner";
+import PlaceCallButton from "../Calls/PlaceCallButton";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 
@@ -21,6 +22,8 @@ interface Ticket {
   id: number;
   status: "open" | "closed" | "pending";
   isGroup?: boolean;
+  isCommunity?: boolean;
+  isSubGroup?: boolean;
   whatsappId?: number;
   contact: {
     name: string;
@@ -74,6 +77,8 @@ const TicketActionButtons: React.FC<TicketActionButtonsProps> = ({ ticket, onTog
 
   return (
     <div className="ml-auto mr-1.5 flex flex-none items-center gap-1 self-center">
+      <PlaceCallButton ticket={ticket} />
+
       {ticket.status === "closed" && (
         <ButtonWithSpinner
           loading={loading}

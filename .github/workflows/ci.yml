@@ -20,6 +20,9 @@ env:
   DB_NAME: watink
   JWT_SECRET: test-jwt-secret
   JWT_REFRESH_SECRET: test-jwt-refresh-secret
+  # Os testes de RLS (pkg/tenantdb, internal/database) criam papéis e bancos descartáveis e precisam de um superusuário.
+  # Sem esta variável eles são PULADOS e o CI não provaria o isolamento (ADR 0034).
+  TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/watink?sslmode=disable
 
 jobs:
   build-backend:
@@ -135,6 +138,10 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Build não publica mapas de fonte
+        working-directory: frontend
+        run: npx vitest run src/buildSourcemap.test.ts build-sourcemap.build.test.mjs
+
   build-engine-go:
     runs-on: ubuntu-latest
     steps:
@@ -210,14 +217,29 @@ jobs:
       - name: Install Python deps
         run: pip install requests
 
+      # RLS (ADR 0034): o servidor não migra mais no boot e roda com papéis restritos. O job `migrate` roda antes, como
+      # administrador, cria os papéis watink_app/watink_system/watink_engine, o esquema e as políticas.
+      - name: Migrate database
+        working-directory: business
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: watink
+          DB_ADMIN_USER: postgres
+          DB_ADMIN_PASS: postgres
+          DB_APP_PASS: ci-app-pass
+          DB_SYSTEM_PASS: ci-system-pass
+          DB_ENGINE_PASS: ci-engine-pass
+        run: go run cmd/server/main.go migrate
+
       - name: Start backend
         working-directory: business
         env:
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASS: postgres
           DB_NAME: watink
+          DB_APP_PASS: ci-app-pass
+          DB_SYSTEM_PASS: ci-system-pass
           JWT_SECRET: test-jwt-secret
           JWT_REFRESH_SECRET: test-jwt-refresh-secret
           APP_ENV: test
@@ -350,14 +372,29 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
+      # RLS (ADR 0034): o servidor não migra mais no boot e roda com papéis restritos. O job `migrate` roda antes, como
+      # administrador, cria os papéis watink_app/watink_system/watink_engine, o esquema e as políticas.
+      - name: Migrate database
+        working-directory: business
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: watink
+          DB_ADMIN_USER: postgres
+          DB_ADMIN_PASS: postgres
+          DB_APP_PASS: ci-app-pass
+          DB_SYSTEM_PASS: ci-system-pass
+          DB_ENGINE_PASS: ci-engine-pass
+        run: go run cmd/server/main.go migrate
+
       - name: Start backend
         working-directory: business
         env:
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASS: postgres
           DB_NAME: watink
+          DB_APP_PASS: ci-app-pass
+          DB_SYSTEM_PASS: ci-system-pass
           JWT_SECRET: test-jwt-secret
           JWT_REFRESH_SECRET: test-jwt-refresh-secret
           APP_ENV: test

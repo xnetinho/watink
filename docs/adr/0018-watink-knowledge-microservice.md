@@ -1,6 +1,6 @@
 # ADR 0018 — Microsserviço `watink-knowledge` (RAG) e fronteira de confiança interna
 
-**Status:** Accepted  
+**Status:** Superseded by [ADR 0028](0028-rag-nativo-go.md) (o microsserviço Python foi descomissionado e removido; mantido como histórico)  
 **Data:** 2026-06-28
 
 ## Contexto

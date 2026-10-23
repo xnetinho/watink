@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"net/http"
 	"strconv"
@@ -105,7 +106,14 @@ func (c *coreImpl) RegisterRoute(method string, path string, handler gin.Handler
 // RegisterPublicRoute mounts an unauthenticated route on publicRouter — no
 // license gating, no tenant resolved yet (see sdk.WatinkCore doc).
 func (c *coreImpl) RegisterPublicRoute(method string, path string, handler gin.HandlerFunc) {
-	c.publicRouter.Handle(method, path, handler)
+	c.publicRouter.Handle(method, path, func(ctx *gin.Context) {
+		// Rota pública: a empresa só é descoberta dentro do handler (ex.: pelo widget). Roda no escopo de sistema do
+		// banco (RLS, ADR 0034), restrito a rotas sem token.
+		sctx, done := tenantdb.SystemCtx(ctx.Request.Context(), c.db)
+		defer done()
+		ctx.Request = ctx.Request.WithContext(sctx)
+		handler(ctx)
+	})
 }
 
 // EmitSocketEvent delivers a real-time event via the injected Broadcaster
@@ -360,9 +368,11 @@ func NewPluginManager(db *gorm.DB, router *gin.RouterGroup) *PluginManager {
 // multi-node leader-lock (ADR 0027) — nil keeps RegisterCron/Subscribe
 // fail-closed with an error rather than silently no-op.
 func NewPluginManagerWithRegistry(db *gorm.DB, router *gin.RouterGroup, publicRouter *gin.RouterGroup, registry *PluginRegistry, broadcaster domain.Broadcaster, rabbit domain.CommandPublisher, redis domain.RedisService) *PluginManager {
+	// Os eventos de domínio entregam a cada assinante um ctx com o escopo da empresa do evento (RLS, ADR 0034).
+	SetEventBusDB(db)
 	var scheduler *cronScheduler
 	if redis != nil {
-		scheduler = newCronScheduler(redis)
+		scheduler = newCronScheduler(redis, db)
 	}
 	return &PluginManager{
 		plugins: make(map[string]sdk.WatinkPlugin),

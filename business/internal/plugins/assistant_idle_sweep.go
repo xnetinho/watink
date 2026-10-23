@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"encoding/json"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"slices"
 	"strings"
@@ -59,6 +60,10 @@ func sweepIdleDeals(ctx context.Context, core sdk.WatinkCore, db *gorm.DB) error
 }
 
 func sweepIdleDealsForAssistant(ctx context.Context, core sdk.WatinkCore, db *gorm.DB, a models.Assistant, cfg models.AssistantPipelineConfig) {
+	// A varredura de assistentes roda no escopo de sistema; o trabalho de cada assistente roda no escopo da empresa dele
+	// (RLS, ADR 0034).
+	ctx, done := tenantdb.TenantCtx(ctx, db, a.TenantID)
+	defer done()
 	cutoff := time.Now().AddDate(0, 0, -cfg.IdleThresholdDays)
 
 	var deals []models.Deal
@@ -76,7 +81,7 @@ func sweepIdleDealsForAssistant(ctx context.Context, core sdk.WatinkCore, db *go
 		if deal.TicketID == nil {
 			continue
 		}
-		sent, err := markProactiveSent(db, a.TenantID, a.ID, deal.ID, "idle")
+		sent, err := markProactiveSent(ctx, db, a.TenantID, a.ID, deal.ID, "idle")
 		if err != nil {
 			log.Printf("[assistant] idle sweep: log de idempotência falhou (assistant %d deal %d): %v", a.ID, deal.ID, err)
 			continue
@@ -95,12 +100,12 @@ func sweepIdleDealsForAssistant(ctx context.Context, core sdk.WatinkCore, db *go
 // when this call performed the insert. A duplicate-key error means another
 // sweep (or a previous cycle) already sent it: reported as sent=false, not
 // an error, so the caller just skips silently.
-func markProactiveSent(db *gorm.DB, tenantID uuid.UUID, assistantID, dealID int, eventType string) (bool, error) {
+func markProactiveSent(ctx context.Context, db *gorm.DB, tenantID uuid.UUID, assistantID, dealID int, eventType string) (bool, error) {
 	row := models.AssistantProactiveLog{
 		TenantID: tenantID, AssistantID: assistantID, DealID: dealID,
 		EventType: eventType, SentAt: time.Now(),
 	}
-	err := db.Session(&gorm.Session{NewDB: true}).Create(&row).Error
+	err := db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).Create(&row).Error
 	if err == nil {
 		return true, nil
 	}

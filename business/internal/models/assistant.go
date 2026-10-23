@@ -52,7 +52,7 @@ type Assistant struct {
 
 	// AcceptsAudio: quando false (padrão), uma mensagem de áudio recebida
 	// gera uma resposta fixa avisando que o Assistant não entende áudio, sem
-	// tentar transcrever. Quando true, o áudio é baixado do engine-go/izapia,
+	// tentar transcrever. Quando true, o áudio é baixado do engine-go,
 	// convertido em texto via o AiGateway configurado (cfg.AiGatewayID) e
 	// vira a pergunta do turno — mesmo caminho de um texto normal.
 	AcceptsAudio bool `gorm:"column:acceptsAudio;default:false" json:"acceptsAudio"`

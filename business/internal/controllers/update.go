@@ -32,7 +32,7 @@ func GetLatestRelease(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"version": "-", "changelog": []string{}, "breaking": false})
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		c.JSON(http.StatusOK, gin.H{"version": "-", "changelog": []string{}, "breaking": false})
@@ -60,7 +60,7 @@ func GetLatestRelease(c *gin.Context) {
 		mResp, mErr := client.Get(a.BrowserDownloadURL)
 		if mErr != nil || mResp.StatusCode >= 400 {
 			if mResp != nil {
-				mResp.Body.Close()
+				_ = mResp.Body.Close()
 			}
 			break
 		}
@@ -88,7 +88,7 @@ func GetLatestRelease(c *gin.Context) {
 				result["changelog"] = lines
 			}
 		}
-		mResp.Body.Close()
+		_ = mResp.Body.Close()
 		break
 	}
 

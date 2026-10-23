@@ -2,6 +2,7 @@ package knowledge
 
 import (
 	"context"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"time"
 
@@ -65,7 +66,10 @@ func (r *Reconciler) tick() {
 		}
 	}
 
-	res := r.db.Exec(
+	// Varredura de todas as empresas: caso de sistema (RLS, ADR 0034).
+	sysCtx, done := tenantdb.SystemCtx(context.Background(), r.db)
+	defer done()
+	res := r.db.WithContext(sysCtx).Exec(
 		`UPDATE "KnowledgeBaseSources"
 		 SET status = 'error', "lastError" = 'timeout: ingestão não concluída a tempo'
 		 WHERE status IN ('pending', 'processing') AND "updatedAt" < ?`,

@@ -46,17 +46,10 @@ type Whatsapp struct {
 	LastRiskMessage string     `gorm:"column:lastRiskMessage" json:"lastRiskMessage"`
 	LastRiskAt      *time.Time `gorm:"column:lastRiskAt" json:"lastRiskAt"`
 
-	// IzapiaSessionID is the session id assigned by the izapia API (distinct from
-	// this row's own ID). Only set when EngineType == "izapia".
-	IzapiaSessionID *string `gorm:"column:izapiaSessionId" json:"izapiaSessionId"`
-	// IzapiaWebhookSecretEnc is the cryptobox-encrypted secret used to sign the
-	// izapia webhook payload for this session, generated on first StartSession.
-	// Never serialized.
-	IzapiaWebhookSecretEnc *string `gorm:"column:izapiaWebhookSecretEnc;type:text" json:"-"`
-
 	// Relations
-	Tickets []Ticket `gorm:"foreignKey:WhatsappID" json:"tickets,omitempty"`
-	Queues  []Queue  `gorm:"many2many:whatsapp_queues;" json:"queues,omitempty"`
+	// Tickets não é associação: tickets de canais sem WhatsApp têm whatsappId = 0,
+	// e a FK gerada por esta has-many bloqueava o inbound de canal (ADR 0033).
+	Queues []Queue `gorm:"many2many:whatsapp_queues;" json:"queues,omitempty"`
 }
 
 func (Whatsapp) TableName() string {

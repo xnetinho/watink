@@ -14,9 +14,8 @@ import (
 	"github.com/alltomatos/watinkdev/engine-go/internal/whatsapp"
 )
 
-// Error codes — subset of the izapia vocabulary reused for consistency
-// (engine-go/docs/groups-api.md "Envelope"), so the business-side enginego
-// provider and izapia provider stay code-mirrors of each other.
+// Error codes for the internal groups API. Keep these stable: the business
+// enginego provider maps them to typed HTTP errors.
 const (
 	CodeInvalidInput        = "INVALID_INPUT"
 	CodeNotFound            = "NOT_FOUND"
@@ -27,9 +26,7 @@ const (
 	CodeSessionNotConnected = "SESSION_NOT_CONNECTED"
 )
 
-// envelope is the canonical response shape — mirrors izapia's
-// {ok, data, error{code,message}} exactly (see groups-api.md "Envelope —
-// espelho do envelope da izapia").
+// envelope is the canonical response shape for the internal groups API.
 type envelope struct {
 	OK    bool         `json:"ok"`
 	Data  any          `json:"data,omitempty"`

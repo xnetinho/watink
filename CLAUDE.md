@@ -11,7 +11,7 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
                                                ↕ AMQP
                                           RabbitMQ ←── Engine Go (whatsmeow) → WhatsApp
                                                ↕
-                                   Plugin Manager · Marketplace Hub
+                          
 ```
 
 ## Status Atual (jun/2026)
@@ -58,14 +58,16 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
 | Conexões — Subsistema de proxy anti-ban (cripto-at-rest, import Webshare, grupos+rotação, geo cidade/país, teste/test-all, auto-isolação no ban, filtros) | ✅ Concluída (PRs #292-#296) |
 | Acessos (ADR 0022) — modelo Cargo/Setor/Alcance + `RequirePermission` fail-closed + anti-lockout | ✅ Concluída (PR #302) |
 | Onboarding — Wizard `POST /initial-setup` (Nome Fantasia) + Checklist derivado no Dashboard | ✅ Concluída (PR #303) |
-| Plugins — Redesenho Marketplace + Licenciamento via Hub (ADR 0024; Hub em `watink-ecosistema/hub`) | ✅ Concluída (auditado 2026-07-04) |
-| Plugins — Marketplace de terceiros (ADR 0025 + Hub ADR 0004; plano em `docs/agents/marketplace-terceiros.md`) | 🔧 Fase 0 implementada (2026-07-04) — pendente review/commit; Fase 1 não iniciada |
-| Plugins — Marketplace respeita instância gerida por Watink SaaS (ADR 0026; ADRs irmãos: Hub ADR 0005, watink-saas ADR 0008) | ✅ Concluída — `InstancePolicy`+rota, `marketplaceMode()` resolver, gates no `Activate` (ordem + 4 mensagens 402), reconciliação de desativação no downgrade ([alltomatos/watink#624](https://github.com/alltomatos/watink/pull/624), issues #618–#623) |
+| Plugins — Marketplace + Licenciamento via Hub (ADRs 0024 a 0026) | ⛔ Removido (ADR 0035): plugins embarcados ativados por empresa |
+| Plugins — Marketplace de terceiros (ADR 0025) | ⛔ Removido (ADR 0035) |
+| Plugins — Marketplace respeita instância gerida por Watink SaaS (ADR 0026) | ⛔ Removido (ADR 0035) |
 | Control plane Watink SaaS — API interna `/internal/saas/*` + enforcement (Onda 2 do watink-saas, `docs/integration-core.md`) | ✅ Concluída — Trilha A completa: rotas internas (A.1–A.2), `TenantStatusGate` com bypass de logout (A.3), `PlanLimitService.CheckLimit` real para users/connections/queues (A.4), tela "Conta suspensa" + toast de limite de plano (A.5) — [alltomatos/watink#625](https://github.com/alltomatos/watink/pull/625) |
 | Frontend — Redesign corporativo: paleta, componentes compartilhados (DataTable/EmptyState/ErrorState/FormField/notify), telas de referência | ✅ Concluída (PRs #507-#510) — rollout das ~25 páginas restantes é trabalho incremental futuro, ver [`docs/frontend/design-system.md`](docs/frontend/design-system.md) |
-| Plugins — Grupos e Comunidades (slug `groups`, `pro`): API interna de grupos no engine-go, providers `enginego`/`izapia`, plugin embarcado, frontend, catálogo do Hub (plano em `docs/agents/plugin-grupos-comunidades.md`) | ✅ Concluída (código+testes; issues #515-#524) — catálogo do Hub em `status: draft`, preço pendente de definição pelo dono antes de publicar |
+| Plugins — Grupos e Comunidades (slug `groups`, `pro`): API interna de grupos no engine-go, provider `enginego`, plugin embarcado, frontend, catálogo do Hub (plano em `docs/agents/plugin-grupos-comunidades.md`) | ✅ Concluída (código+testes; issues #515-#524) — catálogo do Hub em `status: draft`, preço pendente de definição pelo dono antes de publicar. Provider alternativo izapia removido (SaaS externo descontinuado, 2026-10) |
 | Plugins — Campanhas de Grupo (4ª aba do plugin Grupos, ADR 0030): modelos+scheduler+drain+captura de resposta no backend, editor+relatório completos no frontend | ✅ Concluída (código+testes contra Postgres real; issues #590-#602) — texto do aviso de risco na UI marcado como pendente de aval do dono do produto (issue #600); tipos Botões/Lista ainda não validados manualmente em grupo real |
 | Atividades (Ordens de Serviço) — entidade core (ADR 0029): model+migration+RBAC+backfill, SLA real (não placeholder como o Helpdesk), CRUD+execução+evidência S3+KPIs, listagem redesenhada + tela de gestão (lista/criar/editar/atribuir/checklist) | ✅ Fase 0 concluída (código+testes contra Postgres real+verificação manual no browser; issues #527-#537) — ✅ Fase 1 concluída (`sdk.WatinkCoreActivities` + Helpdesk cria Activity ao abrir Protocol; issues #538/#541/#542/#543) — Fase 2 (Pipeline/Deal) não iniciada |
+| Chamadas de voz do WhatsApp no navegador (ADR 0031): porte do WaCalls no engine, fila dedicada, WebSocket PCM, gravação MP3 no business, telemetria, permissões `calls:*` | ✅ Implementado, testado (engine `-race`, business contra Postgres/RabbitMQ reais, frontend vitest) e **validado ao vivo em chamadas reais com dois números (out/2026)**; 8 defeitos achados e corrigidos. **Sem prova ao vivo**: atender em outro aparelho, grupo, proxy, permissões com usuários reais, falhas de rede/UDP, carga; perguntas abertas (qualidade do áudio, ban após N chamadas, NAT estrito) |
+| Canais agnósticos de mensageria (ADR 0033, change `add-channel-abstraction`): modelo de dados neutro (`ContactIdentity`, `ChannelConnection`), interface agnóstica de canal, capacidades em dado, regras de resposta (`CanReply`) | 🔧 Em implementação (fases 1 a 5; plano em `docs/agents/channels.md`) |
 
 ## Services & Ports
 
@@ -74,10 +76,6 @@ Frontend (React/Vite) ←REST/SSE→ Backend Go (Gin/GORM) ←SQL→ PostgreSQL
 | Backend Go | `business/` | Go 1.24 / Gin / GORM | 8082 |
 | Engine Go | `engine-go/` | Go 1.24 / whatsmeow | — |
 | Frontend | `frontend/` | React 18 / Vite / TypeScript / shadcn+Tailwind v4 | 3000 |
-| Plugin Manager (proprietário) | repo privado `alltomatos/watink-plugin-manager` → imagem GHCR | Go / gorilla-mux | 8081 |
-| Marketplace Hub | `marketplace-hub/` | Node/Express | 8090 |
-| Backend Node (legacy) | `legacy/backend/` | Node/Express/Sequelize | 8080 |
-| Engine Node (legacy) | `legacy/engine-standard/` | Node/whaileys | — |
 
 ## Commands
 
@@ -138,6 +136,16 @@ SMOKE_BASE_URL=http://localhost:3000 SMOKE_EMAIL=admin@test.com SMOKE_PASS=test1
   - `docs/<tema>` — documentação
   - `hotfix/<tema>` — urgência em produção
 - **Merge flow**: `feat/*` → `develop` → `main`; `hotfix/*` → `main` → back-merge `develop`
+- **Verificação local ANTES do push** (portão 1, [`docs/dev/local-verification.md`](docs/dev/local-verification.md)): lint
+  completo com o **mesmo linter da CI** (`golangci-lint` v2.12.2, via `GOTOOLCHAIN=auto`), testes, build das imagens e stack
+  local (`docker-compose.local.yml`, projeto `lt`, segredos descartáveis de `.env.local`). Só sobe para o GitHub o que já
+  foi construído e exercitado; a CI do GitHub é o árbitro final do PR, não o primeiro lugar onde o código compila.
+- **Sem branch longa de teste.** `test/ghcr-images` (que publicava imagens a cada push) deixou 69 commits sem CI por 3
+  semanas e custou 58 achados de lint de uma vez. Branches de feature curtas e PRs pequenos; imagem `:test` só **sob
+  demanda** (`workflow_dispatch`).
+- **Validação humana por túnel Cloudflare** contra o stack local, com **número de WhatsApp exclusivo de teste** (nunca o de
+  produção: a sessão fica no Postgres do stack local). **Chamadas** (UDP do host do engine) só se validam de fato na
+  homologação: o stack local prova que funcionam, não a qualidade na rede real.
 - **PR checklist**: resumo técnico, risco/impacto, evidência de teste, plano de rollback
 
 ## Core Engineering Rules
@@ -189,14 +197,14 @@ MUI v4 **completamente removido** — `@material-ui/*` não é dependência do p
 
 - **NUNCA** commite `.env`, credenciais ou secrets.
 - PostgreSQL RLS + JWT `tenantId` — inclua sempre `tenantId` nas queries.
-- Plugin license validation é server-side no **Watink Hub** — token assinado Ed25519 verificado offline pelo `plugin-manager` local; `PluginInstallations.active` é só **alocação**, não autoridade de licença (ADR 0024). O `business` nunca fala com o Hub direto.
+- Plugins: sem licença nem marketplace (ADR 0035); `PluginInstallations.active` é a alocação por empresa e o único gate de runtime.
 
 ## Key Patterns
 
 - **Frontend config**: `src/config.ts` lê `import.meta.env` com fallback `window.ENV`.
 - **Engine sessions**: `.sessions_auth/` deve ser Docker volume — perder desconecta todas as sessões WhatsApp.
 - **Redis cache**: mensagens com TTL 24h em `wbot:msg:{jid}:{id}`.
-- **Plugin activation**: opt-in por tenant via Marketplace grava `PluginInstallations.active` (alocação); plugin `pro` exige licença válida do Hub (via `plugin-manager`, pull+cache ~60s) + teto de tenants. Ver [`docs/agents/plugins.md`](docs/agents/plugins.md) e ADR 0024.
+- **Plugin activation**: opt-in por empresa em Configurações > Plugins; grava `PluginInstallations.active` (alocação), único gate de runtime. Sem licença nem marketplace (ADR 0035).
 
 ## ⚠️ Débito técnico conhecido — filas RabbitMQ globais (não por tenant)
 
@@ -495,6 +503,36 @@ era uma condição de exibição de menu, nunca uma dependência arquitetural re
 **Referência:** [`docs/agents/activities.md`](docs/agents/activities.md) · ADR 0029 ·
 [`docs/frontend/activities/OVERVIEW.md`](docs/frontend/activities/OVERVIEW.md)
 
+## Módulo: Chamadas de voz (WhatsApp)
+
+**Responsabilidade:** Receber e fazer chamadas de voz **1:1** pelo navegador, com qualidade ao vivo, registro como mensagem no ticket, gravação opcional em MP3 e auditoria. **Recurso nativo do core** (sem plugin, sem Marketplace, sem botão Ativar): acesso só por permissão de cargo `calls:receive|place|read|delete|manage`, não anexadas a nenhum cargo existente (alcance de empresa passa pelo `RequirePermission`).
+
+**Arquitetura:** engine (`engine-go/internal/{voip,calls,callsapi}`) faz sinalização, mídia e **medição** — adaptador burro; business (`internal/{calls,recording}` + `controllers/call*.go`) decide elegibilidade, atribuição, registro, qualidade, gravação e S3. Áudio por WebSocket PCM 16 kHz mono Int16 (quadros de 640 B) navegador ↔ business ↔ engine. Fila dedicada `engine.go.calls` (comandos) e `api.events.calls.go` (eventos).
+
+**Invariants:**
+- O engine **nunca** envia `reject`/`terminate` por conta própria (`reject` derruba o toque nos outros aparelhos da conta): oferta ocupada, com proxy, de vídeo/grupo ou sem operador elegível é **ignorada** e vira `call.missed`. `preaccept` só após `call.ready` do business.
+- **Conexão com proxy não faz nem recebe chamada** (fail-closed; vale `proxyMode`, `proxyId` **ou** `proxyGroupId`) — a mídia sai por UDP direto do host e usar o IP do servidor anularia o ADR 0021.
+- Elegível = enxerga a conexão (**paridade** com `GetScopedDB("Tickets")`; `User.WhatsappID` **não** dá visibilidade) + `calls:receive` + online + não pausado. Atribuição atômica (`UPDATE ... WHERE status='ringing' AND handledByUserId IS NULL` + `RowsAffected`).
+- Eventos idempotentes por `(tenantId, callId)`; `WHERE "tenantId"` manual em tudo (RLS inerte); quem não pode ver uma gravação/ticket recebe **404**, não 403.
+- `?rooms=` do SSE só aceita `chat:<ticket visível>`, `tickets:<status>`, `helpdesk-kanban`, `notification`; `tenant:*`/`user:*` nunca vêm do query (a sala pessoal é inscrita pelo servidor). **Telemetria só vai ao operador que assumiu a chamada.**
+- Canal de áudio do engine: **sem autenticação própria** (decisão do dono: rede interna, como o RabbitMQ), só `expose`, **nunca `ports:`** — quem alcança a porta alcança o áudio. Filas de áudio limitadas com descarte do quadro mais antigo.
+- Gravação no **business**: mixador por relógio de 20 ms; `shine-mp3` (LGPL v2) vendorizado só com o bitrate como parâmetro; o encoder consome **blocos de 576 amostras** (320 corrompe o MP3 — coberto por teste). Banco guarda só a **chave**; URL assinada de 5 min a cada leitura. `callRecordingMode` ausente = `off`; sair de `off` exige `ack=true` (grava usuário e horário); as chaves **não** mudam pelo `PUT /settings/:key`. Sem S3 só `off`. Escuta e exclusão auditadas antes do ato.
+- Prazos: `call.ready` 3 s, toque 45 s, mídia conectar 25 s (`media_timeout`), canal do navegador 10 s. O toque de 45 s é **cancelado ao atender** (`connecting`/`active`), nos dois sentidos — na saída ele derrubava a conversa aos 45 s com `timeout`.
+- **Gatilho único** da gravação automática = `call.state active` (mesmo evento do cronômetro), nos dois sentidos — não o clique em Atender nem a conexão do áudio do navegador.
+- `answeredAt` é gravado em `Accept` (entrada) ou no primeiro `call.state active` (saída); é ele que separa `ended` de `missed`. `<reject>` do contato = `declined`; `<terminate>` = `user_ended`.
+
+**O que NÃO fazer:**
+- Não enviar `reject` pelo engine nem pôr regra de negócio nele.
+- Não usar `User.WhatsappID` como visibilidade; não aceitar sala de SSE do query sem `allowedExtraRooms`.
+- Não alimentar o `shine-mp3` com blocos que não sejam múltiplos de 576 amostras; não gravar URL assinada no banco.
+- Não expor o canal de áudio do engine em `ports:`; não confundir a porta 8085 com uma API autenticada.
+- Não tratar `media_timeout` como erro do usuário (costuma ser saída UDP bloqueada); não criar uma segunda sessão do WhatsApp para chamadas.
+- Não confundir com `Campaign`/`CampaignRecipient` do FlowBuilder.
+
+**Validado ao vivo (out/2026):** sinalização WhatsApp, relay UDP e codec MLow ponta a ponta funcionam em chamadas reais com dois números. **Ainda sem prova:** `c2r_rtt` em carga, nota de qualidade do áudio, comportamento em NAT estrito e o efeito das chamadas no risco de ban (ADR 0016); o roteiro de 47 passos não foi preenchido item a item.
+
+**Referência:** [`docs/agents/calls.md`](docs/agents/calls.md) · ADR 0031 · [`docs/user/calls/`](docs/user/calls/)
+
 ## Módulo: Inventário (WMS)
 
 **Responsabilidade:** Motor de estoque core (`Product`/`ProductSKU`/`Warehouse`/
@@ -502,7 +540,7 @@ era uma condição de exibição de menu, nunca uma dependência arquitetural re
 Divulgação Progressiva de Complexidade (PRD original): schema sempre unificado; Modo Simples
 (core, grátis, sempre ligado) resolve Armazém/Tabela de Preço "padrão" automaticamente; Modo
 Avançado (plugin PRO `inventory-advanced`) libera múltiplos armazéns, transferências, fichas
-técnicas (BOM) e tabelas de preço extras via licença do Marketplace.
+técnicas (BOM) e tabelas de preço extras, ativados em Configurações > Plugins.
 
 **Invariants:**
 - Sempre `auth.GetScoped(c, "Inventory")` — nunca `c.Get("tenantId")` bruto.
@@ -533,30 +571,23 @@ técnicas (BOM) e tabelas de preço extras via licença do Marketplace.
 
 **Referência:** [`docs/agents/inventory.md`](docs/agents/inventory.md)
 
-## Módulo: Plugins (Marketplace + Licenciamento)
+## Módulo: Plugins (embarcados, sem marketplace)
 
-**Responsabilidade:** Ativação **opt-in por tenant** de features (plugins) via Marketplace, com gating real de licença para as pagas. O core é **cliente** do licenciamento; a autoridade de catálogo/licença é o **Watink Hub** (`watink-ecosistema/hub`), alcançado sempre pelo `plugin-manager` local — nunca direto. Substitui o modelo "flag no banco" (ADR 0024, supera 0003).
+**Responsabilidade:** Ativação **opt-in por empresa** dos plugins embarcados no binário (Helpdesk, Webchat, Assistentes de IA, Grupos e Estoque Avançado). **Não há marketplace nem licença** (ADR 0035, que supera os ADRs 0024 a 0026): o administrador da empresa liga ou desliga cada plugin em **Configurações > Plugins**, e a alocação (`PluginInstallations.active`) é o único gate de runtime.
 
-**Fronteira core vs plugin:** é plugin o que precisa ser **ativado via Marketplace** (`free` ou `pro`); é core o que está sempre-ligado (atendimento, Clientes, Pipeline, FlowBuilder, RAG). Por isso Clientes virou core (ADR 0023) e o `saas-plugin` foi **removido** (control plane é o `watink-saas`). Plugins reais restantes: `helpdesk`, `webchat`.
+**Fronteira core vs plugin:** é plugin o que o administrador ativa por empresa; é core o que está sempre ligado (atendimento, Clientes, Pipeline, FlowBuilder, RAG).
 
 **Invariants:**
-- Sempre `auth.GetScoped(c, "Plugins")` — nunca `c.Get("tenantId")` bruto; escritas/agregações em `Session(NewDB:true)`.
-- `business` consulta **só** o `plugin-manager` (pull+cache ~60s); nunca o Hub direto.
-- `plugin-manager` é **proprietário**: fonte só no repo privado `alltomatos/watink-plugin-manager`, distribuído como imagem `ghcr.io/alltomatos/watink-plugin-manager` (compose usa `image:`, **nunca** `build:`). O core (público) fala com ele só pelo contrato HTTP `GET /internal/licenses`.
-- Licença = **token Ed25519 verificado offline** (pacote `licensetoken`, dentro do repo privado do plugin-manager — não mais em `business/pkg`) — nunca flag local nem "confiar no corpo do heartbeat".
-- Licença é por **instância + teto de tenants**; a **alocação** nominal (qual tenant) é do core (`PluginInstallations`). Teto aplicado na alocação (**fail-closed** em crescimento).
-- Plugin `free` não toca o Hub; `pro` exige token válido + teto livre.
-- `degradeMode` (`readonly`|`blocked` na expiração) vem do **manifesto do plugin**, por plugin.
+- Sempre `auth.GetScoped(c, "Plugins")` — nunca `c.Get("tenantId")` bruto; escritas em `Session(NewDB:true)`.
+- `PluginRegistry.GetStatus` devolve `active` se alocado e `blocked` caso contrário (inclusive em erro de consulta, fail-closed).
+- Só slugs de `plugins.EmbeddedSlugs()` são ativáveis; slug desconhecido responde 404 e não grava.
+- Desativar faz `active=false`, nunca `DELETE` (preserva `ActivatedAt` e o histórico).
 
 **O que NÃO fazer:**
-- Não ler `PluginInstallations.active` como autoridade de licença — é só alocação.
-- Não chamar o Hub a partir do `business` — sempre via `plugin-manager`.
-- Não reportar licença válida sem verificar assinatura Ed25519 + `exp`.
-- Não montar teto/licença no frontend (só envia `slug + tenant/ticket` e reflete o status).
-- Não reintroduzir `saas-plugin` nem o `marketplace-hub` Node; não distribuir código de plugin dinamicamente (embarcado — anti-supply-chain).
-- Não trazer o **source do `plugin-manager`** de volta ao core (`watinkdev` é público) — é compiled-only, vive só no repo privado `alltomatos/watink-plugin-manager` e é consumido como imagem GHCR (não usar `build:` no compose).
+- Não reintroduzir `plugin-manager`, catálogo, checkout nem licença sem um novo ADR.
+- Não carregar código de plugin dinamicamente (embarcado — anti-supply-chain).
 
-**Referência:** [`docs/agents/plugins.md`](docs/agents/plugins.md) · ADR 0024 (supera 0003) · ADR 0025 + plano [`docs/agents/marketplace-terceiros.md`](docs/agents/marketplace-terceiros.md) (expansão para terceiros) · Hub: `watink-ecosistema/hub`
+**Referência:** ADR 0035 · [`docs/agents/plugins.md`](docs/agents/plugins.md) (histórico do desenho anterior).
 
 ## Módulo: Assistants (Assistentes de IA)
 
@@ -579,20 +610,35 @@ técnicas (BOM) e tabelas de preço extras via licença do Marketplace.
 
 **Referência:** [`docs/agents/assistants.md`](docs/agents/assistants.md) · ADR 0020 (Agent Runtime) · ADR novo (Flow sintético + extensão do SDK — a criar)
 
+## Módulo: Canais Agnósticos (Mensageria Multicanal)
+
+**Responsabilidade:** Desacoplar o Watink do WhatsApp para permitir atendimento unificado em múltiplos canais (Telegram, Mercado Livre, OLX, Instagram, TikTok), através de interfaces agnósticas (`Channel`, `InboundMessage`, `OutboundMessage`), capacidades declaradas em dado (`Capabilities`), validação de regras de resposta (`CanReply`, `ReplyPolicy`), e modelo de dados neutro (`ContactIdentity`, `ChannelConnection`).
+
+**Invariants:**
+- **Expandir e Contrair:** modelo de dados é aditivo; o canal WhatsApp mantém seu comportamento original inalterado durante toda a fase de expansão.
+- `ContactIdentity(tenantId, channel, externalId)` desacopla o contato humano de um número de telefone/JID.
+- `Ticket.conversationKey` abstrai o identificador da conversa (contato no Telegram/WhatsApp, pedido no Mercado Livre, anúncio na OLX).
+- Toda rota de webhook externa valida assinatura criptográfica/segredo específico por conexão.
+- Canais REST/Webhook rodam nativamente no `business`; `engine-go` permanece exclusivo para socket/VoIP do WhatsApp.
+
+**Referência:** [`docs/agents/channels.md`](docs/agents/channels.md) · ADR 0033 · `openspec/changes/add-channel-abstraction/`
+
 ## Módulo: Grupos e Comunidades
 
 **Responsabilidade:** Plugin `pro` (slug `groups`) de gestão ativa de grupos/comunidades
-WhatsApp — CRUD de grupo, participantes, convite, configurações, comunidades — funcionando
-nos dois providers de conexão (`enginego` via API HTTP interna nova no engine-go, `izapia` via
-API HTTP já existente). Catálogo do Hub em `status: draft` — preço ainda não definido pelo
-dono, plugin não aparece no Marketplace até ser publicado.
+WhatsApp — CRUD de grupo, participantes, convite, configurações, comunidades — via `enginego`
+(API HTTP interna no engine-go). Catálogo do Hub em `status: draft` — preço ainda não definido
+pelo dono, plugin não aparece no Marketplace até ser publicado.
 
 **Arquitetura:** `domain.GroupEngine` (`business/internal/domain/group_engine.go`) é uma
 extensão opcional de `domain.WhatsAppEngine`, mesmo padrão de `RichMessageEngine` —
 type-assertion sobre o engine resolvido, nunca método novo na interface base.
-`enginego.Provider`/`izapia.Provider` implementam a interface contra transportes distintos
-(HTTP interno docker-only vs HTTP público da izapia), e o plugin (`internal/plugins/groups*.go`)
-resolve o provider da conexão e devolve 501 claro quando ele não suporta grupos.
+`enginego.Provider` implementa a interface; o plugin (`internal/plugins/groups*.go`) resolve o
+provider da conexão e devolve 501 claro quando ele não suporta grupos. A interface continua
+provider-neutra de propósito (não foi colapsada num acoplamento direto ao `enginego`) para
+acomodar um futuro segundo provider sem reabrir este desenho — o motor alternativo `izapia`
+(SaaS externo do mesmo time) que motivou esse desenho original foi **removido do código**
+(ver "Histórico de Decisões"); hoje `enginego` é o único provider registrado.
 
 **Invariants:**
 - Recurso RBAC `whatsappGroups` (ações `read`|`manage`|`admin`) — não `groups`, que colidiria
@@ -600,20 +646,15 @@ resolve o provider da conexão e devolve 501 claro quando ele não suporta grupo
 - Grupo/comunidade identificado pelo **JID completo** ponta a ponta — nunca um ID numérico
   próprio do Watink.
 - **Dois limitadores de taxa, não um**: o principal (`groups_throttle.go`, no plugin) cobre
-  **ambos** os providers; o do engine-go (`internal/groupsapi/throttle.go`) só vê tráfego
+  **qualquer** provider; o do engine-go (`internal/groupsapi/throttle.go`) só vê tráfego
   `enginego` — é defesa em profundidade, não o limitador de referência. Os dois são in-memory
   por processo — em deploy multi-nó o teto efetivo é `nós × limite` (dívida conhecida,
   documentada no código; o SDK de plugins não expõe Redis).
 - `PUT /groups/:id` é um único payload com todos os campos de configuração alterados — não uma
   rota por campo (desenho inicial revisado durante a implementação, ver
   `engine-go/docs/groups-api.md`).
-- A resposta real da izapia para grupo/comunidade **não** inclui `announce`/`locked`/
-  `memberAddMode`/`joinApprovalMode`/`pictureURL`, e o detalhe de comunidade não tem
-  `subject`/`owner`/`description` nem participantes com nome/admin — confirmado ao vivo contra
-  a API, documentado em `engine-go/docs/groups-api.md`. Não é bug de mapeamento.
 - `GET /communities` deriva de `ListGroups()` filtrado por `isCommunity` (não existe
-  `ListCommunities` na interface) — funciona em conexões `enginego`, fica sempre vazio em
-  `izapia` pelo motivo acima.
+  `ListCommunities` na interface).
 
 **Campanhas de grupo (4ª aba, ADR 0030, issues #589-#602):** postar uma mensagem programada em
 vários grupos de uma vez. Entidade própria (`GroupCampaign`/`GroupCampaignVariant`/`Target`/
@@ -645,8 +686,6 @@ vários grupos de uma vez. Entidade própria (`GroupCampaign`/`GroupCampaignVari
   `TagGroup` do core.
 - Não tratar `PluginInstallations.active` como prova de licença (mesma regra do resto do
   sistema de plugins).
-- Não assumir que os campos ausentes na resposta da izapia (ver invariants) são um bug a
-  corrigir sem antes checar se a própria API de origem os retorna.
 - Não confundir `GroupCampaign` com `Campaign`/`CampaignRecipient` do FlowBuilder — são
   entidades e ADRs distintos (0030 vs 0016), apesar do risco estrutural de ban ser o mesmo.
 - Não rotacionar a conexão de uma campanha de grupo entre múltiplos chips — decisão permanente
@@ -664,7 +703,7 @@ grupo — divergências do ADR 0016) · Issues #514-#524, #589-#602
 ## Domain Docs
 
 - **Glossário**: [`CONTEXT.md`](CONTEXT.md)
-- **ADRs**: [`docs/adr/`](docs/adr/) — ver **ADR 0009** para stage upsert, **ADR 0008** para política anti-MUI, **ADR 0007** para decomposição de componentes. **FlowBuilder/Automação**: **0011** FlowRun unificado · **0012** trigger polimórfico · **0013** contrato versionado FlowGraph · **0014** channel adapters · **0015** pgvector RAG · **0016** campanhas anti-ban (risco estrutural + opt-in + roadmap BSP) · **0017** scheduler multi-node. **Base de Conhecimento/RAG**: **0028** RAG nativo em Go (supera **0018**, microsserviço descomissionado) · **0015** (atualizado) pgvector RAG · **0018** microsserviço watink-knowledge + trust boundary (histórico, superado e removido) · **0019** S3 Storage Driver · **0020** (atualizado) Agent Runtime. **Acessos/RBAC**: **0022** modelo Cargo/Setor/Alcance + enforcement real (supera **0005**, ABAC via RolePermission.Scope/Conditions nunca implementado). **Clientes/CRM**: **0023** Client como entidade core (sai do plugin "pro"), transitividade Contact→Client, documento cifrado at-rest. **Plugins/Licenciamento**: **0024** redesenho do sistema de plugins (Watink Hub como autoridade, token assinado Ed25519, trilho duplo, licença por instância+teto, fronteira core/plugin = ativação; supera **0003** no ponto da flag) · **0025** marketplace de terceiros (publishers, artefatos assinados, runtime out-of-process em fases; plano executável em `docs/agents/marketplace-terceiros.md`; ADR irmão: Hub 0004). **Atividades/Ordens de Serviço**: **0029** Activity como entidade core (análogo ao 0023 de Clientes), SLA lido de verdade desde a Fase 0 (ao contrário do placeholder do Helpdesk), presign de evidência em S3. **Grupos/Campanhas de Grupo**: **0030** divergências do ADR 0016 pra disparo em grupo (sem opt-in por destinatário, sem rotação de chip, sem caminho oficial via BSP — supera o 0016 só nesses pontos, não o edita).
+- **ADRs**: [`docs/adr/`](docs/adr/) — ver **ADR 0009** para stage upsert, **ADR 0008** para política anti-MUI, **ADR 0007** para decomposição de componentes. **FlowBuilder/Automação**: **0011** FlowRun unificado · **0012** trigger polimórfico · **0013** contrato versionado FlowGraph · **0014** channel adapters · **0015** pgvector RAG · **0016** campanhas anti-ban (risco estrutural + opt-in + roadmap BSP) · **0017** scheduler multi-node. **Base de Conhecimento/RAG**: **0028** RAG nativo em Go (supera **0018**, microsserviço descomissionado) · **0015** (atualizado) pgvector RAG · **0018** microsserviço watink-knowledge + trust boundary (histórico, superado e removido) · **0019** S3 Storage Driver · **0020** (atualizado) Agent Runtime. **Acessos/RBAC**: **0022** modelo Cargo/Setor/Alcance + enforcement real (supera **0005**, ABAC via RolePermission.Scope/Conditions nunca implementado). **Clientes/CRM**: **0023** Client como entidade core (sai do plugin "pro"), transitividade Contact→Client, documento cifrado at-rest. **Plugins/Licenciamento**: **0024** redesenho do sistema de plugins (Watink Hub como autoridade, token assinado Ed25519, trilho duplo, licença por instância+teto, fronteira core/plugin = ativação; supera **0003** no ponto da flag) · **0025** marketplace de terceiros (publishers, artefatos assinados, runtime out-of-process em fases; plano executável em `docs/agents/marketplace-terceiros.md`; ADR irmão: Hub 0004). **Atividades/Ordens de Serviço**: **0029** Activity como entidade core (análogo ao 0023 de Clientes), SLA lido de verdade desde a Fase 0 (ao contrário do placeholder do Helpdesk), presign de evidência em S3. **Grupos/Campanhas de Grupo**: **0030** divergências do ADR 0016 pra disparo em grupo (sem opt-in por destinatário, sem rotação de chip, sem caminho oficial via BSP — supera o 0016 só nesses pontos, não o edita). **Chamadas de voz**: **0031** recurso nativo com permissões `calls:*`, porte do WaCalls no engine, fila dedicada, WebSocket PCM, gravação no business, bloqueio com proxy e correção do SSE (divergências do plano registradas).
 - **Arquitetura**: [`docs/dev/architecture.md`](docs/dev/architecture.md)
 - **Frontend DS**: [`docs/frontend/design-system.md`](docs/frontend/design-system.md)
 - **Git Workflow**: [`docs/dev/git_workflow_policy.md`](docs/dev/git_workflow_policy.md)
@@ -685,3 +724,9 @@ grupo — divergências do ADR 0016) · Issues #514-#524, #589-#602
 ### Domain
 - **Config**: [`docs/agents/domain.md`](docs/agents/domain.md)
 - Use sempre os termos canônicos de `CONTEXT.md` — nunca os termos marcados como `_Avoid_`.
+
+## Regra de Ouro para Evitar Falhas no CI do Docker (Frontend / Embed)
+- **Sempre que modificar arquivos no frontend (`frontend/src/`)**, execute localmente antes de fazer o commit e push:
+  1. `cd frontend && npm run build`
+  2. `git status --short`
+- **Nunca inclua alterações automáticas em `frontend/public/version.json` geradas pelo build nos commits de feature/fix**, a menos que o objetivo expresso seja alterar a versão do serviço. Sempre verifique `git status` e reverta `frontend/public/version.json` se modificado apenas pelo script de build (`git checkout frontend/public/version.json`), evitando que arquivos temporários/gerados poluam o commit e quebrem o cache de buildx no Docker.

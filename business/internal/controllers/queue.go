@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// QueueController encapsulates queue operations with RLS-scoped DB from auth middleware.
+// QueueController encapsulates queue operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetScoped.
 type QueueController struct{}
 

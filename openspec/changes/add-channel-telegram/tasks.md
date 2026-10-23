@@ -1,0 +1,28 @@
+# Tasks
+
+> Depende de `add-channel-abstraction` fases 0 a 4 (interface, entrada única, conexão neutra).
+
+## 0. Decisões
+- [x] 0.1 Confirmar webhook como padrão e polling só sem URL pública
+- [x] 0.2 Confirmar a ordem: Telegram é a primeira integração (valida a abstração)
+
+## 1. Backend
+- [x] 1.1 Cliente HTTP da Bot API (`getMe`, `setWebhook`, `deleteWebhook`, `send*`) com timeouts e tratamento de erros
+- [x] 1.2 Adaptador `telegram` (`Connect`, `Disconnect`, `Send`, `ParseInbound`) e `Capabilities`
+- [x] 1.3 Webhook com `X-Telegram-Bot-Api-Secret-Token` (comparação em tempo constante via HMAC) e dedup no Redis
+- [x] 1.4 Modo polling com `offset` persistido e gerenciador de workers em background (PollingManager)
+- [ ] 1.5 Mídia: baixar na chegada para `mediastore`; nunca persistir URL com token
+- [ ] 1.6 Grupos: `isGroup`, modo de privacidade documentado, `my_chat_member` (bloqueado/removido)
+- [ ] 1.7 Fila de saída com token-bucket por conexão (~1 msg/s por chat)
+- [ ] 1.8 Rotação/revogação de token sem perder a conexão
+
+## 2. Frontend
+- [x] 2.1 Assistente "colar token" com validação e nome do bot (implementado no ChannelSelectorModal)
+- [ ] 2.2 Ícone/token de cor `channel-telegram`, badge no ticket, traduções pt/en/es
+- [ ] 2.3 Esconder "novo ticket"/chamadas para conversas do Telegram; contador de 4096
+
+## 3. Verificação
+- [x] 3.1 Testes de contrato + servidor Telegram simulado
+- [ ] 3.2 Mutação nos testes de segurança (secret token, dedup, token cifrado)
+- [ ] 3.3 Validação ao vivo com um bot real, no stack local por túnel (`docs/dev/local-verification.md`)
+- [ ] 3.4 Documentação de usuário (`docs/user/channels/telegram.md`) e `/qa-analyst`

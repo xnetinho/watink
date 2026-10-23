@@ -19,13 +19,17 @@ func NewTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
 	dsn := testDSN()
-	cfg := &gorm.Config{
-		Logger:                                   logger.Discard,
-		DisableForeignKeyConstraintWhenMigrating: true,
+	// Cada gorm.Open recebe o seu próprio *gorm.Config: o Open escreve no Config (callbacks, ConnPool), e compartilhá-lo
+	// entre o handle do teste e o do Cleanup é uma corrida de dados (detectada por -race).
+	newCfg := func() *gorm.Config {
+		return &gorm.Config{
+			Logger:                                   logger.Discard,
+			DisableForeignKeyConstraintWhenMigrating: true,
+		}
 	}
 
 	// Root connection — used only to create/drop the schema.
-	root, err := gorm.Open(postgres.Open(dsn), cfg)
+	root, err := gorm.Open(postgres.Open(dsn), newCfg())
 	if err != nil {
 		t.Fatalf("testutil.NewTestDB: connect: %v", err)
 	}
@@ -50,7 +54,7 @@ func NewTestDB(t *testing.T) *gorm.DB {
 		schemaDSN = dsn + "?search_path=" + schema
 	}
 
-	db, err := gorm.Open(postgres.Open(schemaDSN), cfg)
+	db, err := gorm.Open(postgres.Open(schemaDSN), newCfg())
 	if err != nil {
 		t.Fatalf("testutil.NewTestDB: connect for schema: %v", err)
 	}
@@ -64,6 +68,18 @@ func NewTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("testutil.NewTestDB: AutoMigrate: %v", err)
 	}
 
+	// Índices únicos de Contacts: em produção vêm de database.addCustomIndexes
+	// (que o AutoMigrate não executa). Sem essas regras os testes rodariam sem a regra
+	// real de unicidade por tenant.
+	for _, ddl := range []string{
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number) WHERE number <> ''`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
+	} {
+		if err := db.Exec(ddl).Error; err != nil {
+			t.Fatalf("testutil.NewTestDB: %s: %v", ddl, err)
+		}
+	}
+
 	// PluginInstallations now has a real GORM model (models.PluginInstallation,
 	// ADR 0024) migrated via allModels() above — no more manual CREATE TABLE
 	// fixup needed here.
@@ -71,7 +87,7 @@ func NewTestDB(t *testing.T) *gorm.DB {
 	t.Cleanup(func() {
 		_ = sqlDB.Close()
 
-		clean, _ := gorm.Open(postgres.Open(dsn), cfg)
+		clean, _ := gorm.Open(postgres.Open(dsn), newCfg())
 		clean.Exec("DROP SCHEMA " + schema + " CASCADE")
 		if cleanSQL, err := clean.DB(); err == nil {
 			_ = cleanSQL.Close()
@@ -108,18 +124,22 @@ func allModels() []interface{} {
 		&models.User{},
 		&models.Setting{},
 		&models.Contact{},
+		&models.ContactIdentity{},
 		&models.Client{},
 		&models.ClientAddress{},
 		&models.Deal{},
 		&models.Protocol{},
 		&models.ProtocolLog{},
 		&models.ProtocolAttachment{},
+		&models.CallLog{},
+		&models.CallRecordingAccess{},
 		&models.Activity{},
 		&models.ActivityAssignee{},
 		&models.ActivityChecklistItem{},
 		&models.ActivityMaterial{},
 		&models.ActivityOccurrence{},
 		&models.Whatsapp{},
+		&models.ChannelConnection{},
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},
@@ -146,7 +166,6 @@ func allModels() []interface{} {
 		&models.ProxyGroup{},
 		&models.ConnectionGroup{},
 		&models.PluginInstallation{},
-		&models.IzapiaConfig{},
 		&models.Assistant{},
 		&models.AssistantRouterOption{},
 		&models.AssistantGroup{},

@@ -100,6 +100,11 @@ func (sc *SessionController) StopSession(c *gin.Context) {
 		"action":  "update",
 		"session": session,
 	})
+	// Equivalente neutro para clientes multicanal (Task 3.6 / ADR 0033)
+	sc.broadcast.EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{
+		"action":     "update",
+		"connection": session,
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Session disconnected."})
 }
@@ -157,8 +162,5 @@ func channelSessionToModel(s *domain.ChannelSession) models.Whatsapp {
 		ProxyGroupID:      s.ProxyGroupID,
 		ConnectionGroupID: s.ConnectionGroupID,
 		Wid:               s.Wid,
-
-		IzapiaSessionID:        s.IzapiaSessionID,
-		IzapiaWebhookSecretEnc: s.IzapiaWebhookSecretEnc,
 	}
 }

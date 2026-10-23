@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -58,7 +59,7 @@ func IsAuth(db *gorm.DB) gin.HandlerFunc {
 
 		tenantID, _ := claims["tenantId"].(string)
 
-		// Validate UUID to prevent SQL injection before string concatenation in SET LOCAL
+		// O tenantId do token alimenta todo filtro "tenantId" das consultas: tem de ser um UUID válido.
 		if _, err := uuid.Parse(tenantID); err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid tenant ID format"})
 			c.Abort()
@@ -69,9 +70,15 @@ func IsAuth(db *gorm.DB) gin.HandlerFunc {
 		c.Set("alcance", claims["alcance"])
 		c.Set("tenantId", tenantID)
 
-		tx := db.Session(&gorm.Session{})
-		tx.Exec("SET LOCAL app.current_tenant = ?", tenantID)
-		c.Set("db", tx)
+		// Escopo de empresa da requisição (RLS, ADR 0034): toda consulta feita com este ctx roda numa conexão do
+		// banco com app.tenant_id definido, e a política do banco só enxerga as linhas da empresa. A conexão é
+		// fixada na primeira consulta e devolvida ao pool (com a empresa limpa) quando a requisição termina.
+		// Sobre um handle sem Router (testes unitários), TenantCtx não faz nada.
+		tenantUUID, _ := uuid.Parse(tenantID)
+		ctx, done := tenantdb.TenantCtx(c.Request.Context(), db, tenantUUID)
+		defer done()
+		c.Request = c.Request.WithContext(ctx)
+		c.Set("db", db.WithContext(ctx))
 
 		c.Next()
 	}

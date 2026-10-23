@@ -7,6 +7,7 @@ import (
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/testutil"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -28,6 +29,9 @@ func (m *mockTicketRepo) FindByID(_ context.Context, _ int, _ uuid.UUID) (*domai
 	return m.ticket, m.findErr
 }
 func (m *mockTicketRepo) FindOpenByContact(_ context.Context, _ uuid.UUID, _ int, _ int) (*domain.Ticket, error) {
+	return nil, nil
+}
+func (m *mockTicketRepo) FindOpenByConversation(_ context.Context, _ uuid.UUID, _ int, _ string) (*domain.Ticket, error) {
 	return nil, nil
 }
 func (m *mockTicketRepo) FindOrCreatePending(_ context.Context, t *domain.Ticket) (*domain.Ticket, error) {
@@ -88,8 +92,11 @@ func (m *mockContactRepo) BulkDelete(_ context.Context, _ []int, _ uuid.UUID) (i
 	return 0, nil
 }
 func (m *mockContactRepo) DeleteAll(_ context.Context, _ uuid.UUID) (int64, error) { return 0, nil }
-func (m *mockContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, _ string, _, _ bool, _ string) (*domain.Contact, error) {
+func (m *mockContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, _ string, _, _ bool, _, _ string) (*domain.Contact, error) {
 	return nil, nil
+}
+func (m *mockContactRepo) FindOrCreateByIdentity(_ context.Context, _ uuid.UUID, _ domain.ChannelKind, _, _, _ string) (*domain.Contact, *models.ContactIdentity, error) {
+	return nil, nil, nil
 }
 
 type mockUserQueueRepo struct {

@@ -1,6 +1,6 @@
 # ADR 0026 — Marketplace do tenant respeita instância gerida por Watink SaaS (sem checkout próprio)
 
-**Status:** Aceito (jul/2026) — desenho verificado, execução ainda não iniciada. ADR-pai: `hub/docs/adr/0005` (decisão central); ADR irmão: `watink-saas/docs/adr/0008`.
+**Status:** Superado pelo [ADR 0035](0035-plugins-embarcados-sem-marketplace.md) (marketplace removido em out/2026). Estava: Aceito (jul/2026) — desenho verificado, execução ainda não iniciada. ADR-pai: `hub/docs/adr/0005` (decisão central); ADR irmão: `watink-saas/docs/adr/0008`.
 
 ## Contexto
 

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alltomatos/watinkdev/engine-go/internal/calls"
 	"github.com/alltomatos/watinkdev/engine-go/internal/rabbitmq"
 	_ "github.com/lib/pq"
 	"go.mau.fi/whatsmeow"
@@ -33,6 +34,9 @@ type WhatsAppService struct {
 
 	picMu    sync.Mutex
 	picCache map[string]string // JID string → profile picture URL
+
+	callMu       sync.Mutex
+	callSessions map[int]*calls.Session
 
 	// publishEvent routes an event envelope to the messaging broker.
 	// Settable in tests to capture emitted events without a real broker.
@@ -64,6 +68,7 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService, sessionLoader SessionL
 		groupNames:      make(map[string]string),
 		groupMetaMap:    make(map[string]groupMeta),
 		picCache:        make(map[string]string),
+		callSessions:    make(map[int]*calls.Session),
 	}
 	svc.publishEvent = svc.defaultPublishEvent
 	return svc
@@ -114,14 +119,21 @@ func (s *WhatsAppService) defaultPublishEvent(tenantID string, sessionID int, ev
 	}
 }
 
+// BuildPostgresDSN monta a conexão do engine. O papel do engine (watink_engine) é dono do schema "whatsmeow" e só tem
+// SELECT em public."Whatsapps"; o search_path o aponta para o schema próprio, onde a biblioteca cria e usa as suas
+// tabelas (ela não qualifica nomes). DB_SEARCH_PATH vazio mantém o comportamento antigo (public), para testes.
 func BuildPostgresDSN() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASS"),
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_NAME"),
 	)
+	if sp := os.Getenv("DB_SEARCH_PATH"); sp != "" {
+		dsn += "&search_path=" + sp
+	}
+	return dsn
 }
 
 func eventPayloadWithTenant(tenantID string, payload map[string]interface{}) map[string]interface{} {

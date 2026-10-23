@@ -12,7 +12,7 @@ func (ap *AssistantPlugin) GetManifest() sdk.PluginManifest {
 		Slug:        "assistant",
 		Name:        "Assistentes de IA",
 		Version:     "1.0.0",
-		Description: "Automação conversacional por IA — pipeline, flow, persona ou roteador",
+		Description: "Automação de conversas por IA — pipeline, flow, persona ou roteador",
 		Type:        "pro",
 	}
 }

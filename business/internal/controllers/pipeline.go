@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"strings"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
@@ -14,7 +15,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// PipelineController encapsulates pipeline operations with RLS-scoped DB from auth middleware.
+// PipelineController encapsulates pipeline operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetScoped.
 type PipelineController struct{}
 
@@ -223,6 +224,8 @@ func (pc *PipelineController) AISuggest(c *gin.Context) {
 		System:   systemPrompt,
 	}
 
+	// Chamada externa lenta (até dezenas de segundos): solta a conexão do banco antes de esperar (RLS, ADR 0034, D4).
+	tenantdb.Release(c.Request.Context())
 	result, err := aiclient.Complete(cfg, msgs)
 	if err != nil {
 		errMsg := err.Error()

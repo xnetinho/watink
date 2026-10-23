@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"github.com/alltomatos/watinkdev/business/internal/application/usecases"
+	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
-	"github.com/alltomatos/watinkdev/business/internal/infrastructure/izapia"
 	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"gorm.io/gorm"
@@ -29,12 +29,14 @@ type Container struct {
 	RedisSvc           domain.RedisService
 	Broadcast          domain.Broadcaster
 	SessionService     *services.WhatsAppSessionService
-	IzapiaProvider     *izapia.Provider
 	SSEHub             *services.SSEHub
 	ReceiveMessage     *usecases.ReceiveMessageUseCase
 	DistributeTicket   *usecases.DistributeTicketUseCase
 	UpdateTicket       *usecases.UpdateTicketUseCase
 	LogTicketAction    *usecases.LogTicketActionUseCase
+	// Calls é o serviço de chamadas de voz. Construído por NewContainer (que já
+	// tem o publisher e o SSEHub); o consumidor AMQP dele é ligado em main.go.
+	Calls *calls.Service
 }
 
 func NewContainer(db *gorm.DB, redisSvc domain.RedisService, broadcast domain.Broadcaster, publisher domain.CommandPublisher, hub ...*services.SSEHub) *Container {
@@ -62,17 +64,18 @@ func NewContainer(db *gorm.DB, redisSvc domain.RedisService, broadcast domain.Br
 	distributeTicket := usecases.NewDistributeTicketUseCase(ticketRepo, queueRepo, eventBus, contactRepo, userQueueRepo)
 	updateTicket := usecases.NewUpdateTicketUseCase(ticketRepo, eventBus, distributeTicket, logTicketAction)
 	receiveMessage := usecases.NewReceiveMessageUseCase(eventBus, messageRepo, contactRepo, ticketRepo, queueRepo, tagRepo, entityTagRepo)
-	izapiaProvider := izapia.New(db, broadcast)
-	sessionService := services.NewWhatsAppSessionService(db, publisher, redisSvc, broadcast, map[string]domain.WhatsAppEngine{
-		"izapia": izapiaProvider,
-	})
+	// NewWhatsAppSessionService aceita map[string]domain.WhatsAppEngine extras (variádico) para
+	// registrar outros motores além do whatsmeow — hoje nenhum está em uso.
+	sessionService := services.NewWhatsAppSessionService(db, publisher, redisSvc, broadcast)
 	var sseHub *services.SSEHub
 	if len(hub) > 0 && hub[0] != nil {
 		sseHub = hub[0]
 	} else {
 		sseHub = services.NewSSEHub()
 	}
+	callService := calls.NewService(db, contactRepo, ticketRepo, queueRepo, publisher, broadcast, sseHub)
 	return &Container{
+		Calls:              callService,
 		DB:                 db,
 		TicketRepo:         ticketRepo,
 		MessageRepo:        messageRepo,
@@ -90,7 +93,6 @@ func NewContainer(db *gorm.DB, redisSvc domain.RedisService, broadcast domain.Br
 		RedisSvc:           redisSvc,
 		Broadcast:          broadcast,
 		SessionService:     sessionService,
-		IzapiaProvider:     izapiaProvider,
 		SSEHub:             sseHub,
 		ReceiveMessage:     receiveMessage,
 		DistributeTicket:   distributeTicket,

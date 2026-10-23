@@ -275,7 +275,7 @@ Achados de performance confirmados e **como medir cada um** antes/depois do fix.
   - **Latência:** `testing.B` do handler completo antes/depois; ou `hey`/`vegeta` numa rota autenticada medindo p50/p99.
 - **Fix:** cache por `(userId, tokenVersion, tenantId)` TTL 30–60s (`tokenVersion` já existe e é bumpado em mudanças de auth — chave de invalidação natural), ou embutir `effectivePermissionNames` nos claims do JWT.
 
-### 6.2 `IsAuth` — `SET LOCAL` round-trip inútil por request (P3, ligado ao RLS externo)
+### 6.2 `IsAuth` — `SET LOCAL` round-trip inútil por request (P3, ligado ao RLS externo) — **RESOLVIDO** (change `fix-auth-rls-set-local`: `Exec` removido; `TestIsAuth_ExecutesNoSQL` conta os statements e espera 0)
 - **Onde:** `business/internal/middleware/auth.go:74`. `tx.Exec("SET LOCAL app.current_tenant = ?", tenantID)` — no-op (bind param no `SET` falha + fora de transação) mas **é 1 round-trip ao Postgres em 100% das rotas protegidas**, somando às queries de `RequirePermission`.
 - **Como medir:** benchmark HTTP (`hey`/`vegeta`) de rota simples autenticada antes/depois da remoção do `Exec`, p50/p99; ou callback GORM contando statements no middleware isolado (esperado: 0 após remoção).
 - **Fix:** coordenar com a task RLS externa — remover o `Exec` (o projeto já filtra por `tenantId` manual) ou implementar transaction-per-request de verdade, medindo o overhead de `BEGIN/COMMIT`.

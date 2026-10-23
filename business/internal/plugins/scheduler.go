@@ -3,6 +3,10 @@ package plugins
 import (
 	"context"
 	"fmt"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"log"
 	"sync"
 	"time"
@@ -20,10 +24,11 @@ type cronScheduler struct {
 	mu    sync.Mutex
 	names map[string]bool
 	redis domain.RedisService
+	db    *gorm.DB // para abrir o escopo de sistema de cada tick (RLS, ADR 0034); nil nos testes sem banco
 }
 
-func newCronScheduler(redis domain.RedisService) *cronScheduler {
-	return &cronScheduler{names: make(map[string]bool), redis: redis}
+func newCronScheduler(redis domain.RedisService, db *gorm.DB) *cronScheduler {
+	return &cronScheduler{names: make(map[string]bool), redis: redis, db: db}
 }
 
 func (s *cronScheduler) register(name string, interval time.Duration, fn func(ctx context.Context) error) error {
@@ -41,13 +46,17 @@ func (s *cronScheduler) register(name string, interval time.Duration, fn func(ct
 	s.names[name] = true
 	s.mu.Unlock()
 
-	go func() {
+	safego.Go("cron."+name, func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for range ticker.C {
-			s.runOnce(name, interval, fn)
+			// Um pânico num tick não pode matar o agendador do job: contido por tick.
+			func() {
+				defer safego.Recover("cron." + name)
+				s.runOnce(name, interval, fn)
+			}()
 		}
-	}()
+	})
 	return nil
 }
 
@@ -70,8 +79,12 @@ func (s *cronScheduler) runOnce(name string, interval time.Duration, fn func(ctx
 			return // another node already owns this tick
 		}
 	}
+	// Todo cron de plugin varre várias empresas, então o tick roda no escopo de sistema; quem trata cada empresa em
+	// seguida troca para o escopo dela.
 	ctx, cancel := context.WithTimeout(context.Background(), interval)
 	defer cancel()
+	ctx, done := tenantdb.SystemCtx(ctx, s.db)
+	defer done()
 	if err := fn(ctx); err != nil {
 		log.Printf("[cronScheduler] job %q failed: %v", name, err)
 	}
@@ -86,9 +99,17 @@ func (s *cronScheduler) runOnce(name string, interval time.Duration, fn func(ctx
 type domainEventBus struct {
 	mu   sync.RWMutex
 	subs map[string][]func(ctx context.Context, payload map[string]any)
+	db   *gorm.DB // abre o escopo de empresa de cada entrega (RLS, ADR 0034); nil nos testes sem banco
 }
 
 var eventBus = &domainEventBus{subs: make(map[string][]func(ctx context.Context, payload map[string]any))}
+
+// SetEventBusDB liga o barramento ao banco para que cada entrega rode no escopo da empresa do evento.
+func SetEventBusDB(db *gorm.DB) {
+	eventBus.mu.Lock()
+	eventBus.db = db
+	eventBus.mu.Unlock()
+}
 
 func (b *domainEventBus) subscribe(eventType string, fn func(ctx context.Context, payload map[string]any)) error {
 	if eventType == "" {
@@ -107,8 +128,23 @@ func (b *domainEventBus) publish(ctx context.Context, eventType string, payload 
 	b.mu.RLock()
 	handlers := append([]func(ctx context.Context, payload map[string]any){}, b.subs[eventType]...)
 	b.mu.RUnlock()
+	b.mu.RLock()
+	db := b.db
+	b.mu.RUnlock()
+	tenantID, hasTenant := uuid.Parse(fmt.Sprint(payload["tenantId"]))
 	for _, fn := range handlers {
-		fn(ctx, payload)
+		// Cada assinante recebe um ctx com o escopo da empresa do evento: o publicador pode ser uma requisição, um
+		// listener ou um cron, e os assinantes usam o *gorm.DB capturado no registro, que só enxerga a empresa certa
+		// se o ctx a carregar (RLS, ADR 0034).
+		hctx, done := ctx, func() {}
+		if db != nil && hasTenant == nil {
+			hctx, done = tenantdb.TenantCtx(context.WithoutCancel(ctx), db, tenantID)
+		}
+		func() {
+			defer done()
+			defer safego.Recover("domainEvent." + eventType)
+			fn(hctx, payload)
+		}()
 	}
 }
 

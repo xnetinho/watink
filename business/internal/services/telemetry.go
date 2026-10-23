@@ -64,9 +64,3 @@ func getVersion() string {
 	}
 	return "dev"
 }
-
-// AMQP header keys for trace propagation
-const (
-	otelTraceParent = "traceparent"
-	otelTraceState  = "tracestate"
-)

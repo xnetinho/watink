@@ -35,33 +35,19 @@ cd frontend && npm run lint       # ESLint
 cd frontend && npm run typecheck  # TypeScript sem emitir arquivos
 ```
 
-## Plugin Manager (`plugin-manager/`)
+## Plugin Manager
+
+O fonte do `plugin-manager` **não está neste repositório**: é proprietário e vive no repo privado
+`alltomatos/watink-plugin-manager`, distribuído como imagem `ghcr.io/alltomatos/watink-plugin-manager` (os composes
+usam `image:`, nunca `build:`). Ver `docs/agents/plugins.md`.
+
+## Verificação local antes do push
+
+Lint com o linter da CI, testes, build das imagens e stack local: ver [`local-verification.md`](local-verification.md).
 
 ```bash
-cd plugin-manager && go fmt ./...
-cd plugin-manager && go build ./...
-cd plugin-manager && go run cmd/server/main.go
-cd plugin-manager && go test ./...
-```
-
-## Backend Node legacy (`legacy/backend/`)
-
-```bash
-cd legacy/backend && npm install
-cd legacy/backend && npm run dev          # ts-node-dev com respawn
-cd legacy/backend && npm run build        # tsc
-cd legacy/backend && npm run db:migrate   # sequelize migrations
-cd legacy/backend && npm run db:seed      # sequelize seeds
-cd legacy/backend && npm run test         # jest (NODE_ENV=test)
-```
-
-## Engine Node legacy (`legacy/engine-standard/`)
-
-```bash
-cd legacy/engine-standard && npm install
-cd legacy/engine-standard && npm run dev
-cd legacy/engine-standard && npm run build
-cd legacy/engine-standard && npm run lint
+cd business && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run ./...
+docker compose -p lt -f docker-compose.yml -f docker-compose.local.yml --env-file .env.local up -d --build
 ```
 
 ## Docker (desenvolvimento local)
@@ -82,13 +68,31 @@ docker compose -f docker-compose.dev.yml logs --tail=100 watink-rabbitmq
 
 > O `docker-compose.dev.yml` fica na raiz do repositório. Sempre execute os comandos Docker a partir da raiz.
 
-## PM2 (stack local sem Docker)
+## Mapas de fonte do frontend (`VITE_SOURCEMAP`)
+
+O build de produção **não publica mapas de fonte**: o `business` serve tudo de `/assets/` e um `.map` público deixa
+qualquer visitante ler o TypeScript original no F12. Para depurar um erro de produção, gere um build pontual:
 
 ```bash
-pm2 start ecosystem.config.js    # sobe todos os serviços
+cd frontend && VITE_SOURCEMAP=true npm run build   # só esse valor liga; ture, 1, yes continuam desligados
 ```
 
-Variáveis de ambiente necessárias: `DB_PASS`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AMQP_URL`, `REDIS_URL`.
+Não publique essa imagem. O teste `src/buildSourcemap.test.ts` roda o build real e falha se algum `.map` aparecer.
+
+## Log do banco (`DB_LOG_LEVEL`)
+
+O `business` imprime o log do GORM no nível `warn` por padrão: só erro real de SQL e consulta lenta (> 200 ms).
+"Registro não encontrado" não é impresso, e o **valor dos parâmetros nunca é impresso** (aparece `$1`), em
+nenhum nível, porque ele carrega texto de mensagens de clientes.
+
+```bash
+DB_LOG_LEVEL=info     # mostra toda consulta, sem os valores: para depurar
+DB_LOG_LEVEL=warn     # padrão
+DB_LOG_LEVEL=error    # só erros
+DB_LOG_LEVEL=silent   # nada
+```
+
+Valor ausente ou inválido cai em `warn`.
 
 ## Smoke Test
 
@@ -107,4 +111,4 @@ node scripts/playwright-smoke.js
 | Docs desatualizados no Scalar | `cd business && go run github.com/swaggo/swag/cmd/swag@latest init -g cmd/server/main.go -o docs/` |
 | Engine não conecta | Logs de `watink-engine` e `watink-rabbitmq` juntos — race condition de startup |
 | Frontend com erro de build | `cd frontend && npm run build` para ver erros detalhados do Vite |
-| Migrations falhando | `cd legacy/backend && npm run db:migrate` com `NODE_ENV=development` |
+| Migrations falhando | O `business` migra no boot (`database.Migrate()`, GORM `AutoMigrate`): veja `docker compose logs watink-business` logo após a subida |

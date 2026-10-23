@@ -26,6 +26,7 @@ const UserProfile = lazy(() => import("../pages/UserProfile"));
 const ResetPassword = lazy(() => import("../pages/ResetPassword"));
 const MyActivities = lazy(() => import("../pages/MyActivities"));
 const Activities = lazy(() => import("../pages/Activities"));
+const Calls = lazy(() => import("../pages/Calls"));
 const Contacts = lazy(() => import("../pages/Contacts"));
 const QuickAnswers = lazy(() => import("../pages/QuickAnswers"));
 const QuickAnswerEditor = lazy(() => import("../pages/QuickAnswers/QuickAnswerEditor"));
@@ -33,9 +34,8 @@ const TagManager = lazy(() => import("../pages/TagManager"));
 const Queues = lazy(() => import("../pages/Queues"));
 const KnowledgeBase = lazy(() => import("../pages/KnowledgeBase"));
 const KnowledgeBaseConfig = lazy(() => import("../pages/KnowledgeBase/KnowledgeBaseConfig"));
-const Marketplace = lazy(() => import("../pages/Marketplace"));
+const Plugins = lazy(() => import("../pages/Plugins"));
 const Billing = lazy(() => import("../pages/Billing"));
-const PluginDetail = lazy(() => import("../pages/Marketplace/PluginDetail"));
 const Clients = lazy(() => import("../pages/Clients"));
 const GroupsWhatsapp = lazy(() => import("../pages/GroupsWhatsapp"));
 const GroupDetail = lazy(() => import("../pages/Groups/GroupDetail"));
@@ -91,6 +91,7 @@ const PrivateRoutes = () => {
      <Route path="/reset-password" element={<PrivateRoute isPrivate><ResetPassword /></PrivateRoute>} />
      <Route path="/my-activities" element={<PrivateRoute isPrivate><MyActivities /></PrivateRoute>} />
      <Route path="/activities" element={<PrivateRoute isPrivate><Activities /></PrivateRoute>} />
+     <Route path="/calls" element={<PrivateRoute isPrivate><Calls /></PrivateRoute>} />
      <Route path="/quickAnswers" element={<PrivateRoute isPrivate><QuickAnswers /></PrivateRoute>} />
      <Route path="/quick-answers" element={<PrivateRoute isPrivate><QuickAnswers /></PrivateRoute>} />
      <Route path="/quick-answers/new" element={<PrivateRoute isPrivate><QuickAnswerEditor /></PrivateRoute>} />
@@ -101,9 +102,9 @@ const PrivateRoutes = () => {
      <Route path="/knowledge-bases" element={<PrivateRoute isPrivate><KnowledgeBase /></PrivateRoute>} />
      <Route path="/knowledge-bases/:knowledgeBaseId" element={<PrivateRoute isPrivate><KnowledgeBaseConfig /></PrivateRoute>} />
      <Route path="/swagger" element={<PrivateRoute isPrivate><Swagger /></PrivateRoute>} />
-     <Route path="/admin/settings/marketplace" element={<PrivateRoute isPrivate><Marketplace /></PrivateRoute>} />
+     <Route path="/admin/settings/plugins" element={<PrivateRoute isPrivate><Plugins /></PrivateRoute>} />
+     <Route path="/admin/settings/marketplace" element={<Navigate to="/admin/settings/plugins" replace />} />
      <Route path="/admin/settings/billing" element={<PrivateRoute isPrivate><Billing /></PrivateRoute>} />
-     <Route path="/admin/settings/marketplace/:slug" element={<PrivateRoute isPrivate><PluginDetail /></PrivateRoute>} />
      <Route path="/clients" element={<PrivateRoute isPrivate><Clients /></PrivateRoute>} />
      <Route path="/grupos-whatsapp" element={<Navigate to="/grupos-whatsapp/grupos" replace />} />
      <Route path="/grupos-whatsapp/:tab" element={<PrivateRoute isPrivate><GroupsWhatsapp /></PrivateRoute>} />

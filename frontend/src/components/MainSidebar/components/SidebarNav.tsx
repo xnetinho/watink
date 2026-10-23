@@ -18,6 +18,7 @@ import {
   Sparkles,
   Users,
   ListChecks,
+  Phone,
 } from "lucide-react";
 import { AuthContext } from "../../../context/Auth/AuthContext";
 import { Can } from "../../../components/Can";
@@ -197,6 +198,20 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed, activePlugins }) => 
           )}
         />
       )}
+
+      <Can
+        user={user}
+        perform="calls:read"
+        yes={() => (
+          <SidebarItem
+            to="/calls"
+            label={i18n.t("mainDrawer.listItems.calls")}
+            icon={<Phone size={20} />}
+            collapsed={collapsed}
+            activeColor="var(--nav-icon-green)"
+          />
+        )}
+      />
 
       {activePlugins.includes("groups") && (
         <Can

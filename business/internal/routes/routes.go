@@ -1,19 +1,50 @@
 package routes
 
 import (
+	"context"
+	"encoding/json"
+	"log"
+
 	"github.com/alltomatos/watinkdev/business/internal/application"
+	telegramChannel "github.com/alltomatos/watinkdev/business/internal/channels/telegram"
+	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
 	"github.com/alltomatos/watinkdev/business/internal/mediawait"
 	"github.com/alltomatos/watinkdev/business/internal/middleware"
-	"github.com/alltomatos/watinkdev/business/internal/pluginlicense"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/plugins"
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+
+// resumeTelegramPolling recria os workers de polling das conexões já conectadas
+// nesse modo, para que continuem recebendo mensagens após restart do processo.
+func resumeTelegramPolling(db *gorm.DB, handler telegramChannel.InboundHandler) {
+	var conns []models.ChannelConnection
+	// Varredura de todas as empresas no boot: caso de sistema (RLS, ADR 0034).
+	sysCtx, done := tenantdb.SystemCtx(context.Background(), db)
+	defer done()
+	if err := db.WithContext(sysCtx).Where("kind = ? AND status = ?", string(domain.ChannelKindTelegram), "CONNECTED").Find(&conns).Error; err != nil {
+		log.Printf("[Telegram Polling] failed to load connections: %v", err)
+		return
+	}
+	polling := make([]models.ChannelConnection, 0, len(conns))
+	for _, conn := range conns {
+		var cfg struct {
+			Mode string `json:"mode"`
+		}
+		if json.Unmarshal([]byte(conn.Config), &cfg) == nil && cfg.Mode == "polling" {
+			polling = append(polling, conn)
+		}
+	}
+	telegramChannel.ResumePolling(polling, handler)
+}
 
 type RouteRabbitMQ interface {
 	domain.CommandPublisher
@@ -27,7 +58,7 @@ type RouteRabbitMQ interface {
 // flow.Skeleton too, so the on-demand endpoints here and the real inbound
 // WhatsApp message path never disagree about which implementation answers a
 // query).
-func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *application.Container, s3Store domain.ObjectStore, build controllers.BuildInfo, ragRetriever flow.Retriever, ragResponder flow.AgentResponder, mediaWaiter *mediawait.Waiter) {
+func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *application.Container, s3Store domain.ObjectStore, ragRetriever flow.Retriever, ragResponder flow.AgentResponder, mediaWaiter *mediawait.Waiter) {
 	db := container.DB
 	messageController := controllers.NewMessageController(rabbitMQ, container.Broadcast, container.SessionService).WithTranscription(db, mediaWaiter)
 	systemController := controllers.NewSystemController(container.SystemRepo, rabbitMQ)
@@ -44,34 +75,27 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// TTL 60s — ver middleware.SaaSTokenCache/services.SaaSContractService.
 	saasContractSvc := services.NewSaaSContractService(db)
 	saasTokenCache := middleware.NewSaaSTokenCache(saasContractSvc)
-	pluginManagerInternalController := controllers.NewPluginManagerInternalController(db, build)
 	registerController := controllers.NewRegisterController(saasclient.NewFromEnv(), saasclient.NewCaptchaVerifierFromEnv())
 	userController := controllers.NewUserController(container.UserRepo, container.PlanLimitSvc)
 	queueController := controllers.NewQueueController()
-	contactController := controllers.NewContactController(container.ContactRepo, container.ChannelSessionRepo, rabbitMQ, container.Broadcast, container.IzapiaProvider)
+	contactController := controllers.NewContactController(container.ContactRepo, container.ChannelSessionRepo, rabbitMQ, container.Broadcast)
 	clientController := controllers.NewClientController()
 	inventoryService := services.NewInventoryService(db, container.Broadcast)
 	inventoryController := controllers.NewInventoryController(inventoryService)
 	addressLookupController := controllers.NewAddressLookupController()
 	activityController := controllers.NewActivityController(s3Store)
+	callController := controllers.NewCallController(container.Calls)
 	sessionController := controllers.NewSessionController(container.ChannelSessionRepo, container.Broadcast, container.SessionService)
 	ticketController := controllers.NewTicketController(container.UpdateTicket, container.Broadcast, container.MessageRepo, rabbitMQ)
 	whatsappController := controllers.NewWhatsappController(container.ChannelSessionRepo, container.PlanLimitSvc, container.Broadcast, container.SessionService)
 	proxyController := controllers.NewProxyController()
 	proxyGroupController := controllers.NewProxyGroupController()
-	izapiaConfigController := controllers.NewIzapiaConfigController()
 	connectionGroupController := controllers.NewConnectionGroupController()
 	setorController := controllers.NewSetorController()
 	cargoController := controllers.NewCargoController()
-	// Plugin licensing (ADR 0024): the business never talks to the Hub
-	// directly -- only to the local plugin-manager, via pluginlicense.Client
-	// (pull + cache ~60s). PluginRegistry crosses that license with the
-	// PluginInstallations allocation table.
-	pluginLicenseClient := pluginlicense.NewClient()
-	pluginLicenseFetcher := plugins.NewLicenseFetcher(pluginLicenseClient)
-	pluginCatalogFetcher := plugins.NewCatalogFetcher(pluginLicenseClient)
-	pluginRegistry := plugins.NewPluginRegistry(db, pluginLicenseFetcher, pluginCatalogFetcher)
-	pluginController := controllers.NewPluginController(container.PlanLimitSvc, db, pluginRegistry, pluginLicenseFetcher, pluginLicenseClient)
+	// Plugins embarcados: sem marketplace nem licença. O único gate é a alocação por empresa (PluginInstallations).
+	pluginRegistry := plugins.NewPluginRegistry(db)
+	pluginController := controllers.NewPluginController(container.PlanLimitSvc, db, pluginRegistry)
 	authController := controllers.NewAuthController(container.UserRepo).WithTenantStatusService(tenantStatusSvc)
 	settingController := controllers.NewSettingController(container.SettingRepo, container.Broadcast)
 	tagController := controllers.NewTagController()
@@ -101,12 +125,39 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	storageController := controllers.NewStorageController(s3Store)
 	saasModeController := controllers.NewSaaSModeController(saasContractSvc)
 
-	// Public Routes
-	group.POST("/auth/login", authController.Login)
-	group.POST("/auth/refresh_token", authController.RefreshToken)
-	group.GET("/public-settings", settingController.GetPublicSettings)
-	group.GET("/initial-setup/check", setupController.CheckSetup)
-	group.POST("/initial-setup", setupController.InitialSetup)
+	// Canais Agnósticos de Mensageria (ADR 0033 / Task 3.4)
+	channelInboundSvc := services.NewChannelInboundService(
+		container.DB,
+		container.RedisSvc,
+		container.TicketRepo,
+		container.ContactRepo,
+		container.MessageRepo,
+		container.ReceiveMessage,
+		container.Broadcast,
+		flowRuntime,
+	)
+	channelWebhookController := controllers.NewChannelWebhookController(container.DB, channelInboundSvc)
+	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService))
+	// Polling entrega as mensagens pelo mesmo pipeline de entrada do webhook.
+	// Cada mensagem roda no escopo da empresa dela (RLS, ADR 0034), em escopo próprio: o polling é uma goroutine longa.
+	channelInboundHandler := func(ctx context.Context, msg domain.InboundMessage) error {
+		return tenantdb.WithTenant(ctx, db, msg.TenantID, func(ctx context.Context) error {
+			_, err := channelInboundSvc.Receive(ctx, msg)
+			return err
+		})
+	}
+	domain.DefaultChannelRegistry().Register(telegramChannel.NewAdapter(channelInboundHandler))
+	resumeTelegramPolling(container.DB, channelInboundHandler)
+
+	// Public Routes. O webhook de canal descobre a empresa pela conexão e troca de escopo sozinho; as demais rotas
+	// públicas não pertencem a uma empresa e rodam no escopo de sistema do banco (RLS, ADR 0034).
+	group.POST("/webhooks/channels/:kind/:connectionId", channelWebhookController.HandleWebhook)
+	sysScope := middleware.SystemScope(db)
+	group.POST("/auth/login", sysScope, authController.Login)
+	group.POST("/auth/refresh_token", sysScope, authController.RefreshToken)
+	group.GET("/public-settings", sysScope, settingController.GetPublicSettings)
+	group.GET("/initial-setup/check", sysScope, setupController.CheckSetup)
+	group.POST("/initial-setup", sysScope, setupController.InitialSetup)
 	group.GET("/system/maintenance", controllers.GetMaintenanceStatus)
 
 	// Registro self-service (Onda 6, ADR 0007 do Watink SaaS) — proxy público
@@ -115,9 +166,9 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// estão setadas; sem elas, o grupo simplesmente não é montado — o frontend
 	// esconde o botão "Registrar-se" e nada muda para quem não usa o Watink SaaS.
 	if registerController.Enabled() {
-		group.GET("/register/plans", registerController.Plans)
-		group.POST("/register", registerController.Register)
-		group.GET("/register/:id/status", registerController.Status)
+		group.GET("/register/plans", sysScope, registerController.Plans)
+		group.POST("/register", sysScope, registerController.Register)
+		group.GET("/register/:id/status", sysScope, registerController.Status)
 	}
 
 	// Swagger / API docs
@@ -129,7 +180,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// 503 quando ausente). Cross-tenant por natureza; montado FORA da cadeia
 	// protegida (IsAuth/TenantMiddleware). Ver docs/integration-core.md §1.
 	internalSaaS := group.Group("/internal/saas")
-	internalSaaS.Use(middleware.InternalSaaSOnly(saasTokenCache))
+	internalSaaS.Use(middleware.InternalSaaSOnly(saasTokenCache), sysScope)
 	{
 		internalSaaS.GET("/ping", saasInternalController.Ping)
 		internalSaaS.POST("/tenants", saasInternalController.ProvisionTenant)
@@ -138,18 +189,6 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		internalSaaS.PUT("/tenants/:tenantId/subscription", saasInternalController.PushSubscription)
 		internalSaaS.GET("/tenants/:tenantId/usage", saasInternalController.Usage)
 		internalSaaS.PUT("/instance/policy", saasInternalController.SetInstancePolicy)
-	}
-
-	// Internal control-plane (Watink Hub via plugin-manager local) — mesmo
-	// padrão do bloco acima: SEM JWT, protegido por InternalPluginManagerOnly
-	// (X-Internal-Token vs env PLUGIN_MANAGER_INTERNAL_TOKEN, fail-closed).
-	// O plugin-manager consulta esses números pra popular `counters` no
-	// heartbeat do Hub — soma TODOS os tenants da instância, sem filtro (o
-	// Hub não conhece cada tenant em separado, ADR 0003).
-	internalPluginManager := group.Group("/internal/plugin-manager")
-	internalPluginManager.Use(middleware.InternalPluginManagerOnly())
-	{
-		internalPluginManager.GET("/instance-stats", pluginManagerInternalController.InstanceStats)
 	}
 
 	// Protected Routes (IsAuth + TenantMiddleware required)
@@ -179,16 +218,9 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		}
 
 		// Plugins (tenant-scoped — moved inside protected group)
-		protected.GET("/plugins/catalog", pluginController.Catalog)
 		protected.GET("/plugins/installed", pluginController.Installed)
-		protected.POST("/plugins/checkout", pluginController.Checkout)
-		protected.GET("/plugins/instance", pluginController.Instance)
 		protected.POST("/plugins/:slug/activate", pluginController.Activate)
 		protected.POST("/plugins/:slug/deactivate", pluginController.Deactivate)
-		protected.POST("/plugins/:slug/checkout", pluginController.CreateCheckoutOrder)
-		protected.POST("/plugins/:slug/checkout/pix", pluginController.CreatePixCheckoutOrder)
-		protected.POST("/plugins/cart/checkout", pluginController.CreateCartCheckoutOrder)
-		protected.POST("/plugins/cart/checkout/pix", pluginController.CreateCartPixCheckoutOrder)
 
 		// Plugin CONTENT routes (helpdesk/webchat business routes, registered
 		// via WatinkCore.RegisterRoute inside each plugin's OnActivate). router
@@ -248,6 +280,13 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.PUT("/whatsapp/:id/keepalive", auth.RequirePermission("connections", "update"), whatsappController.ToggleKeepAlive)
 		protected.DELETE("/whatsapp/:id", auth.RequirePermission("connections", "delete"), whatsappController.DeleteWhatsapp)
 
+		// Channel Connections (Agnostic - Telegram, ML, etc. - ADR 0033)
+		channelConnCtrl := controllers.NewChannelConnectionController()
+		protected.GET("/channels/connections", auth.RequirePermission("connections", "read"), channelConnCtrl.ListConnections)
+		protected.POST("/channels/connections", auth.RequirePermission("connections", "create"), channelConnCtrl.CreateConnection)
+		protected.PUT("/channels/connections/:id", auth.RequirePermission("connections", "update"), channelConnCtrl.UpdateConnection)
+		protected.DELETE("/channels/connections/:id", auth.RequirePermission("connections", "delete"), channelConnCtrl.DeleteConnection)
+
 		// Proxies (anti-ban) — mesmo domínio de acesso que as conexões
 		// (Whatsapps): gated por connections:<ação> (P2-2). Antes as rotas eram
 		// só tenant-scoped, então um usuário sem permissão de conexões podia
@@ -263,10 +302,6 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.POST("/proxies/:id/isolate", auth.RequirePermission("connections", "update"), proxyController.Isolate)
 		protected.POST("/proxies/:id/activate", auth.RequirePermission("connections", "update"), proxyController.Activate)
 		protected.POST("/proxies/:id/test", auth.RequirePermission("connections", "update"), proxyController.Test)
-
-		// Credencial izapia do tenant — mesmo domínio de acesso das conexões.
-		protected.GET("/izapia-config", auth.RequirePermission("connections", "read"), izapiaConfigController.Get)
-		protected.PUT("/izapia-config", auth.RequirePermission("connections", "update"), izapiaConfigController.Save)
 
 		// Grupos de proxy (pool com rotação) e grupos de conexões — idem gate.
 		protected.GET("/proxy-groups", auth.RequirePermission("connections", "read"), proxyGroupController.List)
@@ -330,6 +365,21 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		// boot. GET /my-activities é a visão do EXECUTOR (filtro incondicional
 		// por assignee, mesmo pra alcance=tenant); GET /activities é a visão de
 		// GESTÃO (tenant inteiro) — não confundir as duas.
+		// Chamadas de voz (ADR de chamadas). Cada ação tem a sua permissão; o
+		// alcance de empresa passa pelo RequirePermission como no resto do sistema.
+		protected.PUT("/calls/pause", auth.RequirePermission("calls", "receive"), callController.Pause)
+		protected.GET("/calls/recording-config", auth.RequirePermission("calls", "manage"), callController.GetRecordingConfig)
+		protected.PUT("/calls/recording-config", auth.RequirePermission("calls", "manage"), callController.PutRecordingConfig)
+		protected.POST("/calls", auth.RequirePermission("calls", "place"), callController.Place)
+		protected.GET("/calls", auth.RequirePermission("calls", "read"), callController.List)
+		protected.GET("/calls/:id", auth.RequirePermission("calls", "read"), callController.Show)
+		protected.POST("/calls/:id/recording/start", auth.RequireAnyPermission([2]string{"calls", "receive"}, [2]string{"calls", "place"}), callController.StartRecording)
+		protected.POST("/calls/:id/recording/stop", auth.RequireAnyPermission([2]string{"calls", "receive"}, [2]string{"calls", "place"}), callController.StopRecording)
+		protected.GET("/calls/:id/recording", auth.RequirePermission("calls", "read"), callController.ListenRecording)
+		protected.DELETE("/calls/:id/recording", auth.RequirePermission("calls", "delete"), callController.DeleteRecording)
+		protected.POST("/calls/:id/accept", auth.RequirePermission("calls", "receive"), callController.Accept)
+		protected.POST("/calls/:id/reject", auth.RequirePermission("calls", "receive"), callController.Reject)
+		protected.POST("/calls/:id/end", auth.RequireAnyPermission([2]string{"calls", "receive"}, [2]string{"calls", "place"}), callController.End)
 		protected.GET("/activities/sla-config", auth.RequirePermission("activities", "manage"), activityController.GetSLAConfig)
 		protected.PUT("/activities/sla-config", auth.RequirePermission("activities", "manage"), activityController.UpdateSLAConfig)
 		protected.GET("/my-activities", auth.RequirePermission("activities", "read"), activityController.MyActivities)

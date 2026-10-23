@@ -1,4 +1,4 @@
-# Watink — Distribuição em produção (Docker Hub)
+# Watink — Distribuição em produção (GHCR)
 #
 # Stack mínimo distribuível: sem qualquer uma das 3 imagens abaixo o Watink não
 # funciona de verdade — watink-business sem watink-engine não conecta WhatsApp
@@ -10,14 +10,15 @@
 #   docker compose pull
 #   docker compose up -d
 #
-# As imagens são publicadas por .github/workflows/publish-dockerhub.yml em
-# push a develop/main (tags: latest em main, develop em develop, sha-<hash>
-# sempre). Defina IMAGE_TAG no .env para fixar uma versão específica.
+# As imagens são publicadas no GHCR por .github/workflows/release.yml, SOMENTE quando uma release é publicada ou por
+# disparo manual (tags: a da release, sha-<hash> e latest nas versões estáveis). Nenhum push a main/develop publica
+# imagem. Defina IMAGE_TAG no .env para fixar uma versão e WATINK_REGISTRY_OWNER para o dono do registry (o do
+# repositório que publicou; padrão xnetinho).
 
 services:
   # ── Infraestrutura ────────────────────────────────────────────
   postgres:
-    image: ronaldodavi/watink-postgres:${IMAGE_TAG:-latest}
+    image: ghcr.io/${WATINK_REGISTRY_OWNER:-xnetinho}/watink-postgres:${IMAGE_TAG:-latest}
     container_name: watink-postgres
     environment:
       POSTGRES_DB: watink
@@ -64,8 +65,29 @@ services:
     restart: unless-stopped
 
   # ── Aplicação ────────────────────────────────────────────────
+  # Job de migração (ADR 0034): único processo com credencial de administrador do banco. Cria os papéis
+  # watink_app/watink_system, o esquema e as políticas RLS, e termina. O servidor só sobe depois dele.
+  watink-migrate:
+    image: ghcr.io/${WATINK_REGISTRY_OWNER:-xnetinho}/watink-business:${IMAGE_TAG:-latest}
+    command: ["./watink-business", "migrate"]
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=watink
+      - DB_ADMIN_USER=postgres
+      - DB_ADMIN_PASS=${DB_PASS:?defina DB_PASS no .env}
+      - DB_APP_PASS=${DB_APP_PASS:?defina DB_APP_PASS no .env}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS:?defina DB_SYSTEM_PASS no .env}
+      - DB_ENGINE_PASS=${DB_ENGINE_PASS:?defina DB_ENGINE_PASS no .env}
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [watink_net]
+    restart: "no"
+
   watink-business:
-    image: ronaldodavi/watink-business:${IMAGE_TAG:-latest}
+    image: ghcr.io/${WATINK_REGISTRY_OWNER:-xnetinho}/watink-business:${IMAGE_TAG:-latest}
     container_name: watink-business
     ports:
       - "${PORT:-80}:8082"   # HTTP — API + UI embutida (same-origin)
@@ -74,12 +96,14 @@ services:
       - GIN_MODE=release
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS:?defina DB_PASS no .env}
+      - DB_APP_PASS=${DB_APP_PASS:?defina DB_APP_PASS no .env}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS:?defina DB_SYSTEM_PASS no .env}
       - DB_NAME=watink
       - AMQP_URL=amqp://${RABBITMQ_USER:-watink}:${RABBITMQ_PASS:?defina RABBITMQ_PASS no .env}@rabbitmq:5672
       - REDIS_URL=redis://redis:6379
-      - ENGINE_HEALTH_URL=http://watink-engine:8083/health
+      - ENGINE_HOST=watink-engine
+      # Áudio das chamadas de voz (ADR 0031): WebSocket interno do engine, só na rede do
+      # stack. Token OBRIGATÓRIO e igual nos dois serviços (sem ele o stack não sobe).
       - JWT_SECRET=${JWT_SECRET:?defina JWT_SECRET no .env}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?defina JWT_REFRESH_SECRET no .env}
       # Chave de criptografia-at-rest das senhas de proxy (AES-GCM via SHA-256).
@@ -87,7 +111,10 @@ services:
       - PROXY_ENC_KEY=${PROXY_ENC_KEY:?defina PROXY_ENC_KEY no .env}
       - INTERNAL_TOKEN=${INTERNAL_TOKEN:?defina INTERNAL_TOKEN no .env}
       - DOCS_PUBLIC=false
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -106,7 +133,7 @@ services:
     restart: unless-stopped
 
   watink-engine:
-    image: ronaldodavi/watink-engine:${IMAGE_TAG:-latest}
+    image: ghcr.io/${WATINK_REGISTRY_OWNER:-xnetinho}/watink-engine:${IMAGE_TAG:-latest}
     container_name: watink-engine
     # Resolvers públicos — o resolver embutido do Docker (127.0.0.11) às vezes
     # falha em resolver web.whatsapp.com, quebrando reconexões.
@@ -117,11 +144,17 @@ services:
       - AMQP_URL=amqp://${RABBITMQ_USER:-watink}:${RABBITMQ_PASS:?defina RABBITMQ_PASS no .env}@rabbitmq:5672
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS:?defina DB_PASS no .env}
+      - DB_USER=watink_engine
+      - DB_PASS=${DB_ENGINE_PASS:?defina DB_ENGINE_PASS no .env}
+      - DB_SEARCH_PATH=whatsmeow
       - DB_NAME=watink
       - HEALTH_PORT=8083
+      # Canal de áudio das chamadas (ADR 0031): só a rede interna (porta não publicada).
+      # Precisa de saída UDP para os relays do WhatsApp.
+      - CALLS_AUDIO_PORT=8085
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       rabbitmq:

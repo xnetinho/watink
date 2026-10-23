@@ -20,6 +20,8 @@ import { ConnectionActionButtons } from "./ConnectionActionButtons";
 
 interface ConnectionCardProps {
   whatsApp: ConnectionSession;
+  /** Um start já está em voo para esta conexão (lock de 10s no backend). */
+  pending?: boolean;
   onNavigate: (id: number) => void;
   onConnect: (id: number) => void;
   onDisconnect: (id: number) => void;
@@ -30,6 +32,7 @@ interface ConnectionCardProps {
 
 export const ConnectionCard: React.FC<ConnectionCardProps> = ({
   whatsApp,
+  pending = false,
   onNavigate,
   onConnect,
   onDisconnect,
@@ -113,6 +116,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
         </div>
         <ConnectionActionButtons
           whatsApp={whatsApp}
+          pending={pending}
           onConnect={onConnect}
           onDisconnect={onDisconnect}
           onRequestQrCode={onRequestQrCode}

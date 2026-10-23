@@ -44,7 +44,7 @@ func (rc *RegisterController) Enabled() bool {
 }
 
 // Plans repassa o catálogo público de planos ao frontend. Não exige CAPTCHA
-// nem rate-limit (leitura, sem efeito colateral).
+// nem rate-limit (leitura, sem efeito adicional).
 func (rc *RegisterController) Plans(c *gin.Context) {
 	resp, err := rc.saas.Plans(c.Request.Context())
 	if err != nil {

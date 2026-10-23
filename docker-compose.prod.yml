@@ -84,6 +84,30 @@ services:
     restart: unless-stopped
 
   # ── Aplicação ────────────────────────────────────────────────
+  # Job de migração (ADR 0034): único processo com credencial de administrador do banco. Cria os papéis
+  # watink_app/watink_system, o esquema e as políticas RLS, e termina. O servidor só sobe depois dele.
+  watink-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.business
+    image: watink/business:prod
+    command: ["./watink-business", "migrate"]
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=watink
+      - DB_ADMIN_USER=postgres
+      - DB_ADMIN_PASS=${DB_PASS}
+      - DB_APP_PASS=${DB_APP_PASS}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS}
+      - DB_ENGINE_PASS=${DB_ENGINE_PASS}
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [watink_net]
+    restart: "no"
+
   watink-business:
     build:
       context: .
@@ -96,17 +120,17 @@ services:
       - GIN_MODE=release
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS}
+      - DB_APP_PASS=${DB_APP_PASS}
+      - DB_SYSTEM_PASS=${DB_SYSTEM_PASS}
       - DB_NAME=watink
       - AMQP_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
       - REDIS_URL=redis://redis:6379
-      - ENGINE_HEALTH_URL=http://watink-engine:8083/health
+      - ENGINE_HOST=watink-engine
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - PROXY_ENC_KEY=${PROXY_ENC_KEY}
-      - PLUGIN_MANAGER_INTERNAL_TOKEN=${PLUGIN_MANAGER_INTERNAL_TOKEN}
       - DOCS_PUBLIC=false
+      - DB_LOG_LEVEL=${DB_LOG_LEVEL:-warn}
       # Object store da Base de Conhecimento (upload/download de fontes de
       # arquivo). Antes desta config, docker-compose.prod.yml não tinha
       # MinIO/S3 nenhum e o upload de arquivo respondia "object store não
@@ -123,9 +147,13 @@ services:
       # docs/agents/plugin-grupos-comunidades.md) — fail-closed dos dois
       # lados sem essas duas envs (ver enginego/groups_client.go
       # groupsAPIConfig e engine-go/internal/groupsapi/server.go).
-      - GROUPS_API_URL=http://watink-engine:8084
       - GROUPS_API_TOKEN=${GROUPS_API_TOKEN}
+      # Áudio das chamadas de voz (ADR 0031): WebSocket interno do engine. O token é
+      # OBRIGATÓRIO (o mesmo valor nos dois serviços): sem ele o stack nem sobe, em vez
+      # de subir com chamadas mudas.
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -163,8 +191,9 @@ services:
       - AMQP_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=${DB_PASS}
+      - DB_USER=watink_engine
+      - DB_PASS=${DB_ENGINE_PASS}
+      - DB_SEARCH_PATH=whatsmeow
       - DB_NAME=watink
       - HEALTH_PORT=8083
       # Mesma API interna de grupos referenciada em watink-business acima —
@@ -173,36 +202,16 @@ services:
       # ela, nunca a internet).
       - GROUPS_API_PORT=8084
       - GROUPS_API_TOKEN=${GROUPS_API_TOKEN}
+      # Canal de áudio das chamadas (ADR 0031): só a rede interna do stack fala com ele
+      # (a porta NÃO é publicada). Precisa de saída UDP para os relays do WhatsApp.
+      - CALLS_AUDIO_PORT=8085
     depends_on:
+      watink-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    networks: [watink_net]
-    restart: unless-stopped
-
-  # Plugin Manager (licenciamento + catálogo). Imagem PÚBLICA no Docker Hub.
-  # HUB_URL aponta para a API PÚBLICA do Watink Hub (apiv1-hub.watink.com, sem
-  # Cloudflare Access — ver RUNBOOK do repo hub); os subpaths /register,/heartbeat,
-  # /catalog,/checkout são anexados. PM_ENV=production = modo Hub real (verifica
-  # tokens Ed25519, fail-closed). O business alcança este serviço pelo nome
-  # hardcoded `plugin-manager:8081` (ADR 0024) — SERVICE key = exatamente `plugin-manager`.
-  # BUSINESS_INTERNAL_URL/TOKEN: o plugin-manager consulta o business (mesmo
-  # sentido inverso, nome de serviço hardcoded `watink-business:8082`) em
-  # GET /internal/plugin-manager/instance-stats a cada heartbeat, pra popular
-  # `counters` de verdade — best-effort, sem essas envs o heartbeat segue
-  # normal com counters vazio. Mesmo valor de PLUGIN_MANAGER_INTERNAL_TOKEN
-  # dos dois lados (business valida esse token, ver middleware.InternalPluginManagerOnly).
-  plugin-manager:
-    image: ronaldodavi/watink-plugin-manager:latest
-    environment:
-      - PORT=8081
-      - HUB_URL=https://apiv1-hub.watink.com/api/v1/plugins
-      - PM_ENV=production
-      - BUSINESS_INTERNAL_URL=http://watink-business:8082
-      - BUSINESS_INTERNAL_TOKEN=${PLUGIN_MANAGER_INTERNAL_TOKEN}
-    volumes:
-      - plugin_manager_data:/data
     networks: [watink_net]
     restart: unless-stopped
 
@@ -249,4 +258,3 @@ volumes:
   rabbitmq_data:
   uploads_data:
   minio_data:
-  plugin_manager_data:

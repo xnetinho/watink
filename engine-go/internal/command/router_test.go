@@ -74,3 +74,15 @@ func TestParseRoutingKey_ExtractsMultiTenantID(t *testing.T) {
 		t.Errorf("expected session.start, got %q", cmd)
 	}
 }
+
+func TestParseRoutingKey_CallCommands(t *testing.T) {
+	for _, c := range []string{"call.ready", "call.accept", "call.reject", "call.end", "call.start"} {
+		tenant, session, cmd, err := ParseRoutingKey("wbot.tenant-1.42." + c)
+		if err != nil || tenant != "tenant-1" || session != "42" || cmd != c {
+			t.Fatalf("%s: tenant=%q session=%q cmd=%q err=%v", c, tenant, session, cmd, err)
+		}
+	}
+	if _, _, _, err := ParseRoutingKey("wbot.tenant-1.42.call.hack"); err == nil {
+		t.Fatal("subcomando de chamada desconhecido deve ser rejeitado")
+	}
+}

@@ -18,7 +18,7 @@ import (
 // internos, sem dados de Contact).
 func handlePublicProtocol(core sdk.WatinkCore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db := core.GetDB()
+		db := core.GetDB().WithContext(c.Request.Context())
 
 		var protocol models.Protocol
 		if err := db.Where("token = ?", c.Param("token")).First(&protocol).Error; err != nil {

@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"context"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"time"
 
@@ -91,10 +92,11 @@ func syncAllGroupsCaches(ctx context.Context, db *gorm.DB, resolver domain.Whats
 }
 
 func syncOneGroupsCache(ctx context.Context, db *gorm.DB, resolver domain.WhatsAppEngineResolver, t groupsCacheSyncTarget) {
+	// Etapa 1 (curta, escopo da empresa): carrega a conexão.
 	var w models.Whatsapp
-	if err := db.Session(&gorm.Session{NewDB: true}).
-		Where(`id = ? AND "tenantId" = ?`, t.WhatsappID, t.TenantID).
-		First(&w).Error; err != nil {
+	if err := tenantdb.Do(ctx, db, t.TenantID, func(tx *gorm.DB) error {
+		return tx.Where(`id = ? AND "tenantId" = ?`, t.WhatsappID, t.TenantID).First(&w).Error
+	}); err != nil {
 		return
 	}
 	engine, err := resolver.EngineFor(w)
@@ -105,14 +107,19 @@ func syncOneGroupsCache(ctx context.Context, db *gorm.DB, resolver domain.WhatsA
 	if !ok {
 		return
 	}
+	// Etapa 2 (chamada externa lenta ao engine): sem nenhuma conexão do banco fixada (RLS, ADR 0034, D4).
 	groups, err := groupEngine.ListGroups(ctx, w)
 	if err != nil {
 		log.Printf("[groups] cache sync: ListGroups falhou (tenant %s, conexão %d): %v", t.TenantID, t.WhatsappID, err)
 		return
 	}
-	if err := saveGroupsToCache(db, t.TenantID, w, groups); err != nil {
+	// Etapa 3 (curta, escopo da empresa): grava o cache e enriquece os contatos.
+	tctx, done := tenantdb.TenantCtx(ctx, db, t.TenantID)
+	defer done()
+	tdb := db.WithContext(tctx)
+	if err := saveGroupsToCache(tdb, t.TenantID, w, groups); err != nil {
 		log.Printf("[groups] cache sync: saveGroupsToCache falhou (tenant %s, conexão %d): %v", t.TenantID, t.WhatsappID, err)
 		return
 	}
-	enrichContactsFromGroups(db, t.TenantID, groups)
+	enrichContactsFromGroups(tdb, t.TenantID, groups)
 }
