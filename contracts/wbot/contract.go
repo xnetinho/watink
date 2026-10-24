@@ -32,7 +32,6 @@ const (
 	CommandMediaDownload      = "media.download"
 	CommandContactSync        = "contact.sync"
 	CommandContactImport      = "contact.import"
-	CommandHistorySync        = "history.sync"
 	CommandHistoryRecover     = "history.recover"
 	CommandChatPresence       = "chat.presence"
 	CommandCallReady          = "call.ready"
