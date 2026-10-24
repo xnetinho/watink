@@ -51,8 +51,7 @@ func main() {
 	}
 	log.Println("Connected to RabbitMQ")
 
-	sessionLoader := whatsapp.NewPostgresSessionLoader(whatsapp.BuildPostgresDSN())
-	waService := whatsapp.NewWhatsAppService(rabbit, sessionLoader)
+	waService := whatsapp.NewWhatsAppService(rabbit)
 
 	// API interna de grupos/comunidades (T1.1, docker-internal only) — no-op
 	// se GROUPS_API_TOKEN não estiver configurado (fail-closed).
@@ -63,12 +62,6 @@ func main() {
 	load := waService.CallsLoad
 	callsLoad.Store(&load)
 	go callsapi.Start(ctx, waService)
-
-	go func() {
-		time.Sleep(5 * time.Second)
-		log.Println("Auto-restarting existing sessions...")
-		waService.AutoRestartSessions()
-	}()
 
 	routingKeys := []string{
 		wbot.CommandPattern(wbot.CommandSessionStart),
@@ -111,6 +104,10 @@ func main() {
 		d.Ack(false)
 	}); err != nil {
 		log.Fatalf("Failed to start call command consumer: %v", err)
+	}
+
+	if err := rabbit.PublishEvent(wbot.Event("system", "0", wbot.EventEngineReady), map[string]interface{}{"type": wbot.EventEngineReady, "tenantId": ""}); err != nil {
+		log.Printf("Failed to publish engine.ready: %v", err)
 	}
 
 	log.Println("Watink Engine Go (whatsmeow) started — PostgreSQL store, RabbitMQ connected")

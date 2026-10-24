@@ -20,11 +20,10 @@ import (
 
 // WhatsAppService manages all active WhatsApp client sessions for a single engine-go instance.
 type WhatsAppService struct {
-	container     *sqlstore.Container
-	clients       map[int]*whatsmeow.Client
-	mu            sync.RWMutex
-	rabbit        *rabbitmq.RabbitMQService
-	sessionLoader SessionLoader
+	container *sqlstore.Container
+	clients   map[int]*whatsmeow.Client
+	mu        sync.RWMutex
+	rabbit    *rabbitmq.RabbitMQService
 
 	historyMu       sync.Mutex
 	historyRequests map[string]*pendingHistory
@@ -52,7 +51,7 @@ type groupMeta struct {
 }
 
 // NewWhatsAppService creates a WhatsAppService connecting whatsmeow to PostgreSQL via sqlstore.
-func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService, sessionLoader SessionLoader) *WhatsAppService {
+func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService) *WhatsAppService {
 	dbLog := waLog.Stdout("Database", "DEBUG", true)
 	dsn := BuildPostgresDSN()
 
@@ -65,7 +64,6 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService, sessionLoader SessionL
 		container:       container,
 		clients:         make(map[int]*whatsmeow.Client),
 		rabbit:          rabbit,
-		sessionLoader:   sessionLoader,
 		historyRequests: make(map[string]*pendingHistory),
 		groupNames:      make(map[string]string),
 		groupMetaMap:    make(map[string]groupMeta),

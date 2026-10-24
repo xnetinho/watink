@@ -6,30 +6,12 @@ import (
 	"log"
 	"net/url"
 	"strings"
-	"time"
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/types"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
-
-// AutoRestartSessions loads persisted sessions via SessionLoader and reconnects each one.
-func (s *WhatsAppService) AutoRestartSessions() {
-	sessions, err := s.sessionLoader.LoadActiveSessions()
-	if err != nil {
-		log.Printf("Failed to load sessions for auto-restart: %v", err)
-		return
-	}
-
-	for _, sess := range sessions {
-		log.Printf("Auto-restarting WhatsMeow session %d tenant %s", sess.ID, sess.TenantID)
-		if err := s.StartClient(sess.ID, sess.TenantID, sess.Name, time.Now().UnixMilli(), "", false, "", sess.Wid); err != nil {
-			log.Printf("Failed to auto-restart session %d: %v", sess.ID, err)
-			s.emitStatus(sess.ID, sess.TenantID, "DISCONNECTED")
-		}
-	}
-}
 
 // StartClient creates or reconnects a whatsmeow client for the given session.
 // Supports proxy, QR code and pairing code (usePairingCode=true).
