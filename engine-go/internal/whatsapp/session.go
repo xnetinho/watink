@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alltomatos/watinkdev/engine-go/internal/safego"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/types"
@@ -114,7 +115,7 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 	if client.Store.ID == nil {
 		cleanPhone := strings.TrimSpace(phoneNumber)
 		if usePairingCode && cleanPhone != "" {
-			go func() {
+			safego.Go("pairing.phone", func() {
 				s.emitStatus(id, tenantID, "QRCODE")
 				code, pairErr := client.PairPhone(context.Background(), cleanPhone, true, whatsmeow.PairClientChrome, "Watink")
 				if pairErr != nil {
@@ -127,9 +128,9 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 					"pairingCode": code,
 					"status":      "QRCODE",
 				})
-			}()
+			})
 		}
-		go s.consumeQR(id, tenantID, qrChan)
+		safego.Go("consumeQR", func() { s.consumeQR(id, tenantID, qrChan) })
 	} else {
 		log.Printf("Reconnected session %d", id)
 		if client.IsLoggedIn() {
@@ -142,7 +143,7 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 			log.Printf("Session %d has device ID but is not logged in — requesting QR", id)
 			qrChan, err = client.GetQRChannel(context.Background())
 			if err == nil {
-				go s.consumeQR(id, tenantID, qrChan)
+				safego.Go("consumeQR", func() { s.consumeQR(id, tenantID, qrChan) })
 			}
 		}
 	}

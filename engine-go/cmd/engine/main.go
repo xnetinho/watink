@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -17,9 +19,11 @@ import (
 	"github.com/alltomatos/watinkdev/engine-go/internal/groupsapi"
 	"github.com/alltomatos/watinkdev/engine-go/internal/health"
 	"github.com/alltomatos/watinkdev/engine-go/internal/rabbitmq"
+	"github.com/alltomatos/watinkdev/engine-go/internal/safego"
 	"github.com/alltomatos/watinkdev/engine-go/internal/whatsapp"
 	"github.com/joho/godotenv"
 	amqp "github.com/streadway/amqp"
+	"go.mau.fi/whatsmeow"
 )
 
 type commandEnvelope struct {
@@ -55,19 +59,19 @@ func main() {
 
 	// API interna de grupos/comunidades (T1.1, docker-internal only) — no-op
 	// se GROUPS_API_TOKEN não estiver configurado (fail-closed).
-	go groupsapi.Start(ctx, waService)
+	safego.Go("groupsapi", func() { groupsapi.Start(ctx, waService) })
 
 	// Endpoint interno de áudio das chamadas (docker-internal only, sem autenticação:
 	// a defesa é a rede — a porta nunca pode ser publicada em `ports:`).
 	load := waService.CallsLoad
 	callsLoad.Store(&load)
-	go callsapi.Start(ctx, waService)
+	safego.Go("callsapi", func() { callsapi.Start(ctx, waService) })
 
-	go func() {
+	safego.Go("autoRestartSessions", func() {
 		time.Sleep(5 * time.Second)
 		log.Println("Auto-restarting existing sessions...")
 		waService.AutoRestartSessions()
-	}()
+	})
 
 	routingKeys := []string{
 		"wbot.*.*.session.start",
@@ -91,11 +95,14 @@ func main() {
 		"wbot.*.*.chat.presence",
 	}
 
-	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) {
-		if err := handleCommand(d, waService); err != nil {
+	// O consumidor devolve o erro: nil = Ack; recuperável = reentrega com limite; irrecuperável ou esgotado = fila de
+	// falhas (engine.go.commands.dlq). Antes o Ack era dado sempre, até em falha, e o comando se perdia.
+	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) error {
+		err := handleCommand(d, waService)
+		if err != nil {
 			log.Printf("Command failed %s: %v", d.RoutingKey, err)
 		}
-		d.Ack(false)
+		return classifyCommandError(err)
 	})
 	if err != nil {
 		log.Fatalf("Failed to start command consumer: %v", err)
@@ -104,11 +111,12 @@ func main() {
 	// Comandos de chamada têm fila, canal e consumidor próprios, e cada um roda em
 	// goroutine: "Atender"/"Encerrar" nunca esperam o envio de mensagens (que usa
 	// o laço serial acima).
-	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) {
-		if err := handleCommand(d, waService); err != nil {
+	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) error {
+		err := handleCommand(d, waService)
+		if err != nil {
 			log.Printf("Call command failed %s: %v", d.RoutingKey, err)
 		}
-		d.Ack(false)
+		return classifyCommandError(err)
 	}); err != nil {
 		log.Fatalf("Failed to start call command consumer: %v", err)
 	}
@@ -123,6 +131,39 @@ func main() {
 	cancel() // para health server
 	_ = rabbit.Close()
 	log.Println("Engine stopped")
+}
+
+// classifyCommandError separa o que vale a pena repetir do que não vale. A sessão desconectada é recuperável (ela pode
+// estar reconectando); JSON inválido, JID inválido e sessão inexistente nunca vão passar sozinhos.
+func classifyCommandError(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch {
+	case errors.Is(err, rabbitmq.ErrUnrecoverable):
+		return err
+	case errors.Is(err, whatsapp.ErrSessionNotConnected), errors.Is(err, whatsapp.ErrCallsUnavailable):
+		return err // recuperável: tenta de novo com backoff
+	case errors.Is(err, whatsapp.ErrInvalidInput), errors.Is(err, whatsapp.ErrInvalidGroupJID):
+		return rabbitmq.Unrecoverable(err)
+	}
+	var syn *json.SyntaxError
+	var typ *json.UnmarshalTypeError
+	if errors.As(err, &syn) || errors.As(err, &typ) {
+		return rabbitmq.Unrecoverable(err)
+	}
+	var iq *whatsmeow.IQError
+	if errors.As(err, &iq) {
+		// 4xx do WhatsApp é decisão do servidor (sem permissão, limite, número inexistente): repetir só piora o risco.
+		if iq.Code >= 400 && iq.Code < 500 {
+			return rabbitmq.Unrecoverable(err)
+		}
+		return err
+	}
+	if strings.Contains(err.Error(), "invalid JID") || strings.Contains(err.Error(), "unmarshal envelope") {
+		return rabbitmq.Unrecoverable(err)
+	}
+	return err
 }
 
 const callsQueue = "engine.go.calls"
@@ -272,11 +313,11 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 		// assíncrono do ponto de vista do chamador (o resultado só chega pelo
 		// evento message.media, nunca pelo retorno síncrono do comando), então
 		// rodar em goroutine própria não muda o contrato — só libera a fila.
-		go func() {
+		safego.Go("media.download", func() {
 			if err := svc.DownloadMedia(sessionID, tenantID, p); err != nil {
 				log.Printf("Command failed %s: %v", d.RoutingKey, err)
 			}
-		}()
+		})
 		return nil
 
 	case "contact.sync":
