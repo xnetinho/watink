@@ -33,7 +33,7 @@ func TestWBotContract_BidirectionalCoverage(t *testing.T) {
 		{"media", wbot.EventMessageMedia, `"message.media"`, `"message.media"`},
 		{"contact update", wbot.EventContactUpdate, `"contact.update"`, `"contact.update"`},
 		{"contact import", wbot.EventContactImport, `"contact.import"`, `"contact.import"`},
-		{"poll vote", wbot.EventMessagePollVote, "", "EventMessagePollVote"},
+		{"poll vote", wbot.EventMessagePollVote, `"message.poll_vote"`, "EventMessagePollVote"},
 	}
 	for _, event := range events {
 		t.Run("event/"+event.name, func(t *testing.T) {
