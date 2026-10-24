@@ -287,6 +287,23 @@ func Seed() {
 		{Resource: "queues", Action: "create", Description: "Criar Filas"},
 		{Resource: "queues", Action: "update", Description: "Editar Filas"},
 		{Resource: "queues", Action: "delete", Description: "Excluir Filas"},
+		// quickAnswers (respostas rápidas): ler/enviar é do atendimento; gerir o catálogo é separado
+		{Resource: "quickAnswers", Action: "read", Description: "Visualizar Respostas Rápidas"},
+		{Resource: "quickAnswers", Action: "create", Description: "Criar Respostas Rápidas"},
+		{Resource: "quickAnswers", Action: "update", Description: "Editar Respostas Rápidas"},
+		{Resource: "quickAnswers", Action: "delete", Description: "Excluir Respostas Rápidas"},
+		// tags
+		{Resource: "tags", Action: "read", Description: "Visualizar Tags"},
+		{Resource: "tags", Action: "create", Description: "Criar Tags"},
+		{Resource: "tags", Action: "update", Description: "Editar Tags"},
+		{Resource: "tags", Action: "delete", Description: "Excluir Tags"},
+		// assistants / aiGateways (plugin "assistant")
+		{Resource: "assistants", Action: "read", Description: "Visualizar Assistentes de IA"},
+		{Resource: "assistants", Action: "manage", Description: "Criar/editar/excluir/testar Assistentes de IA e seus gateways"},
+		// helpdesk (plugin "helpdesk")
+		{Resource: "protocols", Action: "read", Description: "Visualizar Protocolos do Helpdesk"},
+		{Resource: "protocols", Action: "manage", Description: "Criar/editar Protocolos e anexos do Helpdesk"},
+		// inventário avançado (plugin "inventory-advanced"): leitura reaproveita inventory:read; escrita é inventory:manage
 		// whatsappGroups (plugin "groups" — gestão de grupos/comunidades WhatsApp)
 		{Resource: "whatsappGroups", Action: "read", Description: "Visualizar grupos e comunidades do WhatsApp"},
 		{Resource: "whatsappGroups", Action: "manage", Description: "Criar/configurar grupos e comunidades, vincular/desvincular subgrupos"},

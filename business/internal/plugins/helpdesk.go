@@ -38,15 +38,15 @@ func (hp *HelpdeskPlugin) OnInstall(core sdk.WatinkCore) error {
 // "/helpdesk/protocols" — nunca batia com o contrato real do frontend, e por
 // nunca ter sido testado ao vivo esse descompasso não tinha sido percebido.
 func (hp *HelpdeskPlugin) OnActivate(core sdk.WatinkCore) error {
-	core.RegisterRoute("GET", "/protocols", handleListProtocols(core))
-	core.RegisterRoute("GET", "/protocols/kanban", handleKanban(core))
-	core.RegisterRoute("GET", "/protocols/dashboard", handleDashboard(core))
-	core.RegisterRoute("POST", "/protocols", handleCreateProtocol(core))
-	core.RegisterRoute("GET", "/protocols/:id", handleGetProtocol(core))
-	core.RegisterRoute("PUT", "/protocols/:id", handleUpdateProtocol(core))
-	core.RegisterRoute("GET", "/protocols/:id/attachments", handleListAttachments(core))
-	core.RegisterRoute("POST", "/protocols/:id/attachments", handleUploadAttachments(core))
-	core.RegisterRoute("DELETE", "/protocols/:id/attachments/:attachmentId", handleDeleteAttachment(core))
+	core.RegisterRoute("GET", "/protocols", withPermission("protocols", "read", handleListProtocols(core)))
+	core.RegisterRoute("GET", "/protocols/kanban", withPermission("protocols", "read", handleKanban(core)))
+	core.RegisterRoute("GET", "/protocols/dashboard", withPermission("protocols", "read", handleDashboard(core)))
+	core.RegisterRoute("POST", "/protocols", withPermission("protocols", "manage", handleCreateProtocol(core)))
+	core.RegisterRoute("GET", "/protocols/:id", withPermission("protocols", "read", handleGetProtocol(core)))
+	core.RegisterRoute("PUT", "/protocols/:id", withPermission("protocols", "manage", handleUpdateProtocol(core)))
+	core.RegisterRoute("GET", "/protocols/:id/attachments", withPermission("protocols", "read", handleListAttachments(core)))
+	core.RegisterRoute("POST", "/protocols/:id/attachments", withPermission("protocols", "manage", handleUploadAttachments(core)))
+	core.RegisterRoute("DELETE", "/protocols/:id/attachments/:attachmentId", withPermission("protocols", "manage", handleDeleteAttachment(core)))
 
 	// Link público (sem login) — token é a credencial, resolvido dentro do
 	// handler; nunca passa pelo gating de licença de RegisterRoute (não há
