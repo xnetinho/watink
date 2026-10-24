@@ -3,9 +3,11 @@ package services
 import (
 	"context"
 	"encoding/json"
+
 	"log"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
 	"github.com/google/uuid"
 )
 
@@ -35,7 +37,7 @@ func NewRedisBroadcast(redisSvc domain.RedisService, localSink domain.Broadcaste
 func (rb *RedisBroadcast) Start() {
 	pubsub := rb.redisSvc.Subscribe(context.Background(), "socketio:broadcast")
 
-	go func() {
+	safego.Go("redisBroadcast.relay", func() {
 		ch := pubsub.Channel()
 		for msg := range ch {
 			var sm SocketMessage
@@ -58,7 +60,7 @@ func (rb *RedisBroadcast) Start() {
 				}
 			}
 		}
-	}()
+	})
 }
 
 // Publish publishes a SocketMessage to the broadcast channel via DI.

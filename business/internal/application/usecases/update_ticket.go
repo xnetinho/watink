@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
 	"github.com/google/uuid"
 )
 
@@ -120,9 +121,9 @@ func (uc *UpdateTicketUseCase) Execute(ctx context.Context, input UpdateTicketIn
 
 	// 2. Auto-distribution when queue changes
 	if input.QueueID != nil && (oldQueueID == nil || *oldQueueID != *input.QueueID) && uc.distribute != nil {
-		go func() {
+		safego.Go("ticket.autoDistribute", func() {
 			_ = uc.distribute.Execute(context.Background(), ticket.ID, *input.QueueID, ticket.TenantID)
-		}()
+		})
 	}
 
 	// 3. Domain events
