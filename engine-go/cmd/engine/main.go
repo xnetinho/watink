@@ -51,8 +51,7 @@ func main() {
 	}
 	log.Println("Connected to RabbitMQ")
 
-	sessionLoader := whatsapp.NewPostgresSessionLoader(whatsapp.BuildPostgresDSN())
-	waService := whatsapp.NewWhatsAppService(rabbit, sessionLoader)
+	waService := whatsapp.NewWhatsAppService(rabbit)
 
 	// API interna de grupos/comunidades (T1.1, docker-internal only) — no-op
 	// se GROUPS_API_TOKEN não estiver configurado (fail-closed).
@@ -63,12 +62,6 @@ func main() {
 	load := waService.CallsLoad
 	callsLoad.Store(&load)
 	go callsapi.Start(ctx, waService)
-
-	go func() {
-		time.Sleep(5 * time.Second)
-		log.Println("Auto-restarting existing sessions...")
-		waService.AutoRestartSessions()
-	}()
 
 	routingKeys := []string{
 		wbot.CommandPattern(wbot.CommandSessionStart),
@@ -91,11 +84,12 @@ func main() {
 		wbot.CommandPattern(wbot.CommandChatPresence),
 	}
 
-	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) {
+	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) error {
 		if err := handleCommand(d, waService); err != nil {
 			log.Printf("Command failed %s: %v", d.RoutingKey, err)
+			return err
 		}
-		d.Ack(false)
+		return nil
 	})
 	if err != nil {
 		log.Fatalf("Failed to start command consumer: %v", err)
@@ -104,13 +98,18 @@ func main() {
 	// Comandos de chamada têm fila, canal e consumidor próprios, e cada um roda em
 	// goroutine: "Atender"/"Encerrar" nunca esperam o envio de mensagens (que usa
 	// o laço serial acima).
-	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) {
+	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) error {
 		if err := handleCommand(d, waService); err != nil {
 			log.Printf("Call command failed %s: %v", d.RoutingKey, err)
+			return err
 		}
-		d.Ack(false)
+		return nil
 	}); err != nil {
 		log.Fatalf("Failed to start call command consumer: %v", err)
+	}
+
+	if err := rabbit.PublishEvent(wbot.Event("system", "0", wbot.EventEngineReady), map[string]interface{}{"type": wbot.EventEngineReady, "tenantId": ""}); err != nil {
+		log.Printf("Failed to publish engine.ready: %v", err)
 	}
 
 	log.Println("Watink Engine Go (whatsmeow) started — PostgreSQL store, RabbitMQ connected")

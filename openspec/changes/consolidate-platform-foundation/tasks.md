@@ -13,9 +13,9 @@
 - [ ] 1.4 Registro versionado de rotas isentas com justificativa (logout, `/me`, leitura própria); verificar que cada isenção tem texto de justificativa
 - [ ] 1.5 `safeGo` (recover, log, métrica) em todas as goroutines do business e contenção de pânico por entrega no consumidor AMQP; verificar com teste que injeta pânico num tratador e o processo continua
 - [ ] 1.6 Engine: corrigir `session.pairingcode`/`pairing_code`; verificar com teste de contrato que o evento chega ao tratador
-- [ ] 1.7 Engine: `Ack` só no sucesso, `Nack` com fila de falhas e retry limitado; verificar com teste que um envio com erro recuperável é reprocessado e um inválido vai à fila de falhas
-- [ ] 1.8 Engine: consumidor se refaz após queda do broker (canal por consumidor + supervisor); verificar com teste que derruba e religa o RabbitMQ e o consumo volta sozinho
-- [ ] 1.9 Engine: saída durável de eventos com confirmação de publicação; verificar com teste que `message.received` emitido com o broker fora é entregue depois, sem duplicar
+- [x] 1.7 Engine: `Ack` só no sucesso, `Nack` com fila de falhas e retry limitado; verificar com teste que um envio com erro recuperável é reprocessado e um inválido vai à fila de falhas
+- [x] 1.8 Engine: consumidor se refaz após queda do broker (canal por consumidor + supervisor); verificar com teste que derruba e religa o RabbitMQ e o consumo volta sozinho
+- [x] 1.9 Engine: saída durável de eventos com confirmação de publicação; verificar com teste que `message.received` emitido com o broker fora é entregue depois, sem duplicar
 - [ ] 1.10 CI: engine roda `go test` e `-race`, business roda `-race`; pin de `golang` e `alpine` nos Dockerfiles; verificar que o CI falha ao introduzir corrida ou imagem móvel
 - [ ] 1.11 Teste que reprova porta 8084 ou 8085 publicada em `ports:` nos arquivos de composição; verificar adicionando uma porta indevida e vendo falhar
 
@@ -26,7 +26,7 @@
 - [x] 2.3 Teste de contrato bidirecional (emissor, tratador, bind, comando); verificar que falha ao remover um tratador e passa restaurado
 - [x] 2.4 `poll_vote`: emitir o voto no engine com `DecryptPollVote` (pendente de confirmação, ver design); verificar com teste de contrato e voto simulado persistindo `PollResult`
 - [ ] 2.4a Pendente após `poll_vote`: reintroduzir `history.sync` somente quando o business tiver um construtor e fluxo de disparo; o engine não aceita o comando até lá.
-- [ ] 2.5 Handshake `engine.ready` → business envia `session.start` por conexão ativa; remover `session_loader.go`, o `Sleep(5s)` e o filtro `engineType`; verificar que o engine reinicia sessões sem nenhuma consulta a `Whatsapps`
+- [x] 2.5 Handshake `engine.ready` → business envia `session.start` por conexão ativa; remover `session_loader.go`, o `Sleep(5s)` e o filtro `engineType`; verificar que o engine reinicia sessões sem nenhuma consulta a `Whatsapps`
 - [ ] 2.6 Mapa de clientes do engine indexado por `(tenantId, connectionId)`; verificar com teste que a mesma id em duas empresas não colide
 
 ## 3. Esquema greenfield
