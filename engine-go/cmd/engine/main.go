@@ -87,7 +87,6 @@ func main() {
 		wbot.CommandPattern(wbot.CommandMediaDownload),
 		wbot.CommandPattern(wbot.CommandContactSync),
 		wbot.CommandPattern(wbot.CommandContactImport),
-		wbot.CommandPattern(wbot.CommandHistorySync),
 		wbot.CommandPattern(wbot.CommandHistoryRecover),
 		wbot.CommandPattern(wbot.CommandChatPresence),
 	}
