@@ -8,6 +8,7 @@ import (
 
 type Message struct {
 	ID          string    `gorm:"primaryKey" json:"id"`
+	ExternalID  string    `gorm:"column:externalId" json:"externalId"`
 	Body        string    `gorm:"not null" json:"body"`
 	Ack         int       `gorm:"not null;default:0" json:"ack"`
 	Read        bool      `gorm:"not null;default:false" json:"read"`
