@@ -58,6 +58,7 @@ func Migrate() {
 		&models.ClientAddress{},
 		&models.Whatsapp{},
 		&models.ChannelConnection{},
+		&models.WhatsAppConnectionDetails{},
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},

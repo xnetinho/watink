@@ -32,7 +32,7 @@
 ## 3. Esquema greenfield
 
 - [x] 3.1 Baseline de esquema versionado com ferramenta de migração, substituindo `AutoMigrate` e os DDLs ad-hoc de `database.go`; job de migração com advisory lock; verificar que um banco vazio sobe ao esquema completo e a segunda execução não altera nada
-- [ ] 3.2 `ChannelConnections` como única tabela; `whatsapp_connection_details` 1:1 para proxy, `keepAlive`, sync, `wid` e risco; verificar com teste de repositório que uma conexão WhatsApp grava e lê seus detalhes
+- [x] 3.2 `ChannelConnections` como única tabela; `whatsapp_connection_details` 1:1 para proxy, `keepAlive`, sync, `wid` e risco; verificar com teste de repositório que uma conexão WhatsApp grava e lê seus detalhes
 - [ ] 3.3 `Tickets.connectionId NOT NULL` com FK; remover `whatsappId` e o sentinela `0`; verificar com teste que ticket de qualquer canal grava e consulta por `connectionId`
 - [ ] 3.4 Remover `whatsappId` de `Users`, `Flows`, `Assistants`, `CallLogs`, `group_caches`, `group_campaigns`, `group_campaign_targets`, `group_campaign_sends` (um PR por tabela ou grupo coerente); verificar que a busca por `whatsappId` no código de produção retorna zero
 - [ ] 3.5 `Messages` com chave primária interna e `UNIQUE (tenantId, connectionId, externalId)`; `ON CONFLICT` usa essa chave; verificar com teste de colisão entre conexões e de reentrega
