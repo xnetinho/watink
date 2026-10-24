@@ -276,12 +276,19 @@ func (el *EventListener) handleEngineReady(ctx context.Context) error {
 	if el.db == nil || el.publisher == nil {
 		return nil
 	}
+	systemCtx, systemDone := tenantdb.SystemCtx(ctx, el.db)
+	defer systemDone()
 	var tenantIDs []uuid.UUID
-	if err := el.db.WithContext(ctx).Table(`"Tenants"`).Pluck("id", &tenantIDs).Error; err != nil {
+	if err := el.db.WithContext(systemCtx).Table(`"Tenants"`).Pluck("id", &tenantIDs).Error; err != nil {
 		return err
 	}
 	for _, tenantID := range tenantIDs {
-		sessions, err := el.sessions.FindAll(ctx, tenantID)
+		tenantCtx, tenantDone := tenantdb.TenantCtx(ctx, el.db, tenantID)
+		sessions, err := el.sessions.FindAll(tenantCtx, tenantID)
+		if err != nil {
+			tenantDone()
+			return err
+		}
 		if err != nil {
 			return err
 		}
@@ -289,7 +296,7 @@ func (el *EventListener) handleEngineReady(ctx context.Context) error {
 			if session.Status != "CONNECTED" && session.Status != "OPENING" && session.Status != "QRCODE" {
 				continue
 			}
-			model, err := el.sessions.FindByIDDetail(ctx, session.ID, tenantID)
+			model, err := el.sessions.FindByIDDetail(tenantCtx, session.ID, tenantID)
 			if err != nil || model == nil {
 				continue
 			}
@@ -302,9 +309,11 @@ func (el *EventListener) handleEngineReady(ctx context.Context) error {
 				},
 			}
 			if err := el.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(session.ID), wbot.CommandSessionStart), payload); err != nil {
+				tenantDone()
 				return err
 			}
 		}
+		tenantDone()
 	}
 	return nil
 }
