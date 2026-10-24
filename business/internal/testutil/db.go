@@ -140,6 +140,7 @@ func allModels() []interface{} {
 		&models.ActivityOccurrence{},
 		&models.Whatsapp{},
 		&models.ChannelConnection{},
+		&models.WhatsAppConnectionDetails{},
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},
