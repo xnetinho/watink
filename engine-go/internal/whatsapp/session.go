@@ -121,8 +121,8 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 					log.Printf("Pairing code error for session %d: %v", id, pairErr)
 					return
 				}
-				// "session.pairingcode" matches the routing key the backend event_listener expects.
-				s.publishEvent(tenantID, id, "session.pairingcode", map[string]interface{}{
+				// "session.pairing_code" matches the shared contract and the business listener.
+				s.publishEvent(tenantID, id, "session.pairing_code", map[string]interface{}{
 					"sessionId":   fmt.Sprintf("%d", id),
 					"pairingCode": code,
 					"status":      "QRCODE",

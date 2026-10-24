@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"net/http"
 	"strconv"
@@ -177,7 +178,7 @@ func (c *coreImpl) SendTicketMessage(tenantID uuid.UUID, ticketID int, body stri
 			"body":      body,
 		},
 	}
-	routingKey := fmt.Sprintf("wbot.%s.%d.%s", tenantID.String(), ticket.WhatsappID, "message.send.text")
+	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), wbot.CommandMessageText)
 	if err := c.rabbit.PublishCommand(routingKey, command); err != nil {
 		return err
 	}

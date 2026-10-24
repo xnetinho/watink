@@ -22,9 +22,10 @@
 ## 2. Contrato do engine
 
 - [x] 2.1 Módulo `contracts/wbot` com `go.work`: constantes de comandos e eventos, payloads tipados, versão no envelope, `Command(...)` e `Event(...)`; verificar que business e engine compilam importando só o módulo
-- [ ] 2.2 Migrar os 16 construtores de routing key do business e o roteador do engine para o módulo; verificar com busca que `"wbot."` aparece apenas no módulo
-- [ ] 2.3 Teste de contrato bidirecional (emissor, tratador, bind, comando); verificar que falha ao remover um tratador e passa restaurado
+- [x] 2.2 Migrar os 16 construtores de routing key do business e o roteador do engine para o módulo; verificar com busca que `"wbot."` aparece apenas no módulo
+- [x] 2.3 Teste de contrato bidirecional (emissor, tratador, bind, comando); verificar que falha ao remover um tratador e passa restaurado
 - [ ] 2.4 `poll_vote`: emitir o voto no engine com `DecryptPollVote` (pendente de confirmação, ver design); verificar com teste de contrato e voto simulado persistindo `PollResult`
+- [ ] 2.4a Pendente após `poll_vote`: reintroduzir `history.sync` somente quando o business tiver um construtor e fluxo de disparo; o engine não aceita o comando até lá.
 - [ ] 2.5 Handshake `engine.ready` → business envia `session.start` por conexão ativa; remover `session_loader.go`, o `Sleep(5s)` e o filtro `engineType`; verificar que o engine reinicia sessões sem nenhuma consulta a `Whatsapps`
 - [ ] 2.6 Mapa de clientes do engine indexado por `(tenantId, connectionId)`; verificar com teste que a mesma id em duas empresas não colide
 

@@ -12,6 +12,9 @@ func TestCommandAndEventRoutingKeys(t *testing.T) {
 	if got := Event("tenant-1", "42", EventSessionPairingCode); got != "wbot.tenant-1.42.session.pairing_code" {
 		t.Fatalf("event routing key = %q", got)
 	}
+	if got := CommandPattern(CommandMessageText); got != "wbot.*.*.message.send.text" {
+		t.Fatalf("command pattern = %q", got)
+	}
 }
 
 func TestEnvelopeCarriesContractVersion(t *testing.T) {
