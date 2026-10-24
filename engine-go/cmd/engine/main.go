@@ -84,11 +84,12 @@ func main() {
 		wbot.CommandPattern(wbot.CommandChatPresence),
 	}
 
-	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) {
+	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) error {
 		if err := handleCommand(d, waService); err != nil {
 			log.Printf("Command failed %s: %v", d.RoutingKey, err)
+			return err
 		}
-		d.Ack(false)
+		return nil
 	})
 	if err != nil {
 		log.Fatalf("Failed to start command consumer: %v", err)
@@ -97,11 +98,12 @@ func main() {
 	// Comandos de chamada têm fila, canal e consumidor próprios, e cada um roda em
 	// goroutine: "Atender"/"Encerrar" nunca esperam o envio de mensagens (que usa
 	// o laço serial acima).
-	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) {
+	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) error {
 		if err := handleCommand(d, waService); err != nil {
 			log.Printf("Call command failed %s: %v", d.RoutingKey, err)
+			return err
 		}
-		d.Ack(false)
+		return nil
 	}); err != nil {
 		log.Fatalf("Failed to start call command consumer: %v", err)
 	}
