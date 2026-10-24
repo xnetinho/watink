@@ -18,6 +18,9 @@ import (
 // Supports proxy, QR code and pairing code (usePairingCode=true).
 func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp int64, proxyURL string, usePairingCode bool, phoneNumber string, jid string) error {
 	s.mu.Lock()
+	if s.clientsByTenant == nil {
+		s.clientsByTenant = make(map[clientKey]*whatsmeow.Client)
+	}
 	defer s.mu.Unlock()
 
 	if client, ok := s.clients[id]; ok && client.IsConnected() && client.IsLoggedIn() {
@@ -59,9 +62,12 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 
 	// Preserve any previously-registered client so a transient start failure
 	// (e.g. a DNS hiccup) does not orphan a session that is still working.
-	oldClient, hadOld := s.clients[id]
+	oldClient, hadOld := s.clientsByTenant[clientKey{tenantID, id}]
 
-	s.clients[id] = client
+	s.clientsByTenant[clientKey{tenantID, id}] = client
+	if _, exists := s.clients[id]; !exists {
+		s.clients[id] = client
+	}
 	s.resetCalls(id, tenantID, client, proxyURL != "")
 	client.AddEventHandler(func(evt interface{}) {
 		s.handleEvent(id, tenantID, evt)
@@ -71,6 +77,7 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 		if hadOld {
 			s.clients[id] = oldClient
 		} else {
+			delete(s.clientsByTenant, clientKey{tenantID, id})
 			delete(s.clients, id)
 		}
 	}
@@ -142,6 +149,11 @@ func (s *WhatsAppService) StopClient(id int) error {
 		return fmt.Errorf("client %d not found", id)
 	}
 	client.Disconnect()
+	for key := range s.clientsByTenant {
+		if key.id == id {
+			delete(s.clientsByTenant, key)
+		}
+	}
 	delete(s.clients, id)
 	s.dropCalls(id)
 	return nil
@@ -153,6 +165,11 @@ func (s *WhatsAppService) ForceLogout(id int) error {
 	defer s.mu.Unlock()
 	if client, ok := s.clients[id]; ok {
 		_ = client.Logout(context.Background())
+		for key := range s.clientsByTenant {
+			if key.id == id {
+				delete(s.clientsByTenant, key)
+			}
+		}
 		delete(s.clients, id)
 	}
 	s.dropCalls(id)
