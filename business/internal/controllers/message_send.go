@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"net/http"
 	"strconv"
@@ -296,7 +297,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 
 		// The engine dispatches by routing-key segment (wbot.<tenant>.<session>.<cmd>),
 		// so the command type MUST be encoded in the key — not just the body.
-		routingKey := fmt.Sprintf("wbot.%s.%d.%s", tenantID.String(), ticket.WhatsappID, commandType)
+		routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), commandType)
 		if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
 			utils.RespondWithInternalError(c, err, "SendMessage")
 			return
@@ -431,7 +432,7 @@ func (mc *MessageController) ReactToMessage(c *gin.Context) {
 		},
 	}
 
-	routingKey := fmt.Sprintf("wbot.%s.%d.message.react", tenantID.String(), target.Ticket.WhatsappID)
+	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(target.Ticket.WhatsappID), wbot.CommandMessageReact)
 	if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
 		utils.RespondWithInternalError(c, err, "ReactToMessage")
 		return

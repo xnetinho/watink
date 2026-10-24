@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"strconv"
 
@@ -68,20 +69,20 @@ func (el *EventListener) bcast() domain.Broadcaster {
 
 func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener) {
 	routingKeys := []string{
-		"wbot.*.*.session.qrcode",
-		"wbot.*.*.session.pairing_code",
-		"wbot.*.*.session.status",
-		"wbot.*.*.session.history_sync",
-		"wbot.*.*.session.risk",
-		"wbot.*.*.message.received",
-		"wbot.*.*.message.ack",
-		"wbot.*.*.message.revoke",
-		"wbot.*.*.message.reaction",
-		"wbot.*.*.message.media",
-		"wbot.*.*.contact.update",
-		"wbot.*.*.contact.import",
-		"wbot.*.*.session.jid_registered",
-		"wbot.*.*.message.poll_vote",
+		wbot.EventPattern(wbot.EventSessionQRCode),
+		wbot.EventPattern(wbot.EventSessionPairingCode),
+		wbot.EventPattern(wbot.EventSessionStatus),
+		wbot.EventPattern(wbot.EventSessionHistorySync),
+		wbot.EventPattern(wbot.EventSessionRisk),
+		wbot.EventPattern(wbot.EventMessageReceived),
+		wbot.EventPattern(wbot.EventMessageAck),
+		wbot.EventPattern(wbot.EventMessageRevoke),
+		wbot.EventPattern(wbot.EventMessageReaction),
+		wbot.EventPattern(wbot.EventMessageMedia),
+		wbot.EventPattern(wbot.EventContactUpdate),
+		wbot.EventPattern(wbot.EventContactImport),
+		wbot.EventPattern(wbot.EventSessionJIDRegistered),
+		wbot.EventPattern(wbot.EventMessagePollVote),
 	}
 	// Eventos call.* NÃO entram aqui: têm fila e consumidor próprios em
 	// internal/calls (Service.Start), para não esperarem atrás das mensagens.

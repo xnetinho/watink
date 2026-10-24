@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/alltomatos/watinkdev/engine-go/internal/calls"
 	"github.com/alltomatos/watinkdev/engine-go/internal/rabbitmq"
 	_ "github.com/lib/pq"
@@ -114,7 +116,7 @@ func (s *WhatsAppService) defaultPublishEvent(tenantID string, sessionID int, ev
 		"type":      eventType,
 		"payload":   eventPayloadWithTenant(tenantID, payload),
 	}
-	if err := s.rabbit.PublishEvent(fmt.Sprintf("wbot.%s.%d.%s", tenantID, sessionID, eventType), envelope); err != nil {
+	if err := s.rabbit.PublishEvent(wbot.Event(tenantID, strconv.Itoa(sessionID), eventType), envelope); err != nil {
 		log.Printf("Failed to publish %s for session %d: %v", eventType, sessionID, err)
 	}
 }

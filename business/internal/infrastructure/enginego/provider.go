@@ -8,6 +8,7 @@ package enginego
 import (
 	"context"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"net"
 	"net/url"
 	"strconv"
@@ -60,7 +61,7 @@ func (p *Provider) StartSession(ctx context.Context, whatsapp models.Whatsapp, u
 		},
 	}
 
-	routingKey := fmt.Sprintf("wbot.%s.%d.session.start", whatsapp.TenantID, whatsapp.ID)
+	routingKey := wbot.Command(whatsapp.TenantID.String(), strconv.Itoa(whatsapp.ID), wbot.CommandSessionStart)
 	return p.publisher.PublishCommand(routingKey, command)
 }
 
@@ -111,7 +112,7 @@ func (p *Provider) SendPresence(ctx context.Context, whatsapp models.Whatsapp, t
 
 func (p *Provider) sendCommand(whatsapp models.Whatsapp, commandType string, payload map[string]interface{}) error {
 	command := map[string]interface{}{"type": commandType, "payload": payload}
-	routingKey := fmt.Sprintf("wbot.%s.%d.%s", whatsapp.TenantID, whatsapp.ID, commandType)
+	routingKey := wbot.Command(whatsapp.TenantID.String(), strconv.Itoa(whatsapp.ID), commandType)
 	return p.publisher.PublishCommand(routingKey, command)
 }
 
@@ -125,7 +126,7 @@ func (p *Provider) buildSessionCommand(whatsapp models.Whatsapp, commandType str
 			"sessionId": whatsapp.ID,
 		},
 	}
-	routingKey := fmt.Sprintf("wbot.%s.%d.%s", whatsapp.TenantID, whatsapp.ID, commandType)
+	routingKey := wbot.Command(whatsapp.TenantID.String(), strconv.Itoa(whatsapp.ID), commandType)
 	return routingKey, command
 }
 

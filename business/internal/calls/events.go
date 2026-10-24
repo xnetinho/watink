@@ -7,6 +7,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/google/uuid"
 	"gorm.io/gorm/clause"
 	"strconv"
@@ -186,7 +187,7 @@ func (s *Service) command(tenantID uuid.UUID, whatsappID int, cmd string, payloa
 		"id": uuid.New().String(), "timestamp": s.now().UnixMilli(),
 		"tenantId": tenantID.String(), "type": cmd, "payload": payload,
 	}
-	return s.publisher.PublishCommand(fmt.Sprintf("wbot.%s.%d.%s", tenantID, whatsappID, cmd), body)
+	return s.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(whatsappID), cmd), body)
 }
 
 func (s *Service) callPayload(l *models.CallLog, c *domain.Contact, t *domain.Ticket) map[string]interface{} {
