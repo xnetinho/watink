@@ -103,15 +103,16 @@ func outboxPath() string {
 
 // Connect abre a conexão, declara as trocas e recria os consumidores já registrados. Chamar de novo depois de uma queda
 // é seguro: o supervisor faz isso sozinho.
+//
+// Se o broker estiver fora na subida, devolve o erro MAS deixa o supervisor ligado: ele segue tentando em segundo plano e
+// a saída durável continua guardando eventos. Quem chama decide se isso é fatal.
 func (s *RabbitMQService) Connect() error {
 	if err := s.openOutbox(); err != nil {
 		return err
 	}
-	if err := s.dial(); err != nil {
-		return err
-	}
+	err := s.dial()
 	s.startSupervisorsOnce()
-	return nil
+	return err
 }
 
 func (s *RabbitMQService) openOutbox() error {
@@ -133,7 +134,10 @@ func (s *RabbitMQService) openOutbox() error {
 
 // dial estabelece conexão, canal de publicação com confirmações e trocas. Não reabre consumidores (ver resubscribe).
 func (s *RabbitMQService) dial() error {
-	conn, err := amqp.Dial(s.url)
+	s.mu.Lock()
+	url := s.url
+	s.mu.Unlock()
+	conn, err := amqp.Dial(url)
 	if err != nil {
 		return fmt.Errorf("rabbitmq dial: %w", err)
 	}
@@ -239,7 +243,9 @@ func (s *RabbitMQService) addConsumer(spec consumerSpec) error {
 	conn := s.conn
 	s.mu.Unlock()
 	if conn == nil {
-		return ErrNotConnected
+		// Sem broker agora: o consumidor fica registrado e watchConnection o liga assim que houver conexão.
+		log.Printf("[RabbitMQ] consumidor %q registrado; será ligado quando o broker estiver disponível", spec.queue)
+		return nil
 	}
 	return s.startConsumer(spec)
 }

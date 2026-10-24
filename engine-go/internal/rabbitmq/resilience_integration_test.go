@@ -360,3 +360,39 @@ func TestFilaAntigaSemDLQ_EhRecriadaSemPerderComandos(t *testing.T) {
 		t.Fatalf("a fila de falhas deveria existir: %v", err)
 	}
 }
+
+// 1.8 — o engine sobe com o broker fora: guarda eventos, registra consumidores e liga tudo quando o broker aparece.
+func TestSobeSemBroker_ReconectaELigaOsConsumidores(t *testing.T) {
+	url := os.Getenv("AMQP_TEST_URL")
+	if url == "" {
+		t.Skip("AMQP_TEST_URL não definido")
+	}
+	t.Setenv("ENGINE_OUTBOX_DIR", t.TempDir())
+	t.Setenv("AMQP_URL", "amqp://guest:guest@127.0.0.1:1/") // porta fechada: broker "fora"
+	svc := NewRabbitMQService()
+	if err := svc.Connect(); err == nil {
+		t.Fatal("esperava erro de conexão")
+	}
+	t.Cleanup(func() { _ = svc.Close() })
+
+	var got atomic.Int32
+	q, key := uniq("t.late"), uniq("wbot.t.1.message.send.text")
+	if err := svc.ConsumeCommands(q, []string{key}, func(d amqp.Delivery) error { got.Add(1); return nil }); err != nil {
+		t.Fatalf("registrar consumidor sem broker não pode falhar: %v", err)
+	}
+	if err := svc.PublishEvent("wbot.t.1.message.received", map[string]any{"k": 1}); err != nil {
+		t.Fatalf("PublishEvent sem broker deve guardar em disco: %v", err)
+	}
+	if svc.Pending() != 1 {
+		t.Fatalf("pendentes = %d, esperado 1", svc.Pending())
+	}
+
+	// O broker "aparece": aponta o serviço para o endereço real.
+	svc.mu.Lock()
+	svc.url = url
+	svc.mu.Unlock()
+	waitFor(t, 30*time.Second, "evento entregue após o broker aparecer", func() bool { return svc.Pending() == 0 })
+
+	publishCmd(t, rawChannel(t), key, "{}")
+	waitFor(t, 15*time.Second, "consumidor ligado após o broker aparecer", func() bool { return got.Load() == 1 })
+}

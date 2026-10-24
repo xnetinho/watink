@@ -235,6 +235,9 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 	if err != nil {
 		return err
 	}
+	if result.Duplicate {
+		return nil // reentrega: já foi anunciada e roteada na primeira vez
+	}
 
 	room := "chat:" + strconv.Itoa(result.Ticket.ID)
 	msgPayload := map[string]interface{}{"action": "create", "message": result.Message, "ticket": result.Ticket, "contact": result.Contact}

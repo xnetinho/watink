@@ -50,9 +50,12 @@ func main() {
 
 	rabbit := rabbitmq.NewRabbitMQService()
 	if err := rabbit.Connect(); err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+		// Não é fatal: o WhatsApp não reentrega o que chegar enquanto o engine estiver parado, então é melhor subir,
+		// guardar os eventos em disco e ligar os consumidores quando o broker voltar.
+		log.Printf("RabbitMQ indisponível na subida (%v); seguindo, o engine reconecta sozinho", err)
+	} else {
+		log.Println("Connected to RabbitMQ")
 	}
-	log.Println("Connected to RabbitMQ")
 
 	sessionLoader := whatsapp.NewPostgresSessionLoader(whatsapp.BuildPostgresDSN())
 	waService := whatsapp.NewWhatsAppService(rabbit, sessionLoader)

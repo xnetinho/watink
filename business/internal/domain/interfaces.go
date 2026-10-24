@@ -45,6 +45,11 @@ type TicketRepository interface {
 	CountOpenTicketsPerUser(ctx context.Context, userIDs []int, tenantID uuid.UUID) (map[int]int64, error)
 }
 
+// MessageInsertReporter é implementado por repositórios que sabem dizer se um CreateIfNotExists inseriu de fato.
+type MessageInsertReporter interface {
+	CreateIfNotExistsReport(ctx context.Context, msg *Message) (inserted bool, err error)
+}
+
 type MessageRepository interface {
 	Create(ctx context.Context, msg *Message) error
 	CreateIfNotExists(ctx context.Context, msg *Message) error

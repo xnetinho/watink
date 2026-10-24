@@ -46,6 +46,8 @@ type ReceiveMessageResult struct {
 	Contact *domain.Contact
 	Ticket  *domain.Ticket
 	Message *domain.Message
+	// Duplicate indica reentrega de uma mensagem já gravada: nada mudou e o chamador não deve anunciá-la de novo.
+	Duplicate bool
 }
 
 // ReceiveMessageUseCase handles the business logic for receiving messages.
@@ -242,8 +244,20 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		}
 	}
 
-	if err := uc.messageRepo.CreateIfNotExists(ctx, msg); err != nil {
+	inserted := true
+	if rep, ok := uc.messageRepo.(domain.MessageInsertReporter); ok {
+		var err error
+		if inserted, err = rep.CreateIfNotExistsReport(ctx, msg); err != nil {
+			return nil, err
+		}
+	} else if err := uc.messageRepo.CreateIfNotExists(ctx, msg); err != nil {
 		return nil, err
+	}
+
+	// O engine entrega ao menos uma vez: o mesmo evento pode chegar de novo. A mensagem já existe, então não há o que
+	// atualizar nem anunciar; sem este retorno cada reentrega somava mais um "não lida" ao ticket.
+	if !inserted {
+		return &ReceiveMessageResult{Contact: contact, Ticket: ticket, Message: msg, Duplicate: true}, nil
 	}
 
 	lastMsg := msg.Body
