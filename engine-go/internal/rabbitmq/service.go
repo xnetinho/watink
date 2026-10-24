@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"os"
 	"time"
@@ -54,7 +55,7 @@ func (s *RabbitMQService) Connect() error {
 		log.Printf("[RabbitMQ] QoS warning: %v", err)
 	}
 
-	for _, ex := range []string{"wbot.commands", "wbot.events"} {
+	for _, ex := range []string{wbot.ExchangeCommands, wbot.ExchangeEvents} {
 		if err := s.channel.ExchangeDeclare(ex, "topic", true, false, false, false, nil); err != nil {
 			return fmt.Errorf("exchange %s: %w", ex, err)
 		}
@@ -73,7 +74,7 @@ func (s *RabbitMQService) ConsumeCommands(queueName string, routingKeys []string
 	}
 
 	for _, key := range routingKeys {
-		if err := s.channel.QueueBind(queueName, key, "wbot.commands", false, nil); err != nil {
+		if err := s.channel.QueueBind(queueName, key, wbot.ExchangeCommands, false, nil); err != nil {
 			return fmt.Errorf("bind %s: %w", key, err)
 		}
 	}
@@ -107,7 +108,7 @@ func (s *RabbitMQService) ConsumeCommandsConcurrent(queueName string, routingKey
 		return fmt.Errorf("queue %s: %w", queueName, err)
 	}
 	for _, key := range routingKeys {
-		if err := ch.QueueBind(queueName, key, "wbot.commands", false, nil); err != nil {
+		if err := ch.QueueBind(queueName, key, wbot.ExchangeCommands, false, nil); err != nil {
 			return fmt.Errorf("bind %s: %w", key, err)
 		}
 	}
@@ -129,7 +130,7 @@ func (s *RabbitMQService) PublishEvent(routingKey string, payload interface{}) e
 	if err != nil {
 		return err
 	}
-	return s.channel.Publish("wbot.events", routingKey, false, false, amqp.Publishing{
+	return s.channel.Publish(wbot.ExchangeEvents, routingKey, false, false, amqp.Publishing{
 		ContentType:  "application/json",
 		DeliveryMode: amqp.Persistent,
 		Body:         body,

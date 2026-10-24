@@ -12,6 +12,7 @@ const Version = "v1"
 const (
 	ExchangeCommands = "wbot.commands"
 	ExchangeEvents   = "wbot.events"
+	ExchangeDLQ      = "wbot.dlq"
 )
 
 const (
@@ -31,7 +32,6 @@ const (
 	CommandMediaDownload      = "media.download"
 	CommandContactSync        = "contact.sync"
 	CommandContactImport      = "contact.import"
-	CommandHistorySync        = "history.sync"
 	CommandHistoryRecover     = "history.recover"
 	CommandChatPresence       = "chat.presence"
 	CommandCallReady          = "call.ready"
@@ -68,6 +68,12 @@ func Command(tenantID, connectionID, command string) string {
 func Event(tenantID, connectionID, event string) string {
 	return fmt.Sprintf("wbot.%s.%s.%s", tenantID, connectionID, event)
 }
+
+// CommandPattern returns the topic binding for all tenants and connections.
+func CommandPattern(command string) string { return "wbot.*.*." + command }
+
+// EventPattern returns the topic binding for all tenants and connections.
+func EventPattern(event string) string { return "wbot.*.*." + event }
 
 // Envelope is the versioned wire wrapper used by engine events.
 type Envelope struct {

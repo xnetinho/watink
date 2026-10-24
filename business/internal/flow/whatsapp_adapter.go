@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"strconv"
 	"time"
@@ -120,7 +121,7 @@ func (a *WhatsAppAdapter) sendInternal(ctx context.Context, msg OutboundMessage)
 	if ct, ok := msg.Meta["commandType"].(string); ok && ct != "" {
 		payload, _ := msg.Meta["payload"].(map[string]interface{})
 		command := map[string]interface{}{"type": ct, "payload": payload}
-		routingKey := fmt.Sprintf("wbot.%s.%s.%s", msg.TenantID.String(), msg.SessionID, ct)
+		routingKey := wbot.Command(msg.TenantID.String(), msg.SessionID, ct)
 		if err := a.rabbit.PublishCommand(routingKey, command); err != nil {
 			if a.redis != nil && msg.EnvID != "" {
 				if delErr := a.redis.DelLock("wbot:msg:" + msg.EnvID); delErr != nil {
@@ -180,7 +181,7 @@ func (a *WhatsAppAdapter) sendInternal(ctx context.Context, msg OutboundMessage)
 
 	// The engine dispatches by routing-key segment; the command type MUST be in
 	// the key, not just the body. SessionID is the chip (Ticket.WhatsappID).
-	routingKey := fmt.Sprintf("wbot.%s.%s.%s", msg.TenantID.String(), msg.SessionID, commandType)
+	routingKey := wbot.Command(msg.TenantID.String(), msg.SessionID, commandType)
 	if err := a.rabbit.PublishCommand(routingKey, command); err != nil {
 		// Publish failed AFTER we took the dedup lock. If we leave the lock held,
 		// the AMQP redelivery (retry of this same outbound) hits the retained lock

@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/alltomatos/watinkdev/engine-go/internal/callsapi"
 	"github.com/alltomatos/watinkdev/engine-go/internal/command"
 	"github.com/alltomatos/watinkdev/engine-go/internal/groupsapi"
@@ -70,25 +71,24 @@ func main() {
 	}()
 
 	routingKeys := []string{
-		"wbot.*.*.session.start",
-		"wbot.*.*.session.stop",
-		"wbot.*.*.session.delete",
-		"wbot.*.*.message.send.text",
-		"wbot.*.*.message.send.media",
-		"wbot.*.*.message.send.buttons",
-		"wbot.*.*.message.send.list",
-		"wbot.*.*.message.send.poll",
-		"wbot.*.*.message.send.interactive",
-		"wbot.*.*.message.send.template",
-		"wbot.*.*.message.send.carousel",
-		"wbot.*.*.message.react",
-		"wbot.*.*.message.markAsRead",
-		"wbot.*.*.media.download",
-		"wbot.*.*.contact.sync",
-		"wbot.*.*.contact.import",
-		"wbot.*.*.history.sync",
-		"wbot.*.*.history.recover",
-		"wbot.*.*.chat.presence",
+		wbot.CommandPattern(wbot.CommandSessionStart),
+		wbot.CommandPattern(wbot.CommandSessionStop),
+		wbot.CommandPattern(wbot.CommandSessionDelete),
+		wbot.CommandPattern(wbot.CommandMessageText),
+		wbot.CommandPattern(wbot.CommandMessageMedia),
+		wbot.CommandPattern(wbot.CommandMessageButtons),
+		wbot.CommandPattern(wbot.CommandMessageList),
+		wbot.CommandPattern(wbot.CommandMessagePoll),
+		wbot.CommandPattern(wbot.CommandMessageInteractive),
+		wbot.CommandPattern(wbot.CommandMessageTemplate),
+		wbot.CommandPattern(wbot.CommandMessageCarousel),
+		wbot.CommandPattern(wbot.CommandMessageReact),
+		wbot.CommandPattern(wbot.CommandMessageMarkRead),
+		wbot.CommandPattern(wbot.CommandMediaDownload),
+		wbot.CommandPattern(wbot.CommandContactSync),
+		wbot.CommandPattern(wbot.CommandContactImport),
+		wbot.CommandPattern(wbot.CommandHistoryRecover),
+		wbot.CommandPattern(wbot.CommandChatPresence),
 	}
 
 	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) {
@@ -127,7 +127,7 @@ func main() {
 
 const callsQueue = "engine.go.calls"
 
-var callRoutingKeys = []string{"wbot.*.*.call.*"}
+var callRoutingKeys = []string{wbot.EventPattern("call.*")}
 
 func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 	log.Printf("Received command: %s", d.RoutingKey)

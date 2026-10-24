@@ -3,6 +3,7 @@ module github.com/alltomatos/watinkdev/engine-go
 go 1.25.0
 
 require (
+	github.com/alltomatos/watinkdev/contracts/wbot v0.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.12.3
 	github.com/pion/webrtc/v4 v4.2.22
@@ -48,3 +49,5 @@ require (
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 )
+
+replace github.com/alltomatos/watinkdev/contracts/wbot => ../contracts/wbot
