@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useContext, useRef } from "react";
-import { toast } from "react-toastify";
 
 import api from "../../../services/api";
 import { AuthContext } from "../../../context/Auth/AuthContext";
@@ -10,7 +9,6 @@ export interface UseVersionDashboardReturn {
   isSuperAdmin: boolean;
   stats: SystemStats | null;
   loading: boolean;
-  updating: boolean;
   openUpdateModal: boolean;
   setOpenUpdateModal: (open: boolean) => void;
   error: string | null;
@@ -20,10 +18,8 @@ export interface UseVersionDashboardReturn {
   availableVersion: string;
   changelog: string[];
   releaseMeta: ReleaseMeta;
-  updateStatus: "idle" | "updating" | "ok";
   hasUpdateAvailable: boolean;
   blockedByCompatibility: boolean;
-  handleUpdate: () => Promise<void>;
 }
 
 export function useVersionDashboard(): UseVersionDashboardReturn {
@@ -32,7 +28,6 @@ export function useVersionDashboard(): UseVersionDashboardReturn {
 
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
   const [openUpdateModal, setOpenUpdateModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queueAlerts, setQueueAlerts] = useState<Record<string, QueueAlert>>({});
@@ -45,9 +40,6 @@ export function useVersionDashboard(): UseVersionDashboardReturn {
     minCompatibleFrom: "",
     migrationNotes: "",
   });
-  const [updateStatus, setUpdateStatus] = useState<"idle" | "updating" | "ok">(
-    () => (localStorage.getItem("watink_update_ok") === "1" ? "ok" : "idle")
-  );
   const prevQueueMessagesRef = useRef<Record<string, number>>({});
 
   const hasUpdateAvailable =
@@ -70,14 +62,6 @@ export function useVersionDashboard(): UseVersionDashboardReturn {
       });
       setQueueAlerts(nextAlerts);
 
-      const pending = localStorage.getItem("watink_update_pending") === "1";
-      if (pending && (data?.uptime || 999999) < 180) {
-        setUpdateStatus("ok");
-        localStorage.removeItem("watink_update_pending");
-        localStorage.setItem("watink_update_ok", "1");
-        toast.success("Atualização concluída com sucesso");
-      }
-
       setStats(data);
       setError(null);
     } catch (e: unknown) {
@@ -89,34 +73,6 @@ export function useVersionDashboard(): UseVersionDashboardReturn {
       setLoading(false);
     }
   }, []);
-
-  const handleUpdate = async () => {
-    setUpdating(true);
-    setUpdateStatus("updating");
-    localStorage.setItem("watink_update_pending", "1");
-    localStorage.setItem("watink_update_ok", "0");
-    setOpenUpdateModal(false);
-    try {
-      await api.post("/system/update", {
-        version: availableVersion !== "-" ? availableVersion : "latest",
-      });
-      toast.info("Processo de atualização iniciado. O sistema entrará em manutenção.");
-      const checkInterval = setInterval(async () => {
-        try {
-          const { data } = await api.get<{ enabled: boolean }>("/system/maintenance");
-          if (data.enabled) {
-            clearInterval(checkInterval);
-            window.location.reload();
-          }
-        } catch {
-          // servidor reiniciando
-        }
-      }, 2000);
-    } catch {
-      toast.error("Erro ao iniciar atualização");
-      setUpdating(false);
-    }
-  };
 
   useEffect(() => {
     fetchStats();
@@ -164,7 +120,6 @@ export function useVersionDashboard(): UseVersionDashboardReturn {
     isSuperAdmin,
     stats,
     loading,
-    updating,
     openUpdateModal,
     setOpenUpdateModal,
     error,
@@ -174,9 +129,7 @@ export function useVersionDashboard(): UseVersionDashboardReturn {
     availableVersion,
     changelog,
     releaseMeta,
-    updateStatus,
     hasUpdateAvailable,
     blockedByCompatibility,
-    handleUpdate,
   };
 }

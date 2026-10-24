@@ -3,139 +3,80 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-type UpdateRequest struct {
-	Version string `json:"version"`
-}
+// githubAPIBase é variável só para o teste apontar para um servidor local.
+var githubAPIBase = "https://api.github.com"
+
+// defaultReleasesRepo é o repositório cujas releases (publicadas por release.yml) indicam a versão disponível.
+const defaultReleasesRepo = "xnetinho/watink"
+
+var releasesRepoRe = regexp.MustCompile(`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`)
 
 type githubRelease struct {
 	TagName string `json:"tag_name"`
 	Body    string `json:"body"`
-	Assets  []struct {
-		Name               string `json:"name"`
-		BrowserDownloadURL string `json:"browser_download_url"`
-	} `json:"assets"`
 }
 
+func releasesRepo() string {
+	if r := os.Getenv("WATINK_RELEASES_REPO"); releasesRepoRe.MatchString(r) {
+		return r
+	}
+	return defaultReleasesRepo
+}
+
+// changelogLines extrai os itens de lista ("- x" ou "* x") do corpo da release.
+func changelogLines(body string) []string {
+	lines := []string{}
+	for _, l := range strings.Split(body, "\n") {
+		l = strings.TrimSpace(l)
+		if strings.HasPrefix(l, "- ") || strings.HasPrefix(l, "* ") {
+			lines = append(lines, strings.TrimSpace(l[2:]))
+		}
+	}
+	return lines
+}
+
+// GetLatestRelease informa a última release publicada. É só informativo: sem release ou com a API indisponível,
+// responde 200 com version "-" para a tela degradar sem erro.
 func GetLatestRelease(c *gin.Context) {
+	empty := gin.H{"version": "-", "changelog": []string{}, "breaking": false, "min_compatible_from": "", "migration_notes": ""}
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	resp, err := client.Get("https://api.github.com/repos/alltomatos/watink-bussines/releases/latest")
+	resp, err := client.Get(fmt.Sprintf("%s/repos/%s/releases/latest", githubAPIBase, releasesRepo()))
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"version": "-", "changelog": []string{}, "breaking": false})
+		c.JSON(http.StatusOK, empty)
 		return
 	}
 	defer func() { _ = resp.Body.Close() }()
-
 	if resp.StatusCode >= 400 {
-		c.JSON(http.StatusOK, gin.H{"version": "-", "changelog": []string{}, "breaking": false})
+		c.JSON(http.StatusOK, empty)
 		return
 	}
 
 	var rel githubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
-		c.JSON(http.StatusOK, gin.H{"version": "-", "changelog": []string{}, "breaking": false})
+	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil || rel.TagName == "" {
+		c.JSON(http.StatusOK, empty)
 		return
 	}
 
-	result := gin.H{
-		"version":             rel.TagName,
-		"changelog":           []string{},
-		"breaking":            false,
-		"min_compatible_from": "",
-		"migration_notes":     "",
-	}
-
-	for _, a := range rel.Assets {
-		if a.Name != "manifest.json" || a.BrowserDownloadURL == "" {
-			continue
-		}
-		mResp, mErr := client.Get(a.BrowserDownloadURL)
-		if mErr != nil || mResp.StatusCode >= 400 {
-			if mResp != nil {
-				_ = mResp.Body.Close()
-			}
-			break
-		}
-		var manifest map[string]interface{}
-		if err := json.NewDecoder(mResp.Body).Decode(&manifest); err == nil {
-			if v, ok := manifest["version"].(string); ok && v != "" {
-				result["version"] = v
-			}
-			if b, ok := manifest["breaking"].(bool); ok {
-				result["breaking"] = b
-			}
-			if m, ok := manifest["min_compatible_from"].(string); ok {
-				result["min_compatible_from"] = m
-			}
-			if notes, ok := manifest["migration_notes"].(string); ok {
-				result["migration_notes"] = notes
-			}
-			if cl, ok := manifest["changelog"].([]interface{}); ok {
-				lines := make([]string, 0, len(cl))
-				for _, it := range cl {
-					if s, ok := it.(string); ok && s != "" {
-						lines = append(lines, s)
-					}
-				}
-				result["changelog"] = lines
-			}
-		}
-		_ = mResp.Body.Close()
-		break
-	}
-
-	c.JSON(http.StatusOK, result)
+	empty["version"] = rel.TagName
+	empty["changelog"] = changelogLines(rel.Body)
+	c.JSON(http.StatusOK, empty)
 }
 
+// StartUpdate não atualiza nada: o Watink roda em contêineres e a atualização é feita pelo operador com
+// `docker compose pull && docker compose up -d`. Antes era um stub que ligava a manutenção e encerrava o processo.
 func StartUpdate(c *gin.Context) {
-	var req UpdateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Versão não informada"})
-		return
-	}
-
-	// 1. Ativar modo manutenção
-	SetMaintenanceMode(true, "Atualizando para a versão "+req.Version+". O sistema retornará em breve.")
-
-	// 2. Iniciar processo de backup e atualização em background
-	go performUpdate(req.Version)
-
-	c.JSON(http.StatusAccepted, gin.H{"message": "Processo de atualização iniciado"})
-}
-
-func performUpdate(version string) {
-	timestamp := time.Now().Format("20060102-150405")
-	backupFile := fmt.Sprintf("/tmp/watink_backup_%s.sql", timestamp)
-
-	slog.Info("update started",
-		"version", version,
-		"timestamp", timestamp,
-	)
-
-	// A. Backup do Banco de Dados
-	// Nota: Em ambiente Docker, precisaríamos do pg_dump instalado ou rodar via exec no container do banco
-	// Temporarily, we only log this step for technical simplicity.
-	// Em produção, usaríamos as envs DB_HOST, DB_USER, etc.
-	fmt.Printf("[Update] Fazendo backup em %s...\n", backupFile)
-
-	// B. Pull da nova imagem (se estivermos em ambiente de container)
-	// Como o binário é unificado, a atualização geralmente significa um novo pull da imagem
-	// ou substituição do binário.
-
-	// C. Trigger de restart
-	// Em um sistema Business de alta escala, o binário envia um sinal para o orquestrador
-	// ou simplesmente encerra o processo para o Docker/PM2 reiniciar com a nova versão.
-
-	time.Sleep(5 * time.Second) // Simula processo
-
-	fmt.Printf("[Update] Sucesso. Encerrando processo para restart.\n")
-	os.Exit(0)
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"error":   "update_not_supported",
+		"message": "Atualize puxando as novas imagens: docker compose pull && docker compose up -d",
+	})
 }
