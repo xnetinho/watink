@@ -19,11 +19,17 @@ import (
 )
 
 // WhatsAppService manages all active WhatsApp client sessions for a single engine-go instance.
+type clientKey struct {
+	tenant string
+	id     int
+}
+
 type WhatsAppService struct {
-	container *sqlstore.Container
-	clients   map[int]*whatsmeow.Client
-	mu        sync.RWMutex
-	rabbit    *rabbitmq.RabbitMQService
+	container       *sqlstore.Container
+	clients         map[int]*whatsmeow.Client
+	clientsByTenant map[clientKey]*whatsmeow.Client
+	mu              sync.RWMutex
+	rabbit          *rabbitmq.RabbitMQService
 
 	historyMu       sync.Mutex
 	historyRequests map[string]*pendingHistory
@@ -63,6 +69,7 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService) *WhatsAppService {
 	svc := &WhatsAppService{
 		container:       container,
 		clients:         make(map[int]*whatsmeow.Client),
+		clientsByTenant: make(map[clientKey]*whatsmeow.Client),
 		rabbit:          rabbit,
 		historyRequests: make(map[string]*pendingHistory),
 		groupNames:      make(map[string]string),
@@ -75,11 +82,26 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService) *WhatsAppService {
 }
 
 // getConnectedClient returns the client for sessionID if it is connected and logged in.
-func (s *WhatsAppService) getConnectedClient(sessionID int) (*whatsmeow.Client, error) {
+func (s *WhatsAppService) getConnectedClient(sessionID int, tenantIDs ...string) (*whatsmeow.Client, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	client, ok := s.clients[sessionID]
-	if !ok || !client.IsConnected() || !client.IsLoggedIn() {
+	var client *whatsmeow.Client
+	if len(tenantIDs) > 0 && tenantIDs[0] != "" {
+		client = s.clientsByTenant[clientKey{tenantIDs[0], sessionID}]
+	} else {
+		client = s.clients[sessionID]
+		if client == nil {
+			for key, candidate := range s.clientsByTenant {
+				if key.id == sessionID {
+					if client != nil {
+						return nil, fmt.Errorf("%w: session %d is ambiguous across tenants", ErrSessionNotConnected, sessionID)
+					}
+					client = candidate
+				}
+			}
+		}
+	}
+	if client == nil || !client.IsConnected() || !client.IsLoggedIn() {
 		return nil, fmt.Errorf("%w: session %d", ErrSessionNotConnected, sessionID)
 	}
 	return client, nil
