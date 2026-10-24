@@ -111,6 +111,10 @@ jobs:
           REDIS_URL: redis://localhost:6379
         run: go test ./... -tags integration -v -count=1 -timeout 180s
 
+      - name: Run race tests
+        working-directory: business
+        run: go test ./... -race -short -count=1 -timeout 600s
+
   build-frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -146,7 +150,18 @@ jobs:
 
   build-engine-go:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+        options: >-
+          --name engine-test-rabbitmq
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v7
 
@@ -176,6 +191,13 @@ jobs:
       - name: Vet
         working-directory: engine-go
         run: go vet ./...
+
+      - name: Test (race, com RabbitMQ real)
+        working-directory: engine-go
+        env:
+          AMQP_TEST_URL: amqp://guest:guest@localhost:5672/
+          AMQP_TEST_CONTAINER: engine-test-rabbitmq
+        run: go test ./... -race -count=1 -timeout 600s
 
   smoke-test:
     runs-on: ubuntu-latest

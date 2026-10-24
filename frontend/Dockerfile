@@ -1,4 +1,4 @@
-FROM node:20-alpine as build-deps
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 as build-deps
 WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
@@ -17,7 +17,7 @@ COPY build-sourcemap.mjs ./
 RUN node copy-assets.js && npx vite build
 RUN node -e "const fs=require('fs');const pkg=require('./package.json');const ts=new Date().toISOString();const data={service:'frontend',version:pkg.version,lastUpdated:ts};fs.writeFileSync('build/version.json',JSON.stringify(data));"
 
-FROM nginx:alpine
+FROM nginx:alpine@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417
 RUN apk add --no-cache jq openssl
 
 ENV DOCKERIZE_VERSION v0.6.1
