@@ -179,6 +179,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	// o usaria como StanzaID. quotedParticipant é quem escreveu a original (obrigatório em
 	// grupo; em chat 1:1 é o próprio contato, ou nós mesmos se citamos algo que enviamos).
 	var quotedParticipant, quotedBody string
+	quotedExternalID := quotedID // id da citada no canal; difere de quotedID fora do WhatsApp
 	if quotedID != "" {
 		var q models.Message
 		if err := db.Session(&gorm.Session{NewDB: true}).
@@ -186,6 +187,9 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			quotedID = ""
 		} else {
 			quotedBody = quotedPreviewText(q)
+			if q.ExternalID != "" {
+				quotedExternalID = q.ExternalID
+			}
 			if !q.FromMe {
 				quotedParticipant = q.Participant
 				// 1:1: quem escreveu a citada é o próprio contato, no endereçamento do chat. O Participant gravado
@@ -217,28 +221,34 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 					Body:            body,
 					MediaType:       mediaType,
 					MediaURL:        mediaURL,
-					QuotedMessageID: quotedID,
+					QuotedMessageID: quotedExternalID,
 				}
 				sendRes, err := chAdapter.Send(c.Request.Context(), &conn, outMsg)
 				if err != nil {
 					utils.RespondWithInternalError(c, err, "SendMessage")
 					return
 				}
-				if sendRes.ExternalMessageID != "" {
-					messageID = sendRes.ExternalMessageID
+				externalID := sendRes.ExternalMessageID
+				if externalID != "" {
+					messageID = domain.StorageMessageID(domain.ChannelKind(conn.Kind), conn.ID, ticket.ConversationKey, externalID)
 				}
 				msg := models.Message{
-					ID:        messageID,
-					Body:      body,
-					Ack:       1,
-					MediaType: mediaType,
-					MediaUrl:  mediaURL,
-					TicketID:  ticket.ID,
-					ContactID: &contact.ID,
-					FromMe:    true,
-					TenantID:  tenantID,
+					ID:         messageID,
+					ExternalID: externalID,
+					Body:       body,
+					Ack:        1,
+					MediaType:  mediaType,
+					MediaUrl:   mediaURL,
+					TicketID:   ticket.ID,
+					ContactID:  &contact.ID,
+					FromMe:     true,
+					TenantID:   tenantID,
 				}
-				_ = db.Create(&msg).Error
+				// Session(NewDB:true): o db carrega filtros acumulados das consultas acima e o GORM os usaria no INSERT.
+				if err := db.Session(&gorm.Session{NewDB: true}).Create(&msg).Error; err != nil {
+					// A mensagem já saiu para o cliente: loga e responde com o que foi enviado, sem fingir que falhou.
+					log.Printf("[SendMessage] mensagem enviada mas não persistida (ticket %d): %v", ticket.ID, err)
+				}
 				c.JSON(http.StatusOK, msg)
 				return
 			}

@@ -30,6 +30,7 @@ type Ticket struct {
 // Message represents a message in a ticket conversation
 type Message struct {
 	ID          string    `json:"id"`
+	ExternalID  string    `json:"externalId"` // id da mensagem no canal; vazio no WhatsApp, onde ID já é o id do canal
 	Body        string    `json:"body"`
 	Ack         int       `json:"ack"`
 	Read        bool      `json:"read"`

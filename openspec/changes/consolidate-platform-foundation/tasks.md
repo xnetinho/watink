@@ -7,7 +7,7 @@
 
 ## 1. Estanque (independe de decisão de modelo)
 
-- [ ] 1.1 Mensagens não colidem: id composto `<kind>:<connectionId>:<externalId>` para canais não-WhatsApp e `externalId` em `Messages`; verificar com teste que dois chats com o mesmo `externalId` gravam as duas mensagens
+- [x] 1.1 Mensagens não colidem: id composto `<kind>:<connectionId>:<externalId>` para canais não-WhatsApp e `externalId` em `Messages`; verificar com teste que dois chats com o mesmo `externalId` gravam as duas mensagens
 - [ ] 1.2 `RequirePermission` nas mutações hoje sem permissão (mensagens, contatos, filas, fluxos, funis, tags, respostas rápidas, plugins, histórico) e catálogo de permissões novas; verificar com teste por rota que atendente sem permissão recebe 403
 - [ ] 1.3 Teste de tabela de rotas que percorre o roteador e falha para rota autenticada de escrita sem permissão nem isenção registrada; verificar que falha antes de 1.2 e passa depois
 - [ ] 1.4 Registro versionado de rotas isentas com justificativa (logout, `/me`, leitura própria); verificar que cada isenção tem texto de justificativa
