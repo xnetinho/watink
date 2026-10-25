@@ -69,6 +69,8 @@ func (a *Adapter) Capabilities() domain.Capabilities {
 		Typing:       true,
 		ReadReceipts: true,
 		Reactions:    true,
+		Voice:        true,
+		Video:        true,
 		Auth:         domain.AuthKindQR,
 		HasPhone:     true,
 	}
