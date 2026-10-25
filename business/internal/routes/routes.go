@@ -60,7 +60,7 @@ type RouteRabbitMQ interface {
 // query).
 func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *application.Container, s3Store domain.ObjectStore, ragRetriever flow.Retriever, ragResponder flow.AgentResponder, mediaWaiter *mediawait.Waiter) {
 	db := container.DB
-	messageController := controllers.NewMessageController(rabbitMQ, container.Broadcast, container.SessionService).WithTranscription(db, mediaWaiter)
+	messageController := controllers.NewMessageController(rabbitMQ, container.Broadcast, container.SessionService, container.MessageRepo).WithTranscription(db, mediaWaiter)
 	systemController := controllers.NewSystemController(container.SystemRepo, rabbitMQ)
 	setupService := services.NewSetupService(container.DB)
 	setupController := controllers.NewSetupController(setupService)
@@ -86,7 +86,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	activityController := controllers.NewActivityController(s3Store)
 	callController := controllers.NewCallController(container.Calls)
 	sessionController := controllers.NewSessionController(container.ChannelSessionRepo, container.Broadcast, container.SessionService)
-	ticketController := controllers.NewTicketController(container.UpdateTicket, container.Broadcast, container.MessageRepo, rabbitMQ)
+	ticketController := controllers.NewTicketController(container.UpdateTicket, container.Broadcast, container.MessageRepo, rabbitMQ, container.TicketRepo)
 	whatsappController := controllers.NewWhatsappController(container.ChannelSessionRepo, container.PlanLimitSvc, container.Broadcast, container.SessionService)
 	proxyController := controllers.NewProxyController()
 	proxyGroupController := controllers.NewProxyGroupController()
@@ -119,7 +119,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// implementation lives in the plugins package (DI pura, no global).
 	flowRuntime.SetAssistantRuntime(plugins.NewAssistantRuntime(container.DB, rabbitMQ, mediaWaiter))
 	flowController := controllers.NewFlowController(flowRuntime)
-	quickAnswerController := controllers.NewQuickAnswerController(rabbitMQ, container.Broadcast, db, container.SessionService)
+	quickAnswerController := controllers.NewQuickAnswerController(rabbitMQ, container.Broadcast, db, container.SessionService, container.QuickAnswerRepo)
 	versionController := controllers.NewVersionController(container.VersionRepo)
 	swaggerController := controllers.NewSwaggerController(container.SwaggerPermRepo)
 	storageController := controllers.NewStorageController(s3Store)

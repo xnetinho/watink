@@ -20,15 +20,20 @@ type TicketController struct {
 	broadcast    domain.Broadcaster
 	messages     domain.MessageRepository
 	publisher    domain.CommandPublisher
+	ticketRepo   domain.TicketRepository
 }
 
-func NewTicketController(ut *usecases.UpdateTicketUseCase, broadcast domain.Broadcaster, messages domain.MessageRepository, publisher domain.CommandPublisher) *TicketController {
-	return &TicketController{
+func NewTicketController(ut *usecases.UpdateTicketUseCase, broadcast domain.Broadcaster, messages domain.MessageRepository, publisher domain.CommandPublisher, ticketRepo ...domain.TicketRepository) *TicketController {
+	tc := &TicketController{
 		updateTicket: ut,
 		broadcast:    domain.BroadcastOrNop(broadcast),
 		messages:     messages,
 		publisher:    publisher,
 	}
+	if len(ticketRepo) > 0 && ticketRepo[0] != nil {
+		tc.ticketRepo = ticketRepo[0]
+	}
+	return tc
 }
 
 // historyCutoff converts a recovery range token into a unix cutoff timestamp.

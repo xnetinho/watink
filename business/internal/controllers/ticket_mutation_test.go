@@ -38,6 +38,9 @@ func (s *stubMessageRepo) FindByID(_ context.Context, _ string, _ uuid.UUID) (*d
 func (s *stubMessageRepo) FindOldestByTicket(_ context.Context, _ int, _ uuid.UUID) (*domain.Message, error) {
 	return nil, nil
 }
+func (s *stubMessageRepo) FindByTicket(_ context.Context, _ int, _ uuid.UUID) ([]models.Message, error) {
+	return nil, nil
+}
 func (s *stubMessageRepo) ExistsByID(_ context.Context, _ string, _ uuid.UUID) (bool, error) {
 	return false, nil
 }

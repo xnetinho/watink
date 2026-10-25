@@ -62,6 +62,16 @@ func (r *GORMMessageRepository) FindByID(ctx context.Context, id string, tenantI
 	return messageModelToDomain(&m), nil
 }
 
+// FindByTicket returns all messages belonging to a ticket in chronological order.
+func (r *GORMMessageRepository) FindByTicket(ctx context.Context, ticketID int, tenantID uuid.UUID) ([]models.Message, error) {
+	var messages []models.Message
+	err := r.db.WithContext(ctx).
+		Where("\"ticketId\" = ? AND \"tenantId\" = ?", ticketID, tenantID).
+		Order("createdAt ASC").
+		Find(&messages).Error
+	return messages, err
+}
+
 // ExistsByID checks if a message with the given id exists under tenantID.
 func (r *GORMMessageRepository) ExistsByID(ctx context.Context, id string, tenantID uuid.UUID) (bool, error) {
 	var count int64
