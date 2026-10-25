@@ -34,8 +34,17 @@ func (r *GORMMessageRepository) Create(ctx context.Context, msg *domain.Message)
 
 // CreateIfNotExists inserts a message only if it doesn't already exist.
 func (r *GORMMessageRepository) CreateIfNotExists(ctx context.Context, msg *domain.Message) error {
+	_, err := r.CreateIfNotExistsReport(ctx, msg)
+	return err
+}
+
+// CreateIfNotExistsReport faz o mesmo e diz se a linha foi de fato inserida. O INSERT ... ON CONFLICT DO NOTHING é
+// atômico, então duas entregas simultâneas do mesmo evento não passam as duas: só uma insere. Quem reage à chegada de
+// uma mensagem nova (contador de não lidas, eventos) usa isto para não repetir o efeito numa reentrega.
+func (r *GORMMessageRepository) CreateIfNotExistsReport(ctx context.Context, msg *domain.Message) (bool, error) {
 	m := messageDomainToModel(msg)
-	return r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(m).Error
+	res := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(m)
+	return res.RowsAffected > 0, res.Error
 }
 
 // FindByID returns the message with the given id under tenantID, or nil if not found.

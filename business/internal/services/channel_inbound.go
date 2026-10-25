@@ -164,7 +164,15 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 		UpdatedAt:  msg.Timestamp,
 	}
 
-	if err := s.messageRepo.CreateIfNotExists(ctx, message); err != nil {
+	if rep, ok := s.messageRepo.(domain.MessageInsertReporter); ok {
+		inserted, err := rep.CreateIfNotExistsReport(ctx, message)
+		if err != nil {
+			return nil, fmt.Errorf("failed to persist inbound message: %w", err)
+		}
+		if !inserted {
+			return &usecases.ReceiveMessageResult{Contact: contact, Ticket: ticket, Message: message, Duplicate: true}, nil
+		}
+	} else if err := s.messageRepo.CreateIfNotExists(ctx, message); err != nil {
 		return nil, fmt.Errorf("failed to persist inbound message: %w", err)
 	}
 
