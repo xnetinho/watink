@@ -128,7 +128,7 @@ const AssistantCreator: React.FC = () => {
         (async () => {
             try {
                 const [wa, fl, pl, kb, gw] = await Promise.all([
-                    api.get("/whatsapp"),
+                    api.get("/connections"),
                     api.get("/flows"),
                     api.get("/pipelines"),
                     api.get("/knowledge-bases"),

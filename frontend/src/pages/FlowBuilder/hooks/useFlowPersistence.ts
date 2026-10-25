@@ -57,7 +57,7 @@ export function useFlowPersistence({
             }
         };
         fetchSettings();
-        api.get('/whatsapp').then((r) => setConnections(r.data)).catch(() => {});
+        api.get('/connections').then((r) => setConnections(r.data)).catch(() => {});
     }, []);
 
     useEffect(() => {

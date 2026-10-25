@@ -1,12 +1,1 @@
-import api from "../services/api";
-import { useQuery } from "@tanstack/react-query";
-
-export const useWhatsAppsQuery = () => {
-  return useQuery({
-    queryKey: ["whatsapp"],
-    queryFn: async () => {
-      const { data } = await api.get("/whatsapp/");
-      return data;
-    },
-  });
-};
+export { useConnectionsQuery, useWhatsAppsQuery, default } from "./useConnectionsQuery";

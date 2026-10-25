@@ -280,12 +280,19 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.PUT("/whatsapp/:id/keepalive", auth.RequirePermission("connections", "update"), whatsappController.ToggleKeepAlive)
 		protected.DELETE("/whatsapp/:id", auth.RequirePermission("connections", "delete"), whatsappController.DeleteWhatsapp)
 
-		// Channel Connections (Agnostic - Telegram, ML, etc. - ADR 0033)
+		// Channel Connections (Agnostic - Telegram, WhatsApp, ML, etc. - ADR 0033 / Tarefa 7.1)
 		channelConnCtrl := controllers.NewChannelConnectionController()
 		protected.GET("/channels/connections", auth.RequirePermission("connections", "read"), channelConnCtrl.ListConnections)
+		protected.GET("/channels/connections/:id", auth.RequirePermission("connections", "read"), channelConnCtrl.GetConnection)
 		protected.POST("/channels/connections", auth.RequirePermission("connections", "create"), channelConnCtrl.CreateConnection)
 		protected.PUT("/channels/connections/:id", auth.RequirePermission("connections", "update"), channelConnCtrl.UpdateConnection)
 		protected.DELETE("/channels/connections/:id", auth.RequirePermission("connections", "delete"), channelConnCtrl.DeleteConnection)
+
+		protected.GET("/connections", auth.RequirePermission("connections", "read"), channelConnCtrl.ListConnections)
+		protected.GET("/connections/:id", auth.RequirePermission("connections", "read"), channelConnCtrl.GetConnection)
+		protected.POST("/connections", auth.RequirePermission("connections", "create"), channelConnCtrl.CreateConnection)
+		protected.PUT("/connections/:id", auth.RequirePermission("connections", "update"), channelConnCtrl.UpdateConnection)
+		protected.DELETE("/connections/:id", auth.RequirePermission("connections", "delete"), channelConnCtrl.DeleteConnection)
 
 		// Proxies (anti-ban) — mesmo domínio de acesso que as conexões
 		// (Whatsapps): gated por connections:<ação> (P2-2). Antes as rotas eram

@@ -74,7 +74,7 @@
 
 ## 7. Frontend agnóstico
 
-- [ ] 7.1 `useConnections` único e `/connections/:id`; remover `useWhatsApps` e `/whatsapp/*`; verificar com `typecheck` e testes que nenhuma tela usa os antigos
+- [x] 7.1 `useConnections` único e `/connections/:id`; remover `useWhatsApps` e `/whatsapp/*`; verificar com `typecheck` e testes que nenhuma tela usa os antigos
 - [ ] 7.2 Remover JID do cliente: menções e citações por `contactId` resolvidas no backend; verificar com busca que `@s.whatsapp.net` não existe no frontend
 - [ ] 7.3 Ticket serializa `channel` e `capabilities`; lista, cabeçalho e composer reagem à capacidade; verificar com testes de componente por canal
 - [ ] 7.4 Edição e exclusão de conexão na interface unificada, com erro de canal visível; verificar com teste de componente e validação visual
