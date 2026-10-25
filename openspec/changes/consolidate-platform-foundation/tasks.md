@@ -56,8 +56,8 @@
 
 ## 5. Business em camadas
 
-- [ ] 5.1 Lint de arquitetura (`depguard`/`forbidigo`): proíbe `gorm` em `controllers/`, `"Whatsapps"`/`whatsappId`, `@s.whatsapp.net` e importação de adaptadores pelo núcleo; verificar que o CI falha ao violar cada regra
-- [ ] 5.2 Teste de arquitetura: o núcleo não importa nenhum adaptador concreto; verificar adicionando um import e vendo falhar
+- [x] 5.1 Lint de arquitetura (`depguard`/`forbidigo`): proíbe `gorm` em `controllers/`, `"Whatsapps"`/`whatsappId`, `@s.whatsapp.net` e importação de adaptadores pelo núcleo; verificar que o CI falha ao violar cada regra
+- [x] 5.2 Teste de arquitetura: o núcleo não importa nenhum adaptador concreto; verificar adicionando um import e vendo falhar
 - [ ] 5.3 Migrar `message`, `ticket`, `contact` e `quick_answer` para controllers finos e repositórios por empresa; verificar que os testes existentes continuam verdes e o lint 5.1 passa neles
 - [ ] 5.4 Barramento de eventos durável (outbox) no lugar do `go func` por handler; verificar com teste que um evento não se perde se o processo cai entre a gravação e o tratamento
 - [ ] 5.5 Quebrar arquivos acima de 500 linhas nos pacotes de canal e mensagem; verificar com checagem de tamanho no CI
