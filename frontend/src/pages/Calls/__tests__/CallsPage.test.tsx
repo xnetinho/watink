@@ -15,7 +15,7 @@ vi.mock("@/lib/notify", () => ({ default: { success: vi.fn(), error: vi.fn() }, 
 void i18n.changeLanguage("pt");
 
 const row = (over: Partial<CallLogRow> = {}): CallLogRow => ({
-  id: 1, callId: "C1", whatsappId: 1, contactId: 1, ticketId: 1, direction: "incoming", status: "ended", peerJid: "5511999990001@s.whatsapp.net",
+  id: 1, callId: "C1", whatsappId: 1, contactId: 1, ticketId: 1, direction: "incoming", status: "ended", peerJid: "5511999990001",
   callerPn: "5511999990001", startedAt: "2026-10-06T12:00:00Z", answeredAt: null, endedAt: null, durationSec: 75, handledByUserId: 2,
   endReason: "user_ended", rttAvg: 40, rttMax: 60, lossAvg: 0, lossMax: 1, jitterAvg: 5, jitterMax: 8, mosEstimated: 4.3,
   recordingStatus: "", recordingDurationSec: 0, ...over,

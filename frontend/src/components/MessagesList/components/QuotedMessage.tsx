@@ -17,7 +17,7 @@ const QuotedMessage: React.FC<Props> = ({ message, isGroup }) => {
     if (isGroup && contact?.isGroup && quoted.participant) {
       const d = parseData(quoted.dataJson);
       if (d?.pushName) return d.pushName as string;
-      return (quoted.participant as string).replace("@s.whatsapp.net", "");
+      return (quoted.participant as string).replace(/@[^@]+$/, "");
     }
     return contact?.name;
   };
