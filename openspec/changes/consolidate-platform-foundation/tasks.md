@@ -11,7 +11,7 @@
 - [x] 1.2 `RequirePermission` nas mutações hoje sem permissão (mensagens, contatos, filas, fluxos, funis, tags, respostas rápidas, plugins, histórico) e catálogo de permissões novas; verificar com teste por rota que atendente sem permissão recebe 403
 - [x] 1.3 Teste de tabela de rotas que percorre o roteador e falha para rota autenticada de escrita sem permissão nem isenção registrada; verificar que falha antes de 1.2 e passa depois
 - [x] 1.4 Registro versionado de rotas isentas com justificativa (logout, `/me`, leitura própria); verificar que cada isenção tem texto de justificativa
-- [ ] 1.5 `safeGo` (recover, log, métrica) em todas as goroutines do business e contenção de pânico por entrega no consumidor AMQP; verificar com teste que injeta pânico num tratador e o processo continua
+- [x] 1.5 `safeGo` (recover, log, métrica) em todas as goroutines do business e contenção de pânico por entrega no consumidor AMQP; verificar com teste que injeta pânico num tratador e o processo continua
 - [ ] 1.6 Engine: corrigir `session.pairingcode`/`pairing_code`; verificar com teste de contrato que o evento chega ao tratador
 - [x] 1.7 Engine: `Ack` só no sucesso, `Nack` com fila de falhas e retry limitado; verificar com teste que um envio com erro recuperável é reprocessado e um inválido vai à fila de falhas
 - [x] 1.8 Engine: consumidor se refaz após queda do broker (canal por consumidor + supervisor); verificar com teste que derruba e religa o RabbitMQ e o consumo volta sozinho

@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
+
 	"github.com/streadway/amqp"
 	"go.opentelemetry.io/otel"
 )
@@ -66,7 +68,7 @@ func (s *RabbitMQService) Connect() error {
 		return fmt.Errorf("failed to setup exchanges: %v", err)
 	}
 
-	go func() {
+	safego.Go("rabbitmq.reconnect", func() {
 		<-conn.NotifyClose(make(chan *amqp.Error))
 		log.Println("[RabbitMQ] Connection closed. Reconnecting...")
 		for {
@@ -77,7 +79,7 @@ func (s *RabbitMQService) Connect() error {
 			}
 			return
 		}
-	}()
+	})
 
 	log.Println("[RabbitMQ] Connected successfully")
 	return nil
@@ -94,7 +96,7 @@ func (s *RabbitMQService) ConnectWithRetry(onConnected func()) bool {
 	} else {
 		log.Printf("⚠️ Warning: RabbitMQ connection failed: %v — tentando de novo em segundo plano", err)
 	}
-	go func() {
+	safego.Go("rabbitmq.connectRetry", func() {
 		for {
 			time.Sleep(5 * time.Second)
 			if err := s.Connect(); err != nil {
@@ -104,7 +106,7 @@ func (s *RabbitMQService) ConnectWithRetry(onConnected func()) bool {
 			onConnected()
 			return
 		}
-	}()
+	})
 	return false
 }
 
@@ -264,7 +266,7 @@ func (s *RabbitMQService) startConsumer(exchange, queueName string, routingKeys 
 		return err
 	}
 
-	go s.runConsumerLoop(ch, exchange, queueName, routingKeys, handler)
+	safego.Go("amqp.consumerLoop."+queueName, func() { s.runConsumerLoop(ch, exchange, queueName, routingKeys, handler) })
 	return nil
 }
 
@@ -312,7 +314,9 @@ func (s *RabbitMQService) runConsumerLoop(ch *amqp.Channel, exchange, queueName 
 			closeNotify := ch.NotifyClose(make(chan *amqp.Error, 1))
 
 			for d := range msgs {
-				if err := handler(d); err != nil {
+				// Pânico no tratador vira erro e segue o caminho normal de retry/DLQ. Sem isso, um único evento
+				// mal formado derruba o processo inteiro (gin.Recovery só cobre o ciclo HTTP).
+				if err := safego.Run("amqp."+queueName, func() error { return handler(d) }); err != nil {
 					s.handleFailedMessage(ch, exchange, d, err)
 				} else if err := d.Ack(false); err != nil {
 					log.Printf("[RabbitMQ] Ack failed for queue %q: %v", queueName, err)

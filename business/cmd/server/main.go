@@ -21,6 +21,7 @@ package main
 
 import (
 	"context"
+
 	"io/fs"
 	"log"
 	"net/http"
@@ -45,6 +46,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/web"
 	"github.com/alltomatos/watinkdev/business/pkg/engineaddr"
 	"github.com/alltomatos/watinkdev/business/pkg/s3store"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	otelgin "go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -113,7 +115,7 @@ func main() {
 	// Watink SaaS. ~30s entre ciclos — mesma cadência do contrato do lado
 	// servidor (watink-saas#28, staleness em 5x este intervalo).
 	saasSyncWorker := saasclient.NewWorker(services.NewSaaSContractService(database.DB), database.DB, services.NewSetupService(database.DB), GitCommit)
-	go saasSyncWorker.Run(context.Background(), 30*time.Second)
+	safego.Go("saas.syncWorker", func() { saasSyncWorker.Run(context.Background(), 30*time.Second) })
 
 	// Knowledge Base file sources: build the S3-compatible object store from
 	// env. When S3 is unconfigured or init fails, s3Store stays nil and the
@@ -175,7 +177,7 @@ func main() {
 			log.Printf("[knowledge] ingest worker: %v", err)
 		}
 		reconciler := knowledge.NewReconciler(database.DB, redisSvc)
-		go reconciler.Start(context.Background())
+		safego.Go("knowledge.reconciler", func() { reconciler.Start(context.Background()) })
 
 		// Consumes the ingest worker's own status events (knowledge.events)
 		// and reflects them onto the source rows + broadcasts to the tenant

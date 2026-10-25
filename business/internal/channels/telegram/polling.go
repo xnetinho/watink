@@ -3,12 +3,15 @@ package telegram
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+
 	"log"
 	"sync"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
 )
 
 // PollingManager mantém um worker de long-polling por conexão Telegram.
@@ -33,7 +36,7 @@ func (pm *PollingManager) Start(conn *models.ChannelConnection, handler InboundH
 	ctx, cancel := context.WithCancel(context.Background())
 	pm.workers[conn.ID] = cancel
 
-	go func() {
+	safego.Go(fmt.Sprintf("telegram.polling.%d", conn.ID), func() {
 		token, err := domain.ChannelCredentials(conn)
 		if err != nil {
 			log.Printf("[Telegram Polling] connection %d has no token: %v", conn.ID, err)
@@ -82,7 +85,7 @@ func (pm *PollingManager) Start(conn *models.ChannelConnection, handler InboundH
 				}
 			}
 		}
-	}()
+	})
 }
 
 func (pm *PollingManager) Stop(connID int) {

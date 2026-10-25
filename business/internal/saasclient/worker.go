@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log/slog"
 	"time"
 
@@ -12,6 +11,8 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/internal/usagestats"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -57,7 +58,8 @@ func (w *Worker) Run(ctx context.Context, tickInterval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			pendingAcks = w.tick(ctx, pendingAcks)
+			// Um pânico num ciclo não pode matar o sincronismo para sempre: o próximo tick tenta de novo.
+			_ = safego.Run("saas.syncWorker.tick", func() error { pendingAcks = w.tick(ctx, pendingAcks); return nil })
 		}
 	}
 }

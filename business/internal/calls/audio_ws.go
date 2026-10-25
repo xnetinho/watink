@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/safego"
+
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log/slog"
 	"time"
@@ -136,7 +137,7 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 	rctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	go func() { // navegador → engine
+	safego.Go("calls.browserToEngine", func() { // navegador → engine
 		defer cancel()
 		for {
 			typ, data, err := browser.Read(rctx)
@@ -155,8 +156,8 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 				}
 			}
 		}
-	}()
-	go func() { // engine → navegador (áudio) e → business (telemetria)
+	})
+	safego.Go("calls.engineToBrowser", func() { // engine → navegador (áudio) e → business (telemetria)
 		defer cancel()
 		for {
 			typ, data, err := eng.Read(rctx)
@@ -176,10 +177,10 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 				s.handleTelemetry(ctx, tenantID, data)
 			}
 		}
-	}()
-	go pump(rctx, cancel, br.ToEngine, eng)
-	go pump(rctx, cancel, br.VideoToEngine, eng)
-	go pump(rctx, cancel, br.ToBrowser, browser)
+	})
+	safego.Go("calls.pumpToEngine", func() { pump(rctx, cancel, br.ToEngine, eng) })
+	safego.Go("calls.pumpVideoToEngine", func() { pump(rctx, cancel, br.VideoToEngine, eng) })
+	safego.Go("calls.pumpToBrowser", func() { pump(rctx, cancel, br.ToBrowser, browser) })
 
 	<-rctx.Done()
 	if !a.Active(callID) {
