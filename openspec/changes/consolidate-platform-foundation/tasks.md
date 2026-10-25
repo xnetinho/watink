@@ -92,8 +92,8 @@
 
 ## 9. Governança
 
-- [ ] 9.1 ADR 0034 (conexão única, identidade de mensagem, contrato do engine) e ADR do canal `fake`; verificar com revisão
+- [x] 9.1 ADR 0034 (conexão única, identidade de mensagem, contrato do engine) e ADR do canal `fake`; verificar com revisão
 - [ ] 9.2 Reconciliar `openspec/changes/add-channel-*` com o código (reabrir as tarefas 4.1 e 4.2 marcadas sem estarem feitas); verificar que cada tarefa marcada corresponde a comportamento existente
-- [ ] 9.3 Limpar `ESTADO_ORQUESTRATOR.md` e `docs/legacy-*`; corrigir o comentário falso de `session.go`; verificar com revisão
-- [ ] 9.4 Checklist "novo canal" executável como teste; verificar que o canal `fake` o satisfaz
+- [x] 9.3 Limpar `ESTADO_ORQUESTRATOR.md` e `docs/legacy-*`; corrigir o comentário falso de `session.go`; verificar com revisão
+- [x] 9.4 Checklist "novo canal" executável como teste; verificar que o canal `fake` o satisfaz
 - [ ] 9.5 Portão 1 completo: `go build`, `go vet`, `go test ./... -short -race`, lint v2.12.2, frontend `typecheck`/`lint`/`vitest` e stack local `lt` subindo e atendendo; registrar as evidências no PR
