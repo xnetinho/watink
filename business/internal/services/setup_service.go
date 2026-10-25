@@ -337,6 +337,7 @@ func seedTenant(tx *gorm.DB, data TenantSeedData, plan *models.Plan, provisionKe
 		"tickets:read", "tickets:create", "tickets:update",
 		"contacts:read", "contacts:create", "contacts:update",
 		"activities:read",
+		"quickAnswers:read", "tags:read", "tags:create", "tags:update", "protocols:read", "protocols:manage",
 	}
 	atendenteCargo := models.Cargo{
 		Name:        "Atendente",
@@ -368,6 +369,7 @@ func seedTenant(tx *gorm.DB, data TenantSeedData, plan *models.Plan, provisionKe
 
 	gerenteGeralPermNames := append(append([]string{}, gestorPermNames...),
 		"reports:view-tenant", "users:manage", "setores:manage", "cargos:read",
+		"quickAnswers:create", "quickAnswers:update", "quickAnswers:delete", "tags:delete",
 	)
 	gerenteGeralCargo := models.Cargo{
 		Name:        "Gerente Geral",
