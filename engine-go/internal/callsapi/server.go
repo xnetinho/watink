@@ -6,12 +6,14 @@ package callsapi
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/alltomatos/watinkdev/engine-go/internal/calls"
@@ -55,7 +57,34 @@ func NewHandler(b Backend) http.Handler {
 	return mux
 }
 
+// authCallsAPI verifica a autenticação do token interno (CALLS_API_TOKEN ou INTERNAL_TOKEN).
+// Se nenhum token estiver configurado no ambiente, permite a conexão direta da rede Docker (compatibilidade).
+func authCallsAPI(r *http.Request) bool {
+	token := os.Getenv("CALLS_API_TOKEN")
+	if token == "" {
+		token = os.Getenv("INTERNAL_TOKEN")
+	}
+	if token == "" {
+		return true
+	}
+	got := r.Header.Get("X-Internal-Token")
+	if got == "" {
+		got = r.URL.Query().Get("token")
+	}
+	if got == "" {
+		authHeader := r.Header.Get("Authorization")
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			got = strings.TrimPrefix(authHeader, "Bearer ")
+		}
+	}
+	return subtle.ConstantTimeCompare([]byte(got), []byte(token)) == 1
+}
+
 func serveAudio(w http.ResponseWriter, r *http.Request, b Backend) {
+	if !authCallsAPI(r) {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
 	id := r.PathValue("id")
 	if !callIDPattern.MatchString(id) {
 		http.Error(w, `{"error":"invalid call id"}`, http.StatusBadRequest)

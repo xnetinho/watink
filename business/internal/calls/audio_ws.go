@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/alltomatos/watinkdev/business/internal/models"
-	"github.com/alltomatos/watinkdev/business/pkg/safego"
-
-	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log/slog"
+	"net/http"
+	"os"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/coder/websocket"
 	"github.com/google/uuid"
 )
@@ -19,14 +20,24 @@ import (
 type EngineDialer func(ctx context.Context, callID string) (*websocket.Conn, error)
 
 // NewEngineDialer devolve o discador de produção: base é "ws://engine:8085", montada de
-// ENGINE_HOST. O canal é interno (rede do Docker) e não tem autenticação própria: a porta
-// do engine nunca pode ser publicada fora da rede. Sem base não há áudio.
+// ENGINE_HOST. Se CALLS_API_TOKEN ou INTERNAL_TOKEN estiver configurado, envia o cabeçalho
+// X-Internal-Token para autenticação mútua interna. Sem base não há áudio.
 func NewEngineDialer(base string) EngineDialer {
 	return func(ctx context.Context, callID string) (*websocket.Conn, error) {
 		if base == "" {
 			return nil, ErrAudioNotConfigured
 		}
-		c, _, err := websocket.Dial(ctx, base+"/calls/"+callID+"/audio", nil)
+		opts := &websocket.DialOptions{}
+		token := os.Getenv("CALLS_API_TOKEN")
+		if token == "" {
+			token = os.Getenv("INTERNAL_TOKEN")
+		}
+		if token != "" {
+			opts.HTTPHeader = http.Header{
+				"X-Internal-Token": []string{token},
+			}
+		}
+		c, _, err := websocket.Dial(ctx, base+"/calls/"+callID+"/audio", opts)
 		return c, err
 	}
 }
