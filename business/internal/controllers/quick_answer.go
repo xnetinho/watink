@@ -2,11 +2,14 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
@@ -62,10 +65,22 @@ type QuickAnswerController struct {
 	broadcast domain.Broadcaster
 	db        *gorm.DB
 	engines   domain.WhatsAppEngineResolver
+	repo      domain.QuickAnswerRepository
 }
 
-func NewQuickAnswerController(r domain.CommandPublisher, b domain.Broadcaster, db *gorm.DB, engines domain.WhatsAppEngineResolver) *QuickAnswerController {
-	return &QuickAnswerController{rabbit: r, broadcast: domain.BroadcastOrNop(b), db: db, engines: engines}
+func NewQuickAnswerController(r domain.CommandPublisher, b domain.Broadcaster, db *gorm.DB, engines domain.WhatsAppEngineResolver, repo ...domain.QuickAnswerRepository) *QuickAnswerController {
+	ctrl := &QuickAnswerController{rabbit: r, broadcast: domain.BroadcastOrNop(b), db: db, engines: engines}
+	if len(repo) > 0 && repo[0] != nil {
+		ctrl.repo = repo[0]
+	}
+	return ctrl
+}
+
+func (qac *QuickAnswerController) getRepo(db *gorm.DB) domain.QuickAnswerRepository {
+	if qac.repo != nil {
+		return qac.repo
+	}
+	return repository.NewGORMQuickAnswerRepo(db)
 }
 
 // @Summary      Listar respostas rápidas
@@ -80,18 +95,9 @@ func (qac *QuickAnswerController) List(c *gin.Context) {
 		return
 	}
 
-	query := db.Where("\"tenantId\" = ?", tenantID)
-	// Filtro opcional usado pelo autocomplete "/" no chat e pela busca da página.
-	if search := strings.TrimSpace(c.Query("searchParam")); search != "" {
-		like := "%" + strings.ToLower(search) + "%"
-		query = query.Where(
-			"LOWER(shortcut) LIKE ? OR LOWER(slug) LIKE ? OR LOWER(message) LIKE ?",
-			like, like, like,
-		)
-	}
-
-	var quickAnswers []models.QuickAnswer
-	if err := query.Order("shortcut ASC").Find(&quickAnswers).Error; err != nil {
+	search := c.Query("searchParam")
+	quickAnswers, err := qac.getRepo(db).Find(c.Request.Context(), tenantID, search)
+	if err != nil {
 		utils.RespondWithInternalError(c, err, "ListQuickAnswers")
 		return
 	}
@@ -111,11 +117,19 @@ func (qac *QuickAnswerController) Show(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id := c.Param("quickAnswerId")
+	id, err := strconv.Atoi(c.Param("quickAnswerId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid quickAnswerId"})
+		return
+	}
 
-	var quickAnswer models.QuickAnswer
-	if err := db.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&quickAnswer).Error; err != nil {
+	quickAnswer, err := qac.getRepo(db).FindByID(c.Request.Context(), id, tenantID)
+	if err != nil {
 		utils.RespondWithInternalError(c, err, "ShowQuickAnswer")
+		return
+	}
+	if quickAnswer == nil {
+		utils.RespondWithInternalError(c, gorm.ErrRecordNotFound, "ShowQuickAnswer")
 		return
 	}
 
@@ -184,7 +198,7 @@ func (qac *QuickAnswerController) Create(c *gin.Context) {
 	if qa.Type == "" {
 		qa.Type = "text"
 	}
-	if err := db.Create(&qa).Error; err != nil {
+	if err := qac.getRepo(db).Create(c.Request.Context(), &qa); err != nil {
 		if isUniqueViolation(err, "idx_quick_answers_tenant_shortcut") {
 			c.JSON(http.StatusConflict, gin.H{"error": "shortcut already exists for this tenant"})
 			return
@@ -210,11 +224,19 @@ func (qac *QuickAnswerController) Update(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id := c.Param("quickAnswerId")
+	id, err := strconv.Atoi(c.Param("quickAnswerId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid quickAnswerId"})
+		return
+	}
 
-	var qa models.QuickAnswer
-	if err := db.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&qa).Error; err != nil {
+	qa, err := qac.getRepo(db).FindByID(c.Request.Context(), id, tenantID)
+	if err != nil {
 		utils.RespondWithInternalError(c, err, "UpdateQuickAnswer-Fetch")
+		return
+	}
+	if qa == nil {
+		utils.RespondWithInternalError(c, gorm.ErrRecordNotFound, "UpdateQuickAnswer-Fetch")
 		return
 	}
 
@@ -268,7 +290,7 @@ func (qac *QuickAnswerController) Update(c *gin.Context) {
 		qa.Content = input.Content
 	}
 
-	if err := db.Session(&gorm.Session{NewDB: true}).Save(&qa).Error; err != nil {
+	if err := qac.getRepo(db).Update(c.Request.Context(), qa); err != nil {
 		if isUniqueViolation(err, "idx_quick_answers_tenant_shortcut") {
 			c.JSON(http.StatusConflict, gin.H{"error": "shortcut already exists for this tenant"})
 			return
@@ -292,15 +314,19 @@ func (qac *QuickAnswerController) Delete(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id := c.Param("quickAnswerId")
-
-	result := db.Where("id = ? AND \"tenantId\" = ?", id, tenantID).Delete(&models.QuickAnswer{})
-	if result.Error != nil {
-		utils.RespondWithInternalError(c, result.Error, "DeleteQuickAnswer")
+	id, err := strconv.Atoi(c.Param("quickAnswerId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid quickAnswerId"})
 		return
 	}
-	if result.RowsAffected == 0 {
-		utils.RespondWithInternalError(c, gorm.ErrRecordNotFound, "DeleteQuickAnswer-NotFound")
+
+	err = qac.getRepo(db).Delete(c.Request.Context(), id, tenantID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.RespondWithInternalError(c, gorm.ErrRecordNotFound, "DeleteQuickAnswer-NotFound")
+			return
+		}
+		utils.RespondWithInternalError(c, err, "DeleteQuickAnswer")
 		return
 	}
 

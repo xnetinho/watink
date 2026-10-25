@@ -54,6 +54,7 @@ type MessageRepository interface {
 	Create(ctx context.Context, msg *Message) error
 	CreateIfNotExists(ctx context.Context, msg *Message) error
 	FindByID(ctx context.Context, id string, tenantID uuid.UUID) (*Message, error)
+	FindByTicket(ctx context.Context, ticketID int, tenantID uuid.UUID) ([]models.Message, error)
 	FindOldestByTicket(ctx context.Context, ticketID int, tenantID uuid.UUID) (*Message, error)
 	ExistsByID(ctx context.Context, id string, tenantID uuid.UUID) (bool, error)
 	Update(ctx context.Context, msg *Message, fields map[string]interface{}) error
@@ -310,6 +311,15 @@ type UserQueueRepository interface {
 // TicketLogRepository persists audit log entries for ticket actions.
 type TicketLogRepository interface {
 	Create(ctx context.Context, log *models.TicketLog) error
+}
+
+// QuickAnswerRepository handles persistence and lookups for QuickAnswers.
+type QuickAnswerRepository interface {
+	Find(ctx context.Context, tenantID uuid.UUID, search string) ([]models.QuickAnswer, error)
+	FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*models.QuickAnswer, error)
+	Create(ctx context.Context, qa *models.QuickAnswer) error
+	Update(ctx context.Context, qa *models.QuickAnswer) error
+	Delete(ctx context.Context, id int, tenantID uuid.UUID) error
 }
 
 // TagRepository handles tag lookups and creation.

@@ -22,6 +22,9 @@ type Container struct {
 	PermissionRepo     domain.PermissionRepository
 	SettingRepo        domain.SettingRepository
 	SystemRepo         domain.SystemRepository
+	TagRepository      domain.TagRepository
+	EntityTagRepo      domain.EntityTagRepository
+	QuickAnswerRepo    domain.QuickAnswerRepository
 	PlanLimitSvc       domain.PlanLimitServiceInterface
 	SwaggerPermRepo    domain.SwaggerPermissionRepository
 	VersionRepo        domain.VersionRepository
@@ -59,6 +62,7 @@ func NewContainer(db *gorm.DB, redisSvc domain.RedisService, broadcast domain.Br
 	ticketLogRepo := repository.NewGormTicketLogRepository(db)
 	tagRepo := repository.NewGORMTagRepository(db)
 	entityTagRepo := repository.NewGORMEntityTagRepository(db)
+	quickAnswerRepo := repository.NewGORMQuickAnswerRepo(db)
 	eventBus := NewDurableOutboxEventBus(db)
 	logTicketAction := usecases.NewLogTicketActionUseCase(ticketRepo, ticketLogRepo)
 	distributeTicket := usecases.NewDistributeTicketUseCase(ticketRepo, queueRepo, eventBus, contactRepo, userQueueRepo)
@@ -98,5 +102,6 @@ func NewContainer(db *gorm.DB, redisSvc domain.RedisService, broadcast domain.Br
 		DistributeTicket:   distributeTicket,
 		UpdateTicket:       updateTicket,
 		LogTicketAction:    logTicketAction,
+		QuickAnswerRepo:    quickAnswerRepo,
 	}
 }
