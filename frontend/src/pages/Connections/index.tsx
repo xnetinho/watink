@@ -130,7 +130,15 @@ const Connections = () => {
                   </span>
                 </div>
                 <CardTitle className="text-base mt-2">{conn.name}</CardTitle>
-                <CardDescription>{conn.lastError || "Canal de atendimento conectado"}</CardDescription>
+                <CardDescription>
+                  {conn.lastError ? (
+                    <span className="text-destructive font-medium block mt-1 bg-destructive/10 p-2 rounded text-xs border border-destructive/20">
+                      {conn.lastError}
+                    </span>
+                  ) : (
+                    "Canal de atendimento conectado"
+                  )}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
