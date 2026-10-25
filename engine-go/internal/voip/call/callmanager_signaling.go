@@ -89,9 +89,7 @@ func (m *CallManager) HandleCallOffer(ctx context.Context, node *waBinary.Node, 
 		}
 	}
 
-	if m.OnIncoming != nil {
-		m.OnIncoming(call)
-	}
+	m.emitIncoming(call)
 	m.mu.Lock()
 	m.emitState()
 	m.mu.Unlock()
@@ -293,8 +291,7 @@ func (m *CallManager) HandleCallTerminate(node *waBinary.Node) {
 	m.emitState()
 	m.mu.Unlock()
 
-	if m.OnEnded != nil {
-		m.OnEnded(ended)
-	}
+	m.emitEnded(ended)
 	m.cleanupMedia()
+	m.FlushHooks()
 }

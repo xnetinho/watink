@@ -40,10 +40,9 @@ func (m *CallManager) AbandonCall(reason core.EndCallReason) {
 	m.emitState()
 	m.mu.Unlock()
 
-	if m.OnEnded != nil {
-		m.OnEnded(call)
-	}
+	m.emitEnded(call)
 	m.cleanupMedia()
+	m.FlushHooks()
 }
 
 // RelayRTTMs devolve o RTT do relay em ms, vindo do `c2r_rtt` da oferta (o menor
