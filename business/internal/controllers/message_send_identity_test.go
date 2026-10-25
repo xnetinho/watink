@@ -120,3 +120,10 @@ func TestSendMessage_CitacaoVaiAoCanalComIdExternal(t *testing.T) {
 	require.Len(t, e.ch.got, 1)
 	assert.Equal(t, "99", e.ch.got[0].QuotedMessageID, "o Telegram só entende o message_id dele, não o id interno")
 }
+
+func (c *capturingChannel) ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error) {
+	if contact != nil && contact.Number != "" {
+		return contact.Number, nil
+	}
+	return "mock_addr", nil
+}

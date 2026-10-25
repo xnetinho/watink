@@ -201,13 +201,6 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		}
 	}
 
-	var whatsapp models.Whatsapp
-	if err := db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
-		return
-	}
-
 	// Se o ticket pertencer a uma ChannelConnection agnóstica registrada, despacha pelo canal (Tarefa 4.2 / ADR 0033)
 	if ticket.ChannelConnectionID != nil {
 		var conn models.ChannelConnection
@@ -253,6 +246,13 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 				return
 			}
 		}
+	}
+
+	var whatsapp models.Whatsapp
+	if err := db.Session(&gorm.Session{NewDB: true}).
+		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
+		return
 	}
 
 	if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
