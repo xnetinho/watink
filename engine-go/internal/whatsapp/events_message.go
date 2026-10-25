@@ -2,7 +2,9 @@ package whatsapp
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"go.mau.fi/whatsmeow"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
@@ -19,6 +21,13 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 	// not create tickets. They also frequently carry media whose synchronous
 	// download here would stall the serial event loop for the whole session.
 	if v.Info.Chat.String() == "status@broadcast" {
+		return
+	}
+
+	// Poll votes are encrypted at WhatsApp level. Decrypt before publishing; the business
+	// persists the event only when the originating poll opted into result capture.
+	if v.Message.GetPollUpdateMessage() != nil {
+		s.handlePollVoteEvent(client, id, tenantID, v)
 		return
 	}
 
@@ -180,3 +189,40 @@ func (s *WhatsAppService) cachedGroupMeta(jid types.JID) groupMeta {
 	defer s.groupMetaMu.Unlock()
 	return s.groupMetaMap[key]
 }
+
+func (s *WhatsAppService) handlePollVoteEvent(client *whatsmeow.Client, id int, tenantID string, v *events.Message) {
+	vote, err := client.DecryptPollVote(context.Background(), v)
+	if err != nil {
+		// Keep the event loop alive; an undecryptable vote is not actionable by business.
+		return
+	}
+	key := v.Message.GetPollUpdateMessage().GetPollCreationMessageKey()
+	if key == nil || key.GetID() == "" {
+		return
+	}
+	selected := make([]string, 0, len(vote.GetSelectedOptions()))
+	for _, option := range vote.GetSelectedOptions() {
+		selected = append(selected, hex.EncodeToString(option))
+	}
+	s.publishEvent(tenantID, id, "message.poll_vote", map[string]interface{}{
+		"sessionId":      fmt.Sprintf("%d", id),
+		"pollMessageId":  key.GetID(),
+		"voterJid":       v.Info.Sender.String(),
+		"optionSelected": strings.Join(selected, ","),
+	})
+}
+
+func pollVotePayload(id int, pollMessageID, voterJID string, selectedOptions [][]byte) map[string]interface{} {
+	selected := make([]string, 0, len(selectedOptions))
+	for _, option := range selectedOptions {
+		selected = append(selected, hex.EncodeToString(option))
+	}
+	return map[string]interface{}{
+		"sessionId":      idString(id),
+		"pollMessageId":  pollMessageID,
+		"voterJid":       voterJID,
+		"optionSelected": strings.Join(selected, ","),
+	}
+}
+
+func idString(id int) string { return fmt.Sprintf("%d", id) }

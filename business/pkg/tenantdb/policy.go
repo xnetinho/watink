@@ -35,6 +35,7 @@ var Children = map[string]Child{
 	"user_queues":               {"user_id", "Users", "id"},
 	"channel_connection_queues": {"channel_connection_id", "ChannelConnections", "id"},
 	"whatsapp_queues":           {"whatsapp_id", "Whatsapps", "id"},
+	"whatsapp_connection_details": {"connectionId", "ChannelConnections", "id"},
 }
 
 // SelfPolicies são tabelas em que a própria chave identifica a empresa.
@@ -48,6 +49,7 @@ var Exempt = map[string]string{
 	"Plans":            "catálogo de planos da instalação",
 	"Permissions":      "catálogo de permissões da instalação",
 	"InstancePolicies": "política da instalação definida pelo SaaS",
+	"SchemaMigrations": "controle de versão de migrações globais do banco",
 	"spatial_ref_sys":  "tabela do PostGIS",
 }
 

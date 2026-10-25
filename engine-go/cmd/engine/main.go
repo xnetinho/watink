@@ -3,27 +3,24 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
 
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/alltomatos/watinkdev/engine-go/internal/callsapi"
 	"github.com/alltomatos/watinkdev/engine-go/internal/command"
 	"github.com/alltomatos/watinkdev/engine-go/internal/groupsapi"
 	"github.com/alltomatos/watinkdev/engine-go/internal/health"
 	"github.com/alltomatos/watinkdev/engine-go/internal/rabbitmq"
-	"github.com/alltomatos/watinkdev/engine-go/internal/safego"
 	"github.com/alltomatos/watinkdev/engine-go/internal/whatsapp"
 	"github.com/joho/godotenv"
 	amqp "github.com/streadway/amqp"
-	"go.mau.fi/whatsmeow"
 )
 
 type commandEnvelope struct {
@@ -50,62 +47,49 @@ func main() {
 
 	rabbit := rabbitmq.NewRabbitMQService()
 	if err := rabbit.Connect(); err != nil {
-		// Não é fatal: o WhatsApp não reentrega o que chegar enquanto o engine estiver parado, então é melhor subir,
-		// guardar os eventos em disco e ligar os consumidores quando o broker voltar.
-		log.Printf("RabbitMQ indisponível na subida (%v); seguindo, o engine reconecta sozinho", err)
-	} else {
-		log.Println("Connected to RabbitMQ")
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
 	}
+	log.Println("Connected to RabbitMQ")
 
-	sessionLoader := whatsapp.NewPostgresSessionLoader(whatsapp.BuildPostgresDSN())
-	waService := whatsapp.NewWhatsAppService(rabbit, sessionLoader)
+	waService := whatsapp.NewWhatsAppService(rabbit)
 
 	// API interna de grupos/comunidades (T1.1, docker-internal only) — no-op
 	// se GROUPS_API_TOKEN não estiver configurado (fail-closed).
-	safego.Go("groupsapi", func() { groupsapi.Start(ctx, waService) })
+	go groupsapi.Start(ctx, waService)
 
 	// Endpoint interno de áudio das chamadas (docker-internal only, sem autenticação:
 	// a defesa é a rede — a porta nunca pode ser publicada em `ports:`).
 	load := waService.CallsLoad
 	callsLoad.Store(&load)
-	safego.Go("callsapi", func() { callsapi.Start(ctx, waService) })
-
-	safego.Go("autoRestartSessions", func() {
-		time.Sleep(5 * time.Second)
-		log.Println("Auto-restarting existing sessions...")
-		waService.AutoRestartSessions()
-	})
+	go callsapi.Start(ctx, waService)
 
 	routingKeys := []string{
-		"wbot.*.*.session.start",
-		"wbot.*.*.session.stop",
-		"wbot.*.*.session.delete",
-		"wbot.*.*.message.send.text",
-		"wbot.*.*.message.send.media",
-		"wbot.*.*.message.send.buttons",
-		"wbot.*.*.message.send.list",
-		"wbot.*.*.message.send.poll",
-		"wbot.*.*.message.send.interactive",
-		"wbot.*.*.message.send.template",
-		"wbot.*.*.message.send.carousel",
-		"wbot.*.*.message.react",
-		"wbot.*.*.message.markAsRead",
-		"wbot.*.*.media.download",
-		"wbot.*.*.contact.sync",
-		"wbot.*.*.contact.import",
-		"wbot.*.*.history.sync",
-		"wbot.*.*.history.recover",
-		"wbot.*.*.chat.presence",
+		wbot.CommandPattern(wbot.CommandSessionStart),
+		wbot.CommandPattern(wbot.CommandSessionStop),
+		wbot.CommandPattern(wbot.CommandSessionDelete),
+		wbot.CommandPattern(wbot.CommandMessageText),
+		wbot.CommandPattern(wbot.CommandMessageMedia),
+		wbot.CommandPattern(wbot.CommandMessageButtons),
+		wbot.CommandPattern(wbot.CommandMessageList),
+		wbot.CommandPattern(wbot.CommandMessagePoll),
+		wbot.CommandPattern(wbot.CommandMessageInteractive),
+		wbot.CommandPattern(wbot.CommandMessageTemplate),
+		wbot.CommandPattern(wbot.CommandMessageCarousel),
+		wbot.CommandPattern(wbot.CommandMessageReact),
+		wbot.CommandPattern(wbot.CommandMessageMarkRead),
+		wbot.CommandPattern(wbot.CommandMediaDownload),
+		wbot.CommandPattern(wbot.CommandContactSync),
+		wbot.CommandPattern(wbot.CommandContactImport),
+		wbot.CommandPattern(wbot.CommandHistoryRecover),
+		wbot.CommandPattern(wbot.CommandChatPresence),
 	}
 
-	// O consumidor devolve o erro: nil = Ack; recuperável = reentrega com limite; irrecuperável ou esgotado = fila de
-	// falhas (engine.go.commands.dlq). Antes o Ack era dado sempre, até em falha, e o comando se perdia.
 	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) error {
-		err := handleCommand(d, waService)
-		if err != nil {
+		if err := handleCommand(d, waService); err != nil {
 			log.Printf("Command failed %s: %v", d.RoutingKey, err)
+			return err
 		}
-		return classifyCommandError(err)
+		return nil
 	})
 	if err != nil {
 		log.Fatalf("Failed to start command consumer: %v", err)
@@ -115,13 +99,17 @@ func main() {
 	// goroutine: "Atender"/"Encerrar" nunca esperam o envio de mensagens (que usa
 	// o laço serial acima).
 	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) error {
-		err := handleCommand(d, waService)
-		if err != nil {
+		if err := handleCommand(d, waService); err != nil {
 			log.Printf("Call command failed %s: %v", d.RoutingKey, err)
+			return err
 		}
-		return classifyCommandError(err)
+		return nil
 	}); err != nil {
 		log.Fatalf("Failed to start call command consumer: %v", err)
+	}
+
+	if err := rabbit.PublishEvent(wbot.Event("system", "0", wbot.EventEngineReady), map[string]interface{}{"type": wbot.EventEngineReady, "tenantId": ""}); err != nil {
+		log.Printf("Failed to publish engine.ready: %v", err)
 	}
 
 	log.Println("Watink Engine Go (whatsmeow) started — PostgreSQL store, RabbitMQ connected")
@@ -136,42 +124,9 @@ func main() {
 	log.Println("Engine stopped")
 }
 
-// classifyCommandError separa o que vale a pena repetir do que não vale. A sessão desconectada é recuperável (ela pode
-// estar reconectando); JSON inválido, JID inválido e sessão inexistente nunca vão passar sozinhos.
-func classifyCommandError(err error) error {
-	if err == nil {
-		return nil
-	}
-	switch {
-	case errors.Is(err, rabbitmq.ErrUnrecoverable):
-		return err
-	case errors.Is(err, whatsapp.ErrSessionNotConnected), errors.Is(err, whatsapp.ErrCallsUnavailable):
-		return err // recuperável: tenta de novo com backoff
-	case errors.Is(err, whatsapp.ErrInvalidInput), errors.Is(err, whatsapp.ErrInvalidGroupJID):
-		return rabbitmq.Unrecoverable(err)
-	}
-	var syn *json.SyntaxError
-	var typ *json.UnmarshalTypeError
-	if errors.As(err, &syn) || errors.As(err, &typ) {
-		return rabbitmq.Unrecoverable(err)
-	}
-	var iq *whatsmeow.IQError
-	if errors.As(err, &iq) {
-		// 4xx do WhatsApp é decisão do servidor (sem permissão, limite, número inexistente): repetir só piora o risco.
-		if iq.Code >= 400 && iq.Code < 500 {
-			return rabbitmq.Unrecoverable(err)
-		}
-		return err
-	}
-	if strings.Contains(err.Error(), "invalid JID") || strings.Contains(err.Error(), "unmarshal envelope") {
-		return rabbitmq.Unrecoverable(err)
-	}
-	return err
-}
-
 const callsQueue = "engine.go.calls"
 
-var callRoutingKeys = []string{"wbot.*.*.call.*"}
+var callRoutingKeys = []string{wbot.EventPattern("call.*")}
 
 func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 	log.Printf("Received command: %s", d.RoutingKey)
@@ -316,11 +271,11 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 		// assíncrono do ponto de vista do chamador (o resultado só chega pelo
 		// evento message.media, nunca pelo retorno síncrono do comando), então
 		// rodar em goroutine própria não muda o contrato — só libera a fila.
-		safego.Go("media.download", func() {
+		go func() {
 			if err := svc.DownloadMedia(sessionID, tenantID, p); err != nil {
 				log.Printf("Command failed %s: %v", d.RoutingKey, err)
 			}
-		})
+		}()
 		return nil
 
 	case "contact.sync":

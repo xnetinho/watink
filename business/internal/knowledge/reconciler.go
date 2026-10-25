@@ -2,10 +2,11 @@ package knowledge
 
 import (
 	"context"
-	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"log"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"gorm.io/gorm"
 )
 
@@ -49,7 +50,8 @@ func (r *Reconciler) Start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			r.tick()
+			// Um pânico num ciclo não pode matar o reconciliador para sempre: o próximo tick tenta de novo.
+			_ = safego.Run("knowledge.reconciler.tick", func() error { r.tick(); return nil })
 		}
 	}
 }

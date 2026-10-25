@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"net/http"
 	"os"
 	"strconv"
@@ -179,7 +180,7 @@ func (mc *MessageController) resolveAudioBytes(ctx context.Context, msg *models.
 			"mediaProto": data.MediaProto,
 		},
 	}
-	routingKey := fmt.Sprintf("wbot.%s.%d.media.download", tenantID.String(), msg.Ticket.WhatsappID)
+	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(msg.Ticket.WhatsappID), wbot.CommandMediaDownload)
 	if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
 		return nil, "", fmt.Errorf("falha ao solicitar download do áudio: %w", err)
 	}

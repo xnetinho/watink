@@ -98,6 +98,11 @@ type QueueRepository interface {
 	FindQueueIDsByChannel(ctx context.Context, channelID int, tenantID uuid.UUID) ([]int, error)
 }
 
+type WhatsAppConnectionDetailsRepository interface {
+	FindByConnectionID(ctx context.Context, connectionID int) (*models.WhatsAppConnectionDetails, error)
+	Save(ctx context.Context, details *models.WhatsAppConnectionDetails) error
+}
+
 type ChannelSessionRepository interface {
 	FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*ChannelSession, error)
 	FindByIDDetail(ctx context.Context, id int, tenantID uuid.UUID) (*models.Whatsapp, error)

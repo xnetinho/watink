@@ -27,7 +27,7 @@ type DownloadMediaCommandPayload struct {
 // DownloadMedia decodes the stored media proto, downloads the full media from
 // WhatsApp servers and publishes a "message.media" event with the base64 bytes.
 func (s *WhatsAppService) DownloadMedia(sessionID int, tenantID string, payload DownloadMediaCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.publishMediaDownloaded(tenantID, sessionID, payload.MessageID, "", "", "session not connected")
 		return err

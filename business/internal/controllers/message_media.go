@@ -2,8 +2,9 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
@@ -67,7 +68,7 @@ func (mc *MessageController) DownloadMedia(c *gin.Context) {
 		},
 	}
 
-	routingKey := fmt.Sprintf("wbot.%s.%d.media.download", tenantID.String(), msg.Ticket.WhatsappID)
+	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(msg.Ticket.WhatsappID), wbot.CommandMediaDownload)
 	if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
 		utils.RespondWithInternalError(c, err, "DownloadMedia")
 		return

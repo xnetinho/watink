@@ -3,6 +3,7 @@ package calls
 import (
 	"context"
 	"errors"
+
 	"log"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/recording"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
 	"github.com/google/uuid"
 )
 
@@ -106,7 +108,7 @@ func (r *Recording) Start(tenantID uuid.UUID, callID string) (*recording.Recorde
 	r.live[k] = ar
 	r.mu.Unlock()
 
-	go func() {
+	safego.Go("calls.recordingTick", func() {
 		t := time.NewTicker(recTickEvery)
 		defer t.Stop()
 		for {
@@ -119,7 +121,7 @@ func (r *Recording) Start(tenantID uuid.UUID, callID string) (*recording.Recorde
 				}
 			}
 		}
-	}()
+	})
 	return rec, nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"net/http"
 	"strconv"
@@ -178,6 +179,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	// o usaria como StanzaID. quotedParticipant é quem escreveu a original (obrigatório em
 	// grupo; em chat 1:1 é o próprio contato, ou nós mesmos se citamos algo que enviamos).
 	var quotedParticipant, quotedBody string
+	quotedExternalID := quotedID // id da citada no canal; difere de quotedID fora do WhatsApp
 	if quotedID != "" {
 		var q models.Message
 		if err := db.Session(&gorm.Session{NewDB: true}).
@@ -185,6 +187,9 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			quotedID = ""
 		} else {
 			quotedBody = quotedPreviewText(q)
+			if q.ExternalID != "" {
+				quotedExternalID = q.ExternalID
+			}
 			if !q.FromMe {
 				quotedParticipant = q.Participant
 				// 1:1: quem escreveu a citada é o próprio contato, no endereçamento do chat. O Participant gravado
@@ -194,13 +199,6 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 				}
 			}
 		}
-	}
-
-	var whatsapp models.Whatsapp
-	if err := db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
-		return
 	}
 
 	// Se o ticket pertencer a uma ChannelConnection agnóstica registrada, despacha pelo canal (Tarefa 4.2 / ADR 0033)
@@ -216,32 +214,45 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 					Body:            body,
 					MediaType:       mediaType,
 					MediaURL:        mediaURL,
-					QuotedMessageID: quotedID,
+					QuotedMessageID: quotedExternalID,
 				}
 				sendRes, err := chAdapter.Send(c.Request.Context(), &conn, outMsg)
 				if err != nil {
 					utils.RespondWithInternalError(c, err, "SendMessage")
 					return
 				}
-				if sendRes.ExternalMessageID != "" {
-					messageID = sendRes.ExternalMessageID
+				externalID := sendRes.ExternalMessageID
+				if externalID != "" {
+					messageID = domain.StorageMessageID(domain.ChannelKind(conn.Kind), conn.ID, ticket.ConversationKey, externalID)
 				}
 				msg := models.Message{
-					ID:        messageID,
-					Body:      body,
-					Ack:       1,
-					MediaType: mediaType,
-					MediaUrl:  mediaURL,
-					TicketID:  ticket.ID,
-					ContactID: &contact.ID,
-					FromMe:    true,
-					TenantID:  tenantID,
+					ID:         messageID,
+					ExternalID: externalID,
+					Body:       body,
+					Ack:        1,
+					MediaType:  mediaType,
+					MediaUrl:   mediaURL,
+					TicketID:   ticket.ID,
+					ContactID:  &contact.ID,
+					FromMe:     true,
+					TenantID:   tenantID,
 				}
-				_ = db.Create(&msg).Error
+				// Session(NewDB:true): o db carrega filtros acumulados das consultas acima e o GORM os usaria no INSERT.
+				if err := db.Session(&gorm.Session{NewDB: true}).Create(&msg).Error; err != nil {
+					// A mensagem já saiu para o cliente: loga e responde com o que foi enviado, sem fingir que falhou.
+					log.Printf("[SendMessage] mensagem enviada mas não persistida (ticket %d): %v", ticket.ID, err)
+				}
 				c.JSON(http.StatusOK, msg)
 				return
 			}
 		}
+	}
+
+	var whatsapp models.Whatsapp
+	if err := db.Session(&gorm.Session{NewDB: true}).
+		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
+		return
 	}
 
 	if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
@@ -296,7 +307,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 
 		// The engine dispatches by routing-key segment (wbot.<tenant>.<session>.<cmd>),
 		// so the command type MUST be encoded in the key — not just the body.
-		routingKey := fmt.Sprintf("wbot.%s.%d.%s", tenantID.String(), ticket.WhatsappID, commandType)
+		routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), commandType)
 		if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
 			utils.RespondWithInternalError(c, err, "SendMessage")
 			return
@@ -431,7 +442,7 @@ func (mc *MessageController) ReactToMessage(c *gin.Context) {
 		},
 	}
 
-	routingKey := fmt.Sprintf("wbot.%s.%d.message.react", tenantID.String(), target.Ticket.WhatsappID)
+	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(target.Ticket.WhatsappID), wbot.CommandMessageReact)
 	if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
 		utils.RespondWithInternalError(c, err, "ReactToMessage")
 		return

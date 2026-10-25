@@ -106,6 +106,19 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 	}, nil
 }
 
+func (a *Adapter) ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error) {
+	if contact == nil {
+		return "", fmt.Errorf("contact is nil")
+	}
+	if contact.Lid != nil && *contact.Lid != "" {
+		return *contact.Lid, nil
+	}
+	if contact.Number != "" {
+		return contact.Number + "@s.whatsapp.net", nil
+	}
+	return "", fmt.Errorf("contact has neither number nor lid")
+}
+
 func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnection, raw []byte, headers map[string]string) ([]domain.InboundMessage, error) {
 	// Mensagens de entrada do WhatsApp chegam via AMQP/EventListener e são convertidas via MessagePayloadToInboundMessage
 	return nil, nil
