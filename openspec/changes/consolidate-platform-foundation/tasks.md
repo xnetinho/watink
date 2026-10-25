@@ -86,7 +86,7 @@
 - [x] 8.1 `/metrics` Prometheus nos dois serviços (mensagens, latência, erros por canal, filas, chamadas ativas); verificar que o endpoint expõe cada série
 - [x] 8.2 Readiness real (banco, broker, cache) e `trace_id` do webhook ao SSE; verificar que o serviço fica "não pronto" com o broker fora
 - [ ] 8.3 Piso de cobertura nos pacotes críticos (canais, envio, contrato, autorização) no CI; verificar que o CI falha abaixo do piso
-- [ ] 8.4 `LastError` visível na interface para todo erro de canal; verificar com teste de ponta a ponta de token revogado
+- [x] 8.4 `LastError` visível na interface para todo erro de canal; verificar com teste de ponta a ponta de token revogado
 - [x] 8.5 Documentar instância única como premissa do engine, do poller e do `Migrate`; verificar com ADR revisado
 - [ ] 8.6 Backup, restore e runbooks testados; verificar restaurando em banco limpo
 
