@@ -152,6 +152,7 @@ type Channel interface {
 	Connect(ctx context.Context, conn *models.ChannelConnection, input ConnectInput) (ConnectResult, error)
 	Disconnect(ctx context.Context, conn *models.ChannelConnection) error
 	Send(ctx context.Context, conn *models.ChannelConnection, msg OutboundMessage) (SendResult, error)
+	ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error)
 	ParseInbound(ctx context.Context, conn *models.ChannelConnection, raw []byte, headers map[string]string) ([]InboundMessage, error)
 }
 
