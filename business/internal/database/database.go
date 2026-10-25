@@ -95,6 +95,7 @@ func Migrate() {
 		&models.ActivityChecklistItem{},
 		&models.ActivityMaterial{},
 		&models.ActivityOccurrence{},
+		&models.OutboxEvent{},
 		&models.Assistant{},
 		&models.AssistantRouterOption{},
 		&models.AssistantGroup{},

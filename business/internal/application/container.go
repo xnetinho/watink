@@ -59,7 +59,7 @@ func NewContainer(db *gorm.DB, redisSvc domain.RedisService, broadcast domain.Br
 	ticketLogRepo := repository.NewGormTicketLogRepository(db)
 	tagRepo := repository.NewGORMTagRepository(db)
 	entityTagRepo := repository.NewGORMEntityTagRepository(db)
-	eventBus := NewInMemoryEventBus()
+	eventBus := NewDurableOutboxEventBus(db)
 	logTicketAction := usecases.NewLogTicketActionUseCase(ticketRepo, ticketLogRepo)
 	distributeTicket := usecases.NewDistributeTicketUseCase(ticketRepo, queueRepo, eventBus, contactRepo, userQueueRepo)
 	updateTicket := usecases.NewUpdateTicketUseCase(ticketRepo, eventBus, distributeTicket, logTicketAction)
