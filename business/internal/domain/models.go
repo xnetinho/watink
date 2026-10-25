@@ -9,16 +9,16 @@ import (
 
 // Ticket represents a support ticket in the system
 type Ticket struct {
-	ID             int       `json:"id"`
-	Status         string    `json:"status"`
-	LastMessage    string    `json:"lastMessage"`
-	ContactID      int       `json:"contactId"`
-	UserID         *int      `json:"userId"`
-	WhatsappID     int       `json:"whatsappId"`
-	IsGroup        bool      `json:"isGroup"`
-	IsCommunity    bool      `json:"isCommunity"`
-	IsSubGroup     bool      `json:"isSubGroup"`
-	UnreadMessages int       `json:"unreadMessages"`
+	ID                  int       `json:"id"`
+	Status              string    `json:"status"`
+	LastMessage         string    `json:"lastMessage"`
+	ContactID           int       `json:"contactId"`
+	UserID              *int      `json:"userId"`
+	WhatsappID          int       `json:"whatsappId"`
+	IsGroup             bool      `json:"isGroup"`
+	IsCommunity         bool      `json:"isCommunity"`
+	IsSubGroup          bool      `json:"isSubGroup"`
+	UnreadMessages      int       `json:"unreadMessages"`
 	QueueID             *int      `json:"queueId"`
 	TenantID            uuid.UUID `json:"tenantId"`
 	ChannelConnectionID *int      `json:"channelConnectionId,omitempty"`
@@ -33,21 +33,21 @@ type Message struct {
 	ExternalID          string    `json:"externalId"` // id da mensagem no canal; vazio no WhatsApp, onde ID já é o id do canal
 	ChannelConnectionID *int      `json:"channelConnectionId,omitempty"`
 	Body                string    `json:"body"`
-	Ack         int       `json:"ack"`
-	Read        bool      `json:"read"`
-	MediaType   string    `json:"mediaType"`
-	MediaUrl    string    `json:"mediaUrl"`
-	TicketID    int       `json:"ticketId"`
-	FromMe      bool      `json:"fromMe"`
-	IsDeleted   bool      `json:"isDeleted"`
-	ContactID   *int      `json:"contactId"`
-	QuotedMsgID *string   `json:"quotedMsgId"`
-	TenantID    uuid.UUID `json:"tenantId"`
-	Reactions   string    `json:"reactions"`
-	DataJson    string    `json:"dataJson"`
-	Participant string    `json:"participant"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	Ack                 int       `json:"ack"`
+	Read                bool      `json:"read"`
+	MediaType           string    `json:"mediaType"`
+	MediaUrl            string    `json:"mediaUrl"`
+	TicketID            int       `json:"ticketId"`
+	FromMe              bool      `json:"fromMe"`
+	IsDeleted           bool      `json:"isDeleted"`
+	ContactID           *int      `json:"contactId"`
+	QuotedMsgID         *string   `json:"quotedMsgId"`
+	TenantID            uuid.UUID `json:"tenantId"`
+	Reactions           string    `json:"reactions"`
+	DataJson            string    `json:"dataJson"`
+	Participant         string    `json:"participant"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
 }
 
 // Contact represents a customer contact

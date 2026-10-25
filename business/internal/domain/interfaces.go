@@ -92,8 +92,13 @@ type UserRepository interface {
 
 type QueueRepository interface {
 	FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*Queue, error)
+	FindByIDWithAssociations(ctx context.Context, id int, tenantID uuid.UUID) (*Queue, error)
 	FindAll(ctx context.Context, tenantID uuid.UUID) ([]Queue, error)
+	FindAllWithAssociations(ctx context.Context, tenantID uuid.UUID) ([]Queue, error)
+	Create(ctx context.Context, queue *Queue, whatsappIDs []int) error
+	Update(ctx context.Context, queue *Queue, fields map[string]interface{}, whatsappIDs []int) error
 	Save(ctx context.Context, queue *Queue) error
+	Delete(ctx context.Context, id int, tenantID uuid.UUID) error
 	// FindQueueIDsByChannel returns the queue IDs linked to a WhatsApp channel
 	// (via the whatsapp_queues join table), scoped to the tenant.
 	FindQueueIDsByChannel(ctx context.Context, channelID int, tenantID uuid.UUID) ([]int, error)
