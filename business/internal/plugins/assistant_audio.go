@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"strconv"
 	"time"
 
@@ -121,7 +122,7 @@ func (r *AssistantRuntime) downloadInboundAudio(ctx context.Context, st *flow.Ex
 			"mediaProto": data.MediaProto,
 		},
 	}
-	routingKey := fmt.Sprintf("wbot.%s.%d.media.download", st.TenantID.String(), st.Ticket.WhatsappID)
+	routingKey := wbot.Command(st.TenantID.String(), strconv.Itoa(st.Ticket.WhatsappID), wbot.CommandMediaDownload)
 	if err := r.publisher.PublishCommand(routingKey, command); err != nil {
 		return nil, "", fmt.Errorf("falha ao solicitar download do áudio: %w", err)
 	}

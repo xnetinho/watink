@@ -24,7 +24,8 @@ type GroupCampaignTarget struct {
 	ID                int       `gorm:"primaryKey" json:"id"`
 	TenantID          uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
 	CampaignID        int       `gorm:"column:campaignId;not null;uniqueIndex:idx_group_campaign_targets_campaign_jid" json:"campaignId"`
-	WhatsappID        int       `gorm:"column:whatsappId;not null" json:"whatsappId"`
+	WhatsappID          int       `gorm:"column:whatsappId;not null" json:"whatsappId,omitempty"`
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;index" json:"channelConnectionId,omitempty"`
 	JID               string    `gorm:"column:jid;not null;uniqueIndex:idx_group_campaign_targets_campaign_jid" json:"jid"`
 	Subject           string    `gorm:"column:subject" json:"subject,omitempty"`
 	IsConnectionAdmin bool      `gorm:"column:isConnectionAdmin" json:"isConnectionAdmin"`

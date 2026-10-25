@@ -2,10 +2,12 @@ package application
 
 import (
 	"context"
+
 	"log"
 	"sync"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
 )
 
 // InMemoryEventBus implements domain.EventBus interface for in-process decoupling.
@@ -32,11 +34,12 @@ func (b *InMemoryEventBus) Publish(ctx context.Context, event domain.DomainEvent
 	}
 
 	for _, handler := range handlers {
-		go func(h domain.EventHandler) {
+		h := handler
+		safego.Go("eventbus."+event.EventName(), func() {
 			if err := h(ctx, event); err != nil {
 				log.Printf("eventbus: handler error for event %q: %v", event.EventName(), err)
 			}
-		}(handler)
+		})
 	}
 
 	return nil

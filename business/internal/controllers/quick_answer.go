@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"net/http"
 	"strconv"
@@ -406,7 +407,7 @@ func (qac *QuickAnswerController) Send(c *gin.Context) {
 			"payload": payload,
 		}
 
-		routingKey := fmt.Sprintf("wbot.%s.%d.%s", tenantID.String(), ticket.WhatsappID, commandType)
+		routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), commandType)
 		if err := qac.rabbit.PublishCommand(routingKey, command); err != nil {
 			utils.RespondWithInternalError(c, err, "SendQuickAnswer")
 			return

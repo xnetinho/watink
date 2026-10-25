@@ -151,6 +151,7 @@ jobs:
   build-engine-go:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # RabbitMQ real: os testes de resiliência do engine (reentrega, DLQ, queda do broker, saída durável) não valem com mock.
     services:
       rabbitmq:
         image: rabbitmq:3-management-alpine
@@ -192,6 +193,8 @@ jobs:
         working-directory: engine-go
         run: go vet ./...
 
+      # -race: o engine é todo concorrente (sessões, consumidores, publicação). AMQP_TEST_CONTAINER deixa os testes
+      # derrubarem e religarem o broker de verdade.
       - name: Test (race, com RabbitMQ real)
         working-directory: engine-go
         env:

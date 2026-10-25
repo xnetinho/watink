@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
@@ -73,6 +74,18 @@ func setupPluginTestDB(t *testing.T) *gorm.DB {
 	return testutil.NewTestDB(t)
 }
 
+// authedRouter simula o que IsAuth injeta: o db, a empresa e o alcance "tenant" (que passa em RequirePermission).
+func authedRouter(db *gorm.DB, tenantID uuid.UUID) *gin.Engine {
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("db", db)
+		c.Set("tenantId", tenantID.String())
+		c.Set("alcance", "tenant")
+		c.Next()
+	})
+	return r
+}
+
 // ---- WebchatPlugin Tests ----
 
 // TestWebchatPlugin_GetManifest verifica metadata do plugin
@@ -125,10 +138,10 @@ func TestWebchatPlugin_GET_ReturnsWhatsAppConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Simular a rota GET
-	r := gin.New()
+	r := authedRouter(db, tenantID)
 	r.GET("/webchat/:whatsappId", mockCore.registeredRoutes[0].Handler)
 
-	req := httptest.NewRequest("GET", "/webchat/1", nil)
+	req := httptest.NewRequest("GET", "/webchat/"+strconv.Itoa(whatsapp.ID), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -154,7 +167,7 @@ func TestWebchatPlugin_GET_NotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := gin.New()
+	r := authedRouter(db, uuid.New())
 	r.GET("/webchat/:whatsappId", mockCore.registeredRoutes[0].Handler)
 
 	req := httptest.NewRequest("GET", "/webchat/999", nil)
@@ -186,7 +199,7 @@ func TestWebchatPlugin_POST_CreatesTicketAndContact(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := gin.New()
+	r := authedRouter(db, tenantID)
 	r.POST("/webchat/:whatsappId/tickets", mockCore.registeredRoutes[1].Handler)
 
 	payload := map[string]string{
@@ -197,7 +210,7 @@ func TestWebchatPlugin_POST_CreatesTicketAndContact(t *testing.T) {
 	}
 	body, _ := json.Marshal(payload)
 
-	req := httptest.NewRequest("POST", "/webchat/1/tickets", bytes.NewReader(body))
+	req := httptest.NewRequest("POST", "/webchat/"+strconv.Itoa(whatsapp.ID)+"/tickets", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -221,6 +234,38 @@ func TestWebchatPlugin_POST_CreatesTicketAndContact(t *testing.T) {
 	result = db.Where(`"contactId" = ?`, contact.ID).First(&ticket)
 	assert.NoError(t, result.Error)
 	assert.Equal(t, "pending", ticket.Status)
+}
+
+// Outra empresa não alcança o webchat nem cria ticket nele: antes o handler buscava o canal só pelo id.
+func TestWebchatPlugin_OutraEmpresaNaoAlcancaOCanal(t *testing.T) {
+	db := setupPluginTestDB(t)
+	dono, intruso := uuid.New(), uuid.New()
+	whatsapp := models.Whatsapp{Name: "Canal do dono", TenantID: dono}
+	db.Create(&whatsapp)
+
+	mockCore := new(MockWatinkCore)
+	mockCore.On("GetDB").Return(db)
+	mockCore.On("RegisterRoute", mock.Anything, mock.Anything, mock.Anything).Return()
+	assert.NoError(t, (&WebchatPlugin{}).OnActivate(mockCore))
+
+	r := authedRouter(db, intruso)
+	r.GET("/webchat/:whatsappId", mockCore.registeredRoutes[0].Handler)
+	r.POST("/webchat/:whatsappId/tickets", mockCore.registeredRoutes[1].Handler)
+
+	id := strconv.Itoa(whatsapp.ID)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest("GET", "/webchat/"+id, nil))
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	req := httptest.NewRequest("POST", "/webchat/"+id+"/tickets", bytes.NewReader([]byte(`{"name":"X","email":"x@x.io","phone":"1"}`)))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var n int64
+	db.Model(&models.Ticket{}).Count(&n)
+	assert.Zero(t, n, "nenhum ticket pode ser criado")
 }
 
 // ---- OnDeactivate smoke tests ----

@@ -110,3 +110,10 @@ func TestChannelWebhookController_SecretAndAuth(t *testing.T) {
 	r.ServeHTTP(w200Meta, req200Meta)
 	assert.Equal(t, http.StatusOK, w200Meta.Code)
 }
+
+func (c *webhookTestChannel) ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error) {
+	if contact != nil && contact.Number != "" {
+		return contact.Number, nil
+	}
+	return "mock_addr", nil
+}

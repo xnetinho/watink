@@ -12,6 +12,8 @@ ENV GOTOOLCHAIN=auto
 RUN apk add --no-cache gcc musl-dev git
 WORKDIR /app
 COPY business/go.mod business/go.sum ./
+# O módulo compartilhado é usado pelo replace ../contracts/wbot no go.mod.
+COPY contracts/ /contracts/
 RUN go mod download
 COPY business/ ./
 COPY CHANGELOG.md ./internal/web/changelog.md

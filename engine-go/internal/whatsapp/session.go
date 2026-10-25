@@ -6,35 +6,21 @@ import (
 	"log"
 	"net/url"
 	"strings"
-	"time"
 
+	"github.com/alltomatos/watinkdev/engine-go/internal/safego"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/types"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
 
-// AutoRestartSessions loads persisted sessions via SessionLoader and reconnects each one.
-func (s *WhatsAppService) AutoRestartSessions() {
-	sessions, err := s.sessionLoader.LoadActiveSessions()
-	if err != nil {
-		log.Printf("Failed to load sessions for auto-restart: %v", err)
-		return
-	}
-
-	for _, sess := range sessions {
-		log.Printf("Auto-restarting WhatsMeow session %d tenant %s", sess.ID, sess.TenantID)
-		if err := s.StartClient(sess.ID, sess.TenantID, sess.Name, time.Now().UnixMilli(), "", false, "", sess.Wid); err != nil {
-			log.Printf("Failed to auto-restart session %d: %v", sess.ID, err)
-			s.emitStatus(sess.ID, sess.TenantID, "DISCONNECTED")
-		}
-	}
-}
-
 // StartClient creates or reconnects a whatsmeow client for the given session.
 // Supports proxy, QR code and pairing code (usePairingCode=true).
 func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp int64, proxyURL string, usePairingCode bool, phoneNumber string, jid string) error {
 	s.mu.Lock()
+	if s.clientsByTenant == nil {
+		s.clientsByTenant = make(map[clientKey]*whatsmeow.Client)
+	}
 	defer s.mu.Unlock()
 
 	if client, ok := s.clients[id]; ok && client.IsConnected() && client.IsLoggedIn() {
@@ -76,9 +62,12 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 
 	// Preserve any previously-registered client so a transient start failure
 	// (e.g. a DNS hiccup) does not orphan a session that is still working.
-	oldClient, hadOld := s.clients[id]
+	oldClient, hadOld := s.clientsByTenant[clientKey{tenantID, id}]
 
-	s.clients[id] = client
+	s.clientsByTenant[clientKey{tenantID, id}] = client
+	if _, exists := s.clients[id]; !exists {
+		s.clients[id] = client
+	}
 	s.resetCalls(id, tenantID, client, proxyURL != "")
 	client.AddEventHandler(func(evt interface{}) {
 		s.handleEvent(id, tenantID, evt)
@@ -88,6 +77,7 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 		if hadOld {
 			s.clients[id] = oldClient
 		} else {
+			delete(s.clientsByTenant, clientKey{tenantID, id})
 			delete(s.clients, id)
 		}
 	}
@@ -114,22 +104,17 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 	if client.Store.ID == nil {
 		cleanPhone := strings.TrimSpace(phoneNumber)
 		if usePairingCode && cleanPhone != "" {
-			go func() {
+			safego.Go("pairing.phone", func() {
 				s.emitStatus(id, tenantID, "QRCODE")
 				code, pairErr := client.PairPhone(context.Background(), cleanPhone, true, whatsmeow.PairClientChrome, "Watink")
 				if pairErr != nil {
 					log.Printf("Pairing code error for session %d: %v", id, pairErr)
 					return
 				}
-				// "session.pairingcode" matches the routing key the backend event_listener expects.
-				s.publishEvent(tenantID, id, "session.pairingcode", map[string]interface{}{
-					"sessionId":   fmt.Sprintf("%d", id),
-					"pairingCode": code,
-					"status":      "QRCODE",
-				})
-			}()
+				s.emitPairingCode(id, tenantID, code)
+			})
 		}
-		go s.consumeQR(id, tenantID, qrChan)
+		safego.Go("consumeQR", func() { s.consumeQR(id, tenantID, qrChan) })
 	} else {
 		log.Printf("Reconnected session %d", id)
 		if client.IsLoggedIn() {
@@ -142,7 +127,7 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 			log.Printf("Session %d has device ID but is not logged in — requesting QR", id)
 			qrChan, err = client.GetQRChannel(context.Background())
 			if err == nil {
-				go s.consumeQR(id, tenantID, qrChan)
+				safego.Go("consumeQR", func() { s.consumeQR(id, tenantID, qrChan) })
 			}
 		}
 	}
@@ -159,6 +144,11 @@ func (s *WhatsAppService) StopClient(id int) error {
 		return fmt.Errorf("client %d not found", id)
 	}
 	client.Disconnect()
+	for key := range s.clientsByTenant {
+		if key.id == id {
+			delete(s.clientsByTenant, key)
+		}
+	}
 	delete(s.clients, id)
 	s.dropCalls(id)
 	return nil
@@ -170,6 +160,11 @@ func (s *WhatsAppService) ForceLogout(id int) error {
 	defer s.mu.Unlock()
 	if client, ok := s.clients[id]; ok {
 		_ = client.Logout(context.Background())
+		for key := range s.clientsByTenant {
+			if key.id == id {
+				delete(s.clientsByTenant, key)
+			}
+		}
 		delete(s.clients, id)
 	}
 	s.dropCalls(id)
@@ -194,6 +189,16 @@ func (s *WhatsAppService) resolveDeviceStore(id int, jid string) (*store.Device,
 	// Return nil so a fresh device store is created, avoiding cross-contamination
 	// between sessions sharing the same whatsmeow container.
 	return nil, nil
+}
+
+// emitPairingCode publica o código de pareamento por telefone. "session.pairing_code" é a chave de roteamento que o
+// event_listener do business escuta; com outro nome o evento era publicado e descartado, e o código nunca chegava ao usuário.
+func (s *WhatsAppService) emitPairingCode(id int, tenantID, code string) {
+	s.publishEvent(tenantID, id, "session.pairing_code", map[string]interface{}{
+		"sessionId":   fmt.Sprintf("%d", id),
+		"pairingCode": code,
+		"status":      "QRCODE",
+	})
 }
 
 func (s *WhatsAppService) consumeQR(id int, tenantID string, qrChan <-chan whatsmeow.QRChannelItem) {

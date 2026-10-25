@@ -43,5 +43,5 @@ services:
     image: local/watink-engine:dev
     container_name: lt-engine
     build:
-      context: ./engine-go
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: engine-go/Dockerfile

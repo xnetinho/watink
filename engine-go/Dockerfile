@@ -5,12 +5,13 @@ ENV GOTOOLCHAIN=auto
 
 RUN apk add --no-cache git
 
-WORKDIR /app
+WORKDIR /app/engine-go
 
-COPY go.mod go.sum ./
+COPY engine-go/go.mod engine-go/go.sum ./
+COPY contracts/ /app/contracts/
 RUN go mod download
 
-COPY . .
+COPY engine-go/ .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o watink-engine cmd/engine/main.go
 
@@ -19,6 +20,6 @@ FROM gcr.io/distroless/static-debian12@sha256:d75cdd72874d4790092fcb1b058493ecf6
 
 WORKDIR /
 
-COPY --from=builder /app/watink-engine /watink-engine
+COPY --from=builder /app/engine-go/watink-engine /watink-engine
 
 ENTRYPOINT ["/watink-engine"]
