@@ -205,12 +205,19 @@ func main() {
 		calls.NewEngineDialer(engineaddr.CallsAudioURL()), database.DB)
 	r.GET("/api/v1/calls/:id/audio", callAudioController.Stream)
 
+	readinessHandler := func(c *gin.Context) {
+		status := services.CheckReadiness(c.Request.Context(), database.DB, redisSvc, rabbitMQ)
+		code := http.StatusOK
+		if status.Status != "OK" {
+			code = http.StatusServiceUnavailable
+		}
+		c.JSON(code, status)
+	}
+
 	apiGroup := r.Group("/api/v1")
 	apiGroup.Use(gin.Logger())
 	{
-		apiGroup.GET("/health", func(c *gin.Context) {
-			c.JSON(200, gin.H{"status": "OK", "service": "watink-business"})
-		})
+		apiGroup.GET("/health", readinessHandler)
 
 		apiGroup.GET("/about", func(c *gin.Context) {
 			version := "dev"
@@ -246,9 +253,8 @@ func main() {
 		routes.SetupRoutes(apiGroup, rabbitMQ, container, s3Store, ragRetriever, ragResponder, mediaWaiter)
 	}
 
-	r.GET("/api/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "OK", "service": "watink-business"})
-	})
+	r.GET("/api/health", readinessHandler)
+	r.GET("/health", readinessHandler)
 	setupCtrl := controllers.NewSetupController(services.NewSetupService(database.DB))
 	r.GET("/api/initial-setup/check", setupCtrl.CheckSetup)
 	r.POST("/api/initial-setup", setupCtrl.InitialSetup)
