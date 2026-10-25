@@ -99,7 +99,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
         <div className="w-full text-center bg-[var(--status-error-bg)] text-[var(--status-error-text)] rounded-lg p-3 flex flex-col items-center">
           <span className="font-bold text-sm">CONEXÃO INTERROMPIDA</span>
           <span className="text-xs mt-1">
-            Não é possível enviar mensagens. Por favor, vá em "Conexões" e reconecte o WhatsApp.
+            Não é possível enviar mensagens. Por favor, vá em "Conexões" e reconecte o canal.
           </span>
         </div>
       </div>

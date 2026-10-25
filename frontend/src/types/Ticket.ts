@@ -35,6 +35,20 @@ export interface Whatsapp {
   status?: string;
 }
 
+export interface ChannelCapabilities {
+  initiateConversation?: boolean;
+  replyWindow?: number | null;
+  maxTextBytes?: number;
+  media?: string[];
+  groups?: boolean;
+  typing?: boolean;
+  readReceipts?: boolean;
+  reactions?: boolean;
+  hasPhone?: boolean;
+  voice?: boolean;
+  video?: boolean;
+}
+
 export interface Ticket {
   id: number;
   status: "open" | "pending" | "closed";
@@ -55,4 +69,11 @@ export interface Ticket {
     name: string;
   };
   tags?: Tag[];
+  channel?: string;
+  capabilities?: ChannelCapabilities;
+  replyPolicy?: {
+    canReply: boolean;
+    reason?: string;
+    message?: string;
+  };
 }
