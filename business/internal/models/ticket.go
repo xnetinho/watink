@@ -33,6 +33,10 @@ type Ticket struct {
 	// Tags is populated manually (batch query via EntityTags) by ListTickets —
 	// not a GORM association, since EntityTag is polymorphic (entityType+entityId).
 	Tags []Tag `gorm:"-" json:"tags,omitempty"`
+
+	// Channel e Capabilities expostos para o frontend agnóstico (Tarefa 7.3 / ADR 0033)
+	Channel      string `gorm:"-" json:"channel,omitempty"`
+	Capabilities any    `gorm:"-" json:"capabilities,omitempty"`
 }
 
 func (Ticket) TableName() string {

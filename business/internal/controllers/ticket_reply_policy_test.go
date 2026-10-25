@@ -123,6 +123,10 @@ func TestTicketReplyPolicy_ShowAndSend409(t *testing.T) {
 	var showBody map[string]interface{}
 	require.NoError(t, json.Unmarshal(wShow.Body.Bytes(), &showBody))
 	assert.Contains(t, showBody, "replyPolicy")
+	assert.Equal(t, "instagram", showBody["channel"])
+	assert.Contains(t, showBody, "capabilities")
+	caps := showBody["capabilities"].(map[string]interface{})
+	assert.Equal(t, false, caps["initiateConversation"])
 	rp := showBody["replyPolicy"].(map[string]interface{})
 	assert.Equal(t, false, rp["canReply"])
 	assert.Equal(t, string(domain.ReplyBlockWindowExpired), rp["reason"])
