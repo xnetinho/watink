@@ -61,13 +61,14 @@ func NewChannelConnectionController() *ChannelConnectionController {
 
 // ListConnections lista todas as conexões de canais do tenant.
 func (cc *ChannelConnectionController) ListConnections(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
 
 	var conns []models.ChannelConnection
-	if err := db.Where("\"tenantId\" = ?", tenantID).Find(&conns).Error; err != nil {
+	writeDB := db.Session(&gorm.Session{NewDB: true})
+	if err := writeDB.Where("\"tenantId\" = ?", tenantID).Find(&conns).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "ListChannelConnections")
 		return
 	}
@@ -77,7 +78,7 @@ func (cc *ChannelConnectionController) ListConnections(c *gin.Context) {
 
 // CreateConnection cria e conecta uma nova ChannelConnection (ex.: Telegram token, com webhook/polling).
 func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -113,13 +114,14 @@ func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 		Status:         "DISCONNECTED",
 	}
 
+	writeDB := db.Session(&gorm.Session{NewDB: true})
 	// Cria o registro no banco primeiro para obter o Connection ID (fundamental para a URL de webhook do Telegram)
-	if err := db.Create(&conn).Error; err != nil {
+	if err := writeDB.Create(&conn).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "CreateChannelConnection")
 		return
 	}
 
-	connectAndSave(c.Request.Context(), db, &conn, input.Token, input.Mode, channelBaseURL(c))
+	connectAndSave(c.Request.Context(), writeDB, &conn, input.Token, input.Mode, channelBaseURL(c))
 
 	c.JSON(http.StatusOK, conn)
 }
@@ -127,7 +129,7 @@ func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 // UpdateConnection edita uma conexão existente (nome, token e modo) e a reconecta.
 // Token vazio mantém o segredo atual.
 func (cc *ChannelConnectionController) UpdateConnection(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -149,7 +151,8 @@ func (cc *ChannelConnectionController) UpdateConnection(c *gin.Context) {
 	}
 
 	var conn models.ChannelConnection
-	if err := db.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&conn).Error; err != nil {
+	writeDB := db.Session(&gorm.Session{NewDB: true})
+	if err := writeDB.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&conn).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
 			return
@@ -177,19 +180,19 @@ func (cc *ChannelConnectionController) UpdateConnection(c *gin.Context) {
 
 	// Persiste a edição antes de reconectar: se a validação do token falhar,
 	// nome/modo escolhidos não são perdidos.
-	if err := db.Save(&conn).Error; err != nil {
+	if err := writeDB.Save(&conn).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "UpdateChannelConnection")
 		return
 	}
 
-	connectAndSave(c.Request.Context(), db, &conn, input.Token, input.Mode, channelBaseURL(c))
+	connectAndSave(c.Request.Context(), writeDB, &conn, input.Token, input.Mode, channelBaseURL(c))
 
 	c.JSON(http.StatusOK, conn)
 }
 
 // DeleteConnection desconecta e remove uma ChannelConnection.
 func (cc *ChannelConnectionController) DeleteConnection(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -202,7 +205,8 @@ func (cc *ChannelConnectionController) DeleteConnection(c *gin.Context) {
 	}
 
 	var conn models.ChannelConnection
-	if err := db.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&conn).Error; err != nil {
+	writeDB := db.Session(&gorm.Session{NewDB: true})
+	if err := writeDB.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&conn).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
 			return
@@ -215,7 +219,7 @@ func (cc *ChannelConnectionController) DeleteConnection(c *gin.Context) {
 		_ = channelAdapter.Disconnect(c.Request.Context(), &conn)
 	}
 
-	if err := db.Delete(&conn).Error; err != nil {
+	if err := writeDB.Delete(&conn).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "DeleteChannelConnection")
 		return
 	}
