@@ -40,6 +40,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/knowledge"
 	"github.com/alltomatos/watinkdev/business/internal/mediawait"
 	"github.com/alltomatos/watinkdev/business/internal/middleware"
+	"github.com/alltomatos/watinkdev/business/internal/monitoring"
 	"github.com/alltomatos/watinkdev/business/internal/routes"
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
@@ -251,8 +252,10 @@ func main() {
 		})
 
 		routes.SetupRoutes(apiGroup, rabbitMQ, container, s3Store, ragRetriever, ragResponder, mediaWaiter)
+		apiGroup.GET("/metrics", gin.WrapH(monitoring.Handler()))
 	}
 
+	r.GET("/metrics", gin.WrapH(monitoring.Handler()))
 	r.GET("/api/health", readinessHandler)
 	r.GET("/health", readinessHandler)
 	setupCtrl := controllers.NewSetupController(services.NewSetupService(database.DB))
