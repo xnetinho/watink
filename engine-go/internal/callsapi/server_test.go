@@ -91,10 +91,52 @@ func setup(t *testing.T) (*httptest.Server, *fakeHandle, *calls.Session) {
 }
 
 func dial(t *testing.T, srv *httptest.Server, path string) (*websocket.Conn, *http.Response, error) {
+	return dialWithOptions(t, srv, path, nil)
+}
+
+func dialWithOptions(t *testing.T, srv *httptest.Server, path string, opts *websocket.DialOptions) (*websocket.Conn, *http.Response, error) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	return websocket.Dial(ctx, "ws"+strings.TrimPrefix(srv.URL, "http")+path, nil)
+	return websocket.Dial(ctx, "ws"+strings.TrimPrefix(srv.URL, "http")+path, opts)
+}
+
+func TestAudioTokenAuthentication_RefusesWithoutToken(t *testing.T) {
+	t.Setenv("CALLS_API_TOKEN", "super-secret-token")
+	srv, _, _ := setup(t)
+
+	// 1. Sem token: recusado com 401
+	_, resp, err := dial(t, srv, "/calls/"+callID+"/audio")
+	if err == nil || resp == nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("esperava 401 Unauthorized sem token, veio resp=%v err=%v", resp, err)
+	}
+
+	// 2. Token incorreto: recusado com 401
+	badOpts := &websocket.DialOptions{
+		HTTPHeader: http.Header{"X-Internal-Token": []string{"wrong-token"}},
+	}
+	_, resp, err = dialWithOptions(t, srv, "/calls/"+callID+"/audio", badOpts)
+	if err == nil || resp == nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("esperava 401 Unauthorized com token errado, veio resp=%v err=%v", resp, err)
+	}
+
+	// 3. Token correto via cabeçalho: sucesso
+	goodOpts := &websocket.DialOptions{
+		HTTPHeader: http.Header{"X-Internal-Token": []string{"super-secret-token"}},
+	}
+	c, _, err := dialWithOptions(t, srv, "/calls/"+callID+"/audio", goodOpts)
+	if err != nil {
+		t.Fatalf("deveria conectar com token correto no cabeçalho: %v", err)
+	}
+	_ = c.CloseNow()
+
+	// 4. Token correto via query param em outro servidor: sucesso
+	srv2, _, _ := setup(t)
+	c2, _, err := dial(t, srv2, "/calls/"+callID+"/audio?token=super-secret-token")
+	if err != nil {
+		t.Fatalf("deveria conectar com token correto na query string: %v", err)
+	}
+	_ = c2.CloseNow()
 }
 
 // O canal é interno e não tem credencial: a defesa é a rede (porta só em expose). O teste
