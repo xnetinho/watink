@@ -88,7 +88,7 @@
 - [x] 8.3 Piso de cobertura nos pacotes críticos (canais, envio, contrato, autorização) no CI; verificar que o CI falha abaixo do piso
 - [x] 8.4 `LastError` visível na interface para todo erro de canal; verificar com teste de ponta a ponta de token revogado
 - [x] 8.5 Documentar instância única como premissa do engine, do poller e do `Migrate`; verificar com ADR revisado
-- [ ] 8.6 Backup, restore e runbooks testados; verificar restaurando em banco limpo
+- [x] 8.6 Backup, restore e runbooks testados; verificar restaurando em banco limpo
 
 ## 9. Governança
 
