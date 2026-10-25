@@ -1,6 +1,12 @@
 package controllers
 
 import (
+	"errors"
+	"net/http"
+	"strconv"
+
+	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
@@ -11,10 +17,23 @@ import (
 
 // QueueController encapsulates queue operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetScoped.
-type QueueController struct{}
+type QueueController struct {
+	queueRepo domain.QueueRepository
+}
 
-func NewQueueController() *QueueController {
-	return &QueueController{}
+func NewQueueController(repo ...domain.QueueRepository) *QueueController {
+	qc := &QueueController{}
+	if len(repo) > 0 && repo[0] != nil {
+		qc.queueRepo = repo[0]
+	}
+	return qc
+}
+
+func (qc *QueueController) getRepo(db *gorm.DB) domain.QueueRepository {
+	if qc.queueRepo != nil {
+		return qc.queueRepo
+	}
+	return repository.NewGORMQueueRepo(db)
 }
 
 // @Summary      Listar filas
@@ -29,11 +48,8 @@ func (qc *QueueController) ListQueues(c *gin.Context) {
 		return
 	}
 
-	var queues []models.Queue
-	if err := db.Where("\"tenantId\" = ?", tenantID).
-		Preload("Whatsapps").
-		Order("COALESCE(\"parentId\", id), \"parentId\" IS NOT NULL, name ASC").
-		Find(&queues).Error; err != nil {
+	queues, err := qc.getRepo(db).FindAllWithAssociations(c.Request.Context(), tenantID)
+	if err != nil {
 		utils.RespondWithInternalError(c, err, "ListQueues")
 		return
 	}
@@ -54,11 +70,18 @@ func (qc *QueueController) ShowQueue(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id := c.Param("queueId")
+	id, err := strconv.Atoi(c.Param("queueId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid queueId"})
+		return
+	}
 
-	var queue models.Queue
-	if err := db.Where("id = ? AND \"tenantId\" = ?", id, tenantID).
-		First(&queue).Error; err != nil {
+	queue, err := qc.getRepo(db).FindByIDWithAssociations(c.Request.Context(), id, tenantID)
+	if err != nil {
+		utils.RespondWithInternalError(c, err, "ShowQueue")
+		return
+	}
+	if queue == nil {
 		c.JSON(404, gin.H{"error": "Queue not found"})
 		return
 	}
@@ -106,7 +129,8 @@ func (qc *QueueController) CreateQueue(c *gin.Context) {
 	}
 
 	input.TenantID = tenantID
-	if err := db.Create(&input).Error; err != nil {
+	writeDB := db.Session(&gorm.Session{NewDB: true})
+	if err := writeDB.Create(&input).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "CreateQueue")
 		return
 	}
@@ -131,7 +155,8 @@ func (qc *QueueController) UpdateQueue(c *gin.Context) {
 	id := c.Param("queueId")
 
 	var queue models.Queue
-	if err := db.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&queue).Error; err != nil {
+	writeDB := db.Session(&gorm.Session{NewDB: true})
+	if err := writeDB.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&queue).Error; err != nil {
 		c.JSON(404, gin.H{"error": "Queue not found"})
 		return
 	}
@@ -154,7 +179,7 @@ func (qc *QueueController) UpdateQueue(c *gin.Context) {
 		return
 	}
 
-	if err := db.Session(&gorm.Session{NewDB: true}).Save(&queue).Error; err != nil {
+	if err := writeDB.Save(&queue).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "UpdateQueue")
 		return
 	}
@@ -175,15 +200,19 @@ func (qc *QueueController) DeleteQueue(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id := c.Param("queueId")
-
-	result := db.Where("id = ? AND \"tenantId\" = ?", id, tenantID).Delete(&models.Queue{})
-	if result.Error != nil {
-		utils.RespondWithInternalError(c, result.Error, "DeleteQueue")
+	id, err := strconv.Atoi(c.Param("queueId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid queueId"})
 		return
 	}
-	if result.RowsAffected == 0 {
-		c.JSON(404, gin.H{"error": "Queue not found"})
+
+	err = qc.getRepo(db).Delete(c.Request.Context(), id, tenantID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{"error": "Queue not found"})
+			return
+		}
+		utils.RespondWithInternalError(c, err, "DeleteQueue")
 		return
 	}
 
