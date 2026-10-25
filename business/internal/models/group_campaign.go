@@ -22,7 +22,8 @@ type GroupCampaign struct {
 	TenantID    uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
 	Name        string    `gorm:"column:name;not null" json:"name"`
 	Description string    `gorm:"column:description" json:"description"`
-	WhatsappID  int       `gorm:"column:whatsappId;not null" json:"whatsappId"`
+	WhatsappID          int       `gorm:"column:whatsappId;not null" json:"whatsappId,omitempty"`
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;index" json:"channelConnectionId,omitempty"`
 	Status      string    `gorm:"column:status;not null;default:draft" json:"status"`
 	PauseReason string    `gorm:"column:pauseReason" json:"pauseReason,omitempty"`
 

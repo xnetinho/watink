@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"os"
 	"sync"
@@ -123,8 +124,8 @@ func (s *RabbitMQService) setupExchanges() error {
 		name string
 		kind string
 	}{
-		{"wbot.commands", "topic"},
-		{"wbot.events", "topic"},
+		{wbot.ExchangeCommands, "topic"},
+		{wbot.ExchangeEvents, "topic"},
 		{dlqExchange, "topic"},
 		{"api.events", "topic"},
 		{"knowledge.jobs", "topic"},
@@ -146,7 +147,7 @@ func (s *RabbitMQService) PublishCommand(routingKey string, payload interface{})
 			return err
 		}
 	}
-	return s.publishWithTrace("wbot.commands", routingKey, payload)
+	return s.publishWithTrace(wbot.ExchangeCommands, routingKey, payload)
 }
 
 // inlineLocalMedia anexa os bytes (base64, em mediaData) de uma mídia que só existe no disco do business.
@@ -177,7 +178,7 @@ func inlineLocalMedia(routingKey string, cmd map[string]interface{}) error {
 }
 
 func (s *RabbitMQService) PublishEvent(routingKey string, payload interface{}) error {
-	return s.publishWithTrace("wbot.events", routingKey, payload)
+	return s.publishWithTrace(wbot.ExchangeEvents, routingKey, payload)
 }
 
 // PublishKnowledgeJob publishes an ingestion job to the knowledge.jobs exchange
@@ -225,7 +226,7 @@ func (s *RabbitMQService) publishWithTrace(exchange, routingKey string, payload 
 }
 
 func (s *RabbitMQService) ConsumeEvents(queueName string, routingKeys []string, handler func(amqp.Delivery) error) error {
-	return s.startConsumer("wbot.events", queueName, routingKeys, handler)
+	return s.startConsumer(wbot.ExchangeEvents, queueName, routingKeys, handler)
 }
 
 // ConsumeKnowledgeEvents binds a queue to the knowledge.events exchange (with

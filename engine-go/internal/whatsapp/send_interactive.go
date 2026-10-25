@@ -14,7 +14,7 @@ import (
 // SendButtons sends a legacy ButtonsMessage (up to 3 reply buttons).
 // Note: WhatsApp returns 405 for personal accounts — use SendTemplate instead.
 func (s *WhatsAppService) SendButtons(sessionID int, tenantID string, payload ButtonsCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err
@@ -56,7 +56,7 @@ func (s *WhatsAppService) SendButtons(sessionID int, tenantID string, payload Bu
 
 // SendList sends a ListMessage (single-select dropdown with sections).
 func (s *WhatsAppService) SendList(sessionID int, tenantID string, payload ListCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err
@@ -109,7 +109,7 @@ func (s *WhatsAppService) SendList(sessionID int, tenantID string, payload ListC
 // SendInteractive sends a NativeFlow message — the modern replacement for buttons/templates.
 // Each button has a Name (e.g. "quick_reply") and Params (JSON string).
 func (s *WhatsAppService) SendInteractive(sessionID int, tenantID string, payload InteractiveCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err
@@ -199,7 +199,7 @@ func nativeFlowBizName(buttons []InteractiveButtonPayload) string {
 // SendTemplate sends a HydratedFourRowTemplate — renders clickable buttons on personal
 // WhatsApp accounts. Supports up to 3 buttons: quickreply, url, or call.
 func (s *WhatsAppService) SendTemplate(sessionID int, tenantID string, payload TemplateCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err

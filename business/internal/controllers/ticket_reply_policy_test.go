@@ -140,3 +140,10 @@ func TestTicketReplyPolicy_ShowAndSend409(t *testing.T) {
 	assert.Equal(t, "reply_not_allowed", sendErr["error"])
 	assert.Equal(t, string(domain.ReplyBlockWindowExpired), sendErr["code"])
 }
+
+func (c *dummyChannel) ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error) {
+	if contact != nil && contact.Number != "" {
+		return contact.Number, nil
+	}
+	return "mock_addr", nil
+}

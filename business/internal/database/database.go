@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -11,6 +12,34 @@ import (
 )
 
 var DB *gorm.DB
+
+// MigrateVersioned applies the greenfield schema baseline exactly once per database.
+// The advisory lock is acquired by RunMigrations before this function; the version row makes
+// reruns observable and prevents silently treating a partial future migration as complete.
+func MigrateVersioned(ctx context.Context, db *gorm.DB) error {
+	if err := db.Exec(`CREATE TABLE IF NOT EXISTS "SchemaMigrations" ("version" bigint PRIMARY KEY, "appliedAt" timestamptz NOT NULL DEFAULT NOW())`).Error; err != nil {
+		return err
+	}
+	var applied bool
+	if err := db.Raw(`SELECT EXISTS (SELECT 1 FROM "SchemaMigrations" WHERE "version" = 1)`).Scan(&applied).Error; err != nil {
+		return err
+	}
+	if applied {
+		return nil
+	}
+	if err := migrateBaseline(db); err != nil {
+		return err
+	}
+	return db.Exec(`INSERT INTO "SchemaMigrations" ("version") VALUES (1) ON CONFLICT ("version") DO NOTHING`).Error
+}
+
+func migrateBaseline(db *gorm.DB) error {
+	previous := DB
+	DB = db
+	defer func() { DB = previous }()
+	Migrate()
+	return nil
+}
 
 func Migrate() {
 	if err := dropLegacyRBAC(); err != nil {
@@ -29,6 +58,7 @@ func Migrate() {
 		&models.ClientAddress{},
 		&models.Whatsapp{},
 		&models.ChannelConnection{},
+		&models.WhatsAppConnectionDetails{},
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},
@@ -287,6 +317,23 @@ func Seed() {
 		{Resource: "queues", Action: "create", Description: "Criar Filas"},
 		{Resource: "queues", Action: "update", Description: "Editar Filas"},
 		{Resource: "queues", Action: "delete", Description: "Excluir Filas"},
+		// quickAnswers (respostas rápidas): ler/enviar é do atendimento; gerir o catálogo é separado
+		{Resource: "quickAnswers", Action: "read", Description: "Visualizar Respostas Rápidas"},
+		{Resource: "quickAnswers", Action: "create", Description: "Criar Respostas Rápidas"},
+		{Resource: "quickAnswers", Action: "update", Description: "Editar Respostas Rápidas"},
+		{Resource: "quickAnswers", Action: "delete", Description: "Excluir Respostas Rápidas"},
+		// tags
+		{Resource: "tags", Action: "read", Description: "Visualizar Tags"},
+		{Resource: "tags", Action: "create", Description: "Criar Tags"},
+		{Resource: "tags", Action: "update", Description: "Editar Tags"},
+		{Resource: "tags", Action: "delete", Description: "Excluir Tags"},
+		// assistants / aiGateways (plugin "assistant")
+		{Resource: "assistants", Action: "read", Description: "Visualizar Assistentes de IA"},
+		{Resource: "assistants", Action: "manage", Description: "Criar/editar/excluir/testar Assistentes de IA e seus gateways"},
+		// helpdesk (plugin "helpdesk")
+		{Resource: "protocols", Action: "read", Description: "Visualizar Protocolos do Helpdesk"},
+		{Resource: "protocols", Action: "manage", Description: "Criar/editar Protocolos e anexos do Helpdesk"},
+		// inventário avançado (plugin "inventory-advanced"): leitura reaproveita inventory:read; escrita é inventory:manage
 		// whatsappGroups (plugin "groups" — gestão de grupos/comunidades WhatsApp)
 		{Resource: "whatsappGroups", Action: "read", Description: "Visualizar grupos e comunidades do WhatsApp"},
 		{Resource: "whatsappGroups", Action: "manage", Description: "Criar/configurar grupos e comunidades, vincular/desvincular subgrupos"},

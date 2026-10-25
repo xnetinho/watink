@@ -11,7 +11,7 @@ import (
 
 // SendText sends a plain text message, with optional quoted reply and mentions.
 func (s *WhatsAppService) SendText(sessionID int, tenantID string, payload TextCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err
@@ -36,7 +36,7 @@ func (s *WhatsAppService) SendText(sessionID int, tenantID string, payload TextC
 
 // SendMedia uploads and sends an image/video/audio/document message.
 func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload MediaCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err
@@ -78,7 +78,7 @@ func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload Medi
 // forget pacing, not a delivery guarantee) — unlike SendText/SendMedia this
 // never emits an ack, since there's no per-message ID to correlate.
 func (s *WhatsAppService) SendPresence(sessionID int, tenantID string, payload PresenceCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (s *WhatsAppService) SendPresence(sessionID int, tenantID string, payload P
 
 // MarkRead marks one or more messages as read for the given chat.
 func (s *WhatsAppService) MarkRead(sessionID int, tenantID string, payload MarkReadCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (s *WhatsAppService) MarkRead(sessionID int, tenantID string, payload MarkR
 // SendReaction sends (or, when payload.Reaction == "", removes) an emoji
 // reaction to an existing message.
 func (s *WhatsAppService) SendReaction(sessionID int, tenantID string, payload ReactionCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err

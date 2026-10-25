@@ -401,7 +401,8 @@ Medido ao vivo: um evento `message.media` (resultado de download de áudio) espe
 
 **O que NÃO fazer:**
 - Não reintroduzir `Group`, `user_roles`, `group_roles`, `RolePermission.Scope/Conditions` — descontinuados no reset (ADR 0022). Se precisar de ABAC condicional no futuro, desenhar de novo, não reativar o campo morto.
-- Não deixar uma rota de mutação sem `RequirePermission` "pra depois" — vira dívida idêntica ao estado anterior (permissão sem enforcement).
+- Não deixar uma rota de mutação sem `RequirePermission` "pra depois" — vira dívida idêntica ao estado anterior (permissão sem enforcement). O teste `TestEveryAuthenticatedWriteRouteRequiresPermission` (`internal/routes`) percorre o roteador real e reprova rota autenticada de escrita sem permissão; a única saída é uma entrada justificada em `permissionExemptions`.
+- Plugins registram rotas com `withPermission(recurso, ação, handler)` (`internal/plugins/permission.go`): `assistants`, `protocols` e `inventory` para os embarcados, `whatsappGroups` para Grupos.
 - Não modelar Gestor como Cargo próprio por Setor (ex. "Gestor de Vendas", "Gestor de Suporte") — multiplica cargos quase idênticos; usar a marca `ehGestor` + Cargo único "Gestor".
 - Não permitir remover/rebaixar o último Administrador do tenant nem o dono (`OwnerID`) pela API — validar antes de qualquer DELETE/UPDATE em Users ou vínculos de Cargo.
 - Não expor Permissions como CRUD solto no frontend — vivem dentro da tela de Cargo.

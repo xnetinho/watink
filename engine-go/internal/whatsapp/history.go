@@ -41,7 +41,7 @@ func historyKey(sessionID int, chatJID string) string {
 // The response arrives asynchronously as an ON_DEMAND HistorySync event, which is
 // matched back to the ticket via the pending request map.
 func (s *WhatsAppService) RecoverHistory(sessionID int, tenantID string, p HistoryRecoverPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return err
 	}

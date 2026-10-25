@@ -179,8 +179,8 @@ services:
 
   watink-engine:
     build:
-      context: ./engine-go
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: engine-go/Dockerfile
     image: watink/engine:prod
     # Resolvers públicos — o resolver embutido do Docker (127.0.0.11) às vezes
     # falha em resolver web.whatsapp.com, quebrando reconexões.
@@ -205,6 +205,11 @@ services:
       # Canal de áudio das chamadas (ADR 0031): só a rede interna do stack fala com ele
       # (a porta NÃO é publicada). Precisa de saída UDP para os relays do WhatsApp.
       - CALLS_AUDIO_PORT=8085
+      # Saída durável de eventos (engine -> business): sobrevive a reiniciar/recriar o contêiner. Sem o volume, um
+      # `up --force-recreate` apagaria os eventos ainda não confirmados pelo broker.
+      - ENGINE_OUTBOX_DIR=/outbox
+    volumes:
+      - engine_outbox:/outbox
     depends_on:
       watink-migrate:
         condition: service_completed_successfully
@@ -258,3 +263,4 @@ volumes:
   rabbitmq_data:
   uploads_data:
   minio_data:
+  engine_outbox:

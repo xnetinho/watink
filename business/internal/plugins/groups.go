@@ -5,9 +5,7 @@ import (
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
-	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/sdk"
-	"github.com/gin-gonic/gin"
 )
 
 // GroupsPlugin — gestão ativa de grupos/comunidades WhatsApp (T2.3, plano
@@ -42,23 +40,6 @@ func (gp *GroupsPlugin) GetManifest() sdk.PluginManifest {
 
 func (gp *GroupsPlugin) OnInstall(core sdk.WatinkCore) error {
 	return nil
-}
-
-// withPermission composes auth.RequirePermission (a gin middleware that
-// calls c.Next() on success) with a plain handler, since
-// sdk.WatinkCore.RegisterRoute only accepts one gin.HandlerFunc — not a
-// chain. c.Next() here is harmless (there's nothing after it in this
-// single-handler registration); what actually gates `next` is the explicit
-// c.IsAborted() check.
-func withPermission(resource, action string, next gin.HandlerFunc) gin.HandlerFunc {
-	check := auth.RequirePermission(resource, action)
-	return func(c *gin.Context) {
-		check(c)
-		if c.IsAborted() {
-			return
-		}
-		next(c)
-	}
 }
 
 // Recurso RBAC "whatsappGroups" (não "groups" — o core já tem
