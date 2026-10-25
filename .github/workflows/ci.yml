@@ -115,6 +115,29 @@ jobs:
         working-directory: business
         run: go test ./... -race -short -count=1 -timeout 600s
 
+      # Piso de cobertura (Tarefa 8.3): garante que pacotes críticos (auth, contrato, canais)
+      # mantenham no mínimo 50% de cobertura de código no CI.
+      - name: Enforce coverage floor on critical packages
+        working-directory: business
+        run: |
+          go test -cover ./pkg/auth ../contracts/wbot ./internal/channels/whatsapp ./internal/channels/fake | awk '
+          /coverage: [0-9.]+%/ {
+              line = $0
+              pkg = $2
+              sub(/.*coverage: /, "", line)
+              sub(/%.*/, "", line)
+              pct = line + 0.0
+              printf "%-65s %.1f%%\n", pkg, pct
+              if (pct < 50.0) {
+                  printf "ERROR: %s coverage (%.1f%%) is below the 50.0%% floor\n", pkg, pct
+                  failed = 1
+              }
+          }
+          END {
+              if (failed) exit 1
+          }
+          '
+
   build-frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
