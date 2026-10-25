@@ -3,6 +3,7 @@ package health
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,7 +12,7 @@ import (
 // Load informa a carga de chamadas: chamadas ativas e quadros de áudio na fila.
 type Load func() (activeCalls int, audioQueued int)
 
-// Handler monta o /health. load pode ser nil (sem chamadas a reportar).
+// Handler monta o /health e /metrics (Tarefa 8.1). load pode ser nil (sem chamadas a reportar).
 func Handler(load Load) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -24,6 +25,25 @@ func Handler(load Load) http.Handler {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(body)
 	})
+
+	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+
+		active, queued := 0, 0
+		if load != nil {
+			active, queued = load()
+		}
+
+		_, _ = fmt.Fprintln(w, "# HELP watink_engine_active_calls Chamadas de voz ativas no engine")
+		_, _ = fmt.Fprintln(w, "# TYPE watink_engine_active_calls gauge")
+		_, _ = fmt.Fprintf(w, "watink_engine_active_calls %d\n", active)
+
+		_, _ = fmt.Fprintln(w, "# HELP watink_engine_audio_queued Quadros de audio na fila do engine")
+		_, _ = fmt.Fprintln(w, "# TYPE watink_engine_audio_queued gauge")
+		_, _ = fmt.Fprintf(w, "watink_engine_audio_queued %d\n", queued)
+	})
+
 	return mux
 }
 
