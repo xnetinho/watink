@@ -111,6 +111,10 @@ jobs:
           REDIS_URL: redis://localhost:6379
         run: go test ./... -tags integration -v -count=1 -timeout 180s
 
+      - name: Run race tests
+        working-directory: business
+        run: go test ./... -race -short -count=1 -timeout 600s
+
   build-frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15

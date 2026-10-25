@@ -16,8 +16,8 @@
 - [x] 1.7 Engine: `Ack` só no sucesso, `Nack` com fila de falhas e retry limitado; verificar com teste que um envio com erro recuperável é reprocessado e um inválido vai à fila de falhas
 - [x] 1.8 Engine: consumidor se refaz após queda do broker (canal por consumidor + supervisor); verificar com teste que derruba e religa o RabbitMQ e o consumo volta sozinho
 - [x] 1.9 Engine: saída durável de eventos com confirmação de publicação; verificar com teste que `message.received` emitido com o broker fora é entregue depois, sem duplicar
-- [ ] 1.10 CI: engine roda `go test` e `-race`, business roda `-race`; pin de `golang` e `alpine` nos Dockerfiles; verificar que o CI falha ao introduzir corrida ou imagem móvel
-- [ ] 1.11 Teste que reprova porta 8084 ou 8085 publicada em `ports:` nos arquivos de composição; verificar adicionando uma porta indevida e vendo falhar
+- [x] 1.10 CI: engine roda `go test` e `-race`, business roda `-race`; pin de `golang` e `alpine` nos Dockerfiles; verificar que o CI falha ao introduzir corrida ou imagem móvel
+- [x] 1.11 Teste que reprova porta 8084 ou 8085 publicada em `ports:` nos arquivos de composição; verificar adicionando uma porta indevida e vendo falhar
 
 ## 2. Contrato do engine
 
