@@ -150,6 +150,13 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 	}, nil
 }
 
+func (a *Adapter) ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error) {
+	if contact == nil {
+		return "", fmt.Errorf("contact is nil")
+	}
+	return contact.Number, nil
+}
+
 type OutboundMessageBridge = domain.OutboundMessage
 
 type TelegramUpdate struct {
