@@ -21,7 +21,8 @@ import (
 type GroupCache struct {
 	ID                int       `gorm:"primaryKey" json:"id"`
 	TenantID          uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
-	WhatsappID        int       `gorm:"column:whatsappId;not null" json:"whatsappId"`
+	WhatsappID          int       `gorm:"column:whatsappId;not null" json:"whatsappId,omitempty"`
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;index" json:"channelConnectionId,omitempty"`
 	JID               string    `gorm:"column:jid;not null" json:"jid"`
 	Subject           string    `json:"subject"`
 	Description       string    `json:"description"`

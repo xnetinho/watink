@@ -19,7 +19,8 @@ type Assistant struct {
 	Name        string    `gorm:"not null" json:"name"`
 	Description string    `gorm:"default:''" json:"description"`
 
-	WhatsAppID                *int      `gorm:"column:whatsappId" json:"whatsappId"`
+	WhatsAppID                *int      `gorm:"column:whatsappId" json:"whatsappId,omitempty"`
+	ChannelConnectionID       *int      `gorm:"column:channelConnectionId;index" json:"channelConnectionId,omitempty"`
 	Whatsapp                  *Whatsapp `gorm:"foreignKey:WhatsAppID" json:"whatsapp,omitempty"`
 	AllowMultipleOnConnection bool      `gorm:"column:allowMultipleOnConnection;default:false" json:"allowMultipleOnConnection"`
 
