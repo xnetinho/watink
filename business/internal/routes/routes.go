@@ -137,7 +137,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		flowRuntime,
 	)
 	channelWebhookController := controllers.NewChannelWebhookController(container.DB, channelInboundSvc)
-	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService))
+	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService, rabbitMQ))
 	// Polling entrega as mensagens pelo mesmo pipeline de entrada do webhook.
 	// Cada mensagem roda no escopo da empresa dela (RLS, ADR 0034), em escopo próprio: o polling é uma goroutine longa.
 	channelInboundHandler := func(ctx context.Context, msg domain.InboundMessage) error {
