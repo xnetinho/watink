@@ -78,7 +78,7 @@
 - [x] 7.2 Remover JID do cliente: menções e citações por `contactId` resolvidas no backend; verificar com busca que `@s.whatsapp.net` não existe no frontend
 - [x] 7.3 Ticket serializa `channel` e `capabilities`; lista, cabeçalho e composer reagem à capacidade; verificar com testes de componente por canal
 - [x] 7.4 Edição e exclusão de conexão na interface unificada, com erro de canal visível; verificar com teste de componente e validação visual
-- [ ] 7.5 Quebrar componentes acima de 500 linhas e reduzir `any` e `eslint-disable`; verificar com `typecheck`, `lint` e `vitest` verdes
+- [x] 7.5 Quebrar componentes acima de 500 linhas e reduzir `any` e `eslint-disable`; verificar com `typecheck`, `lint` e `vitest` verdes
 - [ ] 7.6 Testes de componente nos fluxos de conexão, envio e chamada; verificar que a suíte cobre cada fluxo
 
 ## 8. Operação
