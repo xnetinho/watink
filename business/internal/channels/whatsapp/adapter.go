@@ -158,6 +158,9 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 			for _, p := range parts {
 				trimmed := strings.TrimSpace(p)
 				if trimmed != "" {
+					if !strings.Contains(trimmed, "@") {
+						trimmed = trimmed + "@s.whatsapp.net"
+					}
 					mentions = append(mentions, trimmed)
 				}
 			}
