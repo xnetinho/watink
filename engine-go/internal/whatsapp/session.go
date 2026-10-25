@@ -111,12 +111,7 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 					log.Printf("Pairing code error for session %d: %v", id, pairErr)
 					return
 				}
-				// "session.pairing_code" matches the shared contract and the business listener.
-				s.publishEvent(tenantID, id, "session.pairing_code", map[string]interface{}{
-					"sessionId":   fmt.Sprintf("%d", id),
-					"pairingCode": code,
-					"status":      "QRCODE",
-				})
+				s.emitPairingCode(id, tenantID, code)
 			})
 		}
 		safego.Go("consumeQR", func() { s.consumeQR(id, tenantID, qrChan) })
@@ -194,6 +189,16 @@ func (s *WhatsAppService) resolveDeviceStore(id int, jid string) (*store.Device,
 	// Return nil so a fresh device store is created, avoiding cross-contamination
 	// between sessions sharing the same whatsmeow container.
 	return nil, nil
+}
+
+// emitPairingCode publica o código de pareamento por telefone. "session.pairing_code" é a chave de roteamento que o
+// event_listener do business escuta; com outro nome o evento era publicado e descartado, e o código nunca chegava ao usuário.
+func (s *WhatsAppService) emitPairingCode(id int, tenantID, code string) {
+	s.publishEvent(tenantID, id, "session.pairing_code", map[string]interface{}{
+		"sessionId":   fmt.Sprintf("%d", id),
+		"pairingCode": code,
+		"status":      "QRCODE",
+	})
 }
 
 func (s *WhatsAppService) consumeQR(id int, tenantID string, qrChan <-chan whatsmeow.QRChannelItem) {
