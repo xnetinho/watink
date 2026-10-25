@@ -96,4 +96,4 @@
 - [x] 9.2 Reconciliar `openspec/changes/add-channel-*` com o código (reabrir as tarefas 4.1 e 4.2 marcadas sem estarem feitas); verificar que cada tarefa marcada corresponde a comportamento existente
 - [x] 9.3 Limpar `ESTADO_ORQUESTRATOR.md` e `docs/legacy-*`; corrigir o comentário falso de `session.go`; verificar com revisão
 - [x] 9.4 Checklist "novo canal" executável como teste; verificar que o canal `fake` o satisfaz
-- [ ] 9.5 Portão 1 completo: `go build`, `go vet`, `go test ./... -short -race`, lint v2.12.2, frontend `typecheck`/`lint`/`vitest` e stack local `lt` subindo e atendendo; registrar as evidências no PR
+- [x] 9.5 Portão 1 completo: `go build`, `go vet`, `go test ./... -short -race`, lint v2.12.2, frontend `typecheck`/`lint`/`vitest` e stack local `lt` subindo e atendendo; registrar as evidências no PR
