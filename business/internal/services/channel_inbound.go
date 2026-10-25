@@ -60,10 +60,10 @@ func (s *ChannelInboundService) Receive(ctx context.Context, msg domain.InboundM
 		return nil, fmt.Errorf("externalMessageId is required for inbound message")
 	}
 
-	// 1. Deduplicação por (channelConnectionId, externalMessageId) no Redis
+	// 1. Deduplicação no Redis. A conversa entra na chave porque o id do canal só é único dentro dela (Telegram).
 	dedupKey := ""
 	if s.redis != nil {
-		dedupKey = fmt.Sprintf("channel:msg:%s:%d:%s", msg.Channel, msg.ChannelConnectionID, msg.ExternalMessageID)
+		dedupKey = "channel:msg:" + domain.StorageMessageID(msg.Channel, msg.ChannelConnectionID, conversationKeyOf(msg), msg.ExternalMessageID)
 		acquired, err := s.redis.SetLock(dedupKey, "1", channelDedupTTL)
 		if err != nil {
 			log.Printf("[ChannelInbound] redis dedup lock check error (msg %s): %v", msg.ExternalMessageID, err)
@@ -121,10 +121,7 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	// 3.2 Resolve ou cria Ticket pela conversationKey
-	convKey := msg.ConversationKey
-	if convKey == "" {
-		convKey = msg.Sender.ExternalID
-	}
+	convKey := conversationKeyOf(msg)
 
 	ticket, err := s.ticketRepo.FindOpenByConversation(ctx, msg.TenantID, msg.ChannelConnectionID, convKey)
 	if err != nil {
@@ -152,18 +149,19 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	message := &domain.Message{
-		ID:        msg.ExternalMessageID,
-		Body:      msg.Body,
-		Ack:       1, // recebida
-		Read:      false,
-		MediaType: mediaType,
-		MediaUrl:  msg.MediaURL,
-		TicketID:  ticket.ID,
-		ContactID: &contact.ID,
-		FromMe:    false,
-		TenantID:  msg.TenantID,
-		CreatedAt: msg.Timestamp,
-		UpdatedAt: msg.Timestamp,
+		ID:         domain.StorageMessageID(msg.Channel, msg.ChannelConnectionID, convKey, msg.ExternalMessageID),
+		ExternalID: msg.ExternalMessageID,
+		Body:       msg.Body,
+		Ack:        1, // recebida
+		Read:       false,
+		MediaType:  mediaType,
+		MediaUrl:   msg.MediaURL,
+		TicketID:   ticket.ID,
+		ContactID:  &contact.ID,
+		FromMe:     false,
+		TenantID:   msg.TenantID,
+		CreatedAt:  msg.Timestamp,
+		UpdatedAt:  msg.Timestamp,
 	}
 
 	if err := s.messageRepo.CreateIfNotExists(ctx, message); err != nil {
@@ -206,6 +204,14 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	return res, nil
+}
+
+// conversationKeyOf é a chave da conversa: a do canal ou, na falta dela, o remetente.
+func conversationKeyOf(msg domain.InboundMessage) string {
+	if msg.ConversationKey != "" {
+		return msg.ConversationKey
+	}
+	return msg.Sender.ExternalID
 }
 
 // MessagePayloadToInboundMessage converte o MessagePayload legado do WhatsApp

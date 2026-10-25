@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/cryptobox"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -603,6 +605,7 @@ func (pc *ProxyController) TestAll(c *gin.Context) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
+			defer safego.Recover("proxy.probe")
 			sem <- struct{}{}
 			defer func() { <-sem }()
 			p := proxies[i]

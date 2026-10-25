@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"strconv"
 
@@ -29,6 +30,7 @@ type EventListener struct {
 	db             *gorm.DB
 	flowSkeleton   *flow.Skeleton
 	mediaWaiter    *mediawait.Waiter
+	publisher      domain.CommandPublisher
 }
 
 // publisher is the minimal domain.CommandPublisher slice AssistantRuntime
@@ -48,7 +50,7 @@ func NewEventListener(sessions domain.ChannelSessionRepository, messages domain.
 	// query em Assistants/AssistantRouterOptions, sem enviar nada.
 	skeleton := flow.NewSkeleton(db, registry, redis)
 	skeleton.SetAssistantRuntime(plugins.NewAssistantRuntime(db, publisher, mediaWaiter))
-	return &EventListener{sessions: sessions, messages: messages, contacts: contacts, tickets: tickets, receiveMessage: rm, broadcast: domain.BroadcastOrNop(broadcast), db: db, flowSkeleton: skeleton, mediaWaiter: mediaWaiter}
+	return &EventListener{sessions: sessions, messages: messages, contacts: contacts, tickets: tickets, receiveMessage: rm, broadcast: domain.BroadcastOrNop(broadcast), db: db, flowSkeleton: skeleton, mediaWaiter: mediaWaiter, publisher: publisher}
 }
 
 // ConfigureKnowledge wires the flow skeleton's RAG retriever/responder (see
@@ -68,20 +70,21 @@ func (el *EventListener) bcast() domain.Broadcaster {
 
 func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener) {
 	routingKeys := []string{
-		"wbot.*.*.session.qrcode",
-		"wbot.*.*.session.pairing_code",
-		"wbot.*.*.session.status",
-		"wbot.*.*.session.history_sync",
-		"wbot.*.*.session.risk",
-		"wbot.*.*.message.received",
-		"wbot.*.*.message.ack",
-		"wbot.*.*.message.revoke",
-		"wbot.*.*.message.reaction",
-		"wbot.*.*.message.media",
-		"wbot.*.*.contact.update",
-		"wbot.*.*.contact.import",
-		"wbot.*.*.session.jid_registered",
-		"wbot.*.*.message.poll_vote",
+		wbot.EventPattern(wbot.EventEngineReady),
+		wbot.EventPattern(wbot.EventSessionQRCode),
+		wbot.EventPattern(wbot.EventSessionPairingCode),
+		wbot.EventPattern(wbot.EventSessionStatus),
+		wbot.EventPattern(wbot.EventSessionHistorySync),
+		wbot.EventPattern(wbot.EventSessionRisk),
+		wbot.EventPattern(wbot.EventMessageReceived),
+		wbot.EventPattern(wbot.EventMessageAck),
+		wbot.EventPattern(wbot.EventMessageRevoke),
+		wbot.EventPattern(wbot.EventMessageReaction),
+		wbot.EventPattern(wbot.EventMessageMedia),
+		wbot.EventPattern(wbot.EventContactUpdate),
+		wbot.EventPattern(wbot.EventContactImport),
+		wbot.EventPattern(wbot.EventSessionJIDRegistered),
+		wbot.EventPattern(wbot.EventMessagePollVote),
 	}
 	// Eventos call.* NÃO entram aqui: têm fila e consumidor próprios em
 	// internal/calls (Service.Start), para não esperarem atrás das mensagens.
@@ -93,6 +96,9 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			return err
 		}
 
+		if env.Type == wbot.EventEngineReady {
+			return eventListener.handleEngineReady(context.Background())
+		}
 		tid, err := uuid.Parse(env.TenantID)
 		if err != nil {
 			return fmt.Errorf("invalid tenantId %q: %w", env.TenantID, err)
@@ -261,5 +267,53 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 		})
 	}
 
+	return nil
+}
+
+// handleEngineReady asks the business-owned connection catalog to restore active sessions.
+// The engine never queries public business tables; it only announces readiness and receives commands.
+func (el *EventListener) handleEngineReady(ctx context.Context) error {
+	if el.db == nil || el.publisher == nil {
+		return nil
+	}
+	systemCtx, systemDone := tenantdb.SystemCtx(ctx, el.db)
+	defer systemDone()
+	var tenantIDs []uuid.UUID
+	if err := el.db.WithContext(systemCtx).Table(`"Tenants"`).Pluck("id", &tenantIDs).Error; err != nil {
+		return err
+	}
+	for _, tenantID := range tenantIDs {
+		tenantCtx, tenantDone := tenantdb.TenantCtx(ctx, el.db, tenantID)
+		sessions, err := el.sessions.FindAll(tenantCtx, tenantID)
+		if err != nil {
+			tenantDone()
+			return err
+		}
+		if err != nil {
+			return err
+		}
+		for _, session := range sessions {
+			if session.Status != "CONNECTED" && session.Status != "OPENING" && session.Status != "QRCODE" {
+				continue
+			}
+			model, err := el.sessions.FindByIDDetail(tenantCtx, session.ID, tenantID)
+			if err != nil || model == nil {
+				continue
+			}
+			payload := map[string]interface{}{
+				"type": wbot.CommandSessionStart,
+				"payload": map[string]interface{}{
+					"sessionId": session.ID,
+					"name":      session.Name,
+					"wid":       model.Wid,
+				},
+			}
+			if err := el.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(session.ID), wbot.CommandSessionStart), payload); err != nil {
+				tenantDone()
+				return err
+			}
+		}
+		tenantDone()
+	}
 	return nil
 }

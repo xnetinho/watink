@@ -29,17 +29,17 @@ func TestCallsConsumerRunsWhileMessageConsumerIsBlocked(t *testing.T) {
 	var msgStarted, callDone int32
 	callGot := make(chan string, 4)
 
-	if err := svc.ConsumeCommands(msgQ, []string{"wbot.t.1.message.send.text"}, func(d amqp.Delivery) {
+	if err := svc.ConsumeCommands(msgQ, []string{"wbot.t.1.message.send.text"}, func(d amqp.Delivery) error {
 		atomic.AddInt32(&msgStarted, 1)
 		<-release
-		d.Ack(false)
+		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.ConsumeCommandsConcurrent(callQ, []string{"wbot.*.*.call.*"}, func(d amqp.Delivery) {
+	if err := svc.ConsumeCommandsConcurrent(callQ, []string{"wbot.*.*.call.*"}, func(d amqp.Delivery) error {
 		atomic.AddInt32(&callDone, 1)
 		callGot <- d.RoutingKey
-		d.Ack(false)
+		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -90,9 +90,9 @@ func TestCallRoutingKeysAreNotInMessageQueueBinding(t *testing.T) {
 
 	suffix := time.Now().Format("150405.000000")
 	var onMsgQueue int32
-	if err := svc.ConsumeCommands("t.only-msgs."+suffix, []string{"wbot.*.*.message.send.text"}, func(d amqp.Delivery) {
+	if err := svc.ConsumeCommands("t.only-msgs."+suffix, []string{"wbot.*.*.message.send.text"}, func(d amqp.Delivery) error {
 		atomic.AddInt32(&onMsgQueue, 1)
-		d.Ack(false)
+		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -123,13 +123,13 @@ func TestCallsConsumerDispatchesEachCommandConcurrently(t *testing.T) {
 	release := make(chan struct{})
 	endDone := make(chan struct{}, 1)
 	q := "t.calls.conc." + time.Now().Format("150405.000000")
-	if err := svc.ConsumeCommandsConcurrent(q, []string{"wbot.*.*.call.*"}, func(d amqp.Delivery) {
+	if err := svc.ConsumeCommandsConcurrent(q, []string{"wbot.*.*.call.*"}, func(d amqp.Delivery) error {
 		if d.RoutingKey == "wbot.t.1.call.accept" {
 			<-release
 		} else {
 			endDone <- struct{}{}
 		}
-		d.Ack(false)
+		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}

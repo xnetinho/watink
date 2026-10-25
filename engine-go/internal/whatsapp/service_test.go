@@ -65,3 +65,13 @@ func TestBuildPostgresDSN_SearchPath(t *testing.T) {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
 }
+
+func TestClientKey_SameSessionIDDifferentTenantsDoesNotCollide(t *testing.T) {
+	clients := map[clientKey]string{
+		{tenant: "tenant-a", id: 7}: "a",
+		{tenant: "tenant-b", id: 7}: "b",
+	}
+	if len(clients) != 2 || clients[clientKey{"tenant-a", 7}] != "a" || clients[clientKey{"tenant-b", 7}] != "b" {
+		t.Fatalf("client key collision: %#v", clients)
+	}
+}

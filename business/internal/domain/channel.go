@@ -77,12 +77,12 @@ type Capabilities struct {
 
 // InboundSender carrega os dados de quem enviou a mensagem externa.
 type InboundSender struct {
-	ExternalID  string `json:"externalId"` // Identificador único no canal (JID, chat_id, IGSID, etc.)
-	Name        string `json:"name"`
-	AvatarURL   string `json:"avatarUrl"`
-	Phone       string `json:"phone,omitempty"`
-	IsGroup     bool   `json:"isGroup"`
-	GroupJID    string `json:"groupJid,omitempty"`
+	ExternalID string `json:"externalId"` // Identificador único no canal (JID, chat_id, IGSID, etc.)
+	Name       string `json:"name"`
+	AvatarURL  string `json:"avatarUrl"`
+	Phone      string `json:"phone,omitempty"`
+	IsGroup    bool   `json:"isGroup"`
+	GroupJID   string `json:"groupJid,omitempty"`
 }
 
 // InboundMessage é o contrato neutro e universal de mensagem recebida de qualquer canal (D6 / ADR 0033).
@@ -111,6 +111,16 @@ type OutboundMessage struct {
 	MediaData       []byte            `json:"-"`
 	QuotedMessageID string            `json:"quotedMessageId,omitempty"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
+}
+
+// StorageMessageID é o id com que a mensagem é gravada em Messages. O id do canal só é único dentro do seu escopo (no
+// Telegram, dentro do chat), então fora do WhatsApp o id inclui canal, conexão e conversa. O WhatsApp mantém o id cru
+// porque o engine, as citações e as confirmações de leitura dependem dele.
+func StorageMessageID(kind ChannelKind, connectionID int, conversationKey, externalID string) string {
+	if kind == ChannelKindWhatsApp {
+		return externalID
+	}
+	return fmt.Sprintf("%s:%d:%s:%s", kind, connectionID, conversationKey, externalID)
 }
 
 // SendResult traz os dados de confirmação da entrega ao canal externo.
@@ -142,6 +152,7 @@ type Channel interface {
 	Connect(ctx context.Context, conn *models.ChannelConnection, input ConnectInput) (ConnectResult, error)
 	Disconnect(ctx context.Context, conn *models.ChannelConnection) error
 	Send(ctx context.Context, conn *models.ChannelConnection, msg OutboundMessage) (SendResult, error)
+	ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error)
 	ParseInbound(ctx context.Context, conn *models.ChannelConnection, raw []byte, headers map[string]string) ([]InboundMessage, error)
 }
 

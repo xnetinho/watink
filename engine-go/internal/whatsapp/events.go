@@ -11,7 +11,10 @@ import (
 
 // handleEvent dispatches whatsmeow events to the appropriate handler.
 func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) {
-	client, ok := s.clients[id]
+	client, ok := s.clientsByTenant[clientKey{tenantID, id}]
+	if !ok {
+		client, ok = s.clients[id]
+	}
 	if !ok {
 		return
 	}

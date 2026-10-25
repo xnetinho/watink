@@ -17,7 +17,7 @@ import (
 // to WhatsApp first. Like SendInteractive, it injects the <biz> native_flow node so
 // recent WhatsApp clients render it on personal accounts (sem o nó, são descartadas).
 func (s *WhatsAppService) SendCarousel(sessionID int, tenantID string, payload CarouselCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err

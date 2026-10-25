@@ -14,8 +14,9 @@ type User struct {
 	Email        string    `gorm:"unique;not null" json:"email"`
 	PasswordHash string    `gorm:"column:passwordHash;not null" json:"-"`
 	TokenVersion int       `gorm:"column:tokenVersion;default:0" json:"tokenVersion"`
-	WhatsappID   *int      `gorm:"column:whatsappId" json:"whatsappId"`
-	TenantID     uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
+	WhatsappID          *int      `gorm:"column:whatsappId" json:"whatsappId,omitempty"`
+	ChannelConnectionID *int      `gorm:"column:channelConnectionId;index" json:"channelConnectionId,omitempty"`
+	TenantID            uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
 	CargoID      *int      `gorm:"column:cargoId" json:"cargoId"`
 	Alcance      string    `gorm:"column:alcance;default:'proprio'" json:"alcance"`
 	Configs      string    `gorm:"type:json;default:'{}'" json:"configs"`

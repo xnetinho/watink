@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ import (
 const callsQueue = "api.events.calls.go"
 
 // CallEventRoutingKeys são os eventos de chamada publicados pelo engine.
-var CallEventRoutingKeys = []string{"wbot.*.*.call.*"}
+var CallEventRoutingKeys = []string{wbot.EventPattern("call.*")}
 
 type envelope struct {
 	TenantID string          `json:"tenantId"`
