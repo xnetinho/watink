@@ -44,7 +44,7 @@
 - [x] 4.1 `Channel.ResolveAddress` no contrato e implementação nos adaptadores; verificar que `contactJID` deixa de ser usado no caminho de envio
 - [x] 4.2 `MessageDispatchService` com `ReplyPolicy` e `Capabilities`; verificar com teste que excesso de texto e mídia não suportada são recusados com motivo
 - [x] 4.3 `message_send.go` fino chamando o serviço; remover a consulta prematura a conexão; verificar que responder ticket do Telegram envia e persiste
-- [ ] 4.4 Respostas rápidas, reações e mídia usam o serviço; verificar com teste por tipo de mensagem
+- [x] 4.4 Respostas rápidas, reações e mídia usam o serviço; verificar com teste por tipo de mensagem
 - [ ] 4.5 Adaptador WhatsApp real (conectar, desconectar, enviar com citação, menção e mime, status); verificar com a suíte de contrato e teste de paridade dos cenários de envio atuais
 - [ ] 4.6 Remover os ramos `EngineType != "whatsmeow"` e resíduos do izapia; verificar com busca que a string não existe
 - [ ] 4.7 Registro único de canais: eliminar `flow.ChannelRegistry` e `OutboundChannelAdapter`; o FlowBuilder usa o serviço de envio; verificar que um fluxo disparado por ticket do Telegram responde pelo Telegram
