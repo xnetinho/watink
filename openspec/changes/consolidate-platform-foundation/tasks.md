@@ -35,7 +35,7 @@
 - [x] 3.2 `ChannelConnections` como única tabela; `whatsapp_connection_details` 1:1 para proxy, `keepAlive`, sync, `wid` e risco; verificar com teste de repositório que uma conexão WhatsApp grava e lê seus detalhes
 - [x] 3.3 `Tickets.connectionId NOT NULL` com FK; remover `whatsappId` e o sentinela `0`; verificar com teste que ticket de qualquer canal grava e consulta por `connectionId`
 - [x] 3.4 Remover `whatsappId` de `Users`, `Flows`, `Assistants`, `CallLogs`, `group_caches`, `group_campaigns`, `group_campaign_targets`, `group_campaign_sends` (um PR por tabela ou grupo coerente); verificar que a busca por `whatsappId` no código de produção retorna zero
-- [ ] 3.5 `Messages` com chave primária interna e `UNIQUE (tenantId, connectionId, externalId)`; `ON CONFLICT` usa essa chave; verificar com teste de colisão entre conexões e de reentrega
+- [x] 3.5 `Messages` com chave primária interna e `UNIQUE (tenantId, connectionId, externalId)`; `ON CONFLICT` usa essa chave; verificar com teste de colisão entre conexões e de reentrega
 - [ ] 3.6 Contato por identidade: telefone opcional, `ContactIdentity` como fonte; verificar com teste que dois contatos do Telegram sem telefone coexistem
 - [ ] 3.7 Remover `Whatsapps`, `whatsapp_queues` e a rota `/whatsapp/*`; verificar que nenhum SQL ou rota de produção os referencia
 
