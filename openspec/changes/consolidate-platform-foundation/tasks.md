@@ -66,7 +66,7 @@
 ## 6. VoIP
 
 - [x] 6.1 Hooks do `CallManager` assíncronos com fila ordenada por chamada; verificar com teste de ordem e com `-race`
-- [ ] 6.2 `Capabilities.voice` e `video`; comandos `call.*` com `connectionId`; remover a leitura de `Ticket.WhatsappID` das chamadas; verificar que chamada recebida e iniciada continuam passando nos testes de ponta a ponta
+- [x] 6.2 `Capabilities.voice` e `video`; comandos `call.*` com `connectionId`; remover a leitura de `Ticket.WhatsappID` das chamadas; verificar que chamada recebida e iniciada continuam passando nos testes de ponta a ponta
 - [x] 6.3 Vídeo atrás de flag experimental, desligada por padrão; atualizar o ADR 0032 com o que existe e o que não foi validado; verificar que com a flag desligada nenhum caminho de vídeo é exposto
 - [ ] 6.4 Testes caóticos de chamada: UDP bloqueado, perda de relay e reinício do engine no meio da chamada; verificar que a chamada termina com o motivo correto e libera a conexão
 - [ ] 6.5 Autenticação por token na API de áudio do engine, aceitando só o business; verificar com teste que requisição sem token é recusada

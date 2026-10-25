@@ -71,6 +71,8 @@ type Capabilities struct {
 	Typing               bool                  `json:"typing"`
 	ReadReceipts         bool                  `json:"readReceipts"`
 	Reactions            bool                  `json:"reactions"`
+	Voice                bool                  `json:"voice"`
+	Video                bool                  `json:"video"`
 	Auth                 AuthKind              `json:"auth"`
 	HasPhone             bool                  `json:"hasPhone"` // Se o canal garante telefone real do contato
 }

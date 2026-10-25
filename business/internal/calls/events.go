@@ -149,8 +149,12 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 	if err != nil {
 		return err
 	}
+	connID := waID
+	if ticket.ChannelConnectionID != nil && *ticket.ChannelConnectionID > 0 {
+		connID = *ticket.ChannelConnectionID
+	}
 	l, created, err := s.upsertLog(ctx, tenantID, &models.CallLog{
-		CallID: ev.CallID, WhatsappID: waID, ContactID: &contact.ID, TicketID: &ticket.ID,
+		CallID: ev.CallID, WhatsappID: waID, ChannelConnectionID: connID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "incoming", Media: mediaOf(ev.Media), Status: StatusRinging, PeerJid: ev.Peer, CallerPn: ev.CallerPn, StartedAt: s.now(),
 	})
 	if err != nil {
