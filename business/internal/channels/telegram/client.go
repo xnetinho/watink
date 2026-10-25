@@ -306,7 +306,7 @@ func (c *Client) SendPhoto(ctx context.Context, chatID string, photoURL string, 
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	bodyBytes, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return 0, fmt.Errorf("sendPhoto error (status %d): %s", resp.StatusCode, string(bodyBytes))
@@ -344,7 +344,7 @@ func (c *Client) SendDocument(ctx context.Context, chatID string, docURL string,
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	bodyBytes, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return 0, fmt.Errorf("sendDocument error (status %d): %s", resp.StatusCode, string(bodyBytes))
