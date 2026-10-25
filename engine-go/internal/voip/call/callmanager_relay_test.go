@@ -1,8 +1,8 @@
 package call
 
 import (
-	"testing"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
+	"testing"
 )
 
 func TestBuildRelayConfigs(t *testing.T) {

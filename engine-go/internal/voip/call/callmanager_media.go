@@ -1,10 +1,10 @@
 package call
 
 import (
-	"time"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/media"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/transport"
+	"time"
 )
 
 func (m *CallManager) initCodec() {

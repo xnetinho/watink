@@ -2,8 +2,8 @@ package call
 
 import (
 	"fmt"
-	"time"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
+	"time"
 )
 
 type CallStateData struct {
@@ -68,6 +68,14 @@ func NewIncomingCall(callID, peerJid, callCreator, callerPn string, mediaType co
 }
 
 func (c *CallInfo) IsInitiator() bool { return c.Direction == core.CallDirectionOutgoing }
+
+func (c *CallInfo) Clone() *CallInfo {
+	if c == nil {
+		return nil
+	}
+	cp := *c
+	return &cp
+}
 
 func (c *CallInfo) IsActive() bool { return c.StateData.State == core.CallStateActive }
 

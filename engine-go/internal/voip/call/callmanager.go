@@ -2,14 +2,14 @@ package call
 
 import (
 	"context"
-	"log/slog"
-	"sync"
-	"time"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/core"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/media"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/signaling"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/transport"
 	"github.com/alltomatos/watinkdev/engine-go/internal/voip/wanode"
+	"log/slog"
+	"sync"
+	"time"
 
 	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/types"
@@ -17,8 +17,8 @@ import (
 
 type CallManager struct {
 	peerEstimatedBitrate uint32
-	sock core.VoipSocket
-	log  *slog.Logger
+	sock                 core.VoipSocket
+	log                  *slog.Logger
 
 	mu          sync.Mutex
 	currentCall *CallInfo
@@ -37,7 +37,7 @@ type CallManager struct {
 	videoSelfSsrc uint32
 	videoPeerSsrc uint32
 	// videoRx remonta as access units do contato; recebe os pacotes na ordem em que chegam.
-	videoRx          media.H264AccessUnitAssembler
+	videoRx      media.H264AccessUnitAssembler
 	videoLastPLI time.Time
 	// videoOrientation é a última rotação anunciada pelo contato (-1 = ainda desconhecida).
 	videoOrientation int
@@ -53,13 +53,13 @@ type CallManager struct {
 	// videoTxStride é o avanço de 90 kHz usado no último quadro (15 fps = 6000); sai no log de diagnóstico.
 	videoTxStride uint32
 	videoStats    videoTxStats
-	srtcpSend    *media.SrtcpKeys
-	srtcpRecv    *media.SrtcpKeys
-	srtcpIndex   uint32
-	rtcpCname    [media.RtcpCnameLen]byte
-	rtcpStop     chan struct{}
-	rtcpInSeen   bool
-	rtcpAuthFail bool
+	srtcpSend     *media.SrtcpKeys
+	srtcpRecv     *media.SrtcpKeys
+	srtcpIndex    uint32
+	rtcpCname     [media.RtcpCnameLen]byte
+	rtcpStop      chan struct{}
+	rtcpInSeen    bool
+	rtcpAuthFail  bool
 
 	firstPacketSent       bool
 	initialTransportSent  bool
@@ -95,7 +95,7 @@ type CallManager struct {
 	OnVideoKeyframeNeeded func()
 	// OnVideoKeyframeRequested avisa que o CONTATO pediu um quadro-chave do nosso vídeo (PLI/FIR): o
 	// codificador da câmera precisa gerar um IDR agora. Roda na goroutine do relay: NÃO pode bloquear.
-	OnVideoKeyframeRequested func()
+	OnVideoKeyframeRequested  func()
 	OnEstimatedBitrateChanged func(uint32)
 
 	// OnPeerRtp (alteração Watink) recebe sequência, timestamp e tamanho do payload
@@ -103,6 +103,10 @@ type CallManager struct {
 	OnPeerRtp func(seq uint16, timestamp uint32, payloadLen int)
 	// OnSentRtp (alteração Watink) recebe o tamanho de cada pacote enviado ao relay.
 	OnSentRtp func(size int)
+
+	hookQueue chan func()
+	hookDone  chan struct{}
+	closed    bool
 }
 
 func NewCallManager(sock core.VoipSocket, log *slog.Logger) *CallManager {
@@ -114,12 +118,59 @@ func NewCallManager(sock core.VoipSocket, log *slog.Logger) *CallManager {
 		log:              log,
 		debeEnabled:      true,
 		videoOrientation: -1,
+		hookQueue:        make(chan func(), 256),
+		hookDone:         make(chan struct{}),
 	}
 	relay := transport.NewSctpRelayManager(log)
 	relay.SetOnConnected(func(ip string, port int) { m.onRelayConnected() })
 	relay.SetOnReceive(func(data []byte) { m.onRelayData(data) })
 	m.relay = relay
+	go m.dispatchHooks()
 	return m
+}
+
+func (m *CallManager) dispatchHooks() {
+	for fn := range m.hookQueue {
+		fn()
+	}
+	close(m.hookDone)
+}
+
+func (m *CallManager) enqueueHookLocked(fn func()) {
+	if m.closed || m.hookQueue == nil {
+		return
+	}
+	select {
+	case m.hookQueue <- fn:
+	default:
+		go fn()
+	}
+}
+
+func (m *CallManager) enqueueHook(fn func()) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.enqueueHookLocked(fn)
+}
+
+// FlushHooks aguarda o esvaziamento da fila de hooks assíncronos.
+func (m *CallManager) FlushHooks() {
+	done := make(chan struct{})
+	m.enqueueHook(func() {
+		close(done)
+	})
+	<-done
+}
+
+func (m *CallManager) Close() {
+	m.mu.Lock()
+	if !m.closed {
+		m.closed = true
+		if m.hookQueue != nil {
+			close(m.hookQueue)
+		}
+	}
+	m.mu.Unlock()
 }
 
 func (m *CallManager) CurrentCall() *CallInfo {
@@ -130,7 +181,31 @@ func (m *CallManager) CurrentCall() *CallInfo {
 
 func (m *CallManager) emitState() {
 	if m.OnStateChange != nil && m.currentCall != nil {
-		m.OnStateChange(m.currentCall)
+		info := m.currentCall.Clone()
+		hook := m.OnStateChange
+		m.enqueueHookLocked(func() {
+			hook(info)
+		})
+	}
+}
+
+func (m *CallManager) emitIncoming(call *CallInfo) {
+	if m.OnIncoming != nil && call != nil {
+		info := call.Clone()
+		hook := m.OnIncoming
+		m.enqueueHook(func() {
+			hook(info)
+		})
+	}
+}
+
+func (m *CallManager) emitEnded(ended *CallInfo) {
+	if m.OnEnded != nil && ended != nil {
+		info := ended.Clone()
+		hook := m.OnEnded
+		m.enqueueHook(func() {
+			hook(info)
+		})
 	}
 }
 
@@ -301,10 +376,9 @@ func (m *CallManager) EndCall(ctx context.Context, reason core.EndCallReason) er
 	m.mu.Unlock()
 
 	m.sendSignaling(ctx, node)
-	if m.OnEnded != nil {
-		m.OnEnded(ended)
-	}
+	m.emitEnded(ended)
 	m.cleanupMedia()
+	m.FlushHooks()
 	return nil
 }
 
