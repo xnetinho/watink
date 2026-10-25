@@ -42,7 +42,7 @@
 ## 4. Núcleo de canais
 
 - [x] 4.1 `Channel.ResolveAddress` no contrato e implementação nos adaptadores; verificar que `contactJID` deixa de ser usado no caminho de envio
-- [ ] 4.2 `MessageDispatchService` com `ReplyPolicy` e `Capabilities`; verificar com teste que excesso de texto e mídia não suportada são recusados com motivo
+- [x] 4.2 `MessageDispatchService` com `ReplyPolicy` e `Capabilities`; verificar com teste que excesso de texto e mídia não suportada são recusados com motivo
 - [ ] 4.3 `message_send.go` fino chamando o serviço; remover a consulta prematura a conexão; verificar que responder ticket do Telegram envia e persiste
 - [ ] 4.4 Respostas rápidas, reações e mídia usam o serviço; verificar com teste por tipo de mensagem
 - [ ] 4.5 Adaptador WhatsApp real (conectar, desconectar, enviar com citação, menção e mime, status); verificar com a suíte de contrato e teste de paridade dos cenários de envio atuais
