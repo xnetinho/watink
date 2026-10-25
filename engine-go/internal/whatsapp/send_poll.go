@@ -11,7 +11,7 @@ import (
 // SendPoll creates and sends a poll message.
 // selectableCount = maximum number of options the user can choose (1 = single choice).
 func (s *WhatsAppService) SendPoll(sessionID int, tenantID string, payload PollCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err

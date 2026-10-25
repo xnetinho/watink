@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -11,6 +12,34 @@ import (
 )
 
 var DB *gorm.DB
+
+// MigrateVersioned applies the greenfield schema baseline exactly once per database.
+// The advisory lock is acquired by RunMigrations before this function; the version row makes
+// reruns observable and prevents silently treating a partial future migration as complete.
+func MigrateVersioned(ctx context.Context, db *gorm.DB) error {
+	if err := db.Exec(`CREATE TABLE IF NOT EXISTS "SchemaMigrations" ("version" bigint PRIMARY KEY, "appliedAt" timestamptz NOT NULL DEFAULT NOW())`).Error; err != nil {
+		return err
+	}
+	var applied bool
+	if err := db.Raw(`SELECT EXISTS (SELECT 1 FROM "SchemaMigrations" WHERE "version" = 1)`).Scan(&applied).Error; err != nil {
+		return err
+	}
+	if applied {
+		return nil
+	}
+	if err := migrateBaseline(db); err != nil {
+		return err
+	}
+	return db.Exec(`INSERT INTO "SchemaMigrations" ("version") VALUES (1) ON CONFLICT ("version") DO NOTHING`).Error
+}
+
+func migrateBaseline(db *gorm.DB) error {
+	previous := DB
+	DB = db
+	defer func() { DB = previous }()
+	Migrate()
+	return nil
+}
 
 func Migrate() {
 	if err := dropLegacyRBAC(); err != nil {
@@ -29,6 +58,7 @@ func Migrate() {
 		&models.ClientAddress{},
 		&models.Whatsapp{},
 		&models.ChannelConnection{},
+		&models.WhatsAppConnectionDetails{},
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},

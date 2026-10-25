@@ -133,7 +133,7 @@ type ContactImportPayload struct {
 }
 
 // PollVotePayload is emitted by the engine when a contact votes on a poll message.
-// Routing key: "wbot.*.*.message.poll_vote"
+// Routing key: wbot.EventPattern(wbot.EventMessagePollVote)
 type PollVotePayload struct {
 	SessionID      string `json:"sessionId"`
 	PollMessageID  string `json:"pollMessageId"`

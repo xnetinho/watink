@@ -96,8 +96,10 @@ func (r *GORMMessageRepository) Update(ctx context.Context, msg *domain.Message,
 
 func messageModelToDomain(m *models.Message) *domain.Message {
 	return &domain.Message{
-		ID:          m.ID,
-		Body:        m.Body,
+		ID:                  m.ID,
+		ExternalID:          m.ExternalID,
+		ChannelConnectionID: m.ChannelConnectionID,
+		Body:                m.Body,
 		Ack:         m.Ack,
 		Read:        m.Read,
 		MediaType:   m.MediaType,
@@ -118,8 +120,10 @@ func messageModelToDomain(m *models.Message) *domain.Message {
 
 func messageDomainToModel(d *domain.Message) *models.Message {
 	return &models.Message{
-		ID:          d.ID,
-		Body:        d.Body,
+		ID:                  d.ID,
+		ExternalID:          d.ExternalID,
+		ChannelConnectionID: d.ChannelConnectionID,
+		Body:                d.Body,
 		Ack:         d.Ack,
 		Read:        d.Read,
 		MediaType:   d.MediaType,

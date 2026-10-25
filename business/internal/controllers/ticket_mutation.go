@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"net/http"
 	"strconv"
 	"time"
@@ -196,7 +196,7 @@ func (tc *TicketController) RecoverHistory(c *gin.Context) {
 		"type":      "history.recover",
 		"payload":   payload,
 	}
-	routingKey := fmt.Sprintf("wbot.%s.%d.history.recover", tenantID.String(), ticket.WhatsappID)
+	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), wbot.CommandHistoryRecover)
 	if err := tc.publisher.PublishCommand(routingKey, command); err != nil {
 		utils.RespondWithInternalError(c, err, "RecoverHistory")
 		return

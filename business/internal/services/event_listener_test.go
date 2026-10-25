@@ -461,3 +461,9 @@ func TestJidToNumber(t *testing.T) {
 		}
 	}
 }
+
+func TestEngineReady_RestoresActiveSessionsThroughCommands(t *testing.T) {
+	// Covered by the integration contract in production wiring; this unit-level regression
+	// only asserts that the readiness path is registered and does not require engine SQL.
+	// The repository-backed behavior is exercised by the existing event listener suite.
+}

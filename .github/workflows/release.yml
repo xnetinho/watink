@@ -43,7 +43,7 @@ jobs:
             context: .
           - image: watink-engine
             dockerfile: engine-go/Dockerfile
-            context: ./engine-go
+            context: .
           - image: watink-postgres
             dockerfile: infra/postgres/Dockerfile
             context: ./infra/postgres

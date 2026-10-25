@@ -178,7 +178,9 @@ func RunMigrations() error {
 	}
 
 	DB = g
-	Migrate() // esquema, índices e seed, como administrador
+	if err := MigrateVersioned(ctx, g); err != nil {
+		return fmt.Errorf("baseline do esquema: %w", err)
+	}
 
 	if err := tenantdb.ApplyPoliciesLocked(ctx, admin); err != nil {
 		return fmt.Errorf("políticas RLS: %w", err)

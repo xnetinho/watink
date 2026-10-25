@@ -22,6 +22,7 @@ import (
 var systemScopeAllowed = map[string]string{
 	"internal/controllers/channel_webhook.go":    "descobrir a empresa da conexão do webhook",
 	"internal/knowledge/reconciler.go":           "varredura global de fontes travadas",
+	"internal/services/event_listener.go":        "engine.ready enumera tenants globalmente antes de abrir escopo individual; não é dado de uma empresa",
 	"internal/middleware/system_scope.go":        "rotas públicas e internas sem empresa (login, setup, SaaS)",
 	"internal/plugins/manager.go":                "rotas públicas de plugin (empresa descoberta no handler)",
 	"internal/plugins/scheduler.go":              "tick de cron que varre empresas",

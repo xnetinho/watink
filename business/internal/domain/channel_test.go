@@ -39,6 +39,13 @@ func (m *mockChannel) ParseInbound(_ context.Context, _ *models.ChannelConnectio
 	return nil, nil
 }
 
+func (m *mockChannel) ResolveAddress(_ context.Context, _ *models.ChannelConnection, contact *models.Contact) (string, error) {
+	if contact != nil && contact.Number != "" {
+		return contact.Number, nil
+	}
+	return "mock_addr", nil
+}
+
 func TestChannelRegistry(t *testing.T) {
 	registry := domain.NewChannelRegistry()
 

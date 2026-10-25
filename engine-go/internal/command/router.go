@@ -2,11 +2,12 @@ package command
 
 import (
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"strings"
 )
 
 // ParseRoutingKey extracts tenantID, sessionID string and command type from a routing key
-// of the form "wbot.<tenantId>.<sessionId>.<cmd>.<sub>...".
+// of the form wbot.Command(tenantId, connectionId, command).
 // Returns an error for keys with fewer than 4 segments or unknown command types.
 func ParseRoutingKey(routingKey string) (tenantID string, sessionID string, cmd string, err error) {
 	parts := strings.Split(routingKey, ".")
@@ -18,14 +19,14 @@ func ParseRoutingKey(routingKey string) (tenantID string, sessionID string, cmd 
 	cmd = strings.Join(parts[3:], ".")
 
 	switch cmd {
-	case "session.start", "session.stop", "session.delete",
-		"message.send.text", "message.send.media",
-		"message.send.buttons", "message.send.list", "message.send.poll", "message.send.interactive", "message.send.template", "message.send.carousel",
-		"message.react",
-		"message.markAsRead", "media.download",
-		"contact.sync", "contact.import", "history.sync", "history.recover",
-		"chat.presence",
-		"call.ready", "call.accept", "call.reject", "call.end", "call.start":
+	case wbot.CommandSessionStart, wbot.CommandSessionStop, wbot.CommandSessionDelete,
+		wbot.CommandMessageText, wbot.CommandMessageMedia,
+		wbot.CommandMessageButtons, wbot.CommandMessageList, wbot.CommandMessagePoll, wbot.CommandMessageInteractive, wbot.CommandMessageTemplate, wbot.CommandMessageCarousel,
+		wbot.CommandMessageReact,
+		wbot.CommandMessageMarkRead, wbot.CommandMediaDownload,
+		wbot.CommandContactSync, wbot.CommandContactImport, wbot.CommandHistoryRecover,
+		wbot.CommandChatPresence,
+		wbot.CommandCallReady, wbot.CommandCallAccept, wbot.CommandCallReject, wbot.CommandCallEnd, wbot.CommandCallStart:
 		return tenantID, sessionID, cmd, nil
 	default:
 		return "", "", "", fmt.Errorf("unknown command type: %s", cmd)

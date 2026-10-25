@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 )
 
 const (
-	dlqExchange    = "wbot.dlq"
+	dlqExchange    = wbot.ExchangeDLQ
 	dlqMaxRetries  = 3
 	dlqBaseBackoff = 5 * time.Second
 	dlqMaxBackoff  = 5 * time.Minute

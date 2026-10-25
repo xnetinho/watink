@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -53,7 +55,7 @@ func (cc *ContactController) ImportContacts(c *gin.Context) {
 			"sessionId": session.ID,
 		},
 	}
-	routingKey := fmt.Sprintf("wbot.%s.%d.contact.import", tenantID.String(), session.ID)
+	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(session.ID), wbot.CommandContactImport)
 	if err := cc.publisher.PublishCommand(routingKey, command); err != nil {
 		utils.RespondWithInternalError(c, err, "ImportContacts")
 		return
@@ -119,7 +121,7 @@ func (cc *ContactController) SyncContact(c *gin.Context) {
 			"number":    contact.Number,
 		},
 	}
-	routingKey := fmt.Sprintf("wbot.%s.%d.contact.sync", tenantID.String(), session.ID)
+	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(session.ID), wbot.CommandContactSync)
 	if err := cc.publisher.PublishCommand(routingKey, command); err != nil {
 		utils.RespondWithInternalError(c, err, "SyncContact")
 		return
