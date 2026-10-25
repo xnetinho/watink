@@ -76,6 +76,33 @@ func (cc *ChannelConnectionController) ListConnections(c *gin.Context) {
 	c.JSON(http.StatusOK, conns)
 }
 
+// GetConnection detalha uma conexão de canal por ID.
+func (cc *ChannelConnectionController) GetConnection(c *gin.Context) {
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
+	if !ok {
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid connection id"})
+		return
+	}
+
+	var conn models.ChannelConnection
+	writeDB := db.Session(&gorm.Session{NewDB: true})
+	if err := writeDB.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&conn).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
+			return
+		}
+		utils.RespondWithInternalError(c, err, "GetChannelConnection")
+		return
+	}
+
+	c.JSON(http.StatusOK, conn)
+}
+
 // CreateConnection cria e conecta uma nova ChannelConnection (ex.: Telegram token, com webhook/polling).
 func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")

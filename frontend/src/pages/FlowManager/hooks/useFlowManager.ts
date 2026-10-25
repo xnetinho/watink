@@ -50,7 +50,7 @@ export function useFlowManager() {
 
   const fetchWhatsapps = async () => {
     try {
-      const { data } = await api.get("/whatsapp");
+      const { data } = await api.get("/connections");
       setWhatsapps(Array.isArray(data) ? data : []);
     } catch (err) {
       toastError(err);

@@ -24,7 +24,7 @@ export const useConnectionFetch = (
 
   const fetchWhatsapp = useCallback(async () => {
     try {
-      const { data } = await api.get(`/whatsapp/${whatsappId}`);
+      const { data } = await api.get(`/connections/${whatsappId}`);
       setWhatsapp(data as WhatsApp);
       setLoading(false);
     } catch (err: unknown) {
