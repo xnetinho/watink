@@ -49,3 +49,10 @@ para regras do Watink: as regras ficam em `internal/calls`, que usa esta pilha.
 
 | `media/srtcp.go`, `media/rtcp.go` (+ testes): SRTCP (rótulos 3/4/5, tag de 10 B), Sender Report + SDES, PLI/FIR | `purpshell/meowcaller` `srtp/e2e.go` e `rtp/rtcp.go` (MIT, Rajeh Taher) | Reescritos sobre o nosso `SrtpContext`/`deriveSrtpKey`, sem a camada de logging. Os vetores de teste são os dela: chaves SRTCP a partir de um segredo conhecido, o SR de 28 bytes do `kats.json`, o SR+SDES de 60 bytes (74 protegido) e o PLI de 12 bytes. |
 | `media/h264.go` `PackAccessUnit`, `media/h264_rtp.go` `SetTimestampStride`, `call/callmanager_video_tx.go` (envio de vídeo) | `purpshell/meowcaller` `engine_media.go` (`videoSender.protectAccessUnitLocked`) | A AU inteira vira um só NAL em FU-A, com a extensão 0xDEBE, como ela faz. O gate de IDR (descarta delta até o primeiro IDR e após cada PLI) e o laço de SR+SDES a cada 1,5 s seguem a dela. **Nenhuma das bases provou o caminho de envio ao vivo** (a própria meowcaller o marca NOT VALIDATED); o Watink o validou ao vivo em 19/out/2026, com o contato vendo a câmera do operador — ver `openspec/changes/add-whatsapp-video-calls/tasks.md` 2.4. |
+
+## Procedência de `mic_clip.raw` e capturas em `testdata`
+
+Os arquivos em `internal/voip/media/mlow/testdata/` (incluindo `mic_clip.raw` e os vetores `.json`/`.raw` associados):
+- **Origem**: Repositório upstream WaCalls / Rajeh Taher (`media/mlow/testdata`), sob licença MIT (ver `media/mlow/LICENSE`).
+- **Finalidade**: Vetores de teste sintéticos e amostras de bancada consumidos exclusivamente pelas suítes `_test.go` para verificação de exatidão matemática e bit-exactness dos algoritmos de áudio do codec MLOW (pitch, VAD, quantização LSF e síntese).
+- **Decisão do dono**: Mantidos restritos à suíte de testes de regressão; não são embutidos nem distribuídos em imagens ou binários de produção.
