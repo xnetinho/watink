@@ -52,7 +52,7 @@
 - [x] 4.9 Telegram completo: mídia de saída (foto, vídeo, áudio, voz, documento), citação, divisão por 4096, tratamento de 403 e 429 com `LastError`; verificar com a suíte de contrato estendida
 - [x] 4.10 Polling do Telegram com leader lock e retomada no boot; verificar com teste que duas instâncias simuladas não consomem o mesmo token
 - [x] 4.11 Canal `fake` e teste de ponta a ponta sem alterar o núcleo; verificar que o teste passa e que nenhum arquivo fora do pacote do canal muda
-- [ ] 4.12 Edição de conexão (`PUT`) completa com `LastError` e modo webhook/polling; verificar com teste de controller e de interface
+- [x] 4.12 Edição de conexão (`PUT`) completa com `LastError` e modo webhook/polling; verificar com teste de controller e de interface
 
 ## 5. Business em camadas
 
