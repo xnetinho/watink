@@ -49,7 +49,7 @@
 - [x] 4.6 Remover os ramos `EngineType != "whatsmeow"` e resíduos do izapia; verificar com busca que a string não existe
 - [x] 4.7 Registro único de canais: eliminar `flow.ChannelRegistry` e `OutboundChannelAdapter`; o FlowBuilder usa o serviço de envio; verificar que um fluxo disparado por ticket do Telegram responde pelo Telegram
 - [ ] 4.8 Assistentes, campanhas de grupo e plugins usam o serviço; verificar com teste por consumidor
-- [ ] 4.9 Telegram completo: mídia de saída (foto, vídeo, áudio, voz, documento), citação, divisão por 4096, tratamento de 403 e 429 com `LastError`; verificar com a suíte de contrato estendida
+- [x] 4.9 Telegram completo: mídia de saída (foto, vídeo, áudio, voz, documento), citação, divisão por 4096, tratamento de 403 e 429 com `LastError`; verificar com a suíte de contrato estendida
 - [ ] 4.10 Polling do Telegram com leader lock e retomada no boot; verificar com teste que duas instâncias simuladas não consomem o mesmo token
 - [x] 4.11 Canal `fake` e teste de ponta a ponta sem alterar o núcleo; verificar que o teste passa e que nenhum arquivo fora do pacote do canal muda
 - [ ] 4.12 Edição de conexão (`PUT`) completa com `LastError` e modo webhook/polling; verificar com teste de controller e de interface

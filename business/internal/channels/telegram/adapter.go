@@ -124,7 +124,7 @@ func (a *Adapter) Disconnect(ctx context.Context, conn *models.ChannelConnection
 	return nil
 }
 
-func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg OutboundMessageBridge) (domain.SendResult, error) {
+func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg domain.OutboundMessage) (domain.SendResult, error) {
 	token, err := domain.ChannelCredentials(conn)
 	if err != nil {
 		return domain.SendResult{}, fmt.Errorf("telegram connection has no token")
@@ -138,10 +138,27 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 		}
 	}
 
-	msgID, err := client.SendMessage(ctx, msg.ExternalID, msg.Body, replyID)
+	var msgID int64
+	if msg.MediaURL != "" {
+		mt := msg.MediaType
+		if mt == "image" || mt == "photo" {
+			msgID, err = client.SendPhoto(ctx, msg.ExternalID, msg.MediaURL, msg.Body, replyID)
+		} else {
+			msgID, err = client.SendDocument(ctx, msg.ExternalID, msg.MediaURL, msg.Body, replyID)
+		}
+	} else {
+		body := msg.Body
+		if len([]byte(body)) > 4096 {
+			body = string([]byte(body)[:4096])
+		}
+		msgID, err = client.SendMessage(ctx, msg.ExternalID, body, replyID)
+	}
+
 	if err != nil {
+		conn.LastError = err.Error()
 		return domain.SendResult{}, err
 	}
+	conn.LastError = ""
 
 	return domain.SendResult{
 		ExternalMessageID: strconv.FormatInt(msgID, 10),
@@ -182,18 +199,18 @@ type TelegramPhotoSize struct {
 }
 
 type TelegramMessage struct {
-	MessageID int64                `json:"message_id"`
-	From      *TelegramUser        `json:"from,omitempty"`
-	Chat      TelegramChat         `json:"chat"`
-	Date      int64                `json:"date"`
-	Text      string               `json:"text,omitempty"`
-	Caption   string               `json:"caption,omitempty"`
-	ReplyTo   *TelegramMessage     `json:"reply_to_message,omitempty"`
-	Photo     []TelegramPhotoSize  `json:"photo,omitempty"`
-	Document  *TelegramFileObject  `json:"document,omitempty"`
-	Video     *TelegramFileObject  `json:"video,omitempty"`
-	Audio     *TelegramFileObject  `json:"audio,omitempty"`
-	Voice     *TelegramFileObject  `json:"voice,omitempty"`
+	MessageID int64               `json:"message_id"`
+	From      *TelegramUser       `json:"from,omitempty"`
+	Chat      TelegramChat        `json:"chat"`
+	Date      int64               `json:"date"`
+	Text      string              `json:"text,omitempty"`
+	Caption   string              `json:"caption,omitempty"`
+	ReplyTo   *TelegramMessage    `json:"reply_to_message,omitempty"`
+	Photo     []TelegramPhotoSize `json:"photo,omitempty"`
+	Document  *TelegramFileObject `json:"document,omitempty"`
+	Video     *TelegramFileObject `json:"video,omitempty"`
+	Audio     *TelegramFileObject `json:"audio,omitempty"`
+	Voice     *TelegramFileObject `json:"voice,omitempty"`
 }
 
 type TelegramUser struct {
