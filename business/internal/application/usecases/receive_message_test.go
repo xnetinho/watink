@@ -61,6 +61,9 @@ func (m *mockMessageRepo) FindByID(_ context.Context, _ string, _ uuid.UUID) (*d
 func (m *mockMessageRepo) FindOldestByTicket(_ context.Context, _ int, _ uuid.UUID) (*domain.Message, error) {
 	return nil, nil
 }
+func (m *mockMessageRepo) FindByTicket(_ context.Context, _ int, _ uuid.UUID) ([]models.Message, error) {
+	return nil, nil
+}
 func (m *mockMessageRepo) ExistsByID(_ context.Context, _ string, _ uuid.UUID) (bool, error) {
 	return m.existsByIDResult, m.existsByIDErr
 }

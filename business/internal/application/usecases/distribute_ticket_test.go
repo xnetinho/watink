@@ -58,10 +58,21 @@ type mockQueueRepo struct {
 func (m *mockQueueRepo) FindByID(_ context.Context, _ int, _ uuid.UUID) (*domain.Queue, error) {
 	return m.queue, m.findErr
 }
+func (m *mockQueueRepo) FindByIDWithAssociations(_ context.Context, _ int, _ uuid.UUID) (*domain.Queue, error) {
+	return m.queue, m.findErr
+}
 func (m *mockQueueRepo) FindAll(_ context.Context, _ uuid.UUID) ([]domain.Queue, error) {
 	return nil, nil
 }
+func (m *mockQueueRepo) FindAllWithAssociations(_ context.Context, _ uuid.UUID) ([]domain.Queue, error) {
+	return nil, nil
+}
+func (m *mockQueueRepo) Create(_ context.Context, _ *domain.Queue, _ []int) error { return nil }
+func (m *mockQueueRepo) Update(_ context.Context, _ *domain.Queue, _ map[string]interface{}, _ []int) error {
+	return nil
+}
 func (m *mockQueueRepo) Save(_ context.Context, _ *domain.Queue) error { return nil }
+func (m *mockQueueRepo) Delete(_ context.Context, _ int, _ uuid.UUID) error { return nil }
 func (m *mockQueueRepo) FindQueueIDsByChannel(_ context.Context, _ int, _ uuid.UUID) ([]int, error) {
 	return m.channelQueueIDs, nil
 }

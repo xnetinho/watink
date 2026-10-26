@@ -317,6 +317,9 @@ func (m *ackMockMessageRepo) FindByID(_ context.Context, _ string, _ uuid.UUID) 
 func (m *ackMockMessageRepo) FindOldestByTicket(_ context.Context, _ int, _ uuid.UUID) (*domain.Message, error) {
 	return nil, nil
 }
+func (m *ackMockMessageRepo) FindByTicket(_ context.Context, _ int, _ uuid.UUID) ([]models.Message, error) {
+	return nil, nil
+}
 func (m *ackMockMessageRepo) ExistsByID(_ context.Context, _ string, _ uuid.UUID) (bool, error) {
 	return false, nil
 }
