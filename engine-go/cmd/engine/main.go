@@ -295,10 +295,6 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 		}
 		return svc.RecoverHistory(sessionID, tenantID, p)
 
-	case "history.sync":
-		log.Printf("Command %s received but not implemented in engine-go", cmd)
-		return nil
-
 	default:
 		log.Printf("Unknown command type: %s", cmd)
 		return nil
