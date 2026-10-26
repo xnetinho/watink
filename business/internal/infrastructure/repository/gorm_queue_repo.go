@@ -149,16 +149,9 @@ func (r *GORMQueueRepository) Save(ctx context.Context, queue *domain.Queue) err
 }
 
 func (r *GORMQueueRepository) Delete(ctx context.Context, id int, tenantID uuid.UUID) error {
-	res := r.db.WithContext(ctx).
+	return r.db.WithContext(ctx).
 		Where("id = ? AND \"tenantId\" = ?", id, tenantID).
-		Delete(&models.Queue{})
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
-	return nil
+		Delete(&models.Queue{}).Error
 }
 
 // --- Model <-> Domain mappers ---

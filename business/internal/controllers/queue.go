@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -206,13 +205,14 @@ func (qc *QueueController) DeleteQueue(c *gin.Context) {
 		return
 	}
 
-	err = qc.getRepo(db).Delete(c.Request.Context(), id, tenantID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(404, gin.H{"error": "Queue not found"})
-			return
-		}
-		utils.RespondWithInternalError(c, err, "DeleteQueue")
+	writeDB := db.Session(&gorm.Session{NewDB: true})
+	result := writeDB.Where("id = ? AND \"tenantId\" = ?", id, tenantID).Delete(&models.Queue{})
+	if result.Error != nil {
+		utils.RespondWithInternalError(c, result.Error, "DeleteQueue")
+		return
+	}
+	if result.RowsAffected == 0 {
+		c.JSON(404, gin.H{"error": "Queue not found"})
 		return
 	}
 
