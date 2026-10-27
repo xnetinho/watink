@@ -6,9 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"path"
 	"strconv"
 	"time"
+
+	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
 )
 
 type Client struct {
@@ -285,61 +289,60 @@ type SendMediaRequest struct {
 }
 
 func (c *Client) SendPhoto(ctx context.Context, chatID string, photoURL string, caption string, replyToMsgID int) (int64, error) {
-	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendPhoto", c.token)
-	var parsedChatID interface{} = chatID
-	if idInt, err := strconv.ParseInt(chatID, 10, 64); err == nil {
-		parsedChatID = idInt
-	}
-	payload := map[string]interface{}{
-		"chat_id":             parsedChatID,
-		"photo":               photoURL,
-		"caption":             caption,
-		"reply_to_message_id": replyToMsgID,
-	}
-	body, _ := json.Marshal(payload)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
-	if err != nil {
-		return 0, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("sendPhoto error (status %d): %s", resp.StatusCode, string(bodyBytes))
-	}
-	var res TelegramResponse
-	if json.Unmarshal(bodyBytes, &res) != nil || !res.Ok {
-		return 0, fmt.Errorf("telegram sendPhoto not ok")
-	}
-	var msgRes MessageResult
-	if json.Unmarshal(res.Result, &msgRes) != nil {
-		return 0, err
-	}
-	return msgRes.MessageID, nil
+	return c.sendMedia(ctx, "sendPhoto", "photo", chatID, photoURL, caption, replyToMsgID)
 }
 
 func (c *Client) SendDocument(ctx context.Context, chatID string, docURL string, caption string, replyToMsgID int) (int64, error) {
-	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendDocument", c.token)
-	var parsedChatID interface{} = chatID
-	if idInt, err := strconv.ParseInt(chatID, 10, 64); err == nil {
-		parsedChatID = idInt
+	return c.sendMedia(ctx, "sendDocument", "document", chatID, docURL, caption, replyToMsgID)
+}
+
+// sendMedia envia por multipart quando a mídia é um arquivo local (/public/media/...): o Telegram não alcança esse
+// caminho relativo e rejeita com "URL host is empty". URL externa segue por JSON, que o Telegram baixa sozinho.
+func (c *Client) sendMedia(ctx context.Context, method, field, chatID, mediaURL, caption string, replyToMsgID int) (int64, error) {
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/%s", c.token, method)
+
+	var req *http.Request
+	var err error
+	if data, local, rerr := mediastore.ReadLocal(mediaURL); local {
+		if rerr != nil {
+			return 0, fmt.Errorf("%s: ler midia local: %w", method, rerr)
+		}
+		var buf bytes.Buffer
+		mw := multipart.NewWriter(&buf)
+		_ = mw.WriteField("chat_id", chatID)
+		_ = mw.WriteField("caption", caption)
+		if replyToMsgID != 0 {
+			_ = mw.WriteField("reply_to_message_id", strconv.Itoa(replyToMsgID))
+		}
+		fw, ferr := mw.CreateFormFile(field, path.Base(mediaURL))
+		if ferr != nil {
+			return 0, ferr
+		}
+		_, _ = fw.Write(data)
+		if err = mw.Close(); err != nil {
+			return 0, err
+		}
+		if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, &buf); err != nil {
+			return 0, err
+		}
+		req.Header.Set("Content-Type", mw.FormDataContentType())
+	} else {
+		var parsedChatID interface{} = chatID
+		if idInt, perr := strconv.ParseInt(chatID, 10, 64); perr == nil {
+			parsedChatID = idInt
+		}
+		body, _ := json.Marshal(map[string]interface{}{
+			"chat_id":             parsedChatID,
+			field:                 mediaURL,
+			"caption":             caption,
+			"reply_to_message_id": replyToMsgID,
+		})
+		if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body)); err != nil {
+			return 0, err
+		}
+		req.Header.Set("Content-Type", "application/json")
 	}
-	payload := map[string]interface{}{
-		"chat_id":             parsedChatID,
-		"document":            docURL,
-		"caption":             caption,
-		"reply_to_message_id": replyToMsgID,
-	}
-	body, _ := json.Marshal(payload)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
-	if err != nil {
-		return 0, err
-	}
-	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return 0, err
@@ -347,14 +350,14 @@ func (c *Client) SendDocument(ctx context.Context, chatID string, docURL string,
 	defer func() { _ = resp.Body.Close() }()
 	bodyBytes, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("sendDocument error (status %d): %s", resp.StatusCode, string(bodyBytes))
+		return 0, fmt.Errorf("%s error (status %d): %s", method, resp.StatusCode, string(bodyBytes))
 	}
 	var res TelegramResponse
 	if json.Unmarshal(bodyBytes, &res) != nil || !res.Ok {
-		return 0, fmt.Errorf("telegram sendDocument not ok")
+		return 0, fmt.Errorf("telegram %s not ok", method)
 	}
 	var msgRes MessageResult
-	if json.Unmarshal(res.Result, &msgRes) != nil {
+	if err := json.Unmarshal(res.Result, &msgRes); err != nil {
 		return 0, err
 	}
 	return msgRes.MessageID, nil

@@ -237,6 +237,9 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 					FromMe:     true,
 					TenantID:   tenantID,
 				}
+				if quotedID != "" {
+					msg.QuotedMsgID = &quotedID
+				}
 				// Session(NewDB:true): o db carrega filtros acumulados das consultas acima e o GORM os usaria no INSERT.
 				if err := db.Session(&gorm.Session{NewDB: true}).Create(&msg).Error; err != nil {
 					// A mensagem já saiu para o cliente: loga e responde com o que foi enviado, sem fingir que falhou.
