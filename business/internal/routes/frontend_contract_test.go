@@ -61,7 +61,7 @@ func TestFrontendCallsExistOnBackend(t *testing.T) {
 	var missing []string
 	seenDebt := map[string]bool{}
 	require.NoError(t, filepath.Walk(src, func(p string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || !(strings.HasSuffix(p, ".ts") || strings.HasSuffix(p, ".tsx")) ||
+		if err != nil || info.IsDir() || (!strings.HasSuffix(p, ".ts") && !strings.HasSuffix(p, ".tsx")) ||
 			strings.Contains(p, "__tests__") || strings.Contains(p, ".test.") {
 			return err
 		}
