@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"go.mau.fi/whatsmeow"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, tenantID string, v *events.Message) {
@@ -63,6 +65,7 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 	}
 	if content.msgType == "unsupported" {
 		log.Printf("[Session-%d] mensagem de tipo não suportado (%s) id=%s: avisando o operador", id, content.body, v.Info.ID)
+		logRawMessage(id, v.Info.ID, v.Message)
 	}
 
 	isGroup := v.Info.IsGroup || v.Info.Chat.Server == types.GroupServer
@@ -126,6 +129,7 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 		pushName = ""
 	}
 
+	forwarded, fwdScore := forwardedOf(v.Message)
 	s.publishEvent(tenantID, id, "message.received", map[string]interface{}{
 		"sessionId": fmt.Sprintf("%d", id),
 		"message": map[string]interface{}{
@@ -148,6 +152,10 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 			"mentionedJids": mentionedJIDs,
 			"quotedMsgId":   quotedMsgID,
 			"mimetype":      content.mimeType,
+			"forwarded":     forwarded,
+			"forwardScore":  fwdScore,
+			"rich":          content.rich,
+			"fileLength":    content.fileLength,
 			// Media is NOT downloaded on receipt (keeps the event loop real-time).
 			// Ship the embedded JPEG thumbnail + serialized proto for on-demand DL.
 			"thumbnail":  content.thumbnail,
@@ -230,3 +238,16 @@ func pollVotePayload(id int, pollMessageID, voterJID string, selectedOptions [][
 }
 
 func idString(id int) string { return fmt.Sprintf("%d", id) }
+
+// logRawMessage despeja o protobuf de uma mensagem que ainda não sabemos desenhar, para projetar o suporte a ela com
+// o conteúdo real. Desligado por padrão: o corpo pode ter dado pessoal (WATINK_LOG_UNSUPPORTED_RAW=1 só em diagnóstico).
+func logRawMessage(id int, msgID string, m *waProto.Message) {
+	if os.Getenv("WATINK_LOG_UNSUPPORTED_RAW") != "1" {
+		return
+	}
+	raw := protojson.Format(m)
+	if len(raw) > 6000 {
+		raw = raw[:6000] + "…"
+	}
+	log.Printf("[Session-%d] RAW %s: %s", id, msgID, strings.Join(strings.Fields(raw), " "))
+}

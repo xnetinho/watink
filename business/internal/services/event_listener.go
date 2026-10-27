@@ -7,6 +7,7 @@ import (
 	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/application/usecases"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -235,6 +236,10 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 		Mimetype:      p.Mimetype,
 		Thumbnail:     p.Thumbnail,
 		MediaProto:    p.MediaProto,
+		Forwarded:     p.Forwarded,
+		ForwardScore:  p.ForwardScore,
+		Rich:          p.Rich,
+		FileLength:    p.FileLength,
 		SessionID:     sessionID,
 		TenantID:      tenantID,
 	})
@@ -250,6 +255,18 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 	el.bcast().EmitToRoom("/", room, "appMessage", msgPayload)
 	el.bcast().EmitToTenantRoom(tenantID.String(), "appMessage", msgPayload)
 	el.bcast().EmitToTenantRoom(tenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": result.Ticket, "contact": result.Contact})
+
+	// Mídia pequena baixa sozinha pelo mesmo comando do botão; ao terminar, o handler de message.media troca o
+	// "pendente" pela mídia real. Falha aqui não derruba o recebimento: a mensagem fica com o botão manual.
+	if el.publisher != nil && shouldAutoDownload(p.Type, p.FileLength, autoDownloadMaxBytes(), p.MediaProto != "") {
+		cmd := map[string]interface{}{
+			"id": uuid.New().String(), "timestamp": time.Now().UnixMilli(), "tenantId": tenantID.String(), "type": "media.download",
+			"payload": map[string]interface{}{"sessionId": sessionID, "messageId": result.Message.ID, "mediaType": p.Type, "mediaProto": p.MediaProto},
+		}
+		if err := el.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(sessionID), wbot.CommandMediaDownload), cmd); err != nil {
+			log.Printf("[EventListener] auto-download da mídia %s falhou ao enfileirar: %v", result.Message.ID, err)
+		}
+	}
 
 	// FlowBuilder FASE 1 seam: route the inbound through the runtime AFTER the
 	// real-time broadcasts, so its DB round-trip never delays SSE delivery. The
