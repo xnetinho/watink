@@ -196,7 +196,7 @@ MUI v4 **completamente removido** — `@material-ui/*` não é dependência do p
 ## Security
 
 - **NUNCA** commite `.env`, credenciais ou secrets.
-- PostgreSQL RLS + JWT `tenantId` — inclua sempre `tenantId` nas queries.
+- PostgreSQL RLS + JWT `tenantId` — inclua sempre `tenantId` nas queries **e** passe `ctx` com escopo de empresa (ADR 0034): o `db` global recusa consulta sem escopo (`ErrNoScope`). Leia `docs/dev/rls-escopo-de-empresa.md`. Qualquer menção abaixo a "RLS inerte" está desatualizada.
 - Plugins: sem licença nem marketplace (ADR 0035); `PluginInstallations.active` é a alocação por empresa e o único gate de runtime.
 
 ## Key Patterns

@@ -292,9 +292,6 @@ func (el *EventListener) handleEngineReady(ctx context.Context) error {
 			tenantDone()
 			return err
 		}
-		if err != nil {
-			return err
-		}
 		for _, session := range sessions {
 			if session.Status != "CONNECTED" && session.Status != "OPENING" && session.Status != "QRCODE" {
 				continue
