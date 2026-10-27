@@ -72,3 +72,64 @@ func TestExtractMessageContent_DesembrulhaEnvelopes(t *testing.T) {
 		t.Fatalf("documento com legenda: type=%q body=%q", got.msgType, got.body)
 	}
 }
+
+// Payload REAL capturado do aparelho (16:04): botão "Pagar com PIX" do WhatsApp Business.
+const pixParamsReal = `{"currency":"BRL","total_amount":{"value":0,"offset":100},"reference_id":"4WK2I6WDX86","type":"physical-goods","order":{"status":"pending"},"payment_settings":[{"type":"pix_static_code","pix_static_code":{"merchant_name":"Meu PIX","key":"+5583988095596","key_type":"PHONE"}}],"share_payment_status":false,"referral":"chat_attachment"}`
+
+func TestExtractMessageContent_PixReal(t *testing.T) {
+	m := &waProto.Message{InteractiveMessage: &waProto.InteractiveMessage{InteractiveMessage: &waProto.InteractiveMessage_NativeFlowMessage_{
+		NativeFlowMessage: &waProto.InteractiveMessage_NativeFlowMessage{Buttons: []*waProto.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
+			{Name: proto.String("payment_info"), ButtonParamsJSON: proto.String(pixParamsReal)}}}}}}
+	got := extractMessageContent(m)
+	if got.msgType != "pix" {
+		t.Fatalf("type=%q, esperado pix (body=%q)", got.msgType, got.body)
+	}
+	if got.rich["key"] != "+5583988095596" || got.rich["keyType"] != "PHONE" || got.rich["name"] != "Meu PIX" {
+		t.Fatalf("rich=%v", got.rich)
+	}
+	if _, has := got.rich["amount"]; has {
+		t.Fatal("valor 0 não é cobrança: não deve aparecer")
+	}
+}
+
+func TestExtractMessageContent_EventoEstruturado(t *testing.T) {
+	ev := &waProto.EventMessage{Name: proto.String("Reunião"), JoinLink: proto.String("https://call.whatsapp.com/video/abc"), StartTime: proto.Int64(1793116800), IsScheduleCall: proto.Bool(true)}
+	got := extractMessageContent(&waProto.Message{EventMessage: ev})
+	if got.rich["joinLink"] != "https://call.whatsapp.com/video/abc" || got.rich["start"] != int64(1793116800) || got.rich["call"] != true {
+		t.Fatalf("rich=%v", got.rich)
+	}
+	ev.JoinLink = proto.String("javascript:alert(1)")
+	if _, has := extractMessageContent(&waProto.Message{EventMessage: ev}).rich["joinLink"]; has {
+		t.Fatal("link que não é https nunca vai para o chat")
+	}
+}
+
+func TestExtractMessageContent_EnqueteEstruturada(t *testing.T) {
+	p := &waProto.PollCreationMessage{Name: proto.String("Q?"), SelectableOptionsCount: proto.Uint32(2), Options: []*waProto.PollCreationMessage_Option{{OptionName: proto.String("A")}, {OptionName: proto.String("B")}}}
+	got := extractMessageContent(&waProto.Message{PollCreationMessageV3: p})
+	if got.rich["selectable"] != 2 || len(got.rich["options"].([]string)) != 2 {
+		t.Fatalf("rich=%v", got.rich)
+	}
+	p.SelectableOptionsCount = nil
+	if extractMessageContent(&waProto.Message{PollCreationMessageV3: p}).rich["selectable"] != 1 {
+		t.Fatal("sem contagem = escolha única")
+	}
+}
+
+func TestForwardedOf(t *testing.T) {
+	img := &waProto.Message{ImageMessage: &waProto.ImageMessage{ContextInfo: &waProto.ContextInfo{IsForwarded: proto.Bool(true), ForwardingScore: proto.Uint32(127)}}}
+	if f, s := forwardedOf(img); !f || s != 127 {
+		t.Fatalf("imagem: %v %d", f, s)
+	}
+	txt := &waProto.Message{ExtendedTextMessage: &waProto.ExtendedTextMessage{Text: proto.String("x"), ContextInfo: &waProto.ContextInfo{IsForwarded: proto.Bool(true), ForwardingScore: proto.Uint32(1)}}}
+	if f, s := forwardedOf(txt); !f || s != 1 {
+		t.Fatalf("texto: %v %d", f, s)
+	}
+	wrapped := &waProto.Message{EphemeralMessage: &waProto.FutureProofMessage{Message: img}}
+	if f, _ := forwardedOf(wrapped); !f {
+		t.Fatal("encaminhada dentro de envelope temporário")
+	}
+	if f, _ := forwardedOf(&waProto.Message{Conversation: proto.String("oi")}); f {
+		t.Fatal("mensagem comum não é encaminhada")
+	}
+}

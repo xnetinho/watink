@@ -13,6 +13,7 @@ import CallMessage from "../../Calls/CallMessage";
 import { t } from "../../../lib/calls/t";
 import { i18n } from "../../../translate/i18n";
 import { EyeOff, TriangleAlert } from "lucide-react";
+import { PixCard, EventCard, PollCard, LiveLocationBadge } from "./RichCards";
 import { isKnownMediaType } from "../utils/messageHelpers";
 
 interface Props {
@@ -75,17 +76,22 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
     return <OnDemandMediaPreview message={message} />;
   }
 
-  if (message.mediaType === "poll" || message.mediaType === "event") return null;
+  if (message.mediaType === "pix") return <PixCard message={message} />;
+  if (message.mediaType === "event") return <EventCard message={message} />;
+  if (message.mediaType === "poll") return <PollCard message={message} />;
 
   if (message.mediaType === "location" && message.body.split("|").length >= 2) {
     const [imageLocation, linkLocation, descriptionLocation] =
       message.body.split("|");
     return (
-      <LocationPreview
-        image={imageLocation}
-        link={linkLocation}
-        description={descriptionLocation ?? null}
-      />
+      <>
+        <LiveLocationBadge message={message} />
+        <LocationPreview
+          image={imageLocation}
+          link={linkLocation}
+          description={descriptionLocation ?? null}
+        />
+      </>
     );
   }
 
@@ -103,10 +109,19 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
     return <VcardPreview contact={contact} numbers={obj[0]?.number} />;
   }
 
-  if (
-    message.mediaType === "image" ||
-    message.mediaType === "sticker"
-  ) {
+  if (message.mediaType === "sticker") {
+    return (
+      <img
+        src={getBackendUrl(message.mediaUrl) ?? ""}
+        alt="sticker"
+        loading="lazy"
+        className="h-[170px] w-[170px] object-contain"
+        data-testid="sticker"
+      />
+    );
+  }
+
+  if (message.mediaType === "image") {
     return (
       <ModalImageCors imageUrl={getBackendUrl(message.mediaUrl) ?? ""} />
     );

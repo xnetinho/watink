@@ -101,6 +101,13 @@ type InboundMessage struct {
 	Timestamp           time.Time     `json:"timestamp"`
 	QuotedMessageID     string        `json:"quotedMessageId,omitempty"`
 	RawPayload          []byte        `json:"-"`
+	// Edited marca a edição de uma mensagem já entregue (Telegram edited_message, inclusive localização ao vivo): atualiza a
+	// original em vez de ser descartada como duplicata.
+	Edited bool `json:"edited,omitempty"`
+	// Forwarded: o canal informou que a mensagem foi encaminhada.
+	Forwarded bool `json:"forwarded,omitempty"`
+	// Rich: forma estruturada (enquete, localização ao vivo...) para o chat desenhar um cartão; Body segue como texto.
+	Rich map[string]interface{} `json:"rich,omitempty"`
 }
 
 // OutboundMessage representa uma mensagem a ser transmitida para a plataforma externa.

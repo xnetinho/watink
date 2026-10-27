@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -12,11 +13,15 @@ import (
 )
 
 type mediaContent struct {
-	body      string
-	msgType   string
-	mimeType  string
-	thumbnail string // base64 JPEG preview (image/video/document); empty otherwise
-	protoB64  string // base64 proto.Marshal of the downloadable media message
+	// rich guarda a forma estruturada de pix/enquete/evento/localização para o chat desenhar um cartão, em vez de ler o
+	// texto de body. body continua preenchido (prévia do ticket e canais que só entendem texto).
+	rich       map[string]interface{}
+	fileLength uint64 // bytes da mídia (decide o download automático)
+	body       string
+	msgType    string
+	mimeType   string
+	thumbnail  string // base64 JPEG preview (image/video/document); empty otherwise
+	protoB64   string // base64 proto.Marshal of the downloadable media message
 }
 
 // unwrap abre os envelopes do WhatsApp (mensagem temporária, documento com legenda, visualização única, edição): o
@@ -50,23 +55,23 @@ func extractMessageContent(msg *waProto.Message) mediaContent {
 		c.body = ext.GetText()
 	}
 	if img := msg.GetImageMessage(); img != nil {
-		return mediaContent{body: img.GetCaption(), msgType: "image", mimeType: img.GetMimetype(), thumbnail: encodeThumb(img.GetJPEGThumbnail()), protoB64: marshalMedia(img)}
+		return mediaContent{fileLength: img.GetFileLength(), body: img.GetCaption(), msgType: "image", mimeType: img.GetMimetype(), thumbnail: encodeThumb(img.GetJPEGThumbnail()), protoB64: marshalMedia(img)}
 	}
 	if video := msg.GetVideoMessage(); video != nil {
-		return mediaContent{body: video.GetCaption(), msgType: "video", mimeType: video.GetMimetype(), thumbnail: encodeThumb(video.GetJPEGThumbnail()), protoB64: marshalMedia(video)}
+		return mediaContent{fileLength: video.GetFileLength(), body: video.GetCaption(), msgType: "video", mimeType: video.GetMimetype(), thumbnail: encodeThumb(video.GetJPEGThumbnail()), protoB64: marshalMedia(video)}
 	}
 	if audio := msg.GetAudioMessage(); audio != nil {
-		return mediaContent{msgType: "audio", mimeType: audio.GetMimetype(), protoB64: marshalMedia(audio)}
+		return mediaContent{fileLength: audio.GetFileLength(), msgType: "audio", mimeType: audio.GetMimetype(), protoB64: marshalMedia(audio)}
 	}
 	if doc := msg.GetDocumentMessage(); doc != nil {
 		caption := doc.GetCaption()
 		if caption == "" {
 			caption = doc.GetTitle()
 		}
-		return mediaContent{body: caption, msgType: "document", mimeType: doc.GetMimetype(), thumbnail: encodeThumb(doc.GetJPEGThumbnail()), protoB64: marshalMedia(doc)}
+		return mediaContent{fileLength: doc.GetFileLength(), body: caption, msgType: "document", mimeType: doc.GetMimetype(), thumbnail: encodeThumb(doc.GetJPEGThumbnail()), protoB64: marshalMedia(doc)}
 	}
 	if sticker := msg.GetStickerMessage(); sticker != nil {
-		return mediaContent{msgType: "sticker", mimeType: sticker.GetMimetype(), protoB64: marshalMedia(sticker)}
+		return mediaContent{fileLength: sticker.GetFileLength(), msgType: "sticker", mimeType: sticker.GetMimetype(), protoB64: marshalMedia(sticker)}
 	}
 	if c.body != "" {
 		return c
@@ -76,6 +81,9 @@ func extractMessageContent(msg *waProto.Message) mediaContent {
 	}
 	if live := msg.GetLiveLocationMessage(); live != nil {
 		return locationContent(live.GetDegreesLatitude(), live.GetDegreesLongitude(), "Localização em tempo real", live.GetCaption(), live.GetJPEGThumbnail())
+	}
+	if pix := pixOf(msg); pix != nil {
+		return mediaContent{msgType: "pix", body: "💠 PIX: " + fmt.Sprint(pix["name"]), rich: pix}
 	}
 	if ct := msg.GetContactMessage(); ct != nil {
 		return mediaContent{msgType: "vcard", body: vcardOf(ct.GetDisplayName(), ct.GetVcard())}
@@ -89,20 +97,75 @@ func extractMessageContent(msg *waProto.Message) mediaContent {
 		for _, o := range poll.GetOptions() {
 			lines = append(lines, "• "+o.GetOptionName())
 		}
-		return mediaContent{msgType: "poll", body: strings.Join(lines, "\n")}
+		opts := make([]string, 0, len(poll.GetOptions()))
+		for _, o := range poll.GetOptions() {
+			opts = append(opts, o.GetOptionName())
+		}
+		sel := int(poll.GetSelectableOptionsCount())
+		if sel < 1 {
+			sel = 1
+		}
+		return mediaContent{msgType: "poll", body: strings.Join(lines, "\n"), rich: map[string]interface{}{"question": poll.GetName(), "options": opts, "selectable": sel}}
 	}
 	if ev := msg.GetEventMessage(); ev != nil {
 		body := "📅 " + ev.GetName()
 		if loc := ev.GetLocation().GetName(); loc != "" {
 			body += "\n📍 " + loc
 		}
-		return mediaContent{msgType: "event", body: body}
+		rich := map[string]interface{}{"name": ev.GetName(), "description": ev.GetDescription(), "location": ev.GetLocation().GetName(),
+			"start": ev.GetStartTime(), "end": ev.GetEndTime(), "canceled": ev.GetIsCanceled(), "call": ev.GetIsScheduleCall()}
+		if link := ev.GetJoinLink(); strings.HasPrefix(link, "https://") {
+			rich["joinLink"] = link
+		}
+		return mediaContent{msgType: "event", body: body, rich: rich}
 	}
 	// Futuro-prova: qualquer conteúdo que o WhatsApp crie e nós não conheçamos vira um aviso, em vez de sumir.
 	if kind := unsupportedKind(msg); kind != "" {
 		return mediaContent{msgType: "unsupported", body: kind}
 	}
 	return c
+}
+
+// pixOf lê o botão de pagamento PIX (nativeFlow "payment_info" com pix_static_code). nil quando não é PIX.
+func pixOf(msg *waProto.Message) map[string]interface{} {
+	nf := msg.GetInteractiveMessage().GetNativeFlowMessage()
+	for _, b := range nf.GetButtons() {
+		if b.GetName() != "payment_info" {
+			continue
+		}
+		var params struct {
+			Settings []struct {
+				Type string `json:"type"`
+				Pix  struct {
+					Merchant string `json:"merchant_name"`
+					Key      string `json:"key"`
+					KeyType  string `json:"key_type"`
+					Code     string `json:"code"`
+				} `json:"pix_static_code"`
+			} `json:"payment_settings"`
+			Total struct {
+				Value  int64 `json:"value"`
+				Offset int64 `json:"offset"`
+			} `json:"total_amount"`
+		}
+		if json.Unmarshal([]byte(b.GetButtonParamsJSON()), &params) != nil {
+			continue
+		}
+		for _, st := range params.Settings {
+			if st.Type != "pix_static_code" {
+				continue
+			}
+			out := map[string]interface{}{"name": st.Pix.Merchant, "key": st.Pix.Key, "keyType": st.Pix.KeyType}
+			if st.Pix.Code != "" {
+				out["code"] = st.Pix.Code
+			}
+			if params.Total.Value > 0 && params.Total.Offset > 0 {
+				out["amount"] = float64(params.Total.Value) / float64(params.Total.Offset)
+			}
+			return out
+		}
+	}
+	return nil
 }
 
 func pollOf(msg *waProto.Message) *waProto.PollCreationMessage {
@@ -240,4 +303,40 @@ func marshalMedia(m proto.Message) string {
 		return ""
 	}
 	return base64.StdEncoding.EncodeToString(raw)
+}
+
+// forwardedOf devolve se a mensagem foi encaminhada e o "score" (acima de 4 o WhatsApp a chama de encaminhada com
+// frequência). O ContextInfo mora dentro de cada tipo de mensagem.
+func forwardedOf(msg *waProto.Message) (bool, uint32) {
+	msg = unwrap(msg)
+	var ci *waProto.ContextInfo
+	switch {
+	case msg.GetExtendedTextMessage() != nil:
+		ci = msg.GetExtendedTextMessage().GetContextInfo()
+	case msg.GetImageMessage() != nil:
+		ci = msg.GetImageMessage().GetContextInfo()
+	case msg.GetVideoMessage() != nil:
+		ci = msg.GetVideoMessage().GetContextInfo()
+	case msg.GetAudioMessage() != nil:
+		ci = msg.GetAudioMessage().GetContextInfo()
+	case msg.GetDocumentMessage() != nil:
+		ci = msg.GetDocumentMessage().GetContextInfo()
+	case msg.GetStickerMessage() != nil:
+		ci = msg.GetStickerMessage().GetContextInfo()
+	case msg.GetLocationMessage() != nil:
+		ci = msg.GetLocationMessage().GetContextInfo()
+	case msg.GetLiveLocationMessage() != nil:
+		ci = msg.GetLiveLocationMessage().GetContextInfo()
+	case msg.GetContactMessage() != nil:
+		ci = msg.GetContactMessage().GetContextInfo()
+	case msg.GetPollCreationMessageV3() != nil:
+		ci = msg.GetPollCreationMessageV3().GetContextInfo()
+	case msg.GetPollCreationMessage() != nil:
+		ci = msg.GetPollCreationMessage().GetContextInfo()
+	case msg.GetEventMessage() != nil:
+		ci = msg.GetEventMessage().GetContextInfo()
+	case msg.GetInteractiveMessage() != nil:
+		ci = msg.GetInteractiveMessage().GetContextInfo()
+	}
+	return ci.GetIsForwarded(), ci.GetForwardingScore()
 }

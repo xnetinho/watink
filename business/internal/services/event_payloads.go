@@ -75,6 +75,12 @@ type MessagePayload struct {
 	// the operator clicks the download button.
 	Thumbnail  string `json:"thumbnail"`
 	MediaProto string `json:"mediaProto"`
+	// Forwarded/ForwardScore: o WhatsApp marca "encaminhada" e, com score alto (> 4), "encaminhada com frequência".
+	Forwarded    bool `json:"forwarded"`
+	ForwardScore int  `json:"forwardScore"`
+	// Rich: forma estruturada de pix/enquete/evento para o chat desenhar um cartão (o body segue como texto).
+	Rich       map[string]interface{} `json:"rich"`
+	FileLength int64                  `json:"fileLength"`
 }
 
 type MessageReceivedPayload struct {

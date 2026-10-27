@@ -37,6 +37,10 @@ type ReceiveMessageInput struct {
 	Mimetype      string
 	Thumbnail     string // base64 JPEG preview for pending (not-yet-downloaded) media
 	MediaProto    string // base64 serialized media message for on-demand download
+	Forwarded     bool
+	ForwardScore  int
+	Rich          map[string]interface{}
+	FileLength    int64
 	SessionID     int
 	TenantID      uuid.UUID
 }
@@ -195,7 +199,18 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		}
 	}
 
-	dataJSON, _ := json.Marshal(map[string]interface{}{
+	extra := map[string]interface{}{}
+	if input.Forwarded {
+		extra["forwarded"] = true
+		extra["forwardScore"] = input.ForwardScore
+	}
+	if len(input.Rich) > 0 {
+		extra["rich"] = input.Rich
+	}
+	if input.FileLength > 0 {
+		extra["fileLength"] = input.FileLength
+	}
+	dataMap := map[string]interface{}{
 		"jid":          contactJID,
 		"participant":  input.Participant,
 		"pushName":     input.PushName,     // sender name shown in group bubble
@@ -207,7 +222,11 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		"thumbnail":    input.Thumbnail,
 		"mediaProto":   input.MediaProto,
 		"mediaStatus":  mediaStatus,
-	})
+	}
+	for k, v := range extra {
+		dataMap[k] = v
+	}
+	dataJSON, _ := json.Marshal(dataMap)
 
 	createdAt := time.Unix(input.Timestamp, 0)
 	if createdAt.IsZero() || input.Timestamp == 0 {

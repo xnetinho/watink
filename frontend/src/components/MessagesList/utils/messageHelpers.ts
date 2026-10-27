@@ -51,7 +51,7 @@ export const getSenderKey = (
 
 // Tipos que o chat sabe desenhar. Qualquer outro mediaType vira o aviso de "mensagem não suportada".
 const KNOWN_MEDIA_TYPES = [
-  "chat", "image", "video", "audio", "document", "sticker", "location", "vcard", "carousel", "call", "view_once", "poll", "event",
+  "chat", "image", "video", "audio", "document", "sticker", "location", "vcard", "carousel", "call", "view_once", "poll", "event", "pix",
 ];
 export const isKnownMediaType = (t: string): boolean => KNOWN_MEDIA_TYPES.includes(t);
 

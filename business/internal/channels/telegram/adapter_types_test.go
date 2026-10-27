@@ -72,3 +72,48 @@ func TestParseInbound_StickerEstaticoEGifSaoMidia(t *testing.T) {
 	mt, _ = parse(t, `"animation":{"file_id":"x","file_unique_id":"y"},"document":{"file_id":"x","file_unique_id":"y"}`)
 	assert.Equal(t, "document", mt, "GIF do Telegram vem como animation E document; vale o documento")
 }
+
+func parseUpdate(t *testing.T, kind, msgJSON string) []domainInbound {
+	t.Helper()
+	conn := &models.ChannelConnection{Kind: "telegram", Status: "CONNECTED"}
+	raw := `{"update_id":1,"` + kind + `":{"message_id":5,"date":1,"chat":{"id":9,"type":"private"},"from":{"id":9,"first_name":"A"},` + msgJSON + `}}`
+	out, err := NewAdapter(nil).ParseInbound(context.Background(), conn, []byte(raw), nil)
+	require.NoError(t, err)
+	res := make([]domainInbound, len(out))
+	for i, o := range out {
+		res[i] = domainInbound{Edited: o.Edited, Forwarded: o.Forwarded, Rich: o.Rich, Body: o.Body, Type: o.MediaType}
+	}
+	return res
+}
+
+type domainInbound struct {
+	Edited, Forwarded bool
+	Rich              map[string]interface{}
+	Body, Type        string
+}
+
+// Updates reais capturados do bot: a localização ao vivo chega como edited_message a cada ~30s.
+func TestParseInbound_LocalizacaoAoVivoEEdicao(t *testing.T) {
+	first := parseUpdate(t, "message", `"location":{"latitude":-7.173401,"longitude":-34.837595,"live_period":900}`)
+	require.Len(t, first, 1)
+	assert.False(t, first[0].Edited)
+	assert.Equal(t, true, first[0].Rich["live"])
+
+	edit := parseUpdate(t, "edited_message", `"edit_date":1793116945,"location":{"latitude":-7.17341,"longitude":-34.837586,"live_period":900,"heading":90,"horizontal_accuracy":3.0}`)
+	require.Len(t, edit, 1)
+	assert.True(t, edit[0].Edited, "edição precisa atualizar a original, não ser descartada")
+	assert.Contains(t, edit[0].Body, "-7.173410")
+	assert.Equal(t, "location", edit[0].Type)
+}
+
+func TestParseInbound_EnqueteEstruturadaEEncaminhada(t *testing.T) {
+	p := parseUpdate(t, "message", `"poll":{"id":"1","question":"Q?","options":[{"text":"A","voter_count":0},{"text":"B","voter_count":0}],"allows_multiple_answers":true,"type":"regular"}`)
+	require.Len(t, p, 1)
+	assert.Equal(t, "poll", p[0].Type)
+	assert.Equal(t, 2, p[0].Rich["selectable"])
+
+	f := parseUpdate(t, "message", `"text":"olha isso","forward_origin":{"type":"user","date":1}`)
+	require.Len(t, f, 1)
+	assert.True(t, f[0].Forwarded)
+	assert.Equal(t, "chat", f[0].Type)
+}

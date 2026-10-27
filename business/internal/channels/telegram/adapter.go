@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -229,8 +231,9 @@ type TelegramMessage struct {
 		IsVideo    bool `json:"is_video"`
 	} `json:"sticker,omitempty"`
 	Location *struct {
-		Latitude  float64 `json:"latitude"`
-		Longitude float64 `json:"longitude"`
+		Latitude   float64 `json:"latitude"`
+		Longitude  float64 `json:"longitude"`
+		LivePeriod int     `json:"live_period,omitempty"`
 	} `json:"location,omitempty"`
 	Venue *struct {
 		Title   string `json:"title"`
@@ -241,9 +244,14 @@ type TelegramMessage struct {
 		FirstName   string `json:"first_name"`
 		LastName    string `json:"last_name"`
 	} `json:"contact,omitempty"`
-	Poll *struct {
-		Question string `json:"question"`
-		Options  []struct {
+	ForwardOrigin json.RawMessage `json:"forward_origin,omitempty"`
+	EditDate      int64           `json:"edit_date,omitempty"`
+	Poll          *struct {
+		Question       string `json:"question"`
+		AllowsMultiple bool   `json:"allows_multiple_answers"`
+		IsAnonymous    bool   `json:"is_anonymous"`
+		Type           string `json:"type"`
+		Options        []struct {
 			Text string `json:"text"`
 		} `json:"options"`
 	} `json:"poll,omitempty"`
@@ -309,6 +317,7 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 	if msg == nil {
 		return nil, nil
 	}
+	logRawUpdate(raw)
 
 	chatExternalID := strconv.FormatInt(msg.Chat.ID, 10)
 	senderExternalID := chatExternalID
@@ -334,6 +343,7 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 	mediaType := "chat"
 	var fileID string
 	var mimeType string
+	var rich map[string]interface{}
 
 	if len(msg.Photo) > 0 {
 		mediaType = "image"
@@ -380,6 +390,12 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		if msg.Venue != nil {
 			body += strings.ReplaceAll(strings.TrimSpace(msg.Venue.Title+"\n"+msg.Venue.Address), "|", "/")
 		}
+		if msg.Location.LivePeriod > 0 {
+			rich = map[string]interface{}{"live": true, "livePeriod": msg.Location.LivePeriod}
+			if body == "|"+fmt.Sprintf("https://maps.google.com/maps?q=%f%%2C%f&z=17&hl=pt-BR", msg.Location.Latitude, msg.Location.Longitude)+"|" {
+				body += "Localização em tempo real"
+			}
+		}
 	} else if msg.Contact != nil {
 		mediaType = "vcard"
 		name := strings.TrimSpace(msg.Contact.FirstName + " " + msg.Contact.LastName)
@@ -391,6 +407,15 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 			lines = append(lines, "• "+o.Text)
 		}
 		body = strings.Join(lines, "\n")
+		opts := make([]string, 0, len(msg.Poll.Options))
+		for _, o := range msg.Poll.Options {
+			opts = append(opts, o.Text)
+		}
+		sel := 1
+		if msg.Poll.AllowsMultiple {
+			sel = len(opts)
+		}
+		rich = map[string]interface{}{"question": msg.Poll.Question, "options": opts, "selectable": sel}
 	} else if msg.Sticker != nil {
 		mediaType, body = "unsupported", "sticker animado"
 	} else if k := unknownTelegramField(raw); k != "" {
@@ -435,7 +460,23 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		QuotedMessageID: quotedID,
 		Timestamp:       time.Unix(msg.Date, 0),
 		RawPayload:      raw,
+		Edited:          update.EditedMessage != nil && update.Message == nil,
+		Forwarded:       len(msg.ForwardOrigin) > 0 && string(msg.ForwardOrigin) != "null",
+		Rich:            rich,
 	}
 
 	return []domain.InboundMessage{inbound}, nil
+}
+
+// logRawUpdate despeja o update cru quando ele não é só texto, para projetar o suporte a tipos novos com o conteúdo
+// real. Desligado por padrão: pode ter dado pessoal (WATINK_LOG_CHANNEL_RAW=1 só em diagnóstico).
+func logRawUpdate(raw []byte) {
+	if os.Getenv("WATINK_LOG_CHANNEL_RAW") != "1" {
+		return
+	}
+	s := string(raw)
+	if len(s) > 4000 {
+		s = s[:4000] + "…"
+	}
+	log.Printf("[Telegram] RAW %s", s)
 }

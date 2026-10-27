@@ -36,6 +36,9 @@ const MEDIA_BUBBLE_TYPES = [
   "carousel",
   "call",
   "view_once",
+  "poll",
+  "event",
+  "pix",
 ];
 export const hasMediaBubble = (m: Message): boolean =>
   !!m.mediaUrl ||
@@ -45,6 +48,7 @@ export const hasMediaBubble = (m: Message): boolean =>
 import MessageReactions from "./MessageReactions";
 import MessageInteractive from "./MessageInteractive";
 import MessageMetadata from "./MessageMetadata";
+import ForwardedLabel from "./ForwardedLabel";
 import LinkPreview from "./LinkPreview";
 import DailyTimestamp from "./DailyTimestamp";
 import SenderName from "./SenderName";
@@ -119,6 +123,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     message.mediaType === "video" ||
     message.mediaType === "location";
   const maxW = isMedia ? 332 : 600;
+  // Sticker tem fundo transparente: sem balão, como no WhatsApp Web.
+  const isSticker = message.mediaType === "sticker" && !!message.mediaUrl;
+  const bareBubble = "!bg-transparent !border-0 !shadow-none";
   const senderDivider =
     index > 0 && currentSenderKey !== previousSenderKey ? (
       <span className="block h-7 clear-both" />
@@ -196,7 +203,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               appTheme === "saas"
                 ? "bg-[hsl(var(--message-saas-bg-alt))] text-[hsl(var(--message-left-text))] rounded-tl-xl rounded-tr-xl rounded-bl-none rounded-br-xl border border-[var(--border-default)]"
                 : "bg-[hsl(var(--message-left-bg))] text-[hsl(var(--message-left-text))] rounded-tl-none rounded-tr-lg rounded-bl-lg rounded-br-lg shadow-sm",
-              "group"
+              "group",
+              isSticker && bareBubble
             )}
             style={{ marginTop, maxWidth: maxW }}
             onDoubleClick={handleDoubleClick}
@@ -209,6 +217,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 colorCache={colorCache}
               />
             )}
+            <ForwardedLabel message={message} />
             {hasMediaBubble(message) && <MessageMedia message={message} />}
             {bodyContent}
             <MessageInteractive message={message} />
@@ -235,13 +244,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           appTheme === "saas"
             ? "bg-[hsl(var(--message-saas-bg))] text-[hsl(var(--message-saas-text))] rounded-tl-xl rounded-tr-xl rounded-bl-xl rounded-br-none"
             : "bg-[hsl(var(--message-right-bg))] text-[hsl(var(--message-right-text))] rounded-tl-lg rounded-tr-lg rounded-bl-lg rounded-br-none shadow-sm",
-          "group"
+          "group",
+          isSticker && bareBubble
         )}
         style={{ marginTop, maxWidth: maxW }}
             onDoubleClick={handleDoubleClick}
       >
         {actionsButton}
-        {hasMediaBubble(message) && <MessageMedia message={message} />}
+        <ForwardedLabel message={message} />
+            {hasMediaBubble(message) && <MessageMedia message={message} />}
         {bodyContent}
         <MessageInteractive message={message} />
         <MessageReactions message={message} />

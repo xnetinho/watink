@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -62,7 +63,8 @@ func (s *ChannelInboundService) Receive(ctx context.Context, msg domain.InboundM
 
 	// 1. Deduplicação no Redis. A conversa entra na chave porque o id do canal só é único dentro dela (Telegram).
 	dedupKey := ""
-	if s.redis != nil {
+	// Edição reusa o id da original: o dedup a descartaria. Ela é idempotente (só regrava o corpo), então dispensa a trava.
+	if s.redis != nil && !msg.Edited {
 		dedupKey = "channel:msg:" + domain.StorageMessageID(msg.Channel, msg.ChannelConnectionID, conversationKeyOf(msg), msg.ExternalMessageID)
 		acquired, err := s.redis.SetLock(dedupKey, "1", channelDedupTTL)
 		if err != nil {
@@ -148,8 +150,42 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 		mediaType = "chat"
 	}
 
+	dataJSON := "{}"
+	if msg.Forwarded || len(msg.Rich) > 0 {
+		d := map[string]interface{}{}
+		if msg.Forwarded {
+			d["forwarded"] = true
+		}
+		if len(msg.Rich) > 0 {
+			d["rich"] = msg.Rich
+		}
+		if b, err := json.Marshal(d); err == nil {
+			dataJSON = string(b)
+		}
+	}
+
+	messageID := domain.StorageMessageID(msg.Channel, msg.ChannelConnectionID, convKey, msg.ExternalMessageID)
+	if msg.Edited {
+		// Edição (inclusive localização ao vivo, que reenvia a posição a cada ~30s): atualiza a mensagem original e avisa a
+		// tela, em vez de duplicar ou descartar. Se a original não existe, segue como mensagem nova.
+		if orig, err := s.messageRepo.FindByID(ctx, messageID, msg.TenantID); err == nil && orig != nil {
+			upd := map[string]interface{}{"body": msg.Body, "updatedAt": time.Now()}
+			if err := s.messageRepo.Update(ctx, orig, upd); err != nil {
+				return nil, fmt.Errorf("failed to update edited message: %w", err)
+			}
+			orig.Body = msg.Body
+			if s.broadcast != nil {
+				payload := map[string]interface{}{"action": "update", "message": orig}
+				s.broadcast.EmitToRoom("/", "chat:"+strconv.Itoa(orig.TicketID), "appMessage", payload)
+				s.broadcast.EmitToTenantRoom(msg.TenantID.String(), "appMessage", payload)
+			}
+			return &usecases.ReceiveMessageResult{Message: orig, Duplicate: true}, nil
+		}
+	}
+
 	message := &domain.Message{
-		ID:         domain.StorageMessageID(msg.Channel, msg.ChannelConnectionID, convKey, msg.ExternalMessageID),
+		ID:         messageID,
+		DataJson:   dataJSON,
 		ExternalID: msg.ExternalMessageID,
 		Body:       msg.Body,
 		Ack:        1, // recebida
