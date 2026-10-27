@@ -106,22 +106,24 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
   const [sent, setSent] = useState(mine.length > 0);
   if (options.length === 0) return <LegacyText message={message} testId="poll-card" />;
 
-  // Votos dos participantes (dataJson.votes[jid] = opções). Em conversa 1:1 o outro lado é quem responde pelo celular.
+  // Votos de todos (dataJson.votes[jid] = opções), inclusive o do operador (chave "__me__").
   const votes = (parseData(message.dataJson).votes as Record<string, string[]> | undefined) ?? {};
   const tally: Record<string, number> = {};
   Object.values(votes).forEach((list) => (list ?? []).forEach((o) => (tally[o] = (tally[o] ?? 0) + 1)));
   const voters = Object.values(votes).filter((l) => (l ?? []).length > 0).length;
   const limit = Number(r.selectable) || options.length;
   const multi = limit > 1;
-  // Só o WhatsApp vota (o Telegram entrega a enquete como texto) e só a recebida: a nossa já saiu com as opções.
   // O id da mensagem de canal agnóstico começa com "<canal>:" (ex.: telegram:2:123:7); o do WhatsApp é o id cru.
-  const canVote = !message.fromMe && !String(message.id).includes(":");
+  const isTelegram = String(message.id).includes(":");
+  // WhatsApp: vota-se em enquete recebida. Telegram: a Bot API não tem como um bot votar, então só mostra o resultado.
+  const canVote = !message.fromMe && !isTelegram;
 
   const toggle = (o: string) => {
     setSent(false);
+    // Na única, clicar na opção já marcada a desmarca (permite remover o voto); na múltipla alterna até o limite.
     setChosen((cur) => {
-      if (!multi) return [o];
       if (cur.includes(o)) return cur.filter((x) => x !== o);
+      if (!multi) return [o];
       return cur.length >= limit ? cur : [...cur, o];
     });
   };
@@ -138,43 +140,56 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
   };
 
   return (
-    <div className={card} data-testid="poll-card">
-      <div className="font-medium">📊 {String(r.question ?? "")}</div>
-      <div className="text-[11px] text-[var(--text-muted)]">{multi ? `Escolha até ${limit} opções` : "Escolha 1 opção"}</div>
+    <div className="flex w-[330px] max-w-full flex-col gap-2.5 rounded-xl bg-[var(--bg-surface)] px-4 py-3 text-[15px]" data-testid="poll-card">
+      <div className="text-base font-semibold leading-snug">{String(r.question ?? "")}</div>
+      <div className="text-xs text-[var(--text-muted)]">
+        {isTelegram ? (multi ? "Enquete · várias respostas" : "Enquete") : multi ? `Selecione até ${limit} opções` : "Selecione uma opção"}
+      </div>
       {options.map((o, i) => {
         const on = chosen.includes(o);
         const id = `poll-${message.id}-${i}`;
+        const n = tally[o] ?? 0;
+        const pct = voters > 0 ? Math.round((n / voters) * 100) : 0;
         return (
-          <label key={i} htmlFor={id} className={`flex items-center gap-2 ${canVote ? "cursor-pointer" : ""}`}>
-            <input
-              id={id}
-              type={multi ? "checkbox" : "radio"}
-              name={`poll-${message.id}`}
-              checked={on}
-              disabled={!canVote || busy}
-              onChange={() => toggle(o)}
-              className="h-3.5 w-3.5 shrink-0 accent-[hsl(var(--action-primary))]"
-            />
-            <span className="break-words">{o}</span>
-            {tally[o] ? (
-              <span className="ml-auto rounded-full bg-[hsl(var(--action-primary)/0.12)] px-1.5 text-[11px] font-medium" data-testid="poll-count">
-                {tally[o]}
-              </span>
-            ) : null}
-          </label>
+          <div key={i} className="flex flex-col gap-1">
+            <label htmlFor={id} className={`flex items-center gap-2.5 ${canVote ? "cursor-pointer" : ""}`}>
+              {canVote && (
+                <input
+                  id={id}
+                  type={multi ? "checkbox" : "radio"}
+                  name={`poll-${message.id}`}
+                  checked={on}
+                  disabled={busy}
+                  // radio não dispara onChange ao clicar no que já está marcado: o clique cuida de desmarcar.
+                  onChange={() => undefined}
+                  onClick={() => toggle(o)}
+                  className="h-5 w-5 shrink-0 accent-[hsl(var(--action-primary))]"
+                />
+              )}
+              <span className="flex-1 break-words">{o}</span>
+              {n > 0 && (
+                <span className="text-sm font-medium" data-testid="poll-count">
+                  {n}
+                </span>
+              )}
+            </label>
+            {voters > 0 && (
+              <div className="ml-[30px] h-1 overflow-hidden rounded-full bg-[var(--border-subtle)]" aria-hidden>
+                <div className="h-full rounded-full bg-[hsl(var(--action-primary))]" style={{ width: `${pct}%` }} />
+              </div>
+            )}
+          </div>
         );
       })}
-      {voters > 0 && (
-        <div className="text-[11px] text-[var(--text-muted)]" data-testid="poll-voters">
-          {voters} {voters === 1 ? "voto" : "votos"}
-        </div>
-      )}
+      <div className="text-xs text-[var(--text-muted)]" data-testid="poll-voters">
+        {voters} {voters === 1 ? "voto" : "votos"}
+      </div>
       {canVote && (
         <button
           type="button"
           onClick={vote}
           disabled={busy || sent || (chosen.length === 0 && mine.length === 0)}
-          className="mt-0.5 rounded-lg bg-[hsl(var(--action-primary))] py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          className="rounded-lg bg-[hsl(var(--action-primary))] py-2 text-sm font-medium text-white disabled:opacity-50"
         >
           {busy ? "Enviando…" : sent ? "Voto enviado" : chosen.length === 0 ? "Remover voto" : "Votar"}
         </button>

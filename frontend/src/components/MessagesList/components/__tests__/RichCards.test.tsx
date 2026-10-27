@@ -43,7 +43,7 @@ describe("cartões de mensagem", () => {
   it("enquete única: rádio, um voto, envia as opções escolhidas", async () => {
     post.mockResolvedValue({});
     render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 } }), id: "P1" }} />);
-    expect(screen.getByTestId("poll-card")).toHaveTextContent("Escolha 1 opção");
+    expect(screen.getByTestId("poll-card")).toHaveTextContent("Selecione uma opção");
     const [a, b] = screen.getAllByRole("radio");
     fireEvent.click(a);
     fireEvent.click(b);
@@ -56,7 +56,7 @@ describe("cartões de mensagem", () => {
 
   it("enquete múltipla: caixas, respeita o limite", () => {
     render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B", "C"], selectable: 2 } }), id: "P2" }} />);
-    expect(screen.getByTestId("poll-card")).toHaveTextContent("Escolha até 2 opções");
+    expect(screen.getByTestId("poll-card")).toHaveTextContent("Selecione até 2 opções");
     const [a, b, c] = screen.getAllByRole("checkbox");
     fireEvent.click(a);
     fireEvent.click(b);
@@ -68,6 +68,29 @@ describe("cartões de mensagem", () => {
     expect(c).toBeChecked();
   });
 
+  it("na enquete única dá para REMOVER o voto: clicar na opção marcada desmarca e envia lista vazia", async () => {
+    post.mockResolvedValue({});
+    render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 }, myVote: ["A"] }), id: "P3" }} />);
+    const [a] = screen.getAllByRole("radio");
+    expect(a).toBeChecked();
+    fireEvent.click(a);
+    expect(a).not.toBeChecked();
+    fireEvent.click(screen.getByText("Remover voto"));
+    await waitFor(() => expect(post).toHaveBeenCalledWith("/message/P3/vote", { options: [] }));
+  });
+
+  it("o voto do próprio Watink conta no total", () => {
+    render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 }, votes: { __me__: ["A"], "5511@s.whatsapp.net": ["A"] } }), id: "P4" }} />);
+    expect(screen.getByTestId("poll-voters")).toHaveTextContent("2 votos");
+    expect(screen.getAllByTestId("poll-count").map((e) => e.textContent)).toEqual(["2"]);
+  });
+
+  it("enquete do Telegram só mostra o resultado: sem botão nem seleção", () => {
+    render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 } }), id: "telegram:2:9:7" }} />);
+    expect(screen.queryByText("Votar")).toBeNull();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+  });
+
   it("mostra a contagem de votos por opção e o total", () => {
     render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 2 }, votes: { x: ["A", "B"], y: ["A"] } }), fromMe: true }} />);
     const counts = screen.getAllByTestId("poll-count").map((e) => e.textContent);
@@ -77,7 +100,7 @@ describe("cartões de mensagem", () => {
 
   it("voto removido (lista vazia) não conta", () => {
     render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 }, votes: { x: [] } }), fromMe: true }} />);
-    expect(screen.queryByTestId("poll-voters")).toBeNull();
+    expect(screen.getByTestId("poll-voters")).toHaveTextContent("0 votos");
     expect(screen.queryAllByTestId("poll-count")).toHaveLength(0);
   });
 
