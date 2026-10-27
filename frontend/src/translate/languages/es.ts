@@ -463,6 +463,10 @@ const messages = {
         success: "Usuario guardado satisfactoriamente.",
       },
       chat: {
+        unsupported: {
+          title: "Mensaje no soportado",
+          hint: "Watink aún no puede mostrar este tipo de mensaje ({{kind}}). Véalo en el teléfono o en la app del canal.",
+        },
         viewOnce: {
           title: "Ver una vez",
           hint: "WhatsApp solo entrega este contenido en el teléfono. Ábralo allí.",

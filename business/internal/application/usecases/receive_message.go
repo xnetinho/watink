@@ -261,8 +261,8 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 	}
 
 	lastMsg := msg.Body
-	if mediaType == "view_once" {
-		lastMsg = "👁 Visualização única"
+	if label := mediaTypeLabel(mediaType); label != "" {
+		lastMsg = label
 	}
 	if lastMsg == "" {
 		lastMsg = mimeTypeLabel(input.Mimetype)

@@ -14,6 +14,7 @@ import {
   getMessageBody,
   getFileNameFromUrl,
   isDateValid,
+  isKnownMediaType,
   parseData,
 } from "../utils/messageHelpers";
 import { Message } from "../types";
@@ -37,7 +38,10 @@ const MEDIA_BUBBLE_TYPES = [
   "view_once",
 ];
 export const hasMediaBubble = (m: Message): boolean =>
-  !!m.mediaUrl || MEDIA_BUBBLE_TYPES.includes(m.mediaType ?? "");
+  !!m.mediaUrl ||
+  MEDIA_BUBBLE_TYPES.includes(m.mediaType ?? "") ||
+  m.mediaType === "unsupported" ||
+  (!!m.mediaType && !isKnownMediaType(m.mediaType));
 import MessageReactions from "./MessageReactions";
 import MessageInteractive from "./MessageInteractive";
 import MessageMetadata from "./MessageMetadata";

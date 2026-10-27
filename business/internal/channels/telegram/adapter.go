@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"context"
@@ -220,6 +221,66 @@ type TelegramMessage struct {
 	Video     *TelegramFileObject `json:"video,omitempty"`
 	Audio     *TelegramFileObject `json:"audio,omitempty"`
 	Voice     *TelegramFileObject `json:"voice,omitempty"`
+	VideoNote *TelegramFileObject `json:"video_note,omitempty"`
+	Animation *TelegramFileObject `json:"animation,omitempty"`
+	Sticker   *struct {
+		TelegramFileObject
+		IsAnimated bool `json:"is_animated"`
+		IsVideo    bool `json:"is_video"`
+	} `json:"sticker,omitempty"`
+	Location *struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	} `json:"location,omitempty"`
+	Venue *struct {
+		Title   string `json:"title"`
+		Address string `json:"address"`
+	} `json:"venue,omitempty"`
+	Contact *struct {
+		PhoneNumber string `json:"phone_number"`
+		FirstName   string `json:"first_name"`
+		LastName    string `json:"last_name"`
+	} `json:"contact,omitempty"`
+	Poll *struct {
+		Question string `json:"question"`
+		Options  []struct {
+			Text string `json:"text"`
+		} `json:"options"`
+	} `json:"poll,omitempty"`
+}
+
+// telegramKnownFields são os campos de uma mensagem que o adapter trata ou que não são conteúdo (metadados). Qualquer
+// outro campo preenchido (dice, game, invoice, novos tipos que o Telegram criar...) vira um aviso de "não suportado".
+var telegramKnownFields = map[string]bool{
+	"message_id": true, "from": true, "chat": true, "date": true, "text": true, "caption": true, "reply_to_message": true,
+	"photo": true, "document": true, "video": true, "audio": true, "voice": true, "video_note": true, "animation": true,
+	"sticker": true, "location": true, "venue": true, "contact": true, "poll": true,
+	"entities": true, "caption_entities": true, "edit_date": true, "sender_chat": true, "forward_origin": true,
+	"forward_from": true, "forward_from_chat": true, "forward_date": true, "forward_signature": true, "forward_sender_name": true,
+	"forward_from_message_id": true, "is_automatic_forward": true, "via_bot": true, "media_group_id": true,
+	"author_signature": true, "has_protected_content": true, "link_preview_options": true, "reply_markup": true,
+	"message_thread_id": true, "is_topic_message": true, "has_media_spoiler": true, "show_caption_above_media": true,
+	"external_reply": true, "quote": true, "reply_to_story": true, "business_connection_id": true, "sender_business_bot": true,
+	"effect_id": true, "paid_star_count": true, "direct_messages_topic": true, "suggested_post_info": true,
+}
+
+func unknownTelegramField(raw []byte) string {
+	var u map[string]json.RawMessage
+	if json.Unmarshal(raw, &u) != nil {
+		return ""
+	}
+	for _, key := range []string{"message", "edited_message"} {
+		var m map[string]json.RawMessage
+		if json.Unmarshal(u[key], &m) != nil {
+			continue
+		}
+		for k, v := range m {
+			if !telegramKnownFields[k] && string(v) != "null" {
+				return k
+			}
+		}
+	}
+	return ""
 }
 
 type TelegramUser struct {
@@ -307,6 +368,33 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		if mimeType == "" {
 			mimeType = "audio/ogg"
 		}
+	} else if msg.VideoNote != nil {
+		mediaType, fileID, mimeType = "video", msg.VideoNote.FileID, "video/mp4"
+	} else if msg.Animation != nil {
+		mediaType, fileID, mimeType = "video", msg.Animation.FileID, "video/mp4"
+	} else if msg.Sticker != nil && !msg.Sticker.IsAnimated && !msg.Sticker.IsVideo {
+		mediaType, fileID, mimeType = "sticker", msg.Sticker.FileID, "image/webp"
+	} else if msg.Location != nil {
+		mediaType = "location"
+		body = "|" + fmt.Sprintf("https://maps.google.com/maps?q=%f%%2C%f&z=17&hl=pt-BR", msg.Location.Latitude, msg.Location.Longitude) + "|"
+		if msg.Venue != nil {
+			body += strings.ReplaceAll(strings.TrimSpace(msg.Venue.Title+"\n"+msg.Venue.Address), "|", "/")
+		}
+	} else if msg.Contact != nil {
+		mediaType = "vcard"
+		name := strings.TrimSpace(msg.Contact.FirstName + " " + msg.Contact.LastName)
+		body = "BEGIN:VCARD\nVERSION:3.0\nFN:" + name + "\nTEL;type=CELL:+" + strings.TrimPrefix(msg.Contact.PhoneNumber, "+") + "\nEND:VCARD"
+	} else if msg.Poll != nil {
+		mediaType = "poll"
+		lines := []string{"📊 " + msg.Poll.Question}
+		for _, o := range msg.Poll.Options {
+			lines = append(lines, "• "+o.Text)
+		}
+		body = strings.Join(lines, "\n")
+	} else if msg.Sticker != nil {
+		mediaType, body = "unsupported", "sticker animado"
+	} else if k := unknownTelegramField(raw); k != "" {
+		mediaType, body = "unsupported", k
 	}
 
 	var mediaURL string
