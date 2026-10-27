@@ -35,7 +35,7 @@ func New(db *gorm.DB, publisher domain.CommandPublisher) *Provider {
 // StartSession resolves the connection's proxy (fail-closed) and publishes
 // session.start to engine-go.
 func (p *Provider) StartSession(ctx context.Context, whatsapp models.Whatsapp, usePairingCode bool, phoneNumber string, force bool) error {
-	proxyURL, err := p.composeProxyURL(whatsapp)
+	proxyURL, err := p.composeProxyURL(ctx, whatsapp)
 	if err != nil {
 		return fmt.Errorf("proxy configuration error: %w", err)
 	}
@@ -133,8 +133,8 @@ func (p *Provider) buildSessionCommand(whatsapp models.Whatsapp, commandType str
 // composeProxyURL builds the proxy URL for the connection, decrypting the
 // password. Returns "" when no proxy is assigned (ProxyMode "none"). Returns an
 // error (fail-closed) when a proxy IS assigned but unusable.
-func (p *Provider) composeProxyURL(whatsapp models.Whatsapp) (string, error) {
-	px, err := p.resolveProxy(whatsapp)
+func (p *Provider) composeProxyURL(ctx context.Context, whatsapp models.Whatsapp) (string, error) {
+	px, err := p.resolveProxy(ctx, whatsapp)
 	if err != nil {
 		return "", err
 	}
@@ -159,14 +159,14 @@ func (p *Provider) composeProxyURL(whatsapp models.Whatsapp) (string, error) {
 
 // resolveProxy returns the active proxy a connection should use, or nil when
 // ProxyMode is "none". Fail-closed on any misconfiguration.
-func (p *Provider) resolveProxy(whatsapp models.Whatsapp) (*models.Proxy, error) {
+func (p *Provider) resolveProxy(ctx context.Context, whatsapp models.Whatsapp) (*models.Proxy, error) {
 	switch whatsapp.ProxyMode {
 	case "single":
 		if whatsapp.ProxyID == nil {
 			return nil, fmt.Errorf("proxyMode=single sem proxyId na conexão %d", whatsapp.ID)
 		}
 		var px models.Proxy
-		if err := p.db.Where(`id = ? AND "tenantId" = ?`, *whatsapp.ProxyID, whatsapp.TenantID).First(&px).Error; err != nil {
+		if err := p.db.WithContext(ctx).Where(`id = ? AND "tenantId" = ?`, *whatsapp.ProxyID, whatsapp.TenantID).First(&px).Error; err != nil {
 			return nil, fmt.Errorf("proxy %d não encontrado para a conexão %d: %w", *whatsapp.ProxyID, whatsapp.ID, err)
 		}
 		if px.Status != "active" {
@@ -177,7 +177,7 @@ func (p *Provider) resolveProxy(whatsapp models.Whatsapp) (*models.Proxy, error)
 		}
 		return &px, nil
 	case "group":
-		return p.pickGroupProxy(whatsapp)
+		return p.pickGroupProxy(ctx, whatsapp)
 	default:
 		return nil, nil
 	}
@@ -191,19 +191,19 @@ func (p *Provider) resolveProxy(whatsapp models.Whatsapp) (*models.Proxy, error)
 //
 // Isolated/banned proxies are excluded (status != active), so the ban-isolation
 // guard automatically removes a burned IP from the pool.
-func (p *Provider) pickGroupProxy(whatsapp models.Whatsapp) (*models.Proxy, error) {
+func (p *Provider) pickGroupProxy(ctx context.Context, whatsapp models.Whatsapp) (*models.Proxy, error) {
 	if whatsapp.ProxyGroupID == nil {
 		return nil, fmt.Errorf("proxyMode=group sem proxyGroupId na conexão %d", whatsapp.ID)
 	}
 	var group models.ProxyGroup
-	if err := p.db.Where(`id = ? AND "tenantId" = ?`, *whatsapp.ProxyGroupID, whatsapp.TenantID).First(&group).Error; err != nil {
+	if err := p.db.WithContext(ctx).Where(`id = ? AND "tenantId" = ?`, *whatsapp.ProxyGroupID, whatsapp.TenantID).First(&group).Error; err != nil {
 		return nil, fmt.Errorf("grupo de proxy %d não encontrado para a conexão %d: %w", *whatsapp.ProxyGroupID, whatsapp.ID, err)
 	}
 
 	// Sticky: keep the current pick if it is still active and in this group.
 	if group.RotationStrategy != "rotate" && whatsapp.ProxyID != nil {
 		var cur models.Proxy
-		if err := p.db.Where(`id = ? AND "tenantId" = ? AND "proxyGroupId" = ? AND status = ?`,
+		if err := p.db.WithContext(ctx).Where(`id = ? AND "tenantId" = ? AND "proxyGroupId" = ? AND status = ?`,
 			*whatsapp.ProxyID, whatsapp.TenantID, group.ID, "active").First(&cur).Error; err == nil {
 			return &cur, nil
 		}
@@ -214,7 +214,7 @@ func (p *Provider) pickGroupProxy(whatsapp models.Whatsapp) (*models.Proxy, erro
 	// erro sobe — fail-closed real. SKIP LOCKED garante que dois starts
 	// concorrentes no mesmo grupo não pegam o mesmo proxy.
 	var px models.Proxy
-	txErr := p.db.Transaction(func(tx *gorm.DB) error {
+	txErr := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Raw(`
 			UPDATE "Proxies" SET "lastUsedAt" = now()
 			WHERE id = (

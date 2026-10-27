@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -127,8 +128,16 @@ func (sc *SessionController) RestartAllSessions(c *gin.Context) {
 		return
 	}
 
+	failed := 0
 	for i := range whatsapps {
-		_ = sc.sessionService.StartWhatsAppSession(channelSessionToModel(&whatsapps[i]), false, "", true)
+		if err := sc.sessionService.StartWhatsAppSession(channelSessionToModel(&whatsapps[i]), false, "", true); err != nil {
+			failed++
+			log.Printf("[RestartAllSessions] conexão %d: %v", whatsapps[i].ID, err)
+		}
+	}
+	if failed > 0 {
+		c.JSON(http.StatusMultiStatus, gin.H{"message": "Some sessions failed to restart.", "failed": failed, "total": len(whatsapps)})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Restarting all sessions."})
