@@ -26,6 +26,8 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 		s.handleUndecryptable(client, id, tenantID, v)
 	case *events.Receipt:
 		s.handleReceiptEvent(id, tenantID, v)
+	case *events.Presence:
+		s.handlePresenceEvent(id, tenantID, v)
 	case *events.Connected:
 		s.emitConnected(client, id, tenantID)
 	case *events.PairSuccess:

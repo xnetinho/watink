@@ -52,6 +52,12 @@ type PresenceCommandPayload struct {
 	State     string `json:"state"`
 }
 
+// PresenceSubscribePayload pede ao WhatsApp as atualizações de online/última vez visto de um contato.
+type PresenceSubscribePayload struct {
+	SessionID int    `json:"sessionId"`
+	To        string `json:"to"`
+}
+
 type MarkReadCommandPayload struct {
 	ChatJID    string   `json:"chatJid"`
 	SenderJID  string   `json:"senderJid"`

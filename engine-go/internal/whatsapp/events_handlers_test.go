@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"testing"
+	"time"
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store"
@@ -237,5 +238,26 @@ func TestGetCachedPic_ReturnsCachedURL(t *testing.T) {
 	got := svc.getCachedPic(nil, 1, "tenant-1", jid)
 	if got != want {
 		t.Errorf("getCachedPic = %q, want %q", got, want)
+	}
+}
+
+// Presença do contato: online/offline e última vez visto (zero quando o contato escondeu).
+func TestHandlePresenceEvent(t *testing.T) {
+	svc, calls := newTestService()
+	jid, _ := types.ParseJID("5511999990000@s.whatsapp.net")
+	svc.handlePresenceEvent(1, "t", &events.Presence{From: jid, Unavailable: true, LastSeen: time.Unix(1793132438, 0)})
+	svc.handlePresenceEvent(1, "t", &events.Presence{From: jid})
+	if len(*calls) != 2 {
+		t.Fatalf("eventos = %d", len(*calls))
+	}
+	off, on := (*calls)[0], (*calls)[1]
+	if off.eventType != "contact.presence" || off.payload["online"] != false || off.payload["lastSeen"] != int64(1793132438) {
+		t.Fatalf("offline: %+v", off)
+	}
+	if on.payload["online"] != true {
+		t.Fatalf("online: %+v", on)
+	}
+	if _, has := on.payload["lastSeen"]; has {
+		t.Fatal("sem última vez conhecida, o campo não deve existir")
 	}
 }
