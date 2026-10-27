@@ -13,6 +13,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// ownVoteKey identifica o voto do operador (a própria conexão) dentro de dataJson.votes.
+const ownVoteKey = "__me__"
+
 // pollOptions lê as opções e o limite de seleção gravados em dataJson.rich ao receber a enquete.
 func pollOptions(dataJSON string) (options []string, selectable int) {
 	var d struct {
@@ -131,6 +134,13 @@ func (mc *MessageController) VotePoll(c *gin.Context) {
 	d := map[string]interface{}{}
 	_ = json.Unmarshal([]byte(target.DataJson), &d)
 	d["myVote"] = input.Options
+	// O voto do operador conta no total como o de qualquer participante (chave fixa: é a própria conexão votando).
+	votes, _ := d["votes"].(map[string]interface{})
+	if votes == nil {
+		votes = map[string]interface{}{}
+	}
+	votes[ownVoteKey] = input.Options
+	d["votes"] = votes
 	if b, err := json.Marshal(d); err == nil {
 		writeDB := db.Session(&gorm.Session{NewDB: true})
 		writeDB.Model(&models.Message{}).Where("id = ? AND \"tenantId\" = ?", target.ID, tenantID).Update("dataJson", string(b))
