@@ -130,6 +130,15 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 		return domain.SendResult{}, fmt.Errorf("telegram connection has no token")
 	}
 
+	// O destino é o chat da conversa: o contato do Telegram nasce por identidade e não tem number.
+	chatID := msg.ConversationKey
+	if chatID == "" {
+		chatID = msg.ExternalID
+	}
+	if chatID == "" {
+		return domain.SendResult{}, fmt.Errorf("telegram: conversa sem chat_id")
+	}
+
 	client := NewClient(token)
 	var replyID int
 	if msg.QuotedMessageID != "" {
@@ -142,16 +151,16 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 	if msg.MediaURL != "" {
 		mt := msg.MediaType
 		if mt == "image" || mt == "photo" {
-			msgID, err = client.SendPhoto(ctx, msg.ExternalID, msg.MediaURL, msg.Body, replyID)
+			msgID, err = client.SendPhoto(ctx, chatID, msg.MediaURL, msg.Body, replyID)
 		} else {
-			msgID, err = client.SendDocument(ctx, msg.ExternalID, msg.MediaURL, msg.Body, replyID)
+			msgID, err = client.SendDocument(ctx, chatID, msg.MediaURL, msg.Body, replyID)
 		}
 	} else {
 		body := msg.Body
 		if len([]byte(body)) > 4096 {
 			body = string([]byte(body)[:4096])
 		}
-		msgID, err = client.SendMessage(ctx, msg.ExternalID, body, replyID)
+		msgID, err = client.SendMessage(ctx, chatID, body, replyID)
 	}
 
 	if err != nil {

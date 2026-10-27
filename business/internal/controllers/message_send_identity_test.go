@@ -119,6 +119,11 @@ func TestSendMessage_CitacaoVaiAoCanalComIdExternal(t *testing.T) {
 
 	require.Len(t, e.ch.got, 1)
 	assert.Equal(t, "99", e.ch.got[0].QuotedMessageID, "o Telegram só entende o message_id dele, não o id interno")
+
+	var saved models.Message
+	require.NoError(t, e.db.Where(`"fromMe" = true AND "ticketId" = ?`, tk.ID).First(&saved).Error)
+	require.NotNil(t, saved.QuotedMsgID, "a citação precisa ficar gravada para a tela mostrá-la")
+	assert.Equal(t, storedID, *saved.QuotedMsgID)
 }
 
 func (c *capturingChannel) ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error) {
