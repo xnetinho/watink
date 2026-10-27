@@ -83,6 +83,7 @@ func main() {
 		wbot.CommandPattern(wbot.CommandContactImport),
 		wbot.CommandPattern(wbot.CommandHistoryRecover),
 		wbot.CommandPattern(wbot.CommandChatPresence),
+		wbot.CommandPattern(wbot.CommandPresenceSubscribe),
 	}
 
 	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) error {
@@ -252,6 +253,13 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 			return err
 		}
 		return svc.SendPresence(sessionID, tenantID, p)
+
+	case "presence.subscribe":
+		var p whatsapp.PresenceSubscribePayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.SubscribePresence(sessionID, tenantID, p)
 
 	case "message.react":
 		var p whatsapp.ReactionCommandPayload
