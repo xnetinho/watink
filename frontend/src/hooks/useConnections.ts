@@ -77,8 +77,13 @@ export const useConnections = (): UseConnectionsResult => {
   const reloadConnections = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<ChannelConnection[]>("/connections");
-      dispatch({ type: "LOAD_CONNECTIONS", payload: Array.isArray(data) ? data : [] });
+      const [connRes, waRes] = await Promise.allSettled([
+        api.get<ChannelConnection[]>("/connections"),
+        api.get<ChannelConnection[]>("/whatsapp/"),
+      ]);
+      const conns = connRes.status === "fulfilled" && Array.isArray(connRes.value.data) ? connRes.value.data : [];
+      const was = waRes.status === "fulfilled" && Array.isArray(waRes.value.data) ? waRes.value.data : [];
+      dispatch({ type: "LOAD_CONNECTIONS", payload: [...conns, ...was] });
     } catch (err) {
       toastError(err);
     } finally {
