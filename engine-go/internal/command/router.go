@@ -21,7 +21,7 @@ func ParseRoutingKey(routingKey string) (tenantID string, sessionID string, cmd 
 	switch cmd {
 	case wbot.CommandSessionStart, wbot.CommandSessionStop, wbot.CommandSessionDelete,
 		wbot.CommandMessageText, wbot.CommandMessageMedia,
-		wbot.CommandMessageButtons, wbot.CommandMessageList, wbot.CommandMessagePoll, wbot.CommandMessageInteractive, wbot.CommandMessageTemplate, wbot.CommandMessageCarousel,
+		wbot.CommandMessageButtons, wbot.CommandMessageList, wbot.CommandMessagePoll, wbot.CommandMessagePollVote, wbot.CommandMessageInteractive, wbot.CommandMessageTemplate, wbot.CommandMessageCarousel,
 		wbot.CommandMessageReact,
 		wbot.CommandMessageMarkRead, wbot.CommandMediaDownload,
 		wbot.CommandContactSync, wbot.CommandContactImport, wbot.CommandHistoryRecover,

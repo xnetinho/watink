@@ -24,6 +24,7 @@ const (
 	CommandMessageButtons     = "message.send.buttons"
 	CommandMessageList        = "message.send.list"
 	CommandMessagePoll        = "message.send.poll"
+	CommandMessagePollVote    = "message.vote.poll"
 	CommandMessageInteractive = "message.send.interactive"
 	CommandMessageTemplate    = "message.send.template"
 	CommandMessageCarousel    = "message.send.carousel"

@@ -72,6 +72,7 @@ func main() {
 		wbot.CommandPattern(wbot.CommandMessageButtons),
 		wbot.CommandPattern(wbot.CommandMessageList),
 		wbot.CommandPattern(wbot.CommandMessagePoll),
+		wbot.CommandPattern(wbot.CommandMessagePollVote),
 		wbot.CommandPattern(wbot.CommandMessageInteractive),
 		wbot.CommandPattern(wbot.CommandMessageTemplate),
 		wbot.CommandPattern(wbot.CommandMessageCarousel),
@@ -216,6 +217,13 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 			return err
 		}
 		return svc.SendPoll(sessionID, tenantID, p)
+
+	case "message.vote.poll":
+		var p whatsapp.PollVoteCommandPayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.VotePoll(sessionID, tenantID, p)
 
 	case "message.send.interactive":
 		var p whatsapp.InteractiveCommandPayload

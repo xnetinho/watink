@@ -380,6 +380,7 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		}
 	} else if msg.VideoNote != nil {
 		mediaType, fileID, mimeType = "video", msg.VideoNote.FileID, "video/mp4"
+		rich = map[string]interface{}{"round": true}
 	} else if msg.Animation != nil {
 		mediaType, fileID, mimeType = "video", msg.Animation.FileID, "video/mp4"
 	} else if msg.Sticker != nil && !msg.Sticker.IsAnimated && !msg.Sticker.IsVideo {

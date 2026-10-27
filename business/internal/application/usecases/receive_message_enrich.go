@@ -27,8 +27,12 @@ func contactDisplayName(pushName, groupName string, isGroup bool) string {
 // vinculados, então o chat só registra que ela chegou e orienta a ver no celular.
 const viewOnceNotice = "👁 Visualização única (o conteúdo só pode ser visto no celular)"
 
-// mediaTypeLabel é a prévia do ticket para tipos cujo body não é legível (coordenadas, vcard, nome de campo interno).
-func mediaTypeLabel(mediaType string) string {
+// MediaTypeLabel é a prévia do ticket para tipos cujo body não é legível (coordenadas, vcard, nome de campo interno).
+// opaqueBodyTypes: o body desses tipos não é legível (coordenadas, vCard, nome de campo, texto formatado): a prévia é
+// sempre o rótulo. Nos demais, a legenda vence e o rótulo só entra quando não há texto.
+var opaqueBodyTypes = map[string]bool{"view_once": true, "location": true, "vcard": true, "unsupported": true, "poll": true, "event": true, "pix": true}
+
+func MediaTypeLabel(mediaType string) string {
 	switch mediaType {
 	case "view_once":
 		return "👁 Visualização única"
@@ -38,6 +42,22 @@ func mediaTypeLabel(mediaType string) string {
 		return "👤 Contato"
 	case "unsupported":
 		return "⚠️ Mensagem não suportada"
+	case "poll":
+		return "📊 Enquete"
+	case "event":
+		return "📅 Evento"
+	case "pix":
+		return "💠 PIX"
+	case "image":
+		return "📷 Foto"
+	case "video":
+		return "📹 Vídeo"
+	case "audio":
+		return "🎵 Áudio"
+	case "sticker":
+		return "Sticker"
+	case "document":
+		return "📎 Arquivo"
 	}
 	return ""
 }
@@ -56,3 +76,6 @@ func mimeTypeLabel(mimetype string) string {
 		return ""
 	}
 }
+
+// OpaqueBodyType diz se o body do tipo não é legível e a prévia deve ser o rótulo.
+func OpaqueBodyType(mediaType string) bool { return opaqueBodyTypes[mediaType] }

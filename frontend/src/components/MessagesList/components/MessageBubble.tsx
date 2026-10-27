@@ -40,6 +40,11 @@ const MEDIA_BUBBLE_TYPES = [
   "event",
   "pix",
 ];
+// Tipos desenhados por um cartão próprio: o body é só prévia/texto de reserva e não deve repetir sob o cartão.
+const CARD_TYPES = ["poll", "event", "pix", "unsupported", "location", "vcard", "view_once", "call"];
+export const hasOwnCard = (m: Message): boolean =>
+  CARD_TYPES.includes(m.mediaType ?? "") || (!!m.mediaType && !isKnownMediaType(m.mediaType));
+
 export const hasMediaBubble = (m: Message): boolean =>
   !!m.mediaUrl ||
   MEDIA_BUBBLE_TYPES.includes(m.mediaType ?? "") ||
@@ -156,7 +161,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         <QuotedMessage message={message} isGroup={isGroup} />
       )}
       <LinkPreview message={message} />
-      {!(
+      {!hasOwnCard(message) && !(
         message.mediaUrl &&
         getFileNameFromUrl(message.mediaUrl) === message.body
       ) && (

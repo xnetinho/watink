@@ -214,13 +214,8 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 
 	// Atualiza o ticket com a última mensagem e timestamp
 	lastMessage := msg.Body
-	switch mediaType {
-	case "location":
-		lastMessage = "📍 Localização"
-	case "vcard":
-		lastMessage = "👤 Contato"
-	case "unsupported":
-		lastMessage = "⚠️ Mensagem não suportada"
+	if label := usecases.MediaTypeLabel(mediaType); label != "" && (lastMessage == "" || usecases.OpaqueBodyType(mediaType)) {
+		lastMessage = label
 	}
 	_ = s.ticketRepo.Update(ctx, ticket, map[string]interface{}{
 		"lastMessage": lastMessage,

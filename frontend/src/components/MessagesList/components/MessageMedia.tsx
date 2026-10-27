@@ -148,6 +148,19 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
     );
   }
 
+  if (message.mediaType === "video" && parseData(message.dataJson).rich && (parseData(message.dataJson).rich as { round?: boolean }).round) {
+    // Recado de vídeo (WhatsApp) / vídeo-nota (Telegram): círculo, como nos apps.
+    return (
+      <video
+        src={getBackendUrl(message.mediaUrl)}
+        controls
+        playsInline
+        className="h-[240px] w-[240px] rounded-full object-cover bg-[var(--bg-surface)]"
+        data-testid="round-video"
+      />
+    );
+  }
+
   if (message.mediaType === "video") {
     return (
       <div className="relative w-full max-w-[300px] rounded-lg overflow-hidden">

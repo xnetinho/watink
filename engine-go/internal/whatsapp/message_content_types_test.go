@@ -110,9 +110,9 @@ func TestExtractMessageContent_EnqueteEstruturada(t *testing.T) {
 	if got.rich["selectable"] != 2 || len(got.rich["options"].([]string)) != 2 {
 		t.Fatalf("rich=%v", got.rich)
 	}
-	p.SelectableOptionsCount = nil
+	p.SelectableOptionsCount = proto.Uint32(1)
 	if extractMessageContent(&waProto.Message{PollCreationMessageV3: p}).rich["selectable"] != 1 {
-		t.Fatal("sem contagem = escolha única")
+		t.Fatal("contagem 1 = escolha única")
 	}
 }
 
@@ -131,5 +131,22 @@ func TestForwardedOf(t *testing.T) {
 	}
 	if f, _ := forwardedOf(&waProto.Message{Conversation: proto.String("oi")}); f {
 		t.Fatal("mensagem comum não é encaminhada")
+	}
+}
+
+// Enquete múltipla: o WhatsApp manda selectableOptionsCount 0 (sem limite). Antes virava "escolha 1".
+func TestExtractMessageContent_EnqueteMultiplaSemLimite(t *testing.T) {
+	p := &waProto.PollCreationMessage{Name: proto.String("Q?"), SelectableOptionsCount: proto.Uint32(0), Options: []*waProto.PollCreationMessage_Option{{OptionName: proto.String("A")}, {OptionName: proto.String("B")}}}
+	if got := extractMessageContent(&waProto.Message{PollCreationMessageV3: p}).rich["selectable"]; got != 2 {
+		t.Fatalf("selectable=%v, esperado 2 (todas)", got)
+	}
+}
+
+// Recado de vídeo do WhatsApp (PTV) é um vídeo redondo, baixável como qualquer vídeo.
+func TestExtractMessageContent_RecadoDeVideo(t *testing.T) {
+	ptv := &waProto.VideoMessage{Mimetype: proto.String("video/mp4"), FileLength: proto.Uint64(877667)}
+	got := extractMessageContent(&waProto.Message{PtvMessage: ptv})
+	if got.msgType != "video" || got.rich["round"] != true || got.protoB64 == "" || got.fileLength != 877667 {
+		t.Fatalf("%+v", got)
 	}
 }
