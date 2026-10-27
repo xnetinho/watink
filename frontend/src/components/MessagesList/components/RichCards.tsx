@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { CalendarDays, Copy, Check, MapPin, Video, QrCode, Radio } from "lucide-react";
 import { parseData } from "../utils/messageHelpers";
+import api from "../../../services/api";
+import toastError from "../../../errors/toastError";
 import { Message } from "../types";
 
 const card = "flex max-w-[300px] flex-col gap-1.5 rounded-xl bg-[var(--bg-surface)] px-3 py-2.5 text-sm";
@@ -98,18 +100,70 @@ export const EventCard: React.FC<{ message: Message }> = ({ message }) => {
 export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
   const r = getRich(message);
   const options = Array.isArray(r.options) ? (r.options as string[]) : [];
+  const mine = (parseData(message.dataJson).myVote as string[] | undefined) ?? [];
+  const [chosen, setChosen] = useState<string[]>(mine);
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(mine.length > 0);
   if (options.length === 0) return <LegacyText message={message} testId="poll-card" />;
-  const multi = Number(r.selectable) > 1;
+
+  const limit = Number(r.selectable) || options.length;
+  const multi = limit > 1;
+  // Só o WhatsApp vota (o Telegram entrega a enquete como texto) e só a recebida: a nossa já saiu com as opções.
+  // O id da mensagem de canal agnóstico começa com "<canal>:" (ex.: telegram:2:123:7); o do WhatsApp é o id cru.
+  const canVote = !message.fromMe && !String(message.id).includes(":");
+
+  const toggle = (o: string) => {
+    setSent(false);
+    setChosen((cur) => {
+      if (!multi) return [o];
+      if (cur.includes(o)) return cur.filter((x) => x !== o);
+      return cur.length >= limit ? cur : [...cur, o];
+    });
+  };
+  const vote = async () => {
+    setBusy(true);
+    try {
+      await api.post(`/message/${message.id}/vote`, { options: chosen });
+      setSent(true);
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className={card} data-testid="poll-card">
       <div className="font-medium">📊 {String(r.question ?? "")}</div>
-      <div className="text-[11px] text-[var(--text-muted)]">{multi ? `Escolha até ${r.selectable} opções` : "Escolha 1 opção"}</div>
-      {options.map((o, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <span className={`h-3.5 w-3.5 shrink-0 border-2 border-[hsl(var(--action-primary)/0.5)] ${multi ? "rounded-sm" : "rounded-full"}`} />
-          <span className="break-words">{o}</span>
-        </div>
-      ))}
+      <div className="text-[11px] text-[var(--text-muted)]">{multi ? `Escolha até ${limit} opções` : "Escolha 1 opção"}</div>
+      {options.map((o, i) => {
+        const on = chosen.includes(o);
+        const id = `poll-${message.id}-${i}`;
+        return (
+          <label key={i} htmlFor={id} className={`flex items-center gap-2 ${canVote ? "cursor-pointer" : ""}`}>
+            <input
+              id={id}
+              type={multi ? "checkbox" : "radio"}
+              name={`poll-${message.id}`}
+              checked={on}
+              disabled={!canVote || busy}
+              onChange={() => toggle(o)}
+              className="h-3.5 w-3.5 shrink-0 accent-[hsl(var(--action-primary))]"
+            />
+            <span className="break-words">{o}</span>
+          </label>
+        );
+      })}
+      {canVote && (
+        <button
+          type="button"
+          onClick={vote}
+          disabled={busy || sent || (chosen.length === 0 && mine.length === 0)}
+          className="mt-0.5 rounded-lg bg-[hsl(var(--action-primary))] py-1.5 text-xs font-medium text-white disabled:opacity-50"
+        >
+          {busy ? "Enviando…" : sent ? "Voto enviado" : chosen.length === 0 ? "Remover voto" : "Votar"}
+        </button>
+      )}
     </div>
   );
 };

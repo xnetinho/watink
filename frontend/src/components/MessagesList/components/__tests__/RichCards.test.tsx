@@ -1,12 +1,14 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import MessageMedia from "../MessageMedia";
 import ForwardedLabel from "../ForwardedLabel";
 import type { Message } from "../../types";
 import "../../../Calls/__tests__/helpers";
 
-vi.mock("@/services/api", () => ({ default: { get: vi.fn(), post: vi.fn() } }));
+const post = vi.hoisted(() => vi.fn());
+vi.mock("@/services/api", () => ({ default: { get: vi.fn(), post } }));
+vi.mock("../../../../services/api", () => ({ default: { get: vi.fn(), post } }));
 vi.mock("@/errors/toastError", () => ({ default: vi.fn() }));
 
 const msg = (over: Partial<Message> = {}): Message =>
@@ -38,11 +40,39 @@ describe("cartões de mensagem", () => {
     expect(screen.queryByText("Entrar na reunião")).toBeNull();
   });
 
-  it("enquete mostra opções e se é única ou múltipla", () => {
-    const { rerender } = render(<MessageMedia message={withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 } })} />);
+  it("enquete única: rádio, um voto, envia as opções escolhidas", async () => {
+    post.mockResolvedValue({});
+    render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 } }), id: "P1" }} />);
     expect(screen.getByTestId("poll-card")).toHaveTextContent("Escolha 1 opção");
-    rerender(<MessageMedia message={withData("poll", { rich: { question: "Q?", options: ["A", "B", "C"], selectable: 3 } })} />);
-    expect(screen.getByTestId("poll-card")).toHaveTextContent("Escolha até 3 opções");
+    const [a, b] = screen.getAllByRole("radio");
+    fireEvent.click(a);
+    fireEvent.click(b);
+    expect(b).toBeChecked();
+    expect(a).not.toBeChecked();
+    fireEvent.click(screen.getByText("Votar"));
+    await waitFor(() => expect(post).toHaveBeenCalledWith("/message/P1/vote", { options: ["B"] }));
+    expect(await screen.findByText("Voto enviado")).toBeInTheDocument();
+  });
+
+  it("enquete múltipla: caixas, respeita o limite", () => {
+    render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B", "C"], selectable: 2 } }), id: "P2" }} />);
+    expect(screen.getByTestId("poll-card")).toHaveTextContent("Escolha até 2 opções");
+    const [a, b, c] = screen.getAllByRole("checkbox");
+    fireEvent.click(a);
+    fireEvent.click(b);
+    fireEvent.click(c);
+    expect(c).not.toBeChecked();
+    fireEvent.click(a);
+    fireEvent.click(c);
+    expect(a).not.toBeChecked();
+    expect(c).toBeChecked();
+  });
+
+  it("enquete nossa (fromMe) ou do Telegram não tem botão de votar", () => {
+    const { rerender } = render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 } }), fromMe: true }} />);
+    expect(screen.queryByText("Votar")).toBeNull();
+    rerender(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 } }), id: "telegram:2:9:7" }} />);
+    expect(screen.queryByText("Votar")).toBeNull();
   });
 
   it("sticker aparece direto, sem botão de baixar nem modal", () => {
@@ -74,5 +104,12 @@ describe("mensagens anteriores ao recurso (sem dado estruturado)", () => {
     expect(screen.getByTestId("poll-card")).toHaveTextContent("Q?");
     rerender(<MessageMedia message={msg({ mediaType: "event", body: "📅 Reunião", dataJson: "{}" })} />);
     expect(screen.getByTestId("event-card")).toHaveTextContent("Reunião");
+  });
+});
+
+describe("vídeo redondo", () => {
+  it("recado de vídeo / vídeo-nota aparece em círculo", () => {
+    render(<MessageMedia message={{ ...withData("video", { rich: { round: true } }), mediaUrl: "/public/media/a.mp4" }} />);
+    expect(screen.getByTestId("round-video")).toBeInTheDocument();
   });
 });

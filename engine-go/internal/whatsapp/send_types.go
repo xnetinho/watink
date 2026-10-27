@@ -106,6 +106,17 @@ type PollCommandPayload struct {
 	SelectableCount int      `json:"selectableCount"`
 }
 
+// PollVoteCommandPayload: voto em uma enquete recebida (ou enviada por nós). Chat, PollSender e PollID identificam a
+// mensagem original; Options são os NOMES das opções escolhidas (lista vazia remove o voto).
+type PollVoteCommandPayload struct {
+	SessionID  int      `json:"sessionId"`
+	Chat       string   `json:"chat"`
+	PollID     string   `json:"pollId"`
+	PollSender string   `json:"pollSender"`
+	PollFromMe bool     `json:"pollFromMe"`
+	Options    []string `json:"options"`
+}
+
 // InteractiveCommandPayload carries a NativeFlow (modern interactive) message.
 type InteractiveCommandPayload struct {
 	SessionID  int                        `json:"sessionId"`

@@ -60,6 +60,9 @@ func extractMessageContent(msg *waProto.Message) mediaContent {
 	if video := msg.GetVideoMessage(); video != nil {
 		return mediaContent{fileLength: video.GetFileLength(), body: video.GetCaption(), msgType: "video", mimeType: video.GetMimetype(), thumbnail: encodeThumb(video.GetJPEGThumbnail()), protoB64: marshalMedia(video)}
 	}
+	if ptv := msg.GetPtvMessage(); ptv != nil {
+		return mediaContent{fileLength: ptv.GetFileLength(), msgType: "video", mimeType: ptv.GetMimetype(), thumbnail: encodeThumb(ptv.GetJPEGThumbnail()), protoB64: marshalMedia(ptv), rich: map[string]interface{}{"round": true}}
+	}
 	if audio := msg.GetAudioMessage(); audio != nil {
 		return mediaContent{fileLength: audio.GetFileLength(), msgType: "audio", mimeType: audio.GetMimetype(), protoB64: marshalMedia(audio)}
 	}
@@ -101,9 +104,10 @@ func extractMessageContent(msg *waProto.Message) mediaContent {
 		for _, o := range poll.GetOptions() {
 			opts = append(opts, o.GetOptionName())
 		}
+		// selectableOptionsCount 0 = sem limite (múltipla); 1 = escolha única; N = até N.
 		sel := int(poll.GetSelectableOptionsCount())
-		if sel < 1 {
-			sel = 1
+		if sel < 1 || sel > len(opts) {
+			sel = len(opts)
 		}
 		return mediaContent{msgType: "poll", body: strings.Join(lines, "\n"), rich: map[string]interface{}{"question": poll.GetName(), "options": opts, "selectable": sel}}
 	}
@@ -204,7 +208,7 @@ var handledOrTechnical = map[string]bool{
 	"keepInChatMessage": true, "pinInChatMessage": true, "deviceSentMessage": true, "placeholderMessage": true,
 	"secretEncryptedMessage": true, "messageHistoryBundle": true, "messageHistoryNotice": true,
 	"encEventResponseMessage": true, "albumMessage": true, "associatedChildMessage": true, "call": true,
-	"callLogMesssage": true, "editedMessage": true,
+	"callLogMesssage": true, "editedMessage": true, "ptvMessage": true,
 	// envelopes: o conteúdo é desembrulhado por unwrap antes de classificar.
 	"ephemeralMessage": true, "documentWithCaptionMessage": true, "viewOnceMessage": true, "viewOnceMessageV2": true,
 	"viewOnceMessageV2Extension": true,
@@ -321,6 +325,8 @@ func forwardedOf(msg *waProto.Message) (bool, uint32) {
 		ci = msg.GetAudioMessage().GetContextInfo()
 	case msg.GetDocumentMessage() != nil:
 		ci = msg.GetDocumentMessage().GetContextInfo()
+	case msg.GetPtvMessage() != nil:
+		ci = msg.GetPtvMessage().GetContextInfo()
 	case msg.GetStickerMessage() != nil:
 		ci = msg.GetStickerMessage().GetContextInfo()
 	case msg.GetLocationMessage() != nil:

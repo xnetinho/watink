@@ -280,7 +280,7 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 	}
 
 	lastMsg := msg.Body
-	if label := mediaTypeLabel(mediaType); label != "" {
+	if label := MediaTypeLabel(mediaType); label != "" && (lastMsg == "" || opaqueBodyTypes[mediaType]) {
 		lastMsg = label
 	}
 	if lastMsg == "" {
