@@ -153,7 +153,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     <div
       className={clsx(
         "overflow-wrap-break-word pt-0.5 pb-1.5 pl-1.5",
-        message.isDeleted ? "italic text-[var(--text-muted)] pr-20" : "pr-20"
+        message.isDeleted ? "italic text-[hsl(var(--text-muted))] pr-20" : "pr-20"
       )}
     >
       <DeletedMessage message={message} />
@@ -206,7 +206,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               "whitespace-pre-wrap self-start",
               "pl-1.5 pr-1.5 pt-1.5 pb-0",
               appTheme === "saas"
-                ? "bg-[hsl(var(--message-saas-bg-alt))] text-[hsl(var(--message-left-text))] rounded-tl-xl rounded-tr-xl rounded-bl-none rounded-br-xl border border-[var(--border-default)]"
+                ? "bg-[hsl(var(--message-saas-bg-alt))] text-[hsl(var(--message-left-text))] rounded-tl-xl rounded-tr-xl rounded-bl-none rounded-br-xl border border-[hsl(var(--border-default))]"
                 : "bg-[hsl(var(--message-left-bg))] text-[hsl(var(--message-left-text))] rounded-tl-none rounded-tr-lg rounded-bl-lg rounded-br-lg shadow-sm",
               "group",
               isSticker && bareBubble

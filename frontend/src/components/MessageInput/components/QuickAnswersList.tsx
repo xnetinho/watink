@@ -49,7 +49,7 @@ function getPreview(qa: QuickAnswer): string {
 const QuickAnswersList: React.FC<QuickAnswersListProps> = ({ answers, onSelect }) => {
   if (answers.length === 0) return null;
   return (
-    <ul className="absolute bottom-full left-0 w-full bg-[var(--bg-surface)] border border-[var(--border-divider)] p-0.5 m-0 z-50 max-h-[200px] overflow-y-auto list-none">
+    <ul className="absolute bottom-full left-0 w-full bg-[hsl(var(--bg-surface))] border border-[var(--border-divider)] p-0.5 m-0 z-50 max-h-[200px] overflow-y-auto list-none">
       {answers.map((value, index) => {
         const typeKey: QuickAnswerType = value.type ?? "text";
         const config = TYPE_CONFIG[typeKey] ?? TYPE_CONFIG.text;
@@ -59,7 +59,7 @@ const QuickAnswersList: React.FC<QuickAnswersListProps> = ({ answers, onSelect }
           <li key={index}>
             <a
               href="#"
-              className="flex items-center gap-1.5 p-2 overflow-hidden text-ellipsis max-h-8 hover:bg-[var(--bg-surface-alt)] cursor-pointer text-sm"
+              className="flex items-center gap-1.5 p-2 overflow-hidden text-ellipsis max-h-8 hover:bg-[hsl(var(--bg-surface-alt))] cursor-pointer text-sm"
               onClick={(e) => {
                 e.preventDefault();
                 onSelect(value);

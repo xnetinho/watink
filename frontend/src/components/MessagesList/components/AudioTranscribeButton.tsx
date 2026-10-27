@@ -49,7 +49,7 @@ const AudioTranscribeButton: React.FC<Props> = ({ message, onTranscribed }) => {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="mt-1 flex items-center gap-1.5 text-xs text-[var(--action-primary)] hover:underline disabled:opacity-60 disabled:no-underline"
+      className="mt-1 flex items-center gap-1.5 text-xs text-[hsl(var(--action-primary))] hover:underline disabled:opacity-60 disabled:no-underline"
     >
       {loading ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />

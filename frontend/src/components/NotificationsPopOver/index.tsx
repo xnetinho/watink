@@ -64,7 +64,7 @@ const NotificationsPopOver = () => {
         )}
         <ul className="max-h-[350px] overflow-y-auto divide-y divide-[var(--border-divider)]">
           {count === 0 ? (
-            <li className="px-4 py-3 text-sm text-[var(--text-muted)]">
+            <li className="px-4 py-3 text-sm text-[hsl(var(--text-muted))]">
               {i18n.t("notifications.noTickets")}
             </li>
           ) : (

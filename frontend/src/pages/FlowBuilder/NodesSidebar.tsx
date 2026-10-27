@@ -25,21 +25,21 @@ import { i18n } from '../../translate/i18n';
 // ─── Color map ────────────────────────────────────────────────────────────────
 
 const COLOR_MAP: Record<string, string> = {
-  colorTrigger: 'bg-gradient-to-b from-[var(--status-success)] to-[var(--emerald-700)]',
-  colorMessage: 'bg-gradient-to-b from-[var(--action-primary)] to-[var(--action-primary-active)]',
-  colorMenu: 'bg-gradient-to-b from-[var(--status-warning)] to-[var(--amber-700)]',
+  colorTrigger: 'bg-gradient-to-b from-[hsl(var(--status-success))] to-[var(--emerald-700)]',
+  colorMessage: 'bg-gradient-to-b from-[hsl(var(--action-primary))] to-[hsl(var(--action-primary-active))]',
+  colorMenu: 'bg-gradient-to-b from-[hsl(var(--status-warning))] to-[var(--amber-700)]',
   colorSwitch: 'bg-gradient-to-b from-[var(--violet-400)] to-[var(--violet-800)]',
   colorDatabase: 'bg-gradient-to-b from-[var(--slate-500)] to-[var(--slate-800)]',
-  colorFilter: 'bg-gradient-to-b from-[var(--status-info)] to-[var(--google-blue)]',
+  colorFilter: 'bg-gradient-to-b from-[hsl(var(--status-info))] to-[var(--google-blue)]',
   colorPipeline: 'bg-gradient-to-b from-[var(--google-blue)] to-[var(--blue-400)]',
-  colorWebhook: 'bg-gradient-to-b from-[var(--status-error)] to-[var(--red-700)]',
-  colorApi: 'bg-gradient-to-b from-[var(--status-info)] to-[var(--google-blue)]',
+  colorWebhook: 'bg-gradient-to-b from-[hsl(var(--status-error))] to-[var(--red-700)]',
+  colorApi: 'bg-gradient-to-b from-[hsl(var(--status-info))] to-[var(--google-blue)]',
   colorKnowledge: 'bg-gradient-to-b from-[var(--google-pink)] to-[var(--red-700)]',
   colorAgent: 'bg-gradient-to-b from-[var(--violet-500)] to-[var(--violet-800)]',
-  colorEnd: 'bg-gradient-to-b from-[var(--status-error)] to-[var(--red-700)]',
+  colorEnd: 'bg-gradient-to-b from-[hsl(var(--status-error))] to-[var(--red-700)]',
   colorTicket: 'bg-gradient-to-b from-[var(--google-pink)] to-[var(--red-700)]',
   colorHelpdesk: 'bg-gradient-to-b from-[var(--emerald-600)] to-[var(--emerald-800)]',
-  colorQuickAnswer: 'bg-gradient-to-b from-[var(--status-info)] to-[var(--google-blue)]',
+  colorQuickAnswer: 'bg-gradient-to-b from-[hsl(var(--status-info))] to-[var(--google-blue)]',
 };
 
 // ─── DraggableNode ────────────────────────────────────────────────────────────
@@ -67,9 +67,9 @@ const DraggableNode: React.FC<DraggableNodeProps> = ({ type, label, icon: Icon, 
           draggable
         >
           <div className={cn('w-12 h-12 rounded-[14px] flex items-center justify-center shadow-[0_4px_12px_var(--shadow-medium)] mb-2 transition-all duration-200', COLOR_MAP[colorClass] ?? COLOR_MAP.colorTrigger)}>
-            <Icon className="w-6 h-6 text-[var(--bg-surface)]" />
+            <Icon className="w-6 h-6 text-[hsl(var(--bg-surface))]" />
           </div>
-          <p className="text-[0.7rem] font-semibold text-[var(--text-secondary)] text-center leading-[1.2] max-w-full">
+          <p className="text-[0.7rem] font-semibold text-[hsl(var(--text-secondary))] text-center leading-[1.2] max-w-full">
             {label}
           </p>
         </div>
@@ -98,11 +98,11 @@ const NodesSidebar: React.FC = () => {
   }, []);
 
   return (
-    <aside className="w-full px-6 py-5 bg-[var(--bg-surface)] flex flex-col gap-3 overflow-y-auto">
-      <p className="text-base font-bold text-[var(--text-primary)] pl-1">Blocos Disponíveis</p>
+    <aside className="w-full px-6 py-5 bg-[hsl(var(--bg-surface))] flex flex-col gap-3 overflow-y-auto">
+      <p className="text-base font-bold text-[hsl(var(--text-primary))] pl-1">Blocos Disponíveis</p>
 
       {/* WhatsApp */}
-      <p className="mt-5 text-[0.75rem] font-bold text-[var(--text-primary)] uppercase tracking-[0.05em] opacity-60">WhatsApp</p>
+      <p className="mt-5 text-[0.75rem] font-bold text-[hsl(var(--text-primary))] uppercase tracking-[0.05em] opacity-60">WhatsApp</p>
       <div className="grid grid-cols-3 gap-4">
         <DraggableNode type="trigger" label="Gatilho" icon={Bell} colorClass="colorTrigger" />
         <DraggableNode type="message" label="Mensagem" icon={MessageSquare} colorClass="colorMessage" />
@@ -116,7 +116,7 @@ const NodesSidebar: React.FC = () => {
       </div>
 
       {/* Lógica */}
-      <p className="mt-5 text-[0.75rem] font-bold text-[var(--text-primary)] uppercase tracking-[0.05em] opacity-60">Lógica</p>
+      <p className="mt-5 text-[0.75rem] font-bold text-[hsl(var(--text-primary))] uppercase tracking-[0.05em] opacity-60">Lógica</p>
       <div className="grid grid-cols-3 gap-4">
         <DraggableNode type="input" label="Início" icon={Play} colorClass="colorTrigger" />
         <DraggableNode type="switch" label="Decisão" icon={GitBranch} colorClass="colorSwitch" />
@@ -124,7 +124,7 @@ const NodesSidebar: React.FC = () => {
       </div>
 
       {/* Utilitários */}
-      <p className="mt-5 text-[0.75rem] font-bold text-[var(--text-primary)] uppercase tracking-[0.05em] opacity-60">Utilitários</p>
+      <p className="mt-5 text-[0.75rem] font-bold text-[hsl(var(--text-primary))] uppercase tracking-[0.05em] opacity-60">Utilitários</p>
       <div className="grid grid-cols-3 gap-4">
         <DraggableNode type="pipeline" label="Pipeline" icon={GitCommit} colorClass="colorPipeline" />
         <DraggableNode type="knowledge" label="Conhecimento" icon={Lightbulb} colorClass="colorKnowledge" />
@@ -139,14 +139,14 @@ const NodesSidebar: React.FC = () => {
       {/* Helpdesk (condicional) */}
       {helpdeskEnabled && (
         <>
-          <p className="mt-5 text-[0.75rem] font-bold text-[var(--text-primary)] uppercase tracking-[0.05em] opacity-60">Helpdesk</p>
+          <p className="mt-5 text-[0.75rem] font-bold text-[hsl(var(--text-primary))] uppercase tracking-[0.05em] opacity-60">Helpdesk</p>
           <div className="grid grid-cols-3 gap-4">
             <DraggableNode type="helpdesk" label="Protocolo" icon={LifeBuoy} colorClass="colorHelpdesk" />
           </div>
         </>
       )}
 
-      <p className="mt-auto text-[11px] text-[var(--text-secondary)] text-center py-2">Arraste os ícones para o painel</p>
+      <p className="mt-auto text-[11px] text-[hsl(var(--text-secondary))] text-center py-2">Arraste os ícones para o painel</p>
     </aside>
   );
 };

@@ -95,7 +95,7 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup }) => {
 
       {loading && (
         <div>
-          <Loader2 className="absolute top-3 left-1/2 -ml-3 h-6 w-6 animate-spin text-[var(--status-success)] opacity-70" />
+          <Loader2 className="absolute top-3 left-1/2 -ml-3 h-6 w-6 animate-spin text-[hsl(var(--status-success))] opacity-70" />
         </div>
       )}
     </div>

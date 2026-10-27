@@ -98,7 +98,7 @@ const PairingCodeModal = ({ open, onClose, whatsAppId }: PairingCodeModalProps) 
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4 py-4">
-            <p className="text-4xl font-bold tracking-[0.15em] text-[var(--primary)]">
+            <p className="text-4xl font-bold tracking-[0.15em] text-[hsl(var(--primary))]">
               {pairingCode}
             </p>
             <p className="text-sm text-muted-foreground text-center">

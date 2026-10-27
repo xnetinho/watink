@@ -62,7 +62,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   return (
     <div
       className={clsx(
-        "wt-avatar relative inline-flex items-center justify-center rounded-full font-bold select-none flex-shrink-0 bg-[var(--secondary)] text-[var(--primary)] border border-[var(--border)] leading-none",
+        "wt-avatar relative inline-flex items-center justify-center rounded-full font-bold select-none flex-shrink-0 bg-[hsl(var(--secondary))] text-[hsl(var(--primary))] border border-[hsl(var(--border))] leading-none",
         sizeMap[size] || sizeMap.md,
         className
       )}
@@ -89,7 +89,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       {online !== undefined && (
         <span
           className={clsx(
-            "wt-avatar-status absolute rounded-full border-[var(--card)] box-content",
+            "wt-avatar-status absolute rounded-full border-[hsl(var(--card))] box-content",
             online ? "bg-[hsl(var(--status-success))]" : "bg-[hsl(var(--text-muted))]",
             dotSizeMap[size] || dotSizeMap.md
           )}

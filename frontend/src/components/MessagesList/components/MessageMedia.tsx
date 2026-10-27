@@ -39,13 +39,13 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
   if (message.mediaType === "view_once") {
     return (
       <div
-        className="flex max-w-[300px] items-start gap-2 rounded-lg bg-[var(--bg-surface)] px-3 py-2 text-sm"
+        className="flex max-w-[300px] items-start gap-2 rounded-lg bg-[hsl(var(--bg-surface))] px-3 py-2 text-sm"
         data-testid="view-once-notice"
       >
-        <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+        <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--text-muted))]" />
         <div>
           <p className="font-medium">{t("chat.viewOnce.title")}</p>
-          <p className="text-xs text-[var(--text-muted)]">{t("chat.viewOnce.hint")}</p>
+          <p className="text-xs text-[hsl(var(--text-muted))]">{t("chat.viewOnce.hint")}</p>
         </div>
       </div>
     );
@@ -56,13 +56,13 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
     const kind = message.mediaType === "unsupported" ? message.body : message.mediaType;
     return (
       <div
-        className="flex max-w-[300px] items-start gap-2 rounded-lg border border-[var(--status-warning)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+        className="flex max-w-[300px] items-start gap-2 rounded-lg border border-[hsl(var(--status-warning))] bg-[hsl(var(--bg-surface))] px-3 py-2 text-sm"
         data-testid="unsupported-notice"
       >
-        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning)]" />
+        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--status-warning))]" />
         <div>
           <p className="font-medium">{t("chat.unsupported.title")}</p>
-          <p className="text-xs text-[var(--text-muted)]">
+          <p className="text-xs text-[hsl(var(--text-muted))]">
             {String(i18n.t("chat.unsupported.hint", { kind }) ?? "")}
           </p>
         </div>
@@ -135,7 +135,7 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
       <div>
         <Audio url={getBackendUrl(message.mediaUrl) ?? ""} mimetype={mimetype} />
         {transcription ? (
-          <p className="mt-1 max-w-[300px] whitespace-pre-wrap text-xs italic text-[var(--text-muted)]">
+          <p className="mt-1 max-w-[300px] whitespace-pre-wrap text-xs italic text-[hsl(var(--text-muted))]">
             {transcription}
           </p>
         ) : (
@@ -155,7 +155,7 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
         src={getBackendUrl(message.mediaUrl)}
         controls
         playsInline
-        className="h-[240px] w-[240px] rounded-full object-cover bg-[var(--bg-surface)]"
+        className="h-[240px] w-[240px] rounded-full object-cover bg-[hsl(var(--bg-surface))]"
         data-testid="round-video"
       />
     );
@@ -167,7 +167,7 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
         <video
           src={getBackendUrl(message.mediaUrl)}
           controls
-          className="w-full h-auto max-h-[300px] object-contain bg-[var(--bg-surface)]"
+          className="w-full h-auto max-h-[300px] object-contain bg-[hsl(var(--bg-surface))]"
         />
       </div>
     );
@@ -188,7 +188,7 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
           ).map((card, idx) => (
             <div
               key={idx}
-              className="min-w-[220px] bg-[var(--bg-surface)] rounded-lg border border-[var(--border-default)] overflow-hidden shadow-sm"
+              className="min-w-[220px] bg-[hsl(var(--bg-surface))] rounded-lg border border-[hsl(var(--border-default))] overflow-hidden shadow-sm"
             >
               {card.headerUrl && (
                 <img
@@ -204,11 +204,11 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
                 </div>
               </div>
               {card.buttons && card.buttons.length > 0 && (
-                <div className="border-t border-[var(--border-default)] p-1.5">
+                <div className="border-t border-[hsl(var(--border-default))] p-1.5">
                   {card.buttons.map((btn, bIdx) => (
                     <div
                       key={bIdx}
-                      className="text-xs text-center text-[var(--action-primary)] py-1 cursor-pointer"
+                      className="text-xs text-center text-[hsl(var(--action-primary))] py-1 cursor-pointer"
                       onClick={() => btn.url && window.open(btn.url, "_blank")}
                     >
                       {btn.text}

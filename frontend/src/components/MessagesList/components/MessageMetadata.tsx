@@ -27,7 +27,7 @@ export const MessageAck: React.FC<AckProps & { onRetry?: () => void }> = ({ mess
     );
   if (message.ack === 3 || message.ack === 4)
     return (
-      <CheckCheck className="inline h-[18px] w-[18px] align-middle ml-1 text-[var(--action-primary)]" />
+      <CheckCheck className="inline h-[18px] w-[18px] align-middle ml-1 text-[hsl(var(--action-primary))]" />
     );
   if (message.ack === 5)
     return (

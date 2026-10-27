@@ -37,7 +37,7 @@ const NotificationToast = ({
         <span className="font-semibold text-sm truncate">
           {getContactDisplayName(contact) || "Contato"}
         </span>
-        <span className="text-xs text-[var(--text-muted)] line-clamp-2 max-w-[220px] leading-tight">
+        <span className="text-xs text-[hsl(var(--text-muted))] line-clamp-2 max-w-[220px] leading-tight">
           {message.body}
         </span>
       </div>
