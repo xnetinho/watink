@@ -460,6 +460,10 @@ const messages = {
         success: "User saved successfully.",
       },
       chat: {
+        unsupported: {
+          title: "Unsupported message",
+          hint: "Watink can't display this message type yet ({{kind}}). Open it on the phone or in the channel app.",
+        },
         viewOnce: {
           title: "View once",
           hint: "WhatsApp only delivers this content to the phone. Open it there.",

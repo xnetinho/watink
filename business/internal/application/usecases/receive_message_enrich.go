@@ -27,6 +27,21 @@ func contactDisplayName(pushName, groupName string, isGroup bool) string {
 // vinculados, então o chat só registra que ela chegou e orienta a ver no celular.
 const viewOnceNotice = "👁 Visualização única (o conteúdo só pode ser visto no celular)"
 
+// mediaTypeLabel é a prévia do ticket para tipos cujo body não é legível (coordenadas, vcard, nome de campo interno).
+func mediaTypeLabel(mediaType string) string {
+	switch mediaType {
+	case "view_once":
+		return "👁 Visualização única"
+	case "location":
+		return "📍 Localização"
+	case "vcard":
+		return "👤 Contato"
+	case "unsupported":
+		return "⚠️ Mensagem não suportada"
+	}
+	return ""
+}
+
 func mimeTypeLabel(mimetype string) string {
 	switch {
 	case strings.HasPrefix(mimetype, "image/"):

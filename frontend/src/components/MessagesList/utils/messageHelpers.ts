@@ -49,7 +49,14 @@ export const getSenderKey = (
   return "other";
 };
 
+// Tipos que o chat sabe desenhar. Qualquer outro mediaType vira o aviso de "mensagem não suportada".
+const KNOWN_MEDIA_TYPES = [
+  "chat", "image", "video", "audio", "document", "sticker", "location", "vcard", "carousel", "call", "view_once", "poll", "event",
+];
+export const isKnownMediaType = (t: string): boolean => KNOWN_MEDIA_TYPES.includes(t);
+
 export const getMessageBody = (message: Message | QuotedMsg): string => {
+  if (message.mediaType === "unsupported") return "⚠️ Mensagem não suportada";
   if (message.mediaType === "location") return "Localização";
   if (message.mediaType === "vcard") return "Contato";
   if (message.mediaType === "carousel") return "Carrossel";

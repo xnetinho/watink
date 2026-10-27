@@ -582,6 +582,10 @@ const messages = {
         success: "Usuário salvo com sucesso.",
       },
       chat: {
+        unsupported: {
+          title: "Mensagem não suportada",
+          hint: "O Watink ainda não sabe exibir este tipo de mensagem ({{kind}}). Veja no celular ou no app do canal.",
+        },
         viewOnce: {
           title: "Visualização única",
           hint: "O WhatsApp só entrega esse conteúdo no celular. Veja nele.",

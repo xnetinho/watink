@@ -11,7 +11,9 @@ import AudioTranscribeButton from "./AudioTranscribeButton";
 import { Message } from "../types";
 import CallMessage from "../../Calls/CallMessage";
 import { t } from "../../../lib/calls/t";
-import { EyeOff } from "lucide-react";
+import { i18n } from "../../../translate/i18n";
+import { EyeOff, TriangleAlert } from "lucide-react";
+import { isKnownMediaType } from "../utils/messageHelpers";
 
 interface Props {
   message: Message;
@@ -48,11 +50,32 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
     );
   }
 
+  // Tipo que o frontend não conhece (ou que o engine marcou "unsupported"): o operador precisa saber que chegou algo.
+  if (message.mediaType === "unsupported" || (message.mediaType && !isKnownMediaType(message.mediaType))) {
+    const kind = message.mediaType === "unsupported" ? message.body : message.mediaType;
+    return (
+      <div
+        className="flex max-w-[300px] items-start gap-2 rounded-lg border border-[var(--status-warning)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+        data-testid="unsupported-notice"
+      >
+        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning)]" />
+        <div>
+          <p className="font-medium">{t("chat.unsupported.title")}</p>
+          <p className="text-xs text-[var(--text-muted)]">
+            {String(i18n.t("chat.unsupported.hint", { kind }) ?? "")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Pending media: a downloadable type with no stored URL yet → show the blurred
   // thumbnail + download button instead of blocking on a full download.
   if (!message.mediaUrl && DOWNLOADABLE_TYPES.includes(message.mediaType ?? "")) {
     return <OnDemandMediaPreview message={message} />;
   }
+
+  if (message.mediaType === "poll" || message.mediaType === "event") return null;
 
   if (message.mediaType === "location" && message.body.split("|").length >= 2) {
     const [imageLocation, linkLocation, descriptionLocation] =

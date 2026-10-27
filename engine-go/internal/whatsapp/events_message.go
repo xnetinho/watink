@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"strings"
 
 	"go.mau.fi/whatsmeow"
@@ -59,6 +60,9 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 	// don't show up in the chat as blank bubbles rendering the raw number.
 	if content.msgType == "chat" && content.body == "" && content.protoB64 == "" {
 		return
+	}
+	if content.msgType == "unsupported" {
+		log.Printf("[Session-%d] mensagem de tipo não suportado (%s) id=%s: avisando o operador", id, content.body, v.Info.ID)
 	}
 
 	isGroup := v.Info.IsGroup || v.Info.Chat.Server == types.GroupServer
