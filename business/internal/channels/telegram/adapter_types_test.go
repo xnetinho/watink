@@ -65,3 +65,10 @@ func splitPipe(s string) []string {
 	}
 	return append(out, cur)
 }
+
+func TestParseInbound_StickerEstaticoEGifSaoMidia(t *testing.T) {
+	mt, _ := parse(t, `"sticker":{"file_id":"x","file_unique_id":"y","is_animated":false,"is_video":false}`)
+	assert.Equal(t, "sticker", mt)
+	mt, _ = parse(t, `"animation":{"file_id":"x","file_unique_id":"y"},"document":{"file_id":"x","file_unique_id":"y"}`)
+	assert.Equal(t, "document", mt, "GIF do Telegram vem como animation E document; vale o documento")
+}
