@@ -106,6 +106,11 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
   const [sent, setSent] = useState(mine.length > 0);
   if (options.length === 0) return <LegacyText message={message} testId="poll-card" />;
 
+  // Votos dos participantes (dataJson.votes[jid] = opções). Em conversa 1:1 o outro lado é quem responde pelo celular.
+  const votes = (parseData(message.dataJson).votes as Record<string, string[]> | undefined) ?? {};
+  const tally: Record<string, number> = {};
+  Object.values(votes).forEach((list) => (list ?? []).forEach((o) => (tally[o] = (tally[o] ?? 0) + 1)));
+  const voters = Object.values(votes).filter((l) => (l ?? []).length > 0).length;
   const limit = Number(r.selectable) || options.length;
   const multi = limit > 1;
   // Só o WhatsApp vota (o Telegram entrega a enquete como texto) e só a recebida: a nossa já saiu com as opções.
@@ -151,9 +156,19 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
               className="h-3.5 w-3.5 shrink-0 accent-[hsl(var(--action-primary))]"
             />
             <span className="break-words">{o}</span>
+            {tally[o] ? (
+              <span className="ml-auto rounded-full bg-[hsl(var(--action-primary)/0.12)] px-1.5 text-[11px] font-medium" data-testid="poll-count">
+                {tally[o]}
+              </span>
+            ) : null}
           </label>
         );
       })}
+      {voters > 0 && (
+        <div className="text-[11px] text-[var(--text-muted)]" data-testid="poll-voters">
+          {voters} {voters === 1 ? "voto" : "votos"}
+        </div>
+      )}
       {canVote && (
         <button
           type="button"

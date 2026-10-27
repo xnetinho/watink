@@ -68,6 +68,19 @@ describe("cartões de mensagem", () => {
     expect(c).toBeChecked();
   });
 
+  it("mostra a contagem de votos por opção e o total", () => {
+    render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 2 }, votes: { x: ["A", "B"], y: ["A"] } }), fromMe: true }} />);
+    const counts = screen.getAllByTestId("poll-count").map((e) => e.textContent);
+    expect(counts).toEqual(["2", "1"]);
+    expect(screen.getByTestId("poll-voters")).toHaveTextContent("2 votos");
+  });
+
+  it("voto removido (lista vazia) não conta", () => {
+    render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 }, votes: { x: [] } }), fromMe: true }} />);
+    expect(screen.queryByTestId("poll-voters")).toBeNull();
+    expect(screen.queryAllByTestId("poll-count")).toHaveLength(0);
+  });
+
   it("enquete nossa (fromMe) ou do Telegram não tem botão de votar", () => {
     const { rerender } = render(<MessageMedia message={{ ...withData("poll", { rich: { question: "Q?", options: ["A", "B"], selectable: 1 } }), fromMe: true }} />);
     expect(screen.queryByText("Votar")).toBeNull();
