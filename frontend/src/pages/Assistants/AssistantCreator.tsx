@@ -89,7 +89,7 @@ const AssistantCreator: React.FC = () => {
         const loadDependencies = async () => {
             try {
                 const [wa, fl, pl, kb, gw] = await Promise.all([
-                    api.get("/connections"),
+                    api.get("/whatsapp"),
                     api.get("/flows"),
                     api.get("/pipelines"),
                     api.get("/knowledge-bases"),

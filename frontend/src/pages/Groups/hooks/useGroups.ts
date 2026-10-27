@@ -17,7 +17,7 @@ export function useGroupsConnection() {
         let active = true;
         (async () => {
             try {
-                const { data } = await api.get("/connections");
+                const { data } = await api.get("/whatsapp");
                 const list: WhatsappOption[] = Array.isArray(data) ? data : [];
                 if (!active) return;
                 setWhatsapps(list);
