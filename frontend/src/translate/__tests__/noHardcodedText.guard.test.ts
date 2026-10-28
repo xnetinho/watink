@@ -14,6 +14,16 @@ const files = import.meta.glob(
     "../../pages/Connections/components/PresencePolicyCard.tsx",
     "../../pages/Connections/presencePolicy.ts",
     "../../pages/Connections/hooks/useConnectionActions.ts",
+    "../../components/TicketConnectionBadge.tsx",
+    "../../pages/Tickets/components/DetailsPanel.tsx",
+    "../../pages/Tickets/components/DadosTab.tsx",
+    "../../pages/Tickets/components/PipelinesSection.tsx",
+    "../../pages/Tickets/components/FlowsSection.tsx",
+    "../../pages/Tickets/components/TicketTagsSection.tsx",
+    "../../pages/Tickets/components/HelpdeskSection.tsx",
+    "../../components/TicketHistory/index.tsx",
+    "../../components/TicketListItem/index.tsx",
+    "../../lib/tickets/lastMessage.ts",
   ],
   { query: "?raw", import: "default", eager: true },
 ) as Record<string, string>;
@@ -25,7 +35,7 @@ const strip = (line: string) => line.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\/
 
 describe("texto fixo na interface", () => {
   it("há arquivos para checar (senão a guarda passaria vazia)", () => {
-    expect(Object.keys(files).length).toBeGreaterThanOrEqual(9);
+    expect(Object.keys(files).length).toBeGreaterThanOrEqual(19);
   });
 
   it("nenhum literal de interface em português fora dos arquivos de idioma", () => {

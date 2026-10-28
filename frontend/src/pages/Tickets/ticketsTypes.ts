@@ -15,7 +15,6 @@ export interface TicketInfo {
   isGroup?: boolean;
   contact?: ContactInfo;
   user?: { name: string } | null;
-  whatsapp?: { name: string };
   channel?: string;
   connection?: import("../../types/Ticket").TicketConnection;
 }

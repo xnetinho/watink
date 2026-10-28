@@ -11,9 +11,11 @@ import FlowsSection from "./FlowsSection";
 import HelpdeskSection from "./HelpdeskSection";
 import TicketTagsSection from "./TicketTagsSection";
 import ClientModal from "../../Clients/ClientModal";
-import TagChip from "../../../components/TagChip";
 import { TicketConnectionBadge } from "../../../components/TicketConnectionBadge";
 import { i18n } from "../../../translate/i18n";
+
+// i18n.t() deste projeto pode devolver null; a tela só quer string.
+const tr = (key: string, opts: Record<string, string | number> = {}): string => String(i18n.t(key, opts) ?? "");
 
 interface DadosTabProps {
   ticket: TicketInfo | null;
@@ -31,9 +33,9 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
     setSyncing(true);
     try {
       await api.post(`/contacts/${contact.id}/sync`);
-      toast.success("Sincronização solicitada ao WhatsApp!");
+      toast.success(tr("tickets.details.syncRequested"));
     } catch {
-      toast.error("Erro ao solicitar atualização.");
+      toast.error(tr("tickets.details.syncError"));
     } finally {
       setSyncing(false);
     }
@@ -56,7 +58,7 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
   if (!contact) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground text-sm p-4 text-center">
-        Selecione um ticket para ver os detalhes
+        {tr("tickets.details.selectTicketDetails")}
       </div>
     );
   }
@@ -83,7 +85,7 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
         {isGroup ? (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
             <Users className="w-3 h-3" />
-            Grupo do WhatsApp
+            {tr("tickets.details.groupOfWhatsapp")}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
@@ -99,7 +101,7 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
           onClick={handleSyncContact}
         >
           <RefreshCw className={`w-3 h-3 ${syncing ? "animate-spin" : ""}`} />
-          Atualizar contato
+          {tr("tickets.details.syncContact")}
         </Button>
       </div>
 
@@ -107,21 +109,15 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
       <div className="flex flex-col gap-3 px-4 py-4">
         {ticket?.id && (
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Ticket</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{tr("tickets.details.sections.ticket")}</p>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Número</span>
+              <span className="text-muted-foreground">{tr("tickets.details.fields.number")}</span>
               <span className="font-medium">#{ticket.id}</span>
             </div>
             {ticket.user && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Agente</span>
+                <span className="text-muted-foreground">{tr("tickets.details.fields.agent")}</span>
                 <span className="font-medium">{ticket.user.name}</span>
-              </div>
-            )}
-            {ticket.whatsapp?.name && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Conexão</span>
-                <TagChip tag={{ id: "connection", name: ticket.whatsapp.name, color: "blue" }} size="small" />
               </div>
             )}
           </div>
@@ -133,7 +129,7 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
 
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {isGroup ? "Grupo" : "Contato"}
+            {tr(isGroup ? "tickets.details.sections.group" : "tickets.details.sections.contact")}
           </p>
           {contact.number && (
             <div className="flex items-center gap-2 text-sm">
@@ -159,7 +155,7 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
           )}
           {isGroup && !contact.number && !contact.email && (
             <p className="text-xs text-muted-foreground">
-              Avatar e detalhes aparecem após receber mensagens do grupo.
+              {tr("tickets.details.groupHint")}
             </p>
           )}
         </div>
@@ -167,12 +163,12 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
         {/* Cliente — somente para tickets individuais */}
         {!isGroup && contact?.id && (
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cliente</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{tr("tickets.details.sections.client")}</p>
             {contact.client ? (
               <div className="flex items-center gap-2 text-sm">
                 <Briefcase className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <span className="font-medium truncate">
-                  {contact.client.socialName || "Cliente vinculado"}
+                  {contact.client.socialName || tr("tickets.details.linkedClient")}
                 </span>
               </div>
             ) : (
@@ -183,7 +179,7 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
                 onClick={() => setClientModalOpen(true)}
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                Cadastrar Cliente
+                {tr("tickets.details.registerClient")}
               </Button>
             )}
           </div>
