@@ -17,6 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import api from "../../../services/api";
+import { i18n } from "../../../translate/i18n";
+
+// i18n.t() deste projeto pode devolver null; a tela só quer string.
+const tr = (key: string, opts: Record<string, string | number> = {}): string => String(i18n.t(key, opts) ?? "");
 
 interface Flow {
   id: number;
@@ -32,14 +36,11 @@ interface FlowRun {
   flow?: { id: number; name: string };
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  running: "Executando",
-  waiting_message: "Aguardando resposta",
-  waiting_until: "Aguardando tempo",
-  waiting_event: "Aguardando evento",
-  completed: "Concluído",
-  aborted: "Abortado",
-  expired: "Expirado",
+// Rótulo do status da execução: vem dos arquivos de idioma (tickets.details.flows.status.*).
+const statusLabel = (status: string): string => {
+  const key = `tickets.details.flows.status.${status}`;
+  const t = tr(key);
+  return t === key ? status : t;
 };
 
 const ACTIVE_STATUSES = ["running", "waiting_message", "waiting_until", "waiting_event"];
@@ -86,15 +87,16 @@ const FlowsSection: React.FC<FlowsSectionProps> = ({ contactId }) => {
     setStarting(true);
     try {
       await api.post(`/flows/${selectedFlow}/run`, { contactId: String(contactId) });
-      toast.success("Fluxo iniciado!");
+      toast.success(tr("tickets.details.flows.started"));
       setDialogOpen(false);
       fetchFlowRuns();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      if (msg?.includes("já está neste fluxo")) {
-        toast.warning("Contato já está neste fluxo.");
+      // 409 = o contato já tem uma execução ativa deste fluxo. Decide pelo código HTTP, nunca pelo texto da resposta.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        toast.warning(tr("tickets.details.flows.alreadyIn"));
       } else {
-        toast.error("Erro ao iniciar fluxo.");
+        toast.error(tr("tickets.details.flows.startError"));
       }
     } finally {
       setStarting(false);
@@ -104,10 +106,10 @@ const FlowsSection: React.FC<FlowsSectionProps> = ({ contactId }) => {
   const handleAbort = async (runId: string) => {
     try {
       await api.delete(`/flowruns/${runId}`);
-      toast.success("Fluxo interrompido.");
+      toast.success(tr("tickets.details.flows.stopped"));
       fetchFlowRuns();
     } catch {
-      toast.error("Erro ao interromper fluxo.");
+      toast.error(tr("tickets.details.flows.stopError"));
     }
   };
 
@@ -117,21 +119,21 @@ const FlowsSection: React.FC<FlowsSectionProps> = ({ contactId }) => {
         <div className="flex items-center justify-between">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
             <Zap className="w-3 h-3" />
-            Fluxos
+            {tr("tickets.details.flows.title")}
           </p>
           <Button
             variant="ghost"
             size="icon"
             className="h-5 w-5"
             onClick={openDialog}
-            title="Iniciar fluxo"
+            title={tr("tickets.details.flows.start")}
           >
             <Play className="w-3.5 h-3.5" />
           </Button>
         </div>
 
         {flowRuns.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nenhum fluxo ativo.</p>
+          <p className="text-xs text-muted-foreground">{tr("tickets.details.flows.none")}</p>
         ) : (
           flowRuns.map((run) => {
             const isActive = ACTIVE_STATUSES.includes(run.status);
@@ -145,7 +147,7 @@ const FlowsSection: React.FC<FlowsSectionProps> = ({ contactId }) => {
                     {run.flow?.name ?? `Fluxo #${run.flowId}`}
                   </span>
                   <span className="text-xs text-muted-foreground truncate">
-                    {STATUS_LABEL[run.status] ?? run.status}
+                    {statusLabel(run.status)}
                   </span>
                 </div>
                 {isActive && (
@@ -154,7 +156,7 @@ const FlowsSection: React.FC<FlowsSectionProps> = ({ contactId }) => {
                     size="icon"
                     className="h-6 w-6 shrink-0 mt-0.5"
                     onClick={() => handleAbort(run.id)}
-                    title="Interromper fluxo"
+                    title={tr("tickets.details.flows.stop")}
                   >
                     <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                   </Button>
@@ -168,15 +170,15 @@ const FlowsSection: React.FC<FlowsSectionProps> = ({ contactId }) => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Iniciar Fluxo</DialogTitle>
+            <DialogTitle>{tr("tickets.details.flows.dialogTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {flows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum fluxo ativo disponível.</p>
+              <p className="text-sm text-muted-foreground">{tr("tickets.details.flows.noneAvailable")}</p>
             ) : (
               <Select value={selectedFlow} onValueChange={setSelectedFlow}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione um fluxo" />
+                  <SelectValue placeholder={tr("tickets.details.flows.select")} />
                 </SelectTrigger>
                 <SelectContent>
                   {flows.map((f) => (
@@ -202,7 +204,7 @@ const FlowsSection: React.FC<FlowsSectionProps> = ({ contactId }) => {
               disabled={!selectedFlow || flows.length === 0 || starting}
             >
               <Play className="w-4 h-4 mr-1" />
-              {starting ? "Iniciando..." : "Iniciar"}
+              {starting ? tr("tickets.details.flows.starting") : tr("tickets.details.flows.startButton")}
             </Button>
           </DialogFooter>
         </DialogContent>

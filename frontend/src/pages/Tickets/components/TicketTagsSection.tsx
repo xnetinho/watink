@@ -9,6 +9,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import TagChip, { Tag } from "../../../components/TagChip";
 import { TAG_COLOR_OPTIONS } from "../../../helpers/tagColors";
 import api from "../../../services/api";
+import { i18n } from "../../../translate/i18n";
+
+// i18n.t() deste projeto pode devolver null; a tela só quer string.
+const tr = (key: string, opts: Record<string, string | number> = {}): string => String(i18n.t(key, opts) ?? "");
 
 interface TicketTagsSectionProps {
   ticketId: number;
@@ -69,7 +73,7 @@ const TicketTagsSection: React.FC<TicketTagsSectionProps> = ({ ticketId }) => {
       setTicketTags(nextTags);
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
     } catch {
-      toast.error("Erro ao atualizar tags do ticket.");
+      toast.error(tr("tickets.details.tags.updateError"));
     } finally {
       setSaving(false);
     }
@@ -97,7 +101,7 @@ const TicketTagsSection: React.FC<TicketTagsSectionProps> = ({ ticketId }) => {
       setSearch("");
       await syncTags([...ticketTags, data]);
     } catch {
-      toast.error("Erro ao criar tag.");
+      toast.error(tr("tickets.details.tags.createError"));
     } finally {
       setCreating(false);
     }
@@ -108,7 +112,7 @@ const TicketTagsSection: React.FC<TicketTagsSectionProps> = ({ ticketId }) => {
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
           <TagsIcon className="w-3 h-3" />
-          Tags
+          {tr("tickets.details.tags.title")}
         </p>
         <Popover open={open} onOpenChange={openPopover}>
           <PopoverTrigger asChild>
@@ -116,7 +120,7 @@ const TicketTagsSection: React.FC<TicketTagsSectionProps> = ({ ticketId }) => {
               variant="ghost"
               size="icon"
               className="h-5 w-5"
-              title="Adicionar tag"
+              title={tr("tickets.details.tags.add")}
               disabled={saving}
             >
               <Plus className="w-3.5 h-3.5" />
@@ -134,14 +138,14 @@ const TicketTagsSection: React.FC<TicketTagsSectionProps> = ({ ticketId }) => {
                     createTag();
                   }
                 }}
-                placeholder="Buscar ou criar tag..."
+                placeholder={tr("tickets.details.tags.search")}
                 className="h-8 pl-8 text-xs"
               />
             </div>
 
             <div className="max-h-56 overflow-y-auto">
               {allTags.length === 0 && (
-                <p className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma tag cadastrada</p>
+                <p className="px-2 py-1.5 text-xs text-muted-foreground">{tr("tickets.details.tags.noneRegistered")}</p>
               )}
               {filteredTags.map((tag) => (
                 <label
@@ -167,7 +171,7 @@ const TicketTagsSection: React.FC<TicketTagsSectionProps> = ({ ticketId }) => {
               >
                 <Plus className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
-                  {creating ? "Criando..." : `Criar tag "${search.trim()}"`}
+                  {creating ? tr("tickets.details.tags.creating") : tr("tickets.details.tags.create", { name: search.trim() })}
                 </span>
               </button>
             )}
@@ -176,7 +180,7 @@ const TicketTagsSection: React.FC<TicketTagsSectionProps> = ({ ticketId }) => {
       </div>
 
       {ticketTags.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Nenhuma tag adicionada.</p>
+        <p className="text-xs text-muted-foreground">{tr("tickets.details.tags.noneAdded")}</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {ticketTags.map((tag) => (

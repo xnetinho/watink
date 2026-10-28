@@ -10,6 +10,10 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import api from "../../services/api";
+import { i18n } from "../../translate/i18n";
+
+// i18n.t() deste projeto pode devolver null; a tela só quer string.
+const tr = (key: string, opts: Record<string, string | number> = {}): string => String(i18n.t(key, opts) ?? "");
 import { Avatar } from "../ui/avatar";
 
 interface TicketLogUser {
@@ -51,13 +55,13 @@ const formatLogMessage = (log: TicketLog) => {
 
   switch (log.type) {
     case "transfer":
-      return `Transferido para a fila #${payload.newQueueId || "desconhecida"}`;
+      return tr("tickets.history.transfer", { queue: payload.newQueueId || tr("tickets.history.unknownQueue") });
     case "status":
-      return `Status alterado de "${payload.old}" para "${payload.new}"`;
+      return tr("tickets.history.status", { from: payload.old, to: payload.new });
     case "assign":
-      return `Atribuído ao usuário #${payload.newUserId || "desconhecido"}`;
+      return tr("tickets.history.assign", { user: payload.newUserId || tr("tickets.history.unknownUser") });
     default:
-      return log.payload || "Ação registrada";
+      return log.payload || tr("tickets.history.fallback");
   }
 };
 
@@ -95,7 +99,7 @@ const TicketHistory: React.FC<TicketHistoryProps> = ({ ticketId }) => {
 
       <div className="relative pl-6 before:absolute before:left-2.5 before:top-1 before:bottom-1 before:w-0.5 before:bg-border select-none">
         {logs.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-2">Nenhum evento registrado ainda.</p>
+          <p className="text-xs text-muted-foreground py-2">{tr("tickets.history.empty")}</p>
         ) : (
           logs.map((log) => (
             <div key={log.id} className="relative mb-6 last:mb-2 group">
@@ -108,7 +112,11 @@ const TicketHistory: React.FC<TicketHistoryProps> = ({ ticketId }) => {
               <div className="relative p-3 rounded-xl bg-card border border-border before:absolute before:-left-2 before:top-[18px] before:w-2 before:h-[1px] before:bg-border transition-shadow hover:shadow-sm">
                 <div className="flex justify-between items-center mb-1.5">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                    {log.type}
+                    {(() => {
+                      const key = `tickets.history.types.${log.type}`;
+                      const label = tr(key);
+                      return label === key ? log.type : label;
+                    })()}
                   </span>
                   <span className="text-[10px] text-muted-foreground">
                     {format(parseISO(log.createdAt), "dd/MM HH:mm")}

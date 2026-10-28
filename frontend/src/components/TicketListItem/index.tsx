@@ -179,15 +179,10 @@ const TicketListItem: React.FC<TicketListItemProps> = ({ ticket }) => {
         </div>
 
         {/* Linha 3 — badge da conexão + tags */}
-        {(ticket.channel || ticket.connection || ticket.whatsapp?.name || (ticket.tags && ticket.tags.length > 0)) && (
+        {(ticket.channel || ticket.connection || (ticket.tags && ticket.tags.length > 0)) && (
           <div className="mt-0.5 flex flex-wrap items-center gap-1">
-            {(ticket.connection || ticket.channel || ticket.whatsapp?.name) && (
-              <TicketConnectionBadge
-                channel={ticket.channel}
-                // `whatsapp.name` é o campo antigo (a API não o preenche); `connection` é o contrato atual.
-                connection={ticket.connection ?? (ticket.whatsapp?.name ? { kind: "whatsapp", id: 0, name: ticket.whatsapp.name, source: "whatsapp" } : undefined)}
-                size="sm"
-              />
+            {(ticket.connection || ticket.channel) && (
+              <TicketConnectionBadge channel={ticket.channel} connection={ticket.connection} size="sm" />
             )}
             {ticket.tags?.map((tag) => (
               <TagChip key={tag.id} tag={tag} size="small" />
