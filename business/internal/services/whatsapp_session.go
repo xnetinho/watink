@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
 	"time"
 
 	"net/http"
@@ -12,6 +14,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -161,4 +164,18 @@ func (wss *WhatsAppSessionService) DeleteWhatsAppSession(whatsapp models.Whatsap
 		return err
 	}
 	return engine.DeleteSession(context.Background(), whatsapp)
+}
+
+// ApplyPresencePolicy avisa o engine de uma mudança de política em uma sessão já em andamento. Best-effort: sem broker ou
+// com a sessão fora do ar, a nova política vale no próximo session.start, que a leva junto.
+func (wss *WhatsAppSessionService) ApplyPresencePolicy(tenantID uuid.UUID, sessionID int, policy string, idleMinutes int) {
+	if wss.publisher == nil {
+		return
+	}
+	cmd := map[string]interface{}{"type": "presence.policy", "payload": map[string]interface{}{
+		"sessionId": sessionID, "policy": policy, "idleMinutes": idleMinutes,
+	}}
+	if err := wss.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(sessionID), wbot.CommandPresencePolicy), cmd); err != nil {
+		log.Printf("[WhatsAppSession] política de presença da sessão %d não chegou ao engine: %v", sessionID, err)
+	}
 }

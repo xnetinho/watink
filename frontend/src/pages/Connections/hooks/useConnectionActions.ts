@@ -8,9 +8,11 @@ import { i18n } from "../../../translate/i18n";
 import { WhatsAppsContext } from "../../../context/WhatsApp/WhatsAppsContext";
 
 import type { WhatsApp, ConfirmationAction } from "../connectionConfigTypes";
+import type { PresencePolicy } from "../presencePolicy";
 
 export interface UseConnectionActionsReturn {
   keepAliveSaving: boolean;
+  presenceSaving: boolean;
   connecting: boolean;
   setConnecting: Dispatch<SetStateAction<boolean>>;
   restarting: boolean;
@@ -41,6 +43,7 @@ export interface UseConnectionActionsReturn {
   handleDisconnect: () => Promise<void>;
   handleDelete: () => Promise<void>;
   handleToggleKeepAlive: (next: boolean) => Promise<void>;
+  handleChangePresencePolicy: (policy: PresencePolicy, idleMinutes: number) => Promise<void>;
   handleCancelPairing: () => void;
 }
 
@@ -63,6 +66,7 @@ export const useConnectionActions = ({
   const { reloadWhatsApps } = useContext(WhatsAppsContext);
 
   const [keepAliveSaving, setKeepAliveSaving] = useState(false);
+  const [presenceSaving, setPresenceSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [restarting, setRestarting] = useState(false);
 
@@ -144,6 +148,24 @@ export const useConnectionActions = ({
     setConfirmationOpen(false);
   };
 
+  const handleChangePresencePolicy = async (policy: PresencePolicy, idleMinutes: number) => {
+    let previous: { presencePolicy?: string; presenceIdleMinutes?: number } = {};
+    setPresenceSaving(true);
+    setWhatsapp((prev) => {
+      previous = { presencePolicy: prev?.presencePolicy, presenceIdleMinutes: prev?.presenceIdleMinutes };
+      return prev ? { ...prev, presencePolicy: policy, presenceIdleMinutes: idleMinutes } : prev;
+    });
+    try {
+      await api.put(`/whatsapp/${whatsappId}/presence-policy`, { presencePolicy: policy, presenceIdleMinutes: idleMinutes });
+      toast.success("Política de presença atualizada.");
+    } catch (err: unknown) {
+      setWhatsapp((prev) => (prev ? { ...prev, ...previous } : prev));
+      toastError(err);
+    } finally {
+      setPresenceSaving(false);
+    }
+  };
+
   const handleToggleKeepAlive = async (next: boolean) => {
     setKeepAliveSaving(true);
     setWhatsapp((prev) => prev ? { ...prev, keepAlive: next } : prev);
@@ -167,6 +189,7 @@ export const useConnectionActions = ({
 
   return {
     keepAliveSaving,
+    presenceSaving,
     connecting,
     setConnecting,
     restarting,
@@ -197,6 +220,7 @@ export const useConnectionActions = ({
     handleDisconnect,
     handleDelete,
     handleToggleKeepAlive,
+    handleChangePresencePolicy,
     handleCancelPairing,
   };
 };
