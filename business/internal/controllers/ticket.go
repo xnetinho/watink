@@ -81,9 +81,11 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 
 	searchParam := c.Query("searchParam")
 	if searchParam != "" {
-		query = query.Joins("JOIN \"Contacts\" ON \"Contacts\".id = \"Tickets\".\"contactId\"").
-			Where("(\"Contacts\".name ILIKE ? OR \"Contacts\".number ILIKE ? OR \"Tickets\".\"lastMessage\" ILIKE ?)",
-				"%"+searchParam+"%", "%"+searchParam+"%", "%"+searchParam+"%")
+		// EXISTS e não JOIN: o escopo da empresa (GetScoped) filtra por "tenantId" sem qualificar a tabela, e o JOIN com
+		// Contacts (que também tem tenantId) tornava a coluna ambígua e a busca respondia 500.
+		like := "%" + searchParam + "%"
+		query = query.Where(`("Tickets"."lastMessage" ILIKE ? OR EXISTS (SELECT 1 FROM "Contacts" ct WHERE ct.id = "Tickets"."contactId" AND (ct.name ILIKE ? OR ct.number ILIKE ?)))`,
+			like, like, like)
 	}
 
 	date := c.Query("date")

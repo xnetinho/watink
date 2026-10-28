@@ -201,4 +201,6 @@ func TestListTickets_FiltroPorCanalParaDestinoDeEncaminhamento(t *testing.T) {
 	assert.Len(t, ids("channel=whatsapp"), 1)
 	assert.NotContains(t, ids("channel=whatsapp"), tg.ID)
 	assert.Len(t, ids("limit=1"), 1)
+	assert.Equal(t, []int{tg.ID}, ids("channel=telegram&searchParam=chat-A"), "busca por nome do contato: antes respondia 500 (tenantId ambíguo)")
+	assert.Empty(t, ids("channel=telegram&searchParam=zzzz"))
 }
