@@ -226,38 +226,74 @@ func (tc *TicketController) ShowTicket(c *gin.Context) {
 	ticketBytes, _ := json.Marshal(ticket)
 	_ = json.Unmarshal(ticketBytes, &resp)
 	resp["channel"] = channelKind
+	if c, ok := resolveTicketConnections(db, []models.Ticket{ticket})[ticket.ID]; ok {
+		resp["connection"] = c
+	}
 	resp["capabilities"] = caps
 	resp["replyPolicy"] = policy
 
 	c.JSON(http.StatusOK, resp)
 }
 
-// attachChannelInfo atribui o tipo de canal em lote para a lista de tickets (Tarefa 7.3).
-func attachChannelInfo(db *gorm.DB, tickets []models.Ticket) {
-	connIDs := make([]int, 0)
-	seen := map[int]bool{}
+// resolveTicketConnections identifica, em lote (no máximo 2 consultas), a conexão de cada ticket da lista. A regra de "de
+// qual tabela vem a conexão" é a de services.ConnectionOf; aqui só se evita 1 consulta por ticket. Ticket cuja conexão foi
+// apagada volta sem Connection e a tela mostra só o canal.
+func resolveTicketConnections(db *gorm.DB, tickets []models.Ticket) map[int]models.TicketConnectionInfo {
+	channelIDs, waIDs := map[int]bool{}, map[int]bool{}
 	for _, t := range tickets {
-		if t.ChannelConnectionID != nil && !seen[*t.ChannelConnectionID] {
-			seen[*t.ChannelConnectionID] = true
-			connIDs = append(connIDs, *t.ChannelConnectionID)
+		switch {
+		case t.ChannelConnectionID != nil:
+			channelIDs[*t.ChannelConnectionID] = true
+		case t.WhatsappID != 0:
+			waIDs[t.WhatsappID] = true
 		}
 	}
-	connMap := map[int]string{}
-	if len(connIDs) > 0 {
+	byChannel, byWhatsapp := map[int]models.TicketConnectionInfo{}, map[int]models.TicketConnectionInfo{}
+	if len(channelIDs) > 0 {
 		var conns []models.ChannelConnection
-		_ = db.Session(&gorm.Session{NewDB: true}).Where("id IN ?", connIDs).Find(&conns).Error
+		_ = db.Session(&gorm.Session{NewDB: true}).Select("id", "kind", "name").Where("id IN ?", connIDList(channelIDs)).Find(&conns).Error
 		for _, c := range conns {
-			connMap[c.ID] = c.Kind
+			byChannel[c.ID] = models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, Source: "channel"}
 		}
 	}
-	for i := range tickets {
-		if tickets[i].ChannelConnectionID != nil {
-			if kind, ok := connMap[*tickets[i].ChannelConnectionID]; ok {
-				tickets[i].Channel = kind
-				continue
-			}
+	if len(waIDs) > 0 {
+		var was []models.Whatsapp
+		_ = db.Session(&gorm.Session{NewDB: true}).Select("id", "name").Where("id IN ?", connIDList(waIDs)).Find(&was).Error
+		for _, w := range was {
+			byWhatsapp[w.ID] = models.TicketConnectionInfo{Kind: string(domain.ChannelKindWhatsApp), ID: w.ID, Name: w.Name, Source: "whatsapp"}
 		}
-		tickets[i].Channel = "whatsapp"
+	}
+	res := map[int]models.TicketConnectionInfo{}
+	for _, t := range tickets {
+		if t.ChannelConnectionID != nil {
+			if c, ok := byChannel[*t.ChannelConnectionID]; ok {
+				res[t.ID] = c
+			}
+		} else if c, ok := byWhatsapp[t.WhatsappID]; ok {
+			res[t.ID] = c
+		}
+	}
+	return res
+}
+
+func connIDList(m map[int]bool) []int {
+	ks := make([]int, 0, len(m))
+	for k := range m {
+		ks = append(ks, k)
+	}
+	return ks
+}
+
+// attachChannelInfo preenche canal e conexão de cada ticket da lista (Tarefa 7.3; identificação do ticket).
+func attachChannelInfo(db *gorm.DB, tickets []models.Ticket) {
+	conns := resolveTicketConnections(db, tickets)
+	for i := range tickets {
+		tickets[i].Channel = string(domain.ChannelKindWhatsApp) // ticket sem conexão de canal é do WhatsApp (legado)
+		if c, ok := conns[tickets[i].ID]; ok {
+			tickets[i].Channel = c.Kind
+			cc := c
+			tickets[i].Connection = &cc
+		}
 	}
 }
 

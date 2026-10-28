@@ -254,10 +254,11 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 	}
 
 	room := "chat:" + strconv.Itoa(result.Ticket.ID)
-	msgPayload := map[string]interface{}{"action": "create", "message": result.Message, "ticket": result.Ticket, "contact": result.Contact}
+	ticketOut := withConnectionIdentity(ctx, el.db, result.Ticket)
+	msgPayload := map[string]interface{}{"action": "create", "message": result.Message, "ticket": ticketOut, "contact": result.Contact}
 	el.bcast().EmitToRoom("/", room, "appMessage", msgPayload)
 	el.bcast().EmitToTenantRoom(tenantID.String(), "appMessage", msgPayload)
-	el.bcast().EmitToTenantRoom(tenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": result.Ticket, "contact": result.Contact})
+	el.bcast().EmitToTenantRoom(tenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": ticketOut, "contact": result.Contact})
 
 	// Mídia pequena baixa sozinha pelo mesmo comando do botão; ao terminar, o handler de message.media troca o
 	// "pendente" pela mídia real. Falha aqui não derruba o recebimento: a mensagem fica com o botão manual.

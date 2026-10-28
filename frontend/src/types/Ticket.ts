@@ -70,10 +70,26 @@ export interface Ticket {
   };
   tags?: Tag[];
   channel?: string;
+  /** Identificação do ticket: canal + conexão, no mesmo formato para qualquer canal (ver TicketConnection). */
+  connection?: TicketConnection;
   capabilities?: ChannelCapabilities;
   replyPolicy?: {
     canReply: boolean;
     reason?: string;
     message?: string;
   };
+}
+
+/**
+ * Por onde um ticket conversa: o canal (`kind`, uma chave do catálogo em config/channels.ts) e a conexão (`id` + `name`).
+ * É o contrato de identificação do ticket e vale para TODO canal (WhatsApp, Telegram, Mercado Livre, OLX, Instagram,
+ * TikTok...): o backend o preenche a partir da conexão do ticket e a tela só o desenha, sem `if` por canal. Canal novo
+ * entra no catálogo (config/channels.ts) e ganha o selo sem tocar nos componentes de ticket.
+ */
+export interface TicketConnection {
+  kind: string;
+  id: number;
+  name: string;
+  /** Tabela de origem do id ("whatsapp" | "channel"); some quando o WhatsApp migrar para ChannelConnections. */
+  source: "whatsapp" | "channel";
 }

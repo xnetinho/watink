@@ -542,6 +542,9 @@ const messages = {
         placeholder: "Queues",
       },
       tickets: {
+        details: {
+          connection: "Connection",
+        },
         toasts: {
           deleted: "The ticket you were on has been deleted.",
         },

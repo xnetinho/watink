@@ -545,6 +545,9 @@ const messages = {
         placeholder: "Linhas",
       },
       tickets: {
+        details: {
+          connection: "Conexión",
+        },
         toasts: {
           deleted: "El ticket en el que estabas ha sido borrado.",
         },

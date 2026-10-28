@@ -664,6 +664,9 @@ const messages = {
         placeholder: "Filas",
       },
       tickets: {
+        details: {
+          connection: "Conexão",
+        },
         toasts: {
           deleted: "O ticket que você estava foi deletado.",
         },

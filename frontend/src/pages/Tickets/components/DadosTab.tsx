@@ -12,6 +12,8 @@ import HelpdeskSection from "./HelpdeskSection";
 import TicketTagsSection from "./TicketTagsSection";
 import ClientModal from "../../Clients/ClientModal";
 import TagChip from "../../../components/TagChip";
+import { TicketConnectionBadge } from "../../../components/TicketConnectionBadge";
+import { i18n } from "../../../translate/i18n";
 
 interface DadosTabProps {
   ticket: TicketInfo | null;
@@ -70,6 +72,14 @@ const DadosTab: React.FC<DadosTabProps> = ({ ticket, loading }) => {
           isGroup={!!isGroup}
         />
         <p className="font-semibold text-sm text-center leading-tight">{contact.name}</p>
+        {(ticket?.connection || ticket?.channel) && (
+          <div className="flex flex-col items-center gap-1" data-testid="details-connection">
+            <span className="text-[0.6875rem] uppercase tracking-wide text-muted-foreground">
+              {String(i18n.t("tickets.details.connection") ?? "")}
+            </span>
+            <TicketConnectionBadge channel={ticket?.channel} connection={ticket?.connection} size="md" />
+          </div>
+        )}
         {isGroup ? (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
             <Users className="w-3 h-3" />
