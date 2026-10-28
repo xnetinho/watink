@@ -765,6 +765,23 @@ const messages = {
         },
       },
       messagesInput: {
+        emojiPicker: {
+          title: "Emojis",
+          search: "Search emoji",
+          none: "No emoji found",
+          loading: "Loading emojis...",
+          categories: {
+            "Smileys & Emotion": "Smileys & emotion",
+            "People & Body": "People & body",
+            "Animals & Nature": "Animals & nature",
+            "Food & Drink": "Food & drink",
+            "Travel & Places": "Travel & places",
+            Activities: "Activities",
+            Objects: "Objects",
+            Symbols: "Symbols",
+            Flags: "Flags",
+          },
+        },
         placeholderOpen: "Type a message or press ''/'' to use the registered quick responses",
         placeholderClosed: "Reopen or accept this ticket to send a message.",
         signMessage: "Sign",

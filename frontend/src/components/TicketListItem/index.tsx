@@ -10,6 +10,7 @@ import TagChip from "../TagChip";
 import MarkdownWrapper from "../MarkdownWrapper";
 import type { TicketConnection } from "../../types/Ticket";
 import { TicketConnectionBadge } from "../TicketConnectionBadge";
+import { Emojified } from "../Emojified";
 import { lastMessagePreview } from "../../lib/tickets/lastMessage";
 import { i18n } from "../../translate/i18n";
 import { getBackendUrl } from "../../helpers/urlUtils";
@@ -147,7 +148,7 @@ const TicketListItem: React.FC<TicketListItemProps> = ({ ticket }) => {
         {/* Linha 1 — nome + horário */}
         <div className="flex items-baseline justify-between">
           <span className="truncate text-[0.8125rem] font-semibold leading-tight text-foreground">
-            {getContactDisplayName(ticket.contact)}
+            <Emojified>{getContactDisplayName(ticket.contact)}</Emojified>
           </span>
           <span className="ml-2 shrink-0 text-[0.6875rem] text-muted-foreground">
             {timeLabel}

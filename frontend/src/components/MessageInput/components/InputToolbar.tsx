@@ -9,14 +9,8 @@ import {
 } from "../../ui/dropdown-menu";
 import { i18n } from "../../../translate/i18n";
 
-const EmojiPicker = lazy(() =>
-  // O CSS base do emoji-mart nunca era carregado -- sem ele o Picker renderiza
-  // como uma lista vertical de emojis sem grade/fundo. Carregado junto com o
-  // componente (só quando o picker é de fato aberto), não no bundle inicial.
-  Promise.all([import("emoji-mart"), import("emoji-mart/css/emoji-mart.css")]).then(
-    ([mod]) => ({ default: mod.Picker })
-  )
-);
+// Seletor próprio, com as imagens do mesmo conjunto que desenha as mensagens (carregado só quando abre).
+const EmojiPicker = lazy(() => import("../../EmojiPicker"));
 
 interface InputToolbarProps {
   loading: boolean;
@@ -66,13 +60,8 @@ const InputToolbar: React.FC<InputToolbarProps> = ({
         {showEmoji && (
           <div className="absolute bottom-16 z-50">
             <div onMouseLeave={onEmojiClose}>
-              <Suspense fallback={<div className="text-xs p-2">Loading emoji...</div>}>
-                <EmojiPicker
-                  perLine={16}
-                  showPreview={false}
-                  showSkinTones={false}
-                  onSelect={onEmojiSelect}
-                />
+              <Suspense fallback={<div className="text-xs p-2">{String(i18n.t("messagesInput.emojiPicker.loading") ?? "")}</div>}>
+                <EmojiPicker onSelect={onEmojiSelect} />
               </Suspense>
             </div>
           </div>
