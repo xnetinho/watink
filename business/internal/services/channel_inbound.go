@@ -213,13 +213,11 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	// Atualiza o ticket com a última mensagem e timestamp
-	lastMessage := msg.Body
-	if label := usecases.MediaTypeLabel(mediaType); label != "" && (lastMessage == "" || usecases.OpaqueBodyType(mediaType)) {
-		lastMessage = label
-	}
+	lastMessage, lastKind := domain.LastMessagePreview(mediaType, msg.Body, "")
 	_ = s.ticketRepo.Update(ctx, ticket, map[string]interface{}{
-		"lastMessage": lastMessage,
-		"updatedAt":   time.Now(),
+		"lastMessage":     lastMessage,
+		"lastMessageType": lastKind,
+		"updatedAt":       time.Now(),
 	})
 
 	res := &usecases.ReceiveMessageResult{

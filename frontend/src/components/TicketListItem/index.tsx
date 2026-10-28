@@ -10,6 +10,8 @@ import TagChip from "../TagChip";
 import MarkdownWrapper from "../MarkdownWrapper";
 import type { TicketConnection } from "../../types/Ticket";
 import { TicketConnectionBadge } from "../TicketConnectionBadge";
+import { lastMessagePreview } from "../../lib/tickets/lastMessage";
+import { i18n } from "../../translate/i18n";
 import { getBackendUrl } from "../../helpers/urlUtils";
 import { getContactDisplayName } from "../../utils/clientDisplayName";
 
@@ -42,6 +44,7 @@ interface Ticket {
   status: "open" | "closed" | "pending";
   updatedAt: string;
   lastMessage?: string;
+  lastMessageType?: string;
   unreadMessages: number;
   isGroup?: boolean;
   isCommunity?: boolean;
@@ -63,6 +66,7 @@ interface TicketListItemProps {
 const TicketListItem: React.FC<TicketListItemProps> = ({ ticket }) => {
   const navigate = useNavigate();
   const { ticketId } = useParams<{ ticketId: string }>();
+  const preview = lastMessagePreview(ticket);
 
   const handleSelectTicket = (id: number) => {
     navigate(`/tickets/${id}`);
@@ -153,10 +157,10 @@ const TicketListItem: React.FC<TicketListItemProps> = ({ ticket }) => {
         {/* Linha 2 — prévia + badge não lidas */}
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-[0.75rem] leading-4 text-muted-foreground pointer-events-none select-none">
-            {ticket.lastMessage ? (
-              <MarkdownWrapper>{ticket.lastMessage}</MarkdownWrapper>
+            {preview ? (
+              ticket.lastMessage ? <MarkdownWrapper>{preview}</MarkdownWrapper> : preview
             ) : (
-              "Sem mensagens"
+              String(i18n.t("tickets.noMessages") ?? "")
             )}
           </span>
 

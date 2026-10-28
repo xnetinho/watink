@@ -545,6 +545,23 @@ const messages = {
         placeholder: "Linhas",
       },
       tickets: {
+        lastMessageKind: {
+          image: "📷 Foto",
+          video: "📹 Video",
+          audio: "🎵 Audio",
+          document: "📎 Archivo",
+          sticker: "Sticker",
+          location: "📍 Ubicación",
+          vcard: "👤 Contacto",
+          poll: "📊 Encuesta",
+          event: "📅 Evento",
+          pix: "💠 PIX",
+          view_once: "👁 Ver una vez",
+          unsupported: "⚠️ Mensaje no compatible",
+          call: "📞 Llamada",
+          other: "📎 Mensaje",
+        },
+        noMessages: "Sin mensajes",
         details: {
           connection: "Conexión",
         },

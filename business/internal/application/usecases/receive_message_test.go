@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -343,8 +342,8 @@ func TestReceiveMessage_ImageMimetype_SetsLastMessageFoto(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if result.Ticket.LastMessage != "📷 Foto" {
-		t.Errorf("expected lastMessage '📷 Foto', got %q", result.Ticket.LastMessage)
+	if result.Ticket.LastMessage != "" || result.Ticket.LastMessageType != "image" {
+		t.Errorf("a prévia deve ser o marcador de tipo image (texto vazio), veio texto=%q tipo=%q", result.Ticket.LastMessage, result.Ticket.LastMessageType)
 	}
 }
 
@@ -366,8 +365,8 @@ func TestReceiveMessage_AudioMimetype_SetsLastMessageAudio(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if result.Ticket.LastMessage != "🎵 Áudio" {
-		t.Errorf("expected lastMessage '🎵 Áudio', got %q", result.Ticket.LastMessage)
+	if result.Ticket.LastMessage != "" || result.Ticket.LastMessageType != "audio" {
+		t.Errorf("a prévia deve ser o marcador de tipo audio (texto vazio), veio texto=%q tipo=%q", result.Ticket.LastMessage, result.Ticket.LastMessageType)
 	}
 }
 
@@ -389,8 +388,8 @@ func TestReceiveMessage_VideoMimetype_SetsLastMessageVideo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if result.Ticket.LastMessage != "📹 Vídeo" {
-		t.Errorf("expected lastMessage '📹 Vídeo', got %q", result.Ticket.LastMessage)
+	if result.Ticket.LastMessage != "" || result.Ticket.LastMessageType != "video" {
+		t.Errorf("a prévia deve ser o marcador de tipo video (texto vazio), veio texto=%q tipo=%q", result.Ticket.LastMessage, result.Ticket.LastMessageType)
 	}
 }
 
@@ -412,8 +411,8 @@ func TestReceiveMessage_GenericMimetype_SetsLastMessageArquivo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if result.Ticket.LastMessage != "📎 Arquivo" {
-		t.Errorf("expected lastMessage '📎 Arquivo', got %q", result.Ticket.LastMessage)
+	if result.Ticket.LastMessage != "" || result.Ticket.LastMessageType != "document" {
+		t.Errorf("a prévia deve ser o marcador de tipo document (texto vazio), veio texto=%q tipo=%q", result.Ticket.LastMessage, result.Ticket.LastMessageType)
 	}
 }
 
@@ -561,8 +560,8 @@ func TestReceiveMessage_ViewOnce_IsStoredAsANoticeWithNothingToDownload(t *testi
 	if result.Message.MediaType != "view_once" {
 		t.Fatalf("mediaType = %q, esperado view_once", result.Message.MediaType)
 	}
-	if !strings.Contains(result.Message.Body, "só pode ser visto no celular") {
-		t.Fatalf("o corpo do aviso tem de orientar a ver no celular: %q", result.Message.Body)
+	if result.Message.Body != "" {
+		t.Fatalf("o corpo fica vazio (o aviso é desenhado pela tela, traduzido): %q", result.Message.Body)
 	}
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(result.Message.DataJson), &data); err != nil {
@@ -571,9 +570,12 @@ func TestReceiveMessage_ViewOnce_IsStoredAsANoticeWithNothingToDownload(t *testi
 	if data["mediaStatus"] == "pending" {
 		t.Fatal("não há mídia para baixar: mediaStatus não pode ser pending (o botão de download nunca funcionaria)")
 	}
-	// O preview da lista é CURTO: o aviso inteiro (com a orientação) só cabe no balão do chat.
-	if got := fmt.Sprint(tr.lastUpdate["lastMessage"]); got != "👁 Visualização única" {
-		t.Fatalf("preview do ticket = %q, esperado o texto curto", got)
+	// A prévia da lista é um marcador de tipo, traduzido pela tela; o banco não guarda rótulo em idioma.
+	if got := fmt.Sprint(tr.lastUpdate["lastMessageType"]); got != "view_once" {
+		t.Fatalf("lastMessageType = %q, esperado view_once", got)
+	}
+	if got := fmt.Sprint(tr.lastUpdate["lastMessage"]); got != "" {
+		t.Fatalf("lastMessage = %q, esperado vazio", got)
 	}
 }
 

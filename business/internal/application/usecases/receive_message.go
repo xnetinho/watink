@@ -233,10 +233,8 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		createdAt = time.Now()
 	}
 
+	// Visualização única: o corpo fica vazio; a tela desenha o aviso traduzido (chat.viewOnce.*), nada em idioma no banco.
 	body := input.Body
-	if mediaType == "view_once" && body == "" {
-		body = viewOnceNotice
-	}
 
 	msg := &domain.Message{
 		ID:          input.ID,
@@ -279,14 +277,8 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		return &ReceiveMessageResult{Contact: contact, Ticket: ticket, Message: msg, Duplicate: true}, nil
 	}
 
-	lastMsg := msg.Body
-	if label := MediaTypeLabel(mediaType); label != "" && (lastMsg == "" || opaqueBodyTypes[mediaType]) {
-		lastMsg = label
-	}
-	if lastMsg == "" {
-		lastMsg = mimeTypeLabel(input.Mimetype)
-	}
-	updates := map[string]interface{}{"lastMessage": lastMsg, "updatedAt": time.Now()}
+	lastMsg, lastKind := domain.LastMessagePreview(mediaType, msg.Body, input.Mimetype)
+	updates := map[string]interface{}{"lastMessage": lastMsg, "lastMessageType": lastKind, "updatedAt": time.Now()}
 	if !input.FromMe {
 		// Atomic DB increment (column = column + 1) — evita lost update quando
 		// duas mensagens do mesmo ticket são processadas em paralelo em instâncias
@@ -299,6 +291,7 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		return nil, err
 	}
 	ticket.LastMessage = lastMsg
+	ticket.LastMessageType = lastKind
 	ticket.UpdatedAt = time.Now()
 
 	_ = uc.eventBus.Publish(ctx, domain.NewMessageReceivedEvent(msg.ID, ticket.ID, input.TenantID))

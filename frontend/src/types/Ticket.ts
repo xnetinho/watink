@@ -54,6 +54,8 @@ export interface Ticket {
   status: "open" | "pending" | "closed";
   unreadMessages: number;
   lastMessage: string;
+  /** Marcador de tipo quando a última mensagem não tem texto (image, video, poll...); a tela o traduz. */
+  lastMessageType?: string;
   isGroup: boolean;
   createdAt: string;
   updatedAt: string;
