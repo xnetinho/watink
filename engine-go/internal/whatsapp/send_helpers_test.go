@@ -8,7 +8,7 @@ import (
 )
 
 func TestBuildTextMessage_PlainConversation(t *testing.T) {
-	msg := buildTextMessage("hello", "", "", "", nil)
+	msg := buildTextMessage("hello", "", "", "", nil, forwardMark{})
 	if msg.GetConversation() != "hello" {
 		t.Fatalf("expected plain conversation, got %q", msg.GetConversation())
 	}
@@ -18,7 +18,7 @@ func TestBuildTextMessage_PlainConversation(t *testing.T) {
 }
 
 func TestBuildTextMessage_WithQuote(t *testing.T) {
-	msg := buildTextMessage("reply", "QUOTED1", "5511@s.whatsapp.net", "", nil)
+	msg := buildTextMessage("reply", "QUOTED1", "5511@s.whatsapp.net", "", nil, forwardMark{})
 	ext := msg.GetExtendedTextMessage()
 	if ext == nil {
 		t.Fatal("quoted message should use ExtendedTextMessage")
@@ -33,7 +33,7 @@ func TestBuildTextMessage_WithQuote(t *testing.T) {
 
 func TestBuildTextMessage_WithMentions(t *testing.T) {
 	mentions := []string{"5511@s.whatsapp.net", "5522@s.whatsapp.net"}
-	msg := buildTextMessage("hi @a @b", "", "", "", mentions)
+	msg := buildTextMessage("hi @a @b", "", "", "", mentions, forwardMark{})
 	ext := msg.GetExtendedTextMessage()
 	if ext == nil {
 		t.Fatal("mention message should use ExtendedTextMessage")
@@ -104,7 +104,7 @@ func TestBuildMediaMessage_DocumentDefault(t *testing.T) {
 // O celular desenha a caixa de citação a partir do CONTEÚDO da mensagem citada (ContextInfo.QuotedMessage).
 // Só com o StanzaID a resposta chegava sem a citação visível para o destinatário.
 func TestBuildTextMessage_QuoteCarriesTheQuotedContent(t *testing.T) {
-	msg := buildTextMessage("5 dias", "Q1", "5511@s.whatsapp.net", "qual o prazo?", nil)
+	msg := buildTextMessage("5 dias", "Q1", "5511@s.whatsapp.net", "qual o prazo?", nil, forwardMark{})
 	ci := msg.GetExtendedTextMessage().GetContextInfo()
 	if ci.GetStanzaID() != "Q1" {
 		t.Fatalf("stanzaID = %q", ci.GetStanzaID())
@@ -115,7 +115,7 @@ func TestBuildTextMessage_QuoteCarriesTheQuotedContent(t *testing.T) {
 }
 
 func TestBuildTextMessage_QuoteWithoutBodyStillQuotesByID(t *testing.T) {
-	ci := buildTextMessage("ok", "Q1", "", "", nil).GetExtendedTextMessage().GetContextInfo()
+	ci := buildTextMessage("ok", "Q1", "", "", nil, forwardMark{}).GetExtendedTextMessage().GetContextInfo()
 	if ci.GetStanzaID() != "Q1" || ci.GetQuotedMessage() != nil {
 		t.Fatalf("sem corpo citado deve citar só pelo id: %+v", ci)
 	}
@@ -137,6 +137,41 @@ func TestBuildMediaMessage_QuoteCarriesTheQuotedContent(t *testing.T) {
 		}
 		if got != "oi" {
 			t.Errorf("%s: QuotedMessage = %q, esperado %q", mt, got, "oi")
+		}
+	}
+}
+
+func TestBuildTextMessage_EncaminhadaLevaSeloEScore(t *testing.T) {
+	ci := buildTextMessage("oi", "", "", "", nil, forwardInfo(true, 3)).GetExtendedTextMessage().GetContextInfo()
+	if !ci.GetIsForwarded() || ci.GetForwardingScore() != 3 {
+		t.Fatalf("selo/score ausentes: %v", ci)
+	}
+	if plain := buildTextMessage("oi", "", "", "", nil, forwardInfo(false, 3)); plain.GetConversation() != "oi" {
+		t.Fatal("sem encaminhar, o texto continua simples")
+	}
+	if ci := buildTextMessage("oi", "", "", "", nil, forwardInfo(true, 0)).GetExtendedTextMessage().GetContextInfo(); ci.GetForwardingScore() != 1 {
+		t.Fatal("score mínimo é 1")
+	}
+}
+
+func TestBuildMediaMessage_EncaminhadaESticker(t *testing.T) {
+	for _, mt := range []string{"image", "video", "audio", "document", "sticker"} {
+		m := buildMediaMessage(MediaCommandPayload{MediaType: mt, Forwarded: true, ForwardScore: 2}, whatsmeow.UploadResponse{})
+		var ci interface{ GetIsForwarded() bool }
+		switch mt {
+		case "image":
+			ci = m.GetImageMessage().GetContextInfo()
+		case "video":
+			ci = m.GetVideoMessage().GetContextInfo()
+		case "audio":
+			ci = m.GetAudioMessage().GetContextInfo()
+		case "sticker":
+			ci = m.GetStickerMessage().GetContextInfo()
+		default:
+			ci = m.GetDocumentMessage().GetContextInfo()
+		}
+		if !ci.GetIsForwarded() {
+			t.Errorf("%s: sem selo de encaminhada", mt)
 		}
 	}
 }

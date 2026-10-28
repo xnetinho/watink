@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/application/usecases"
@@ -108,6 +109,8 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 	// isGroup absent → default to individual tickets (exclude groups from status-based tabs)
 	isGroup := c.Query("isGroup")
 	switch isGroup {
+	case "all":
+		// destino de encaminhamento: grupos e contatos juntos
 	case "true":
 		query = query.Where("\"Tickets\".\"isGroup\" = ?", true)
 		// Groups are informal chats — status filter doesn't apply.
@@ -115,6 +118,20 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 	default:
 		// "false" or absent: exclude groups so status-based tabs never mix individual and group tickets.
 		query = query.Where("\"Tickets\".\"isGroup\" = ?", false)
+	}
+
+	// channel restringe a um canal (destino de encaminhamento só no mesmo canal): o WhatsApp é o ticket sem conexão de canal.
+	if ch := c.Query("channel"); ch == string(domain.ChannelKindWhatsApp) {
+		query = query.Where("\"Tickets\".\"channelConnectionId\" IS NULL")
+	} else if ch != "" {
+		query = query.Where("\"Tickets\".\"channelConnectionId\" IN (?)",
+			db.Session(&gorm.Session{NewDB: true}).Model(&models.ChannelConnection{}).Select("id").Where("kind = ?", ch))
+	}
+	if n, err := strconv.Atoi(c.Query("limit")); err == nil && n > 0 {
+		if n > 100 {
+			n = 100
+		}
+		query = query.Limit(n)
 	}
 
 	if c.Query("withUnreadMessages") == "true" {

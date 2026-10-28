@@ -15,12 +15,36 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func buildTextMessage(body, quotedMsgID, quotedJID, quotedBody string, mentions []string) *waProto.Message {
-	if quotedMsgID == "" && len(mentions) == 0 {
+// forwardMark é a marca de "encaminhada" no ContextInfo; score é quantas vezes a mensagem já foi encaminhada.
+type forwardMark struct {
+	forwarded bool
+	score     uint32
+}
+
+func forwardInfo(forwarded bool, score int) forwardMark {
+	if !forwarded {
+		return forwardMark{}
+	}
+	if score < 1 {
+		score = 1
+	}
+	return forwardMark{forwarded: true, score: uint32(score)}
+}
+
+func (f forwardMark) apply(ctx *waProto.ContextInfo) {
+	if f.forwarded {
+		ctx.IsForwarded = proto.Bool(true)
+		ctx.ForwardingScore = proto.Uint32(f.score)
+	}
+}
+
+func buildTextMessage(body, quotedMsgID, quotedJID, quotedBody string, mentions []string, fwd forwardMark) *waProto.Message {
+	if quotedMsgID == "" && len(mentions) == 0 && !fwd.forwarded {
 		return &waProto.Message{Conversation: proto.String(body)}
 	}
 
 	ctx := &waProto.ContextInfo{}
+	fwd.apply(ctx)
 	if quotedMsgID != "" {
 		ctx.StanzaID = proto.String(quotedMsgID)
 		if quotedJID != "" {
@@ -113,8 +137,10 @@ func buildMediaMessage(payload MediaCommandPayload, uploaded whatsmeow.UploadRes
 	}
 
 	var ctx *waProto.ContextInfo
-	if payload.QuotedMsgID != "" || len(payload.Mentions) > 0 {
+	fwd := forwardInfo(payload.Forwarded, payload.ForwardScore)
+	if payload.QuotedMsgID != "" || len(payload.Mentions) > 0 || fwd.forwarded {
 		ctx = &waProto.ContextInfo{}
+		fwd.apply(ctx)
 		if payload.QuotedMsgID != "" {
 			ctx.StanzaID = proto.String(payload.QuotedMsgID)
 			if payload.QuotedJID != "" {
@@ -147,6 +173,14 @@ func buildMediaMessage(payload MediaCommandPayload, uploaded whatsmeow.UploadRes
 		}}
 	case "audio":
 		return &waProto.Message{AudioMessage: &waProto.AudioMessage{
+			Mimetype: proto.String(mimeType),
+			URL:      proto.String(uploaded.URL), DirectPath: proto.String(uploaded.DirectPath),
+			MediaKey: uploaded.MediaKey, FileEncSHA256: uploaded.FileEncSHA256,
+			FileSHA256: uploaded.FileSHA256, FileLength: proto.Uint64(uploaded.FileLength),
+			ContextInfo: ctx,
+		}}
+	case "sticker":
+		return &waProto.Message{StickerMessage: &waProto.StickerMessage{
 			Mimetype: proto.String(mimeType),
 			URL:      proto.String(uploaded.URL), DirectPath: proto.String(uploaded.DirectPath),
 			MediaKey: uploaded.MediaKey, FileEncSHA256: uploaded.FileEncSHA256,

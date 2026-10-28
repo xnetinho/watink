@@ -71,6 +71,7 @@ func (a *Adapter) Capabilities() domain.Capabilities {
 		Reactions:    true,
 		Voice:        true,
 		Video:        true,
+		Forward:      true,
 		Auth:         domain.AuthKindQR,
 		HasPhone:     true,
 	}
@@ -150,6 +151,10 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 			if qBody, ok := msg.Metadata["quotedBody"]; ok && qBody != "" {
 				payload["quotedBody"] = qBody
 			}
+		}
+
+		if msg.Forward != nil && !msg.Forward.AsNew {
+			payload["forwarded"] = true
 		}
 
 		if mentionsStr, ok := msg.Metadata["mentions"]; ok && mentionsStr != "" {

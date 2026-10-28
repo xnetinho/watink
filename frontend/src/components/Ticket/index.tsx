@@ -38,6 +38,7 @@ interface TicketData {
   contact: Contact;
   user?: TicketUser | null;
   whatsapp?: WhatsApp;
+  channel?: string;
 }
 
 interface TicketProps {
@@ -135,7 +136,7 @@ const Ticket: React.FC<TicketProps> = ({ onToggleDetails, showDetails }) => {
       </TicketHeader>
 
       <ReplyMessageProvider>
-        <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} />
+        <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} channel={ticket.channel} />
         <MessageInput
           ticketStatus={ticket.status}
           whatsappStatus={ticket.whatsapp?.status}

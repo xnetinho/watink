@@ -24,6 +24,9 @@ const files = import.meta.glob(
     "../../components/TicketHistory/index.tsx",
     "../../components/TicketListItem/index.tsx",
     "../../lib/tickets/lastMessage.ts",
+    "../../components/ForwardMessageDialog.tsx",
+    "../../components/MessageOptionsMenu/index.tsx",
+    "../../lib/messages/forward.ts",
   ],
   { query: "?raw", import: "default", eager: true },
 ) as Record<string, string>;

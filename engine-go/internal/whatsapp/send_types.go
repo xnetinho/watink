@@ -11,22 +11,27 @@ type TextCommandPayload struct {
 	QuotedJID   string   `json:"quotedJid,omitempty"`
 	QuotedBody  string   `json:"quotedBody,omitempty"`
 	Mentions    []string `json:"mentions,omitempty"`
+	// Forwarded marca a mensagem como encaminhada (selo "Encaminhada"); ForwardScore é quantas vezes já foi.
+	Forwarded    bool `json:"forwarded,omitempty"`
+	ForwardScore int  `json:"forwardScore,omitempty"`
 }
 
 type MediaCommandPayload struct {
-	SessionID   int      `json:"sessionId"`
-	MessageID   string   `json:"messageId"`
-	To          string   `json:"to"`
-	Body        string   `json:"body"`
-	MediaURL    string   `json:"mediaUrl"`
-	MediaType   string   `json:"mediaType"`
-	MimeType    string   `json:"mimeType"`
-	FileName    string   `json:"fileName"`
-	MediaData   string   `json:"mediaData"`
-	QuotedMsgID string   `json:"quotedMsgId,omitempty"`
-	QuotedJID   string   `json:"quotedJid,omitempty"`
-	QuotedBody  string   `json:"quotedBody,omitempty"`
-	Mentions    []string `json:"mentions,omitempty"`
+	SessionID    int      `json:"sessionId"`
+	MessageID    string   `json:"messageId"`
+	To           string   `json:"to"`
+	Body         string   `json:"body"`
+	MediaURL     string   `json:"mediaUrl"`
+	MediaType    string   `json:"mediaType"`
+	MimeType     string   `json:"mimeType"`
+	FileName     string   `json:"fileName"`
+	MediaData    string   `json:"mediaData"`
+	QuotedMsgID  string   `json:"quotedMsgId,omitempty"`
+	QuotedJID    string   `json:"quotedJid,omitempty"`
+	QuotedBody   string   `json:"quotedBody,omitempty"`
+	Mentions     []string `json:"mentions,omitempty"`
+	Forwarded    bool     `json:"forwarded,omitempty"`
+	ForwardScore int      `json:"forwardScore,omitempty"`
 }
 
 // ReactionCommandPayload sends (or removes, when Reaction=="") an emoji
