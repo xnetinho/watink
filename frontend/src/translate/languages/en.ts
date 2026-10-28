@@ -358,6 +358,14 @@ const messages = {
         message: "Read QrCode to start the session",
       },
       contacts: {
+        phoneSync: {
+          pending: "Saving to the phone address book...",
+          failed: "Not on the phone",
+          errors: {
+            connection_not_connected: "The connection was offline; the contact did not reach the phone address book.",
+            publish_failed: "Couldn't send the contact to the phone.",
+          },
+        },
         title: "Contacts",
         toasts: {
           deleted: "Contact deleted sucessfully!",
@@ -386,6 +394,7 @@ const messages = {
           selectedCount: "{{count}} selected",
         },
         table: {
+          connection: "Connection",
           name: "Name",
           whatsapp: "WhatsApp",
           email: "Email",

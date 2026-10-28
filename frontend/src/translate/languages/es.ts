@@ -360,6 +360,14 @@ const messages = {
         message: "Lée el código QR para empezar la sesión.",
       },
       contacts: {
+        phoneSync: {
+          pending: "Guardando en la agenda del teléfono...",
+          failed: "No está en el teléfono",
+          errors: {
+            connection_not_connected: "La conexión estaba desconectada; el contacto no llegó a la agenda del teléfono.",
+            publish_failed: "No se pudo enviar el contacto al teléfono.",
+          },
+        },
         title: "Contactos",
         toasts: {
           deleted: "¡Contacto borrado satisfactoriamente!",
@@ -390,6 +398,7 @@ const messages = {
           selectedCount: "{{count}} seleccionado(s)",
         },
         table: {
+          connection: "Conexión",
           name: "Nombre",
           whatsapp: "WhatsApp",
           email: "Correo Electrónico",

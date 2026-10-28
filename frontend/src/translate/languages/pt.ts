@@ -444,6 +444,14 @@ const messages = {
         message: "Leia o QrCode para iniciar a sessão",
       },
       contacts: {
+        phoneSync: {
+          pending: "Gravando na agenda do celular...",
+          failed: "Não está no celular",
+          errors: {
+            connection_not_connected: "A conexão estava desconectada; o contato não foi para a agenda do celular.",
+            publish_failed: "Não foi possível enviar o contato ao celular.",
+          },
+        },
         title: "Contatos",
         toasts: {
           deleted: "Contato excluído com sucesso!",
@@ -472,6 +480,7 @@ const messages = {
           selectedCount: "{{count}} selecionado(s)",
         },
         table: {
+          connection: "Conexão",
           name: "Nome",
           whatsapp: "WhatsApp",
           email: "Email",

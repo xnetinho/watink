@@ -8,6 +8,12 @@ export interface Contact {
   profilePicUrl?: string;
   isGroup?: boolean;
   lid?: string;
+  /** Conexão de origem: o contato pertence a UMA conexão e é por ela que recebe e envia. */
+  connectionSource?: "whatsapp" | "channel";
+  connectionId?: number;
+  /** Gravação na agenda do celular (só WhatsApp): pending | saved | failed. */
+  phoneSync?: "" | "pending" | "saved" | "failed";
+  phoneSyncError?: string;
   /** Só presente em contatos de grupo (isGroup=true), enriquecido a partir
    * do plugin Grupos e Comunidades toda vez que o grupo é consultado por
    * lá (business/internal/plugins/groups_contact_enrich.go). */
