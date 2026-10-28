@@ -108,7 +108,9 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 					QuotedMessageID: quotedExternalID,
 				}
 				if in.Forward != nil {
-					if !in.Forward.AsNew && !chAdapter.Capabilities().Forward {
+					// Encaminhar com selo exige que o canal suporte E que origem e destino sejam a MESMA conexão (o Telegram só
+					// encaminha o que o próprio bot enxerga). A regra vale antes do adaptador para qualquer canal.
+					if !in.Forward.AsNew && (!chAdapter.Capabilities().Forward || !in.Forward.SameConnection) {
 						return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "forward_not_supported"}
 					}
 					outMsg.Forward = &domain.ForwardRef{

@@ -258,6 +258,12 @@ const messages = {
         }
       },
       connections: {
+        importContacts: {
+          action: "Importar contactos",
+          title: "Importar contactos de esta conexión",
+          message: "Los contactos que el WhatsApp de esta conexión ya conoce se traerán a Watink, vinculados a ella. Los contactos que ya existen en esta conexión no se duplican.",
+          started: "Importación iniciada. Los contactos aparecerán en unos instantes.",
+        },
         title: "Conexiones",
         invalidPhone: "Número de teléfono no válido",
         presencePolicy: {
@@ -363,7 +369,6 @@ const messages = {
         searchPlaceholder: "Buscar...",
         confirmationModal: {
           deleteTitle: "Borrar",
-          importTitlte: "Importar contactos",
           deleteMessage:
             "¿Estás seguro que deseas borrar este contacto? Todos los tickets relacionados se perderán.",
           importMessage:
@@ -376,7 +381,6 @@ const messages = {
             "Atención: esto borrará TODOS los contactos de este tenant permanentemente, incluyendo el historial de tickets vinculado. Esta acción no se puede deshacer.",
         },
         buttons: {
-          import: "Importar Contactos",
           add: "Agregar Contacto",
           deleteSelected: "Borrar Seleccionados",
           deselectAll: "Desmarcar",
@@ -400,6 +404,11 @@ const messages = {
           edit: "Editar contacto",
         },
         form: {
+          connection: "Conexión",
+          connectionPlaceholder: "Selecciona la conexión",
+          connectionHint: "El contacto envía y recibe mensajes por esta conexión. En WhatsApp, también se guarda en la agenda del teléfono.",
+          connectionLocked: "La conexión del contacto no se puede cambiar.",
+          connectionRequired: "Elige la conexión del contacto.",
           mainInfo: "Detalles del contacto",
           extraInfo: "Información adicional",
           name: "Nombre",
@@ -904,14 +913,14 @@ const messages = {
         forward: "Reenviar",
         forwardDialog: {
           title: "Reenviar mensaje",
-          search: "Buscar conversación",
+          search: "Buscar contacto",
           modeLabel: "Cómo reenviar",
           modeForward: "Reenviar",
           modeForwardHint: "Aparece con la etiqueta \"Reenviado\".",
           modeCopy: "Enviar como nuevo",
           modeCopyHint: "Sale como un mensaje tuyo, sin la etiqueta.",
-          sameChannelOnly: "Solo aparecen conversaciones del mismo canal ({{channel}}).",
-          none: "Ninguna conversación encontrada.",
+          sameChannelOnly: "Solo aparecen contactos del mismo canal ({{channel}}). Cada mensaje sale por la conexión del propio contacto.",
+          none: "Ningún contacto encontrado.",
           selected: "{{count}} seleccionada(s)",
           send: "Enviar",
           sending: "Enviando...",
@@ -920,6 +929,9 @@ const messages = {
           done: "Mensaje reenviado a {{count}} conversación(es).",
           partial: "{{ok}} enviada(s), {{failed}} con error.",
           errors: {
+            contact_not_found: "Contacto no encontrado.",
+            connection_required: "El contacto no tiene una conexión válida.",
+            conversation_unavailable: "No se pudo abrir la conversación con este contacto.",
             forward_not_supported: "Este canal solo reenvía con etiqueta dentro de la misma conexión. Usa \"Enviar como nuevo\".",
             different_channel: "La conversación es de otro canal.",
             ticket_not_found: "Conversación no encontrada.",

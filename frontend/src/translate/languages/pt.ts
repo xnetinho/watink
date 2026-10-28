@@ -310,6 +310,12 @@ const messages = {
         }
       },
       connections: {
+        importContacts: {
+          action: "Importar contatos",
+          title: "Importar contatos desta conexão",
+          message: "Os contatos que o WhatsApp desta conexão já conhece serão trazidos para o Watink, ligados a ela. Contatos que já existem nesta conexão não são duplicados.",
+          started: "Importação iniciada. Os contatos aparecem em instantes.",
+        },
         title: "Conexões",
         invalidPhone: "Número de telefone inválido",
         presencePolicy: {
@@ -447,10 +453,8 @@ const messages = {
         searchPlaceholder: "Pesquisar...",
         confirmationModal: {
           deleteTitle: "Deletar ",
-          importTitlte: "Importar contatos",
           deleteMessage:
             "Tem certeza que deseja deletar este contato? Todos os tickets relacionados serão perdidos.",
-          importMessage: "Deseja importas todos os contatos do telefone?",
           bulkDeleteTitle: "Excluir contatos selecionados",
           bulkDeleteMessage:
             "Tem certeza que deseja excluir {{count}} contato(s) selecionado(s)? Esta ação não pode ser desfeita.",
@@ -459,7 +463,6 @@ const messages = {
             "Atenção: isso vai excluir TODOS os contatos deste tenant permanentemente, incluindo o histórico de tickets vinculado. Esta ação não pode ser desfeita.",
         },
         buttons: {
-          import: "Importar Contatos",
           add: "Adicionar Contato",
           deleteSelected: "Excluir Selecionados",
           deselectAll: "Desmarcar",
@@ -483,6 +486,11 @@ const messages = {
           edit: "Editar contato",
         },
         form: {
+          connection: "Conexão",
+          connectionPlaceholder: "Selecione a conexão",
+          connectionHint: "O contato recebe e envia mensagens por esta conexão. Se for WhatsApp, ele também é salvo na agenda do celular.",
+          connectionLocked: "A conexão do contato não pode ser alterada.",
+          connectionRequired: "Escolha a conexão do contato.",
           mainInfo: "Dados do contato",
           extraInfo: "Informações adicionais",
           name: "Nome",
@@ -1067,14 +1075,14 @@ const messages = {
         forward: "Encaminhar",
         forwardDialog: {
           title: "Encaminhar mensagem",
-          search: "Buscar conversa",
+          search: "Buscar contato",
           modeLabel: "Como encaminhar",
           modeForward: "Encaminhar",
           modeForwardHint: "Aparece com o selo \"Encaminhada\".",
           modeCopy: "Reenviar como nova",
           modeCopyHint: "Sai como uma mensagem sua, sem o selo.",
-          sameChannelOnly: "Só aparecem conversas do mesmo canal ({{channel}}).",
-          none: "Nenhuma conversa encontrada.",
+          sameChannelOnly: "Só aparecem contatos do mesmo canal ({{channel}}). Cada mensagem sai pela conexão do próprio contato.",
+          none: "Nenhum contato encontrado.",
           selected: "{{count}} selecionada(s)",
           send: "Enviar",
           sending: "Enviando...",
@@ -1083,6 +1091,9 @@ const messages = {
           done: "Mensagem encaminhada para {{count}} conversa(s).",
           partial: "{{ok}} enviada(s), {{failed}} com falha.",
           errors: {
+            contact_not_found: "Contato não encontrado.",
+            connection_required: "O contato não tem uma conexão válida.",
+            conversation_unavailable: "Não foi possível abrir a conversa com este contato.",
             forward_not_supported: "Este canal só encaminha com selo dentro da mesma conexão. Use \"Reenviar como nova\".",
             different_channel: "A conversa é de outro canal.",
             ticket_not_found: "Conversa não encontrada.",

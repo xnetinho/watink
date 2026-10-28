@@ -16,9 +16,10 @@ interface MessagesListProps {
   ticketId: string | number;
   isGroup?: boolean;
   channel?: string;
+  contactId?: number | string;
 }
 
-const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel }) => {
+const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel, contactId }) => {
   const { appTheme } = useThemeContext();
 
   const {
@@ -58,7 +59,7 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel 
         menuOpen={messageOptionsMenuOpen}
         handleClose={handleCloseMessageOptionsMenu}
         channel={channel}
-        ticketId={ticketId}
+        contactId={contactId}
       />
 
       <HistorySyncModal

@@ -60,10 +60,17 @@ type MessageRepository interface {
 	Update(ctx context.Context, msg *Message, fields map[string]interface{}) error
 }
 
+// ContactFilter restringe a listagem de contatos. Vazio = todos.
+type ContactFilter struct {
+	Connection *ConnectionRef // só os contatos desta conexão
+	Channel    string         // só os contatos deste canal ("whatsapp", "telegram"...)
+	Limit      int
+}
+
 type ContactRepository interface {
-	FindByNumber(ctx context.Context, tenantID uuid.UUID, number string, isGroup bool) (*Contact, error)
+	FindByNumber(ctx context.Context, tenantID uuid.UUID, conn ConnectionRef, number string, isGroup bool) (*Contact, error)
 	FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*Contact, error)
-	Find(ctx context.Context, tenantID uuid.UUID, search string) ([]Contact, error)
+	Find(ctx context.Context, tenantID uuid.UUID, search string, filter ContactFilter) ([]Contact, error)
 	Create(ctx context.Context, contact *Contact) error
 	Update(ctx context.Context, contact *Contact, fields map[string]interface{}) error
 	Delete(ctx context.Context, id int, tenantID uuid.UUID) error
@@ -73,9 +80,9 @@ type ContactRepository interface {
 	// o WhatsApp entregou como LID, `knownNumber` é o telefone resolvido (vazio se
 	// desconhecido): se já existe um contato com esse número (ex.: cadastrado pela
 	// agenda), o LID é gravado NELE em vez de criar um segundo contato.
-	FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLID bool, from string, knownNumber string) (*Contact, error)
+	FindOrCreate(ctx context.Context, tenantID uuid.UUID, conn ConnectionRef, number string, pushName string, profilePicUrl string, isGroup bool, isLID bool, from string, knownNumber string) (*Contact, error)
 	// FindOrCreateByIdentity resolve o Contact através de uma ContactIdentity externa (ADR 0033).
-	FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, channel ChannelKind, externalID string, name string, avatarURL string) (*Contact, *models.ContactIdentity, error)
+	FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, conn ConnectionRef, channel ChannelKind, externalID string, name string, avatarURL string) (*Contact, *models.ContactIdentity, error)
 }
 
 type UserRepository interface {

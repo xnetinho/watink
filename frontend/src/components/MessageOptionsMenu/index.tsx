@@ -37,7 +37,7 @@ interface MessageOptionsMenuProps {
   anchorEl: HTMLElement | null;
   /** Canal do ticket aberto: o encaminhamento só oferece destinos do mesmo canal. */
   channel?: string;
-  ticketId?: number | string;
+  contactId?: number | string;
 }
 
 const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
@@ -46,7 +46,7 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
   handleClose,
   anchorEl,
   channel,
-  ticketId,
+  contactId,
 }) => {
   const { setReplyingMessage } = useContext(ReplyMessageContext);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
@@ -101,7 +101,7 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
           onClose={() => setForwardOpen(false)}
           messageId={message.id}
           channel={channel}
-          currentTicketId={ticketId}
+          currentContactId={contactId}
         />
       )}
 

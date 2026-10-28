@@ -163,6 +163,8 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			return syncConnectionProfilePic(ctx, eventListener.sessions, eventListener.bcast(), env.Payload, tid)
 		case "contact.import":
 			return handleContactImport(ctx, eventListener.contacts, env.Payload, tid)
+		case "contact.saved":
+			return handleContactSaved(ctx, eventListener.contacts, eventListener.bcast(), env.Payload, tid)
 		case "session.jid_registered":
 			return handleJIDRegistered(ctx, eventListener.sessions, env.Payload, tid)
 		case "message.poll_vote":

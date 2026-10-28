@@ -136,7 +136,7 @@ const Ticket: React.FC<TicketProps> = ({ onToggleDetails, showDetails }) => {
       </TicketHeader>
 
       <ReplyMessageProvider>
-        <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} channel={ticket.channel} />
+        <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} channel={ticket.channel} contactId={ticket.contact?.id} />
         <MessageInput
           ticketStatus={ticket.status}
           whatsappStatus={ticket.whatsapp?.status}

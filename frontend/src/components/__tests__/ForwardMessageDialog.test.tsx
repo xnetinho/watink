@@ -10,38 +10,47 @@ vi.mock("react-toastify", () => ({ toast: { success: vi.fn(), warning: vi.fn(), 
 import ForwardMessageDialog from "../ForwardMessageDialog";
 import { toast } from "react-toastify";
 
-const tickets = [
-  { id: 2, contact: { name: "Ana" }, channel: "telegram", connection: { kind: "telegram", id: 1, name: "Jarvis", source: "channel" } },
-  { id: 3, contact: { name: "Bruno" }, channel: "telegram", connection: { kind: "telegram", id: 1, name: "Jarvis", source: "channel" } },
-  { id: 9, contact: { name: "Atual" }, channel: "telegram" },
+const contacts = [
+  { id: 2, name: "Ana", number: "5511999990001", connectionSource: "whatsapp", connectionId: 1 },
+  { id: 3, name: "Bruno", number: "5511999990002", connectionSource: "whatsapp", connectionId: 2 },
+  { id: 9, name: "Atual", number: "5511999990009", connectionSource: "whatsapp", connectionId: 1 },
+];
+const connections = [
+  { id: 1, name: "Comercial", status: "CONNECTED" },
+  { id: 2, name: "Suporte", status: "CONNECTED" },
 ];
 
-const open = () => render(<ForwardMessageDialog open onClose={vi.fn()} messageId="m1" channel="telegram" currentTicketId={9} />);
+const open = () => render(<ForwardMessageDialog open onClose={vi.fn()} messageId="m1" channel="whatsapp" currentContactId={9} />);
 
-describe("ForwardMessageDialog", () => {
+describe("ForwardMessageDialog (destino = contato)", () => {
   beforeEach(() => {
-    get.mockReset().mockResolvedValue({ data: { tickets } });
-    post.mockReset();
     vi.clearAllMocks();
+    get.mockImplementation((url: string) => {
+      if (url === "/contacts") return Promise.resolve({ data: { contacts } });
+      if (url === "/whatsapp") return Promise.resolve({ data: connections });
+      return Promise.resolve({ data: [] });
+    });
+    post.mockReset();
   });
 
-  it("lista só o canal da mensagem, sem a conversa atual", async () => {
+  it("lista contatos do mesmo canal, sem o da conversa atual, cada um com a conexão a que pertence", async () => {
     open();
     await screen.findByText("Ana");
-    expect(get).toHaveBeenCalledWith("/tickets", { params: expect.objectContaining({ channel: "telegram", isGroup: "all" }) });
+    expect(get).toHaveBeenCalledWith("/contacts", { params: expect.objectContaining({ channel: "whatsapp" }) });
     expect(screen.queryByText("Atual")).toBeNull();
-    expect(screen.getByText(/Só aparecem conversas do mesmo canal \(Telegram\)/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Suporte")).toBeInTheDocument());
+    expect(screen.getByText("Comercial")).toBeInTheDocument();
   });
 
-  it("envia para vários destinos, no modo escolhido", async () => {
-    post.mockResolvedValue({ data: { results: [{ ticketId: 2, ok: true }, { ticketId: 3, ok: true }] } });
+  it("envia os contatos escolhidos, no modo escolhido", async () => {
+    post.mockResolvedValue({ data: { results: [{ contactId: 2, ok: true }, { contactId: 3, ok: true }] } });
     open();
     await screen.findByText("Ana");
     fireEvent.click(screen.getByLabelText("Ana"));
     fireEvent.click(screen.getByLabelText("Bruno"));
     fireEvent.click(screen.getByText("Reenviar como nova"));
     fireEvent.click(screen.getByText("Enviar"));
-    await waitFor(() => expect(post).toHaveBeenCalledWith("/message/m1/forward", { ticketIds: [2, 3], mode: "copy" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith("/message/m1/forward", { contactIds: [2, 3], mode: "copy" }));
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
   });
 
@@ -51,8 +60,8 @@ describe("ForwardMessageDialog", () => {
     expect(screen.getByText("Enviar").closest("button")).toBeDisabled();
   });
 
-  it("falha parcial explica o motivo traduzido e mantém só o que falhou", async () => {
-    post.mockResolvedValue({ data: { results: [{ ticketId: 2, ok: true }, { ticketId: 3, ok: false, code: "forward_not_supported" }] } });
+  it("falha parcial explica o motivo traduzido e mantém só o contato que falhou", async () => {
+    post.mockResolvedValue({ data: { results: [{ contactId: 2, ok: true }, { contactId: 3, ok: false, code: "forward_not_supported" }] } });
     open();
     await screen.findByText("Ana");
     fireEvent.click(screen.getByLabelText("Ana"));

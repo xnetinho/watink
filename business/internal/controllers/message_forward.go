@@ -19,9 +19,10 @@ const maxForwardTargets = 20
 var forwardableMedia = map[string]bool{"": true, "chat": true, "image": true, "video": true, "audio": true, "document": true, "sticker": true}
 
 type forwardResult struct {
-	TicketID int    `json:"ticketId"`
-	OK       bool   `json:"ok"`
-	Code     string `json:"code,omitempty"`
+	ContactID int    `json:"contactId"`
+	TicketID  int    `json:"ticketId,omitempty"`
+	OK        bool   `json:"ok"`
+	Code      string `json:"code,omitempty"`
 }
 
 // ForwardMessage encaminha uma mensagem para um ou vários tickets do MESMO canal.
@@ -46,10 +47,11 @@ func (mc *MessageController) ForwardMessage(c *gin.Context) {
 	}
 
 	var input struct {
-		TicketIDs []int  `json:"ticketIds"`
-		Mode      string `json:"mode"`
+		// ContactIDs: o destino é o CONTATO. A mensagem sai pela conexão do próprio contato (cada contato pertence a uma).
+		ContactIDs []int  `json:"contactIds"`
+		Mode       string `json:"mode"`
 	}
-	if err := c.ShouldBindJSON(&input); err != nil || len(input.TicketIDs) == 0 || len(input.TicketIDs) > maxForwardTargets {
+	if err := c.ShouldBindJSON(&input); err != nil || len(input.ContactIDs) == 0 || len(input.ContactIDs) > maxForwardTargets {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_targets"})
 		return
 	}
@@ -77,14 +79,14 @@ func (mc *MessageController) ForwardMessage(c *gin.Context) {
 	srcKind, _ := resolveTicketChannelAndCaps(db, &src.Ticket)
 	srcConn := connectionKey(&src.Ticket)
 
-	results := make([]forwardResult, 0, len(input.TicketIDs))
+	results := make([]forwardResult, 0, len(input.ContactIDs))
 	seen := map[int]bool{}
-	for _, tid := range input.TicketIDs {
-		if seen[tid] {
+	for _, cid := range input.ContactIDs {
+		if seen[cid] {
 			continue
 		}
-		seen[tid] = true
-		results = append(results, mc.forwardOne(c, db, tenantID, src, srcKind, srcConn, tid, input.Mode == "copy"))
+		seen[cid] = true
+		results = append(results, mc.forwardOne(c, db, tenantID, src, srcKind, srcConn, cid, input.Mode == "copy"))
 	}
 	c.JSON(http.StatusOK, gin.H{"results": results})
 }
@@ -97,16 +99,25 @@ func connectionKey(t *models.Ticket) string {
 	return "w" + strconv.Itoa(t.WhatsappID)
 }
 
-func (mc *MessageController) forwardOne(c *gin.Context, db *gorm.DB, tenantID uuid.UUID, src models.Message, srcKind, srcConn string, targetID int, asNew bool) forwardResult {
-	fail := func(code string) forwardResult { return forwardResult{TicketID: targetID, Code: code} }
+func (mc *MessageController) forwardOne(c *gin.Context, db *gorm.DB, tenantID uuid.UUID, src models.Message, srcKind, srcConn string, contactID int, asNew bool) forwardResult {
+	fail := func(code string) forwardResult { return forwardResult{ContactID: contactID, Code: code} }
 
-	var target models.Ticket
-	if err := db.Session(&gorm.Session{NewDB: true}).Preload("Contact").
-		Where(`id = ? AND "tenantId" = ?`, targetID, tenantID).First(&target).Error; err != nil || target.Contact.ID == 0 {
-		return fail("ticket_not_found")
+	var contact models.Contact
+	if err := db.Session(&gorm.Session{NewDB: true}).
+		Where(`id = ? AND "tenantId" = ?`, contactID, tenantID).First(&contact).Error; err != nil {
+		return fail("contact_not_found")
 	}
-	if kind, _ := resolveTicketChannelAndCaps(db, &target); kind != srcKind {
+	conn, found := resolveConnection(db, tenantID, contact.ConnectionSource, contact.ConnectionID)
+	if !found {
+		return fail("connection_required")
+	}
+	if conn.Kind != srcKind {
 		return fail("different_channel")
+	}
+	// Abre (ou reaproveita) a conversa deste contato na conexão dele; a mensagem sai por essa conexão.
+	target, err := mc.conversationFor(db, tenantID, contact, conn)
+	if err != nil {
+		return fail("conversation_unavailable")
 	}
 	if p := resolveTicketReplyPolicy(db, &target); !p.CanReply {
 		return fail("reply_not_allowed")
@@ -135,5 +146,5 @@ func (mc *MessageController) forwardOne(c *gin.Context, db *gorm.DB, tenantID uu
 		return fail("send_failed")
 	}
 	mc.announce(db, tenantID, res)
-	return forwardResult{TicketID: targetID, OK: true}
+	return forwardResult{ContactID: contactID, TicketID: target.ID, OK: true}
 }

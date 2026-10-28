@@ -85,13 +85,13 @@ type mockContactRepo struct {
 func (m *mockContactRepo) FindByID(_ context.Context, _ int, _ uuid.UUID) (*domain.Contact, error) {
 	return m.contact, m.err
 }
-func (m *mockContactRepo) FindByNumber(_ context.Context, _ uuid.UUID, _ string, _ bool) (*domain.Contact, error) {
+func (m *mockContactRepo) FindByNumber(_ context.Context, _ uuid.UUID, _ domain.ConnectionRef, _ string, _ bool) (*domain.Contact, error) {
 	return nil, nil
 }
 func (m *mockContactRepo) FindByLID(_ context.Context, _ uuid.UUID, _ string, _ bool) (*domain.Contact, error) {
 	return nil, nil
 }
-func (m *mockContactRepo) Find(_ context.Context, _ uuid.UUID, _ string) ([]domain.Contact, error) {
+func (m *mockContactRepo) Find(_ context.Context, _ uuid.UUID, _ string, _ domain.ContactFilter) ([]domain.Contact, error) {
 	return nil, nil
 }
 func (m *mockContactRepo) Create(_ context.Context, _ *domain.Contact) error { return nil }
@@ -103,10 +103,10 @@ func (m *mockContactRepo) BulkDelete(_ context.Context, _ []int, _ uuid.UUID) (i
 	return 0, nil
 }
 func (m *mockContactRepo) DeleteAll(_ context.Context, _ uuid.UUID) (int64, error) { return 0, nil }
-func (m *mockContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, _ string, _, _ bool, _, _ string) (*domain.Contact, error) {
+func (m *mockContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _ domain.ConnectionRef, _, _, _ string, _, _ bool, _, _ string) (*domain.Contact, error) {
 	return nil, nil
 }
-func (m *mockContactRepo) FindOrCreateByIdentity(_ context.Context, _ uuid.UUID, _ domain.ChannelKind, _, _, _ string) (*domain.Contact, *models.ContactIdentity, error) {
+func (m *mockContactRepo) FindOrCreateByIdentity(_ context.Context, _ uuid.UUID, _ domain.ConnectionRef, _ domain.ChannelKind, _, _, _ string) (*domain.Contact, *models.ContactIdentity, error) {
 	return nil, nil, nil
 }
 

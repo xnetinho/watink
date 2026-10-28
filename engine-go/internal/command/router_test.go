@@ -21,6 +21,7 @@ func TestParseRoutingKey_ValidCommands(t *testing.T) {
 		{"wbot.tenant-1.42.message.markAsRead", "tenant-1", "42", "message.markAsRead"},
 		{"wbot.tenant-1.42.contact.sync", "tenant-1", "42", "contact.sync"},
 		{"wbot.tenant-1.42.contact.import", "tenant-1", "42", "contact.import"},
+		{"wbot.tenant-1.42.contact.save", "tenant-1", "42", "contact.save"},
 	}
 
 	for _, tc := range cases {
