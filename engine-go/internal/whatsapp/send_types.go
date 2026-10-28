@@ -58,6 +58,13 @@ type PresenceSubscribePayload struct {
 	To        string `json:"to"`
 }
 
+// PresencePolicyPayload muda a política de presença de uma sessão em andamento (never | on_demand | always).
+type PresencePolicyPayload struct {
+	SessionID   int    `json:"sessionId"`
+	Policy      string `json:"policy"`
+	IdleMinutes int    `json:"idleMinutes"`
+}
+
 type MarkReadCommandPayload struct {
 	ChatJID    string   `json:"chatJid"`
 	SenderJID  string   `json:"senderJid"`

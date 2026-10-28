@@ -3,7 +3,6 @@ package whatsapp
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
@@ -23,13 +22,10 @@ func (s *WhatsAppService) SubscribePresence(sessionID int, tenantID string, p Pr
 	if jid.Server == types.GroupServer {
 		return nil // grupo não tem presença
 	}
-	// O WhatsApp só entrega a presença dos outros a quem está "disponível". Efeito colateral conhecido: com o número
-	// disponível, o celular do operador deixa de receber as notificações push. Por isso é opt-in
-	// (WATINK_PRESENCE_MARK_AVAILABLE=1); sem ele, só chega presença se o número já estiver disponível por outro meio.
-	if os.Getenv("WATINK_PRESENCE_MARK_AVAILABLE") == "1" {
-		if err := client.SendPresence(context.Background(), types.PresenceAvailable); err != nil {
-			return fmt.Errorf("marcar disponível: %w", err)
-		}
+	// O WhatsApp só entrega a presença de quem está "disponível": a política da conexão decide se e por quanto tempo
+	// (ver presence_policy.go). Em never, nada é marcado e só chega presença se o número já estiver ativo por outro meio.
+	if err := s.preparePresence(sessionID, client); err != nil {
+		return err
 	}
 	return client.SubscribePresence(context.Background(), jid.ToNonAD())
 }

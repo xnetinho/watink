@@ -84,6 +84,7 @@ func main() {
 		wbot.CommandPattern(wbot.CommandHistoryRecover),
 		wbot.CommandPattern(wbot.CommandChatPresence),
 		wbot.CommandPattern(wbot.CommandPresenceSubscribe),
+		wbot.CommandPattern(wbot.CommandPresencePolicy),
 	}
 
 	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) error {
@@ -165,10 +166,14 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 			PhoneNumber    string `json:"phoneNumber"`
 			Name           string `json:"name"`
 			Wid            string `json:"wid"`
+			PresencePolicy      string `json:"presencePolicy"`
+			PresenceIdleMinutes int    `json:"presenceIdleMinutes"`
 		}
 		if err := json.Unmarshal(env.Payload, &p); err != nil {
 			return err
 		}
+		// A política vale desde antes de conectar: presenceOnConnect a aplica quando a sessão sobe.
+		_ = svc.ApplyPresencePolicy(sessionID, tenantID, whatsapp.PresencePolicyPayload{SessionID: sessionID, Policy: p.PresencePolicy, IdleMinutes: p.PresenceIdleMinutes})
 		ts := env.Timestamp
 		if ts == 0 {
 			ts = time.Now().UnixMilli()
@@ -260,6 +265,13 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 			return err
 		}
 		return svc.SubscribePresence(sessionID, tenantID, p)
+
+	case "presence.policy":
+		var p whatsapp.PresencePolicyPayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.ApplyPresencePolicy(sessionID, tenantID, p)
 
 	case "message.react":
 		var p whatsapp.ReactionCommandPayload

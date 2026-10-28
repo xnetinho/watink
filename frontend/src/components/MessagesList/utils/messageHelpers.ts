@@ -1,5 +1,6 @@
 import { parseISO } from "date-fns";
 import { Message, QuotedMsg } from "../types";
+import { i18n } from "../../../translate/i18n";
 
 export const PARTICIPANT_COLORS = [
   "var(--status-warning)",
@@ -55,11 +56,13 @@ const KNOWN_MEDIA_TYPES = [
 ];
 export const isKnownMediaType = (t: string): boolean => KNOWN_MEDIA_TYPES.includes(t);
 
+const tr = (key: string): string => String(i18n.t(key) ?? "");
+
 export const getMessageBody = (message: Message | QuotedMsg): string => {
-  if (message.mediaType === "unsupported") return "⚠️ Mensagem não suportada";
-  if (message.mediaType === "location") return "Localização";
-  if (message.mediaType === "vcard") return "Contato";
-  if (message.mediaType === "carousel") return "Carrossel";
+  if (message.mediaType === "unsupported") return tr("chat.previews.unsupported");
+  if (message.mediaType === "location") return tr("chat.previews.location");
+  if (message.mediaType === "vcard") return tr("chat.previews.contact");
+  if (message.mediaType === "carousel") return tr("chat.previews.carousel");
   return message.body ?? "";
 };
 
