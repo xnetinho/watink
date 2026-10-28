@@ -275,10 +275,18 @@ func main() {
 		f, err := publicFS.Open(strings.TrimPrefix(path, "/"))
 		if err == nil {
 			_ = f.Close()
-			if strings.HasPrefix(path, "/assets/") {
+			// /assets/ tem hash no nome; /emoji/ é um conjunto versionado e imutável (3.783 imagens): ambos com cache longo.
+			if strings.HasPrefix(path, "/assets/") || strings.HasPrefix(path, "/emoji/") {
 				c.Header("Cache-Control", "public, max-age=31536000, immutable")
 			}
 			http.FileServer(http.FS(publicFS)).ServeHTTP(c.Writer, c.Request)
+			return
+		}
+
+		// Arquivo estático que não existe é 404, não a página inicial: senão uma imagem ausente (ex.: um emoji fora do
+		// conjunto) volta como HTML com status 200 e o navegador a trata como imagem quebrada em vez de cair no texto.
+		if strings.HasPrefix(path, "/emoji/") || strings.HasPrefix(path, "/assets/") {
+			c.Status(http.StatusNotFound)
 			return
 		}
 
