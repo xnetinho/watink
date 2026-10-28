@@ -21,11 +21,11 @@ interface FileUploaderProps {
 
 const getFileIcon = (fileType: string) => {
   const cls = "h-8 w-8 mb-1";
-  if (fileType.startsWith("image/")) return <ImageIcon className={cn(cls, "text-[var(--status-default-text)]")} />;
-  if (fileType === "application/pdf") return <FileType className={cn(cls, "text-[var(--status-error)]")} />;
-  if (fileType.includes("word") || fileType.includes("document")) return <FileText className={cn(cls, "text-[var(--status-info)]")} />;
-  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return <FileSpreadsheet className={cn(cls, "text-[var(--status-success)]")} />;
-  return <File className={cn(cls, "text-[var(--text-muted)]")} />;
+  if (fileType.startsWith("image/")) return <ImageIcon className={cn(cls, "text-[hsl(var(--status-default-text))]")} />;
+  if (fileType === "application/pdf") return <FileType className={cn(cls, "text-[hsl(var(--status-error))]")} />;
+  if (fileType.includes("word") || fileType.includes("document")) return <FileText className={cn(cls, "text-[hsl(var(--status-info))]")} />;
+  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return <FileSpreadsheet className={cn(cls, "text-[hsl(var(--status-success))]")} />;
+  return <File className={cn(cls, "text-[hsl(var(--text-muted))]")} />;
 };
 
 const FileUploader: React.FC<FileUploaderProps> = ({
@@ -109,9 +109,9 @@ const FileUploader: React.FC<FileUploaderProps> = ({
     <div className="flex flex-col gap-3">
       <div
         className={cn(
-          "border-2 border-dashed border-[var(--action-primary)] rounded-xl p-6 text-center cursor-pointer transition-all duration-300",
-          "bg-[var(--status-info-4)] hover:bg-[var(--status-info-8)] hover:border-[var(--action-primary)]",
-          isDragging && "bg-[var(--status-info-15)] border-solid border-[var(--action-primary)]",
+          "border-2 border-dashed border-[hsl(var(--action-primary))] rounded-xl p-6 text-center cursor-pointer transition-all duration-300",
+          "bg-[var(--status-info-4)] hover:bg-[var(--status-info-8)] hover:border-[hsl(var(--action-primary))]",
+          isDragging && "bg-[var(--status-info-15)] border-solid border-[hsl(var(--action-primary))]",
           disabled && "opacity-50 cursor-not-allowed"
         )}
         onDragOver={handleDragOver}
@@ -132,11 +132,11 @@ const FileUploader: React.FC<FileUploaderProps> = ({
           className="hidden"
           disabled={disabled}
         />
-        <Upload className="h-12 w-12 text-[var(--action-primary)] mx-auto mb-2" />
-        <p className="text-sm font-medium text-[var(--action-primary)]">
+        <Upload className="h-12 w-12 text-[hsl(var(--action-primary))] mx-auto mb-2" />
+        <p className="text-sm font-medium text-[hsl(var(--action-primary))]">
           Arraste arquivos aqui ou clique para selecionar
         </p>
-        <p className="text-xs text-[var(--text-muted)] mt-1">
+        <p className="text-xs text-[hsl(var(--text-muted))] mt-1">
           Máx. {maxFiles} arquivos, até {Math.round(maxSize / 1024 / 1024)}MB cada
         </p>
       </div>
@@ -146,7 +146,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
           {files.map((file, index) => (
             <div
               key={index}
-              className="relative w-[100px] h-[100px] rounded-lg overflow-hidden border border-[var(--border-default)] flex flex-col items-center justify-center bg-[var(--bg-surface)]"
+              className="relative w-[100px] h-[100px] rounded-lg overflow-hidden border border-[hsl(var(--border-default))] flex flex-col items-center justify-center bg-[hsl(var(--bg-surface))]"
             >
               {file.type?.startsWith("image/") && file.preview ? (
                 <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
@@ -161,7 +161,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
               {!disabled && (
                 <button
                   type="button"
-                  className="absolute top-0.5 right-0.5 p-0.5 rounded bg-[var(--overlay-dark-medium)] text-[var(--bg-surface)] hover:bg-[var(--overlay-dark-strong)] transition-colors"
+                  className="absolute top-0.5 right-0.5 p-0.5 rounded bg-[var(--overlay-dark-medium)] text-[hsl(var(--bg-surface))] hover:bg-[var(--overlay-dark-strong)] transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeFile(index);

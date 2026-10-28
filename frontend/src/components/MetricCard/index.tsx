@@ -56,7 +56,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <Card
       className={clsx(
-        "wt-metric relative overflow-visible h-full hover:translate-y-[-6px] transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] border border-[var(--border)] rounded-2xl shadow-sm hover:shadow-xl bg-[var(--card)] text-[var(--card-foreground)]",
+        "wt-metric relative overflow-visible h-full hover:translate-y-[-6px] transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] border border-[hsl(var(--border))] rounded-2xl shadow-sm hover:shadow-xl bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))]",
         className
       )}
       {...rest}
@@ -76,7 +76,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         </div>
 
         {/* Label */}
-        <div className="wt-metric-label text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-1">
+        <div className="wt-metric-label text-[11px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1">
           {label}
         </div>
 

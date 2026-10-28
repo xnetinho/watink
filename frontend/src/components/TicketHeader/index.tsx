@@ -27,7 +27,7 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({ loading, children }) => {
     <Card
       className={cn(
         "flex flex-none items-center rounded-none border-b border-[var(--border-divider)]",
-        "bg-[var(--border-default)]",
+        "bg-[hsl(var(--border-default))]",
         "flex-wrap sm:flex-nowrap"
       )}
     >

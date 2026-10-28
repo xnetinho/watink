@@ -202,7 +202,7 @@ const TicketsList: React.FC<TicketsListProps> = (props) => {
             <p className="m-0 text-center text-base font-semibold text-foreground">
               {i18n.t("ticketsList.noTicketsTitle")}
             </p>
-            <p className="text-center text-sm leading-snug text-[var(--muted-foreground)]">
+            <p className="text-center text-sm leading-snug text-[hsl(var(--muted-foreground))]">
               {i18n.t("ticketsList.noTicketsMessage")}
             </p>
           </div>

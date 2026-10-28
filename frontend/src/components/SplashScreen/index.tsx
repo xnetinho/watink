@@ -14,8 +14,8 @@ const SplashScreen = () => {
           img.src = "https://watink.com/logo.png";
         }}
       />
-      <Loader2 className="h-10 w-10 animate-spin text-[var(--primary)]" />
-      <p className="mt-4 text-sm font-medium text-[var(--muted-foreground)]">
+      <Loader2 className="h-10 w-10 animate-spin text-[hsl(var(--primary))]" />
+      <p className="mt-4 text-sm font-medium text-[hsl(var(--muted-foreground))]">
         Iniciando ambiente...
       </p>
     </div>

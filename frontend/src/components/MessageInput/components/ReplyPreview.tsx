@@ -43,13 +43,13 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ message, loading, ticketSta
       <div className="flex-1 mr-1.5 overflow-y-hidden bg-[var(--border-subtle)] rounded-[7.5px] flex relative">
         <span
           className={clsx("flex-none w-1", {
-            "bg-[var(--message-quote-side-left)]": !fromMe,
-            "bg-[var(--message-quote-side-right)]": fromMe,
+            "bg-[hsl(var(--message-quote-side-left))]": !fromMe,
+            "bg-[hsl(var(--message-quote-side-right))]": fromMe,
           })}
         />
         <div className="p-2.5 h-auto block whitespace-pre-wrap overflow-hidden">
           {!fromMe && (
-            <span className="flex text-[var(--message-quote-side-right)] font-medium">
+            <span className="flex text-[hsl(var(--message-quote-side-right))] font-medium">
               {senderName}
             </span>
           )}

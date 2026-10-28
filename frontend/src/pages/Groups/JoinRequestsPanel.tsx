@@ -79,7 +79,7 @@ const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ whatsappId, group
                             onClick={() => handleResolve(r.jid, "approve")}
                             disabled={processingJid === r.jid}
                         >
-                            <Check className="h-4 w-4 text-[var(--status-success-text)]" />
+                            <Check className="h-4 w-4 text-[hsl(var(--status-success-text))]" />
                         </Button>
                         <Button
                             size="icon"
@@ -87,7 +87,7 @@ const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ whatsappId, group
                             onClick={() => handleResolve(r.jid, "reject")}
                             disabled={processingJid === r.jid}
                         >
-                            <X className="h-4 w-4 text-[var(--status-error-text)]" />
+                            <X className="h-4 w-4 text-[hsl(var(--status-error-text))]" />
                         </Button>
                     </CardContent>
                 </Card>

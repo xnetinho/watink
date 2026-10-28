@@ -86,7 +86,7 @@ const MessageInteractive: React.FC<{ message: Message }> = ({ message }) => {
     return (
       <div className="mt-1.5 flex flex-col gap-1">
         {meta.footer && (
-          <div className="text-[11px] text-[var(--text-muted)] mb-0.5">{meta.footer}</div>
+          <div className="text-[11px] text-[hsl(var(--text-muted))] mb-0.5">{meta.footer}</div>
         )}
         {meta.buttons.slice(0, 3).map((b, i) => (
           <ButtonPill key={b.id ?? i} button={b} />
@@ -99,7 +99,7 @@ const MessageInteractive: React.FC<{ message: Message }> = ({ message }) => {
     return (
       <div className="mt-1.5">
         {meta.footer && (
-          <div className="text-[11px] text-[var(--text-muted)] mb-1">{meta.footer}</div>
+          <div className="text-[11px] text-[hsl(var(--text-muted))] mb-1">{meta.footer}</div>
         )}
         <div className="rounded-xl overflow-hidden bg-[hsl(var(--action-primary)/0.06)]">
           <div className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[hsl(var(--action-primary))]">
@@ -111,7 +111,7 @@ const MessageInteractive: React.FC<{ message: Message }> = ({ message }) => {
               {meta.sections.map((sec, si) => (
                 <div key={si}>
                   {sec.title && (
-                    <div className="text-[11px] font-semibold text-[var(--text-muted)] mb-1">
+                    <div className="text-[11px] font-semibold text-[hsl(var(--text-muted))] mb-1">
                       {sec.title}
                     </div>
                   )}
@@ -120,7 +120,7 @@ const MessageInteractive: React.FC<{ message: Message }> = ({ message }) => {
                       <div key={row.id ?? ri} className="leading-tight">
                         <div className="text-sm">{row.title}</div>
                         {row.description && (
-                          <div className="text-[11px] text-[var(--text-muted)]">
+                          <div className="text-[11px] text-[hsl(var(--text-muted))]">
                             {row.description}
                           </div>
                         )}
@@ -160,7 +160,7 @@ const MessageInteractive: React.FC<{ message: Message }> = ({ message }) => {
                   </div>
                 )}
                 {card.footer && (
-                  <div className="text-[11px] text-[var(--text-muted)]">{card.footer}</div>
+                  <div className="text-[11px] text-[hsl(var(--text-muted))]">{card.footer}</div>
                 )}
                 {card.buttons && card.buttons.length > 0 && (
                   <div className="flex flex-col gap-1">
@@ -187,10 +187,10 @@ const MessageInteractive: React.FC<{ message: Message }> = ({ message }) => {
               Pagar com PIX
             </div>
             {meta.pixName && (
-              <div className="text-[11px] text-[var(--text-muted)] truncate">{meta.pixName}</div>
+              <div className="text-[11px] text-[hsl(var(--text-muted))] truncate">{meta.pixName}</div>
             )}
             {meta.pixKey && (
-              <div className="text-[11px] text-[var(--text-muted)] truncate">
+              <div className="text-[11px] text-[hsl(var(--text-muted))] truncate">
                 Chave: {meta.pixKey}
               </div>
             )}

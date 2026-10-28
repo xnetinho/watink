@@ -87,7 +87,7 @@ const OnDemandMediaPreview: React.FC<Props> = ({ message }) => {
 
   if (thumbnail) {
     return (
-      <div className="relative w-[260px] max-w-full rounded-lg overflow-hidden bg-[var(--bg-surface)]">
+      <div className="relative w-[260px] max-w-full rounded-lg overflow-hidden bg-[hsl(var(--bg-surface))]">
         <img
           src={`data:image/jpeg;base64,${thumbnail}`}
           alt={label}
@@ -121,9 +121,9 @@ const OnDemandMediaPreview: React.FC<Props> = ({ message }) => {
     <button
       onClick={handleDownload}
       disabled={busy}
-      className="flex items-center gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-left hover:bg-[var(--border-subtle)] transition-colors disabled:opacity-70 w-[240px] max-w-full"
+      className="flex items-center gap-3 rounded-lg border border-[hsl(var(--border-default))] bg-[hsl(var(--bg-surface))] px-3 py-2 text-left hover:bg-[var(--border-subtle)] transition-colors disabled:opacity-70 w-[240px] max-w-full"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--border-subtle)] text-[var(--text-muted)]">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--border-subtle)] text-[hsl(var(--text-muted))]">
         {busy ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : failed ? (
@@ -133,10 +133,10 @@ const OnDemandMediaPreview: React.FC<Props> = ({ message }) => {
         )}
       </span>
       <span className="flex flex-col overflow-hidden">
-        <span className="text-sm text-[var(--text-primary)] truncate">
+        <span className="text-sm text-[hsl(var(--text-primary))] truncate">
           {message.body || label}
         </span>
-        <span className="text-xs text-[var(--text-muted)]">
+        <span className="text-xs text-[hsl(var(--text-muted))]">
           {busy
             ? "Baixando…"
             : failed

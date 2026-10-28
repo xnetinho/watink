@@ -67,12 +67,12 @@ const VcardPreview: React.FC<VcardPreviewProps> = ({ contact, numbers }) => {
     <div className="min-w-[250px]">
       <div className="flex items-center gap-3 p-2">
         <Avatar className="h-8 w-8 shrink-0" src="" name={contact} />
-        <span className="text-sm font-medium text-[var(--action-primary)] mt-1 ml-1 truncate">{contact}</span>
+        <span className="text-sm font-medium text-[hsl(var(--action-primary))] mt-1 ml-1 truncate">{contact}</span>
       </div>
       <Separator />
       <Button
         variant="ghost"
-        className="w-full gap-2 text-[var(--action-primary)] hover:text-[var(--action-primary-hover)]"
+        className="w-full gap-2 text-[hsl(var(--action-primary))] hover:text-[hsl(var(--action-primary-hover))]"
         onClick={handleNewChat}
         disabled={!number || busy}
       >
