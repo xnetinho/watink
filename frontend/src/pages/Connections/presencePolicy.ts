@@ -2,33 +2,20 @@ export type PresencePolicy = "never" | "on_demand" | "always";
 
 export interface PresencePolicyOption {
   value: PresencePolicy;
-  label: string;
+  /** Chaves de idioma: connections.presencePolicy.<value>.label e .summary. */
+  labelKey: string;
   /** Resumo curto, mostrado no menu e abaixo do campo. */
-  summary: string;
+  summaryKey: string;
 }
 
 // "Disponível" faz o WhatsApp tratar o número como um aparelho ativo (como o WhatsApp Web aberto): o celular do operador
 // deixa de receber notificações, o contato vê o número online e o WhatsApp passa a entregar a presença dos contatos.
-export const PRESENCE_POLICY_OPTIONS: PresencePolicyOption[] = [
-  {
-    value: "never",
-    label: "Nunca disponível",
-    summary:
-      "O celular continua recebendo notificações. O contato não vê este número online. O online e a última vez visto dos contatos praticamente não aparecem no Watink.",
-  },
-  {
-    value: "on_demand",
-    label: "Disponível durante o atendimento",
-    summary:
-      "O número fica disponível só enquanto um operador está com uma conversa desta conexão aberta, e volta ao normal depois do tempo ocioso. O celular só fica sem notificações nesse período.",
-  },
-  {
-    value: "always",
-    label: "Sempre disponível",
-    summary:
-      "O número fica sempre disponível, mesmo após reconectar. O online e a última vez visto dos contatos aparecem sempre, mas o celular não recebe notificações enquanto a conexão estiver ativa.",
-  },
-];
+// Os textos de cada política (nome e resumo) ficam nos arquivos de idioma.
+export const PRESENCE_POLICY_OPTIONS: PresencePolicyOption[] = (["never", "on_demand", "always"] as const).map((value) => ({
+  value,
+  labelKey: `connections.presencePolicy.${value}.label`,
+  summaryKey: `connections.presencePolicy.${value}.summary`,
+}));
 
 export const DEFAULT_PRESENCE_POLICY: PresencePolicy = "never";
 export const DEFAULT_IDLE_MINUTES = 5;

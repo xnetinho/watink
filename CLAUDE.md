@@ -2,6 +2,10 @@
 
 Guia para o Claude Code ao trabalhar neste repositório.
 
+
+## Banco de dados: sem migrações incrementais (regra do dono, 28/out/2026)
+O aplicativo está em desenvolvimento e **não há instância em produção nem dado legado**. Coluna ou tabela nova entra **somente no modelo GORM** (`internal/models`) e no baseline que o `watink-business migrate` cria. **Não** criar migração incremental, versão `SchemaMigrations` > 1, `ALTER TABLE` de compatibilidade, backfill nem fallback para "banco antigo". Ao mudar o esquema, recrie o banco de desenvolvimento (`docker compose down -v`) em vez de migrá-lo.
+
 ## Project Overview
 
 Watink — plataforma de atendimento e automação no WhatsApp. Microsserviços com RabbitMQ, multitenancy via PostgreSQL RLS, sistema de plugins com licenciamento centralizado.

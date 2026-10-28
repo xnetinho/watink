@@ -24,52 +24,13 @@ func MigrateVersioned(ctx context.Context, db *gorm.DB) error {
 	if err := db.Raw(`SELECT EXISTS (SELECT 1 FROM "SchemaMigrations" WHERE "version" = 1)`).Scan(&applied).Error; err != nil {
 		return err
 	}
-	if !applied {
-		if err := migrateBaseline(db); err != nil {
-			return err
-		}
-		if err := db.Exec(`INSERT INTO "SchemaMigrations" ("version") VALUES (1) ON CONFLICT ("version") DO NOTHING`).Error; err != nil {
-			return err
-		}
+	if applied {
+		return nil
 	}
-	return applyIncrementalMigrations(db)
-}
-
-// incrementalMigrations são mudanças de esquema POSTERIORES ao baseline (versão 1). O baseline roda uma única vez por
-// banco, então uma coluna nova no modelo GORM não chega a bancos existentes: ela entra aqui, como DDL idempotente e
-// retrocompatível (coluna com DEFAULT, conforme docs/dev/migrations.md). Versões crescem de 2 em diante e nunca mudam.
-var incrementalMigrations = []struct {
-	version int64
-	ddl     []string
-}{
-	{2, []string{
-		`ALTER TABLE "Whatsapps" ADD COLUMN IF NOT EXISTS "presencePolicy" text NOT NULL DEFAULT 'never'`,
-		`ALTER TABLE "Whatsapps" ADD COLUMN IF NOT EXISTS "presenceIdleMinutes" integer NOT NULL DEFAULT 5`,
-	}},
-}
-
-func applyIncrementalMigrations(db *gorm.DB) error {
-	for _, m := range incrementalMigrations {
-		var done bool
-		if err := db.Raw(`SELECT EXISTS (SELECT 1 FROM "SchemaMigrations" WHERE "version" = ?)`, m.version).Scan(&done).Error; err != nil {
-			return err
-		}
-		if done {
-			continue
-		}
-		err := db.Transaction(func(tx *gorm.DB) error {
-			for _, stmt := range m.ddl {
-				if err := tx.Exec(stmt).Error; err != nil {
-					return fmt.Errorf("migração v%d: %w", m.version, err)
-				}
-			}
-			return tx.Exec(`INSERT INTO "SchemaMigrations" ("version") VALUES (?) ON CONFLICT ("version") DO NOTHING`, m.version).Error
-		})
-		if err != nil {
-			return err
-		}
+	if err := migrateBaseline(db); err != nil {
+		return err
 	}
-	return nil
+	return db.Exec(`INSERT INTO "SchemaMigrations" ("version") VALUES (1) ON CONFLICT ("version") DO NOTHING`).Error
 }
 
 func migrateBaseline(db *gorm.DB) error {

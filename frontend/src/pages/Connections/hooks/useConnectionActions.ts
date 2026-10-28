@@ -109,7 +109,7 @@ export const useConnectionActions = ({
 
   const handleRequestPairingCode = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
-      toastError({ response: { data: { message: "Número de telefone inválido" } } } as never);
+      toastError({ response: { data: { message: i18n.t("connections.invalidPhone") as string } } } as never);
       return;
     }
     setPairingLoading(true);
@@ -157,7 +157,7 @@ export const useConnectionActions = ({
     });
     try {
       await api.put(`/whatsapp/${whatsappId}/presence-policy`, { presencePolicy: policy, presenceIdleMinutes: idleMinutes });
-      toast.success("Política de presença atualizada.");
+      toast.success(i18n.t("connections.presencePolicy.updated") as string);
     } catch (err: unknown) {
       setWhatsapp((prev) => (prev ? { ...prev, ...previous } : prev));
       toastError(err);

@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import PresencePolicyCard from "../PresencePolicyCard";
 import { PRESENCE_POLICY_OPTIONS, clampIdleMinutes, optionFor, toPresencePolicy } from "../../presencePolicy";
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, lng = "pt") => String(i18n.t(key, { lng }) ?? "");
 
 const setup = (over: Partial<React.ComponentProps<typeof PresencePolicyCard>> = {}) => {
   const onChange = vi.fn().mockResolvedValue(undefined);
@@ -11,9 +14,14 @@ const setup = (over: Partial<React.ComponentProps<typeof PresencePolicyCard>> = 
 };
 
 describe("política de presença: regras", () => {
-  it("as 3 opções existem, cada uma com resumo", () => {
+  it("as 3 opções existem, cada uma com nome e resumo nos 3 idiomas (nada fixo no código)", () => {
     expect(PRESENCE_POLICY_OPTIONS.map((o) => o.value)).toEqual(["never", "on_demand", "always"]);
-    PRESENCE_POLICY_OPTIONS.forEach((o) => expect(o.summary.length).toBeGreaterThan(40));
+    for (const o of PRESENCE_POLICY_OPTIONS) {
+      for (const lng of ["pt", "en", "es"]) {
+        expect(tr(o.labelKey, lng), `${o.labelKey} em ${lng}`).not.toBe(o.labelKey);
+        expect(tr(o.summaryKey, lng).length, `${o.summaryKey} em ${lng}`).toBeGreaterThan(40);
+      }
+    }
   });
   it("valor desconhecido vira 'never' (o mais seguro: não silencia o celular)", () => {
     for (const bad of [undefined, null, "", "ALWAYS", "sempre", 3]) expect(toPresencePolicy(bad)).toBe("never");
@@ -23,9 +31,9 @@ describe("política de presença: regras", () => {
     expect([0, -5, 1, 30, 240, 999, NaN].map(clampIdleMinutes)).toEqual([1, 1, 1, 30, 240, 240, 5]);
   });
   it("os resumos avisam do efeito no celular nas políticas que o têm", () => {
-    expect(optionFor("never").summary).toMatch(/continua recebendo notificações/i);
-    expect(optionFor("on_demand").summary).toMatch(/notificações/i);
-    expect(optionFor("always").summary).toMatch(/não recebe notificações/i);
+    expect(tr(optionFor("never").summaryKey)).toMatch(/continua recebendo notificações/i);
+    expect(tr(optionFor("on_demand").summaryKey)).toMatch(/notificações/i);
+    expect(tr(optionFor("always").summaryKey)).toMatch(/não recebe notificações/i);
   });
 });
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Radio } from "lucide-react";
+import { i18n } from "../../../translate/i18n";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { Input } from "../../../components/ui/input";
@@ -21,6 +22,9 @@ interface Props {
   onChange: (policy: PresencePolicy, idleMinutes: number) => Promise<void>;
 }
 
+// i18n.t() deste projeto pode devolver null; a tela só quer string.
+const tr = (key: string): string => String(i18n.t(key) ?? "");
+
 const PresencePolicyCard: React.FC<Props> = ({ policy, idleMinutes, saving, onChange }) => {
   const current = toPresencePolicy(policy);
   const [idle, setIdle] = useState(String(idleMinutes ?? DEFAULT_IDLE_MINUTES));
@@ -36,35 +40,35 @@ const PresencePolicyCard: React.FC<Props> = ({ policy, idleMinutes, saving, onCh
     <Card data-testid="presence-policy-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <Radio className="h-4 w-4" /> Presença do número
+          <Radio className="h-4 w-4" /> {tr("connections.presencePolicy.title")}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="presence-policy">Quando o número fica disponível (online)</Label>
+          <Label htmlFor="presence-policy">{tr("connections.presencePolicy.fieldLabel")}</Label>
           <Select value={current} onValueChange={(v) => void onChange(toPresencePolicy(v), minutes)} disabled={saving}>
-            <SelectTrigger id="presence-policy" className="max-w-md" aria-label="Política de presença">
-              <SelectValue>{optionFor(current).label}</SelectValue>
+            <SelectTrigger id="presence-policy" className="max-w-md" aria-label={tr("connections.presencePolicy.ariaLabel")}>
+              <SelectValue>{tr(optionFor(current).labelKey)}</SelectValue>
             </SelectTrigger>
             <SelectContent className="max-w-md">
               {PRESENCE_POLICY_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value} textValue={o.label} className="items-start">
+                <SelectItem key={o.value} value={o.value} textValue={tr(o.labelKey)} className="items-start">
                   <div className="flex flex-col gap-0.5 py-0.5">
-                    <span className="font-medium">{o.label}</span>
-                    <span className="whitespace-normal text-xs text-muted-foreground">{o.summary}</span>
+                    <span className="font-medium">{tr(o.labelKey)}</span>
+                    <span className="whitespace-normal text-xs text-muted-foreground">{tr(o.summaryKey)}</span>
                   </div>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <p className="max-w-md text-xs text-muted-foreground" data-testid="presence-policy-summary">
-            {optionFor(current).summary}
+            {tr(optionFor(current).summaryKey)}
           </p>
         </div>
 
         {current === "on_demand" && (
           <div className="flex flex-col gap-2">
-            <Label htmlFor="presence-idle">Voltar ao normal após (minutos sem operador)</Label>
+            <Label htmlFor="presence-idle">{tr("connections.presencePolicy.idleLabel")}</Label>
             <Input
               id="presence-idle"
               type="number"
