@@ -85,6 +85,14 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 
 	// Contato de WhatsApp criado aqui também vai para a agenda do celular, como o WhatsApp Web faz. Conexão fora do ar
 	// não impede o cadastro: o contato nasce e "failed" diz que o celular não o recebeu.
+	// Um contato criado à mão só faz sentido onde a empresa PODE iniciar a conversa. O bot do Telegram só responde a quem
+	// escreveu primeiro (Capabilities.InitiateConversation=false), então não há o que cadastrar: o contato dele nasce
+	// quando a pessoa fala com o bot.
+	if ad, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind)); err == nil && !ad.Capabilities().InitiateConversation {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "channel_cannot_initiate"})
+		return
+	}
+
 	toPhone := conn.Kind == string(domain.ChannelKindWhatsApp) && !input.IsGroup && number != ""
 	if toPhone {
 		contact.PhoneSync = "pending"

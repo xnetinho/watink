@@ -20,6 +20,7 @@ import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import { useConnectionOptions } from "../../hooks/useConnectionOptions";
+import { channelDefinition } from "../../config/channels";
 import { connectionKey, parseConnectionKey } from "../../lib/connections/connectionRef";
 import { TicketConnectionBadge } from "../TicketConnectionBadge";
 
@@ -54,7 +55,12 @@ interface ContactModalProps {
 
 const ContactModal = ({ open, onClose, contactId, initialValues, onSave }: ContactModalProps) => {
   const [contact, setContact] = useState<ContactValues>({ connection: "", name: "", number: "", email: "", extraInfo: [] });
-  const { options: connections } = useConnectionOptions(open);
+  const { options: allConnections } = useConnectionOptions(open);
+  // Criação: só conexões de canais onde a empresa pode cadastrar contato (o bot do Telegram só responde a quem escreveu
+  // antes, então não há o que cadastrar). Edição: apenas a conexão do próprio contato, que não muda.
+  const connections = allConnections.filter((c) =>
+    contactId ? connectionKey(c) === contact.connection : channelDefinition(c.kind).canCreateContacts,
+  );
 
   useEffect(() => {
     if (initialValues) {

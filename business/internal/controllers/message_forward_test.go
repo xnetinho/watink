@@ -3,8 +3,10 @@ package controllers_test
 import (
 	"bytes"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"testing"
 
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
@@ -290,4 +292,33 @@ func TestListTickets_FiltroPorCanalParaDestinoDeEncaminhamento(t *testing.T) {
 	assert.Len(t, ids("limit=1"), 1)
 	assert.Equal(t, []int{tg.ID}, ids("channel=telegram&searchParam=chat-A"), "busca por nome do contato: antes respondia 500 (tenantId ambíguo)")
 	assert.Empty(t, ids("channel=telegram&searchParam=zzzz"))
+}
+
+func TestSendMessage_MidiaGravaOMimetypeParaPoderSerEncaminhada(t *testing.T) {
+	e := newSendEnv(t)
+	tk := e.newTicket(t, "chat-A")
+	dest := e.contactOf(t, "chat-B")
+
+	body := &bytes.Buffer{}
+	mw := multipart.NewWriter(body)
+	hdr := textproto.MIMEHeader{}
+	hdr.Set("Content-Disposition", `form-data; name="medias"; filename="a.png"`)
+	hdr.Set("Content-Type", "image/png")
+	fw, _ := mw.CreatePart(hdr)
+	_, _ = fw.Write([]byte("\x89PNG\r\n\x1a\n"))
+	_ = mw.Close()
+	req, _ := http.NewRequest("POST", "/messages/"+itoa(tk.ID), body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	w := httptest.NewRecorder()
+	e.r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var sent models.Message
+	require.NoError(t, e.db.Where(`"fromMe" = true AND "ticketId" = ? AND "mediaType" = 'image'`, tk.ID).First(&sent).Error)
+	assert.JSONEq(t, `{"mimetype":"image/png"}`, sent.DataJson)
+
+	_, fb := e.forward(t, sent.ID, `{"contactIds":[`+ids(dest)+`],"mode":"copy"}`)
+	require.Contains(t, fb, `"ok":true`)
+	require.Len(t, e.ch.got, 2)
+	assert.Equal(t, "image", e.ch.got[1].MediaType)
 }

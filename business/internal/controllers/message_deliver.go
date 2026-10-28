@@ -58,9 +58,15 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 	contact := ticket.Contact
 	ticketID := ticket.ID
 	body, mediaType, mediaURL, mimeType, quotedID := in.Body, in.MediaType, in.MediaURL, in.MimeType, in.QuotedID
+	// O mimetype fica gravado na mensagem: sem ele, encaminhar uma mídia que o operador enviou a reenviaria sem tipo.
 	dataJSON := in.DataJSON
 	if dataJSON == "" {
 		dataJSON = "{}"
+		if mimeType != "" {
+			if b, err := json.Marshal(map[string]string{"mimetype": mimeType}); err == nil {
+				dataJSON = string(b)
+			}
+		}
 	}
 
 	messageID := newWAMessageID()
