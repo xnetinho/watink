@@ -7,6 +7,8 @@ import { getBackendUrl } from "../../helpers/urlUtils";
 import { getContactDisplayName } from "../../utils/clientDisplayName";
 import { useContactPresence } from "../../hooks/useContactPresence";
 import { presenceLabel } from "../../lib/presence/format";
+import { TicketConnectionBadge } from "../TicketConnectionBadge";
+import type { TicketConnection } from "../../types/Ticket";
 
 interface Contact {
   name: string;
@@ -23,6 +25,7 @@ interface TicketUser {
 
 interface Ticket {
   id: number;
+  connection?: TicketConnection;
   /** "whatsapp" | "telegram" | ...: só o WhatsApp informa presença */
   channel?: string;
   user?: TicketUser | null;
@@ -68,6 +71,9 @@ const TicketInfo: React.FC<TicketInfoProps> = ({ contact, ticket, onClick }) => 
         <span className="truncate text-sm font-semibold leading-tight text-foreground">
           {getContactDisplayName(contact)} #{ticket.id}
         </span>
+        {(ticket.connection || ticket.channel) && (
+          <TicketConnectionBadge channel={ticket.channel} connection={ticket.connection} size="sm" className="self-start" />
+        )}
         {presenceText && (
           <span className="truncate text-xs text-muted-foreground" data-testid="contact-presence">
             {presenceText}

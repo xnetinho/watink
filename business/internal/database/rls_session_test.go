@@ -12,6 +12,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/services"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -98,4 +99,73 @@ func TestHandlePollVote_ComRLSReal(t *testing.T) {
 	assert.Equal(t, []string{"Não"}, d.Votes["5511999@s.whatsapp.net"], "o voto precisa ser decodificado do hash e gravado na enquete")
 	_ = contactID
 	_ = waID
+}
+
+// Identificação do ticket (canal + conexão) com RLS real: o enriquecimento de evento roda no escopo da empresa e NUNCA
+// devolve o nome de uma conexão de outra empresa, mesmo que o id do ticket aponte para ela.
+func TestTicketConnectionIdentity_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	a, b := uuid.New(), uuid.New()
+	for _, tn := range []uuid.UUID{a, b} {
+		_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'T','active',now(),now())`, tn)
+		require.NoError(t, err)
+		require.NoError(t, seedRow(admin, "Whatsapps", tn))
+	}
+	_, err := admin.Exec(`UPDATE "Whatsapps" SET name='Conexao A' WHERE "tenantId"=$1`, a)
+	require.NoError(t, err)
+	_, err = admin.Exec(`UPDATE "Whatsapps" SET name='Conexao B (segredo)' WHERE "tenantId"=$1`, b)
+	require.NoError(t, err)
+	var waA, waB int
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "Whatsapps" WHERE "tenantId"=$1`, a).Scan(&waA))
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "Whatsapps" WHERE "tenantId"=$1`, b).Scan(&waB))
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+
+	err = tenantdb.WithTenant(context.Background(), gdb, a, func(ctx context.Context) error {
+		db := gdb.WithContext(ctx)
+		c, ok := services.ConnectionOf(db, 1, waA, nil)
+		assert.True(t, ok)
+		assert.Equal(t, "Conexao A", c.Name)
+		assert.Equal(t, "whatsapp", c.Kind)
+
+		_, ok = services.ConnectionOf(db, 2, waB, nil) // ticket da empresa A apontando para conexão da empresa B
+		assert.False(t, ok, "o nome da conexão de outra empresa nunca pode vazar")
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+// Regressão: o enriquecimento do ticket em EVENTO (mensagem recebida) rodava sem escopo de empresa e o RLS recusava a
+// consulta ("SEM ESCOPO"), então o ticket que nascia por mensagem aparecia sem identificação. Caminho do evento, banco real.
+func TestWithConnectionIdentity_EventoComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'T','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	require.NoError(t, seedRow(admin, "ChannelConnections", tenant))
+	_, err = admin.Exec(`UPDATE "ChannelConnections" SET kind='telegram', name='Jarvis' WHERE "tenantId"=$1`, tenant)
+	require.NoError(t, err)
+	var connID int
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "ChannelConnections" WHERE "tenantId"=$1`, tenant).Scan(&connID))
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+
+	ticket := &domain.Ticket{ID: 9, TenantID: tenant, ChannelConnectionID: &connID}
+	err = tenantdb.WithTenant(context.Background(), gdb, tenant, func(ctx context.Context) error {
+		out, ok := services.WithConnectionIdentity(ctx, gdb, ticket).(map[string]interface{})
+		require.True(t, ok, "com escopo, devolve o ticket enriquecido")
+		assert.Equal(t, "telegram", out["channel"])
+		conn, _ := out["connection"].(models.TicketConnectionInfo)
+		assert.Equal(t, "Jarvis", conn.Name)
+		return nil
+	})
+	require.NoError(t, err)
+
+	// Sem escopo a consulta é recusada: o ticket sai sem "connection" (a tela mostra só o canal) e a mensagem nunca falha.
+	out, ok := services.WithConnectionIdentity(context.Background(), gdb, ticket).(map[string]interface{})
+	require.True(t, ok)
+	_, has := out["connection"]
+	assert.False(t, has, "sem escopo de empresa, nada de identificação (e nada vaza)")
 }

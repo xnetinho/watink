@@ -11,6 +11,26 @@ interface ChannelBadgeProps {
   className?: string;
 }
 
+/** Ícone do canal (uma fonte só para ChannelBadge e TicketConnectionBadge). */
+export const channelIcon = (kind: string, size: number): React.ReactNode => {
+  switch (kind) {
+    case "whatsapp":
+      return <MessageCircle size={size} />;
+    case "telegram":
+      return <Send size={size} />;
+    case "mercadolivre":
+      return <ShoppingBag size={size} />;
+    case "instagram":
+      return <Camera size={size} />;
+    case "olx":
+      return <Tag size={size} />;
+    case "tiktok":
+      return <Video size={size} />;
+    default:
+      return <Globe size={size} />;
+  }
+};
+
 export const ChannelBadge: React.FC<ChannelBadgeProps> = ({
   channel = "whatsapp",
   size = "sm",
@@ -30,25 +50,7 @@ export const ChannelBadge: React.FC<ChannelBadgeProps> = ({
     iconName: "MessageCircle",
   };
 
-  const getIcon = () => {
-    const iconSize = size === "sm" ? 12 : 14;
-    switch (def.kind) {
-      case "whatsapp":
-        return <MessageCircle size={iconSize} />;
-      case "telegram":
-        return <Send size={iconSize} />;
-      case "mercadolivre":
-        return <ShoppingBag size={iconSize} />;
-      case "instagram":
-        return <Camera size={iconSize} />;
-      case "olx":
-        return <Tag size={iconSize} />;
-      case "tiktok":
-        return <Video size={iconSize} />;
-      default:
-        return <Globe size={iconSize} />;
-    }
-  };
+  const getIcon = () => channelIcon(def.kind, size === "sm" ? 12 : 14);
 
   return (
     <span

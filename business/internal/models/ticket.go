@@ -35,10 +35,21 @@ type Ticket struct {
 	Tags []Tag `gorm:"-" json:"tags,omitempty"`
 
 	// Channel e Capabilities expostos para o frontend agnóstico (Tarefa 7.3 / ADR 0033)
-	Channel      string `gorm:"-" json:"channel,omitempty"`
-	Capabilities any    `gorm:"-" json:"capabilities,omitempty"`
+	Channel string `gorm:"-" json:"channel,omitempty"`
+	// Connection identifica a conexão do ticket (canal + nome), neutra para qualquer canal (domain.TicketConnection).
+	// Preenchida em lote por attachChannelInfo e em ShowTicket; não é coluna.
+	Connection   *TicketConnectionInfo `gorm:"-" json:"connection,omitempty"`
+	Capabilities any                   `gorm:"-" json:"capabilities,omitempty"`
 }
 
 func (Ticket) TableName() string {
 	return "Tickets"
+}
+
+// TicketConnectionInfo espelha domain.TicketConnection no modelo (o pacote models não importa domain).
+type TicketConnectionInfo struct {
+	Kind   string `json:"kind"`
+	ID     int    `json:"id"`
+	Name   string `json:"name"`
+	Source string `json:"source"`
 }
