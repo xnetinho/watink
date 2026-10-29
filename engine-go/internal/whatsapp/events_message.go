@@ -10,6 +10,7 @@ import (
 
 	"go.mau.fi/whatsmeow"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -43,7 +44,20 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 		return
 	}
 
+	// Edição do contato: o aparelho manda um SecretEncryptedMessage MESSAGE_EDIT (texto novo cifrado com o segredo da
+	// mensagem original), não o ProtocolMessage que o BuildEdit usa para enviar. Confirmado com edições reais no celular.
+	if enc := v.Message.GetSecretEncryptedMessage(); enc != nil && enc.GetSecretEncType() == waE2E.SecretEncryptedMessage_MESSAGE_EDIT {
+		s.handleSecretEdit(client, id, tenantID, v)
+		return
+	}
+
 	if protocolMsg := v.Message.GetProtocolMessage(); protocolMsg != nil {
+		if protocolMsg.GetType() == waProto.ProtocolMessage_MESSAGE_EDIT && protocolMsg.GetKey() != nil {
+			// Edição: o whatsmeow desembrulha o EditedMessage (v.IsEdit) e Info.ID NÃO é o da mensagem original; o id dela
+			// está na chave do ProtocolMessage. Antes a edição era descartada aqui sem aviso.
+			s.publishEvent(tenantID, id, "message.edited", editedPayload(id, v, protocolMsg.GetKey().GetID(), protocolMsg))
+			return
+		}
 		if protocolMsg.GetType() == waProto.ProtocolMessage_REVOKE && protocolMsg.GetKey() != nil {
 			s.publishEvent(tenantID, id, "message.revoke", map[string]interface{}{
 				"sessionId": fmt.Sprintf("%d", id),

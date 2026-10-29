@@ -106,6 +106,17 @@ type MessageReactionPayload struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
+// MessageEditedPayload é o evento message.edited do engine: o id da mensagem ORIGINAL (não o do evento de edição), o texto
+// novo e o instante da edição, que ordena a cadeia.
+type MessageEditedPayload struct {
+	SessionID string `json:"sessionId"`
+	MessageID string `json:"messageId"`
+	Body      string `json:"body"`
+	EditedAt  string `json:"editedAt"`
+	FromJID   string `json:"fromJid"`
+	FromMe    bool   `json:"fromMe"`
+}
+
 type MessageRevokePayload struct {
 	SessionID string `json:"sessionId"`
 	MessageID string `json:"messageId"`

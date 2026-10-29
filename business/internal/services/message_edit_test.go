@@ -175,3 +175,12 @@ func TestRecordEdit_EdicoesSimultaneasNaoDisputamAVersao(t *testing.T) {
 	}
 	assert.Equal(t, "v6", e.message(t).Body, "vence a edição de maior horário, não a última a gravar")
 }
+
+func TestRecordEdit_EdicaoSemTextoNaoApagaAMensagem(t *testing.T) {
+	e := newEditEnv(t)
+	_, err := RecordEdit(context.Background(), e.db, RecordEditInput{TenantID: e.tenant, MessageID: "M1", Body: "", EditedAt: e.t0.Add(time.Minute)})
+	assert.ErrorIs(t, err, ErrEmptyEdit)
+	assert.Equal(t, "Oi", e.message(t).Body, "o texto não pode ser esvaziado")
+	assert.Equal(t, 0, e.message(t).EditCount)
+	assert.Empty(t, e.chain(t), "nem a versão 1 é criada por uma edição vazia")
+}

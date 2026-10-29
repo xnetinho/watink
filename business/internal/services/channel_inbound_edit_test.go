@@ -147,3 +147,29 @@ func TestChannelInbound_LocalizacaoAoVivoNaoCriaVersoes(t *testing.T) {
 	require.NoError(t, db.Model(&models.MessageEdit{}).Where(`"tenantId" = ?`, tenantID).Count(&n).Error)
 	assert.Zero(t, n, "a posição ao vivo é atualização de cartão: não gera versões")
 }
+
+func TestChannelInbound_EdicaoSemTextoNaoEsvaziaNemFalha(t *testing.T) {
+	db := testutil.NewTestDB(t)
+	tenantID := uuid.New()
+	require.NoError(t, db.Create(&models.Tenant{ID: tenantID, Name: "T Vazia"}).Error)
+	conn := models.ChannelConnection{TenantID: tenantID, Kind: "telegram", Name: "TG", Status: "CONNECTED"}
+	require.NoError(t, db.Create(&conn).Error)
+	ticketRepo, contactRepo, messageRepo := repository.NewGORMTicketRepo(db), repository.NewGORMContactRepo(db), repository.NewGORMMessageRepo(db)
+	uc := usecases.NewReceiveMessageUseCase(nil, messageRepo, contactRepo, ticketRepo, nil, nil, nil)
+	svc := services.NewChannelInboundService(db, newMockRedis(), ticketRepo, contactRepo, messageRepo, uc, nil, nil)
+
+	base := domain.InboundMessage{
+		TenantID: tenantID, ChannelConnectionID: conn.ID, Channel: domain.ChannelKindTelegram, ExternalMessageID: "70",
+		ConversationKey: "chat-7", Sender: domain.InboundSender{ExternalID: "chat-7", Name: "Cli"}, MediaType: "chat", Body: "Oi", Timestamp: time.Now(),
+	}
+	_, err := svc.Receive(context.Background(), base)
+	require.NoError(t, err)
+	edit := base
+	edit.Edited, edit.Body = true, ""
+	_, err = svc.Receive(context.Background(), edit)
+	require.NoError(t, err, "a edição vazia não pode derrubar a entrega (o broker reenfileiraria)")
+
+	var m models.Message
+	require.NoError(t, db.Where(`"tenantId" = ?`, tenantID).First(&m).Error)
+	assert.Equal(t, "Oi", m.Body)
+}
