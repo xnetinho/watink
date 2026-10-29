@@ -8,6 +8,7 @@ import { getContactDisplayName } from "../../utils/clientDisplayName";
 import { useContactPresence } from "../../hooks/useContactPresence";
 import { presenceLabel } from "../../lib/presence/format";
 import { TicketConnectionBadge } from "../TicketConnectionBadge";
+import { Emojified } from "../Emojified";
 import type { TicketConnection } from "../../types/Ticket";
 
 interface Contact {
@@ -69,7 +70,7 @@ const TicketInfo: React.FC<TicketInfoProps> = ({ contact, ticket, onClick }) => 
 
       <div className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-semibold leading-tight text-foreground">
-          {getContactDisplayName(contact)} #{ticket.id}
+          <Emojified>{getContactDisplayName(contact)}</Emojified> #{ticket.id}
         </span>
         {(ticket.connection || ticket.channel) && (
           <TicketConnectionBadge channel={ticket.channel} connection={ticket.connection} size="sm" className="self-start" />
