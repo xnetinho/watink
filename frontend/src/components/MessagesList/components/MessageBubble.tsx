@@ -2,7 +2,9 @@ import React, { useCallback, useContext } from "react";
 import { isSameDay, parseISO } from "date-fns";
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
+import { toast } from "react-toastify";
 import api from "../../../services/api";
+import { i18n } from "../../../translate/i18n";
 import { ReplyMessageContext } from "../../../context/ReplyingMessage/ReplyingMessageContext";
 
 import MarkdownWrapper from "../../MarkdownWrapper";
@@ -123,15 +125,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     [message, setReplyingMessage]
   );
 
+  // Reenvia a mensagem que falhou (ack 5) pelo servidor, que reaproveita o conteúdo inteiro: texto, mídia, voz, citação.
+  // Mandar só o corpo, como era antes, não reenviava mídia (o corpo de um áudio é vazio).
   const handleRetry = useCallback(async () => {
-    const ticketId = (message as Record<string, unknown>).ticketId;
-    if (!ticketId) return;
     try {
-      await api.post(`/messages/${ticketId}`, { body: message.body, fromMe: true });
+      await api.post(`/message/${message.id}/resend`);
     } catch {
-      // silent — ack will update via SSE
+      toast.error(i18n.t("chat.resendFailed") as string);
     }
-  }, [message]);
+  }, [message.id]);
 
   const currentSenderKey = getSenderKey(message, isGroup);
   const previousSenderKey =
