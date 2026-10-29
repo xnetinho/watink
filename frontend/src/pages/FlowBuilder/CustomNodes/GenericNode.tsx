@@ -50,7 +50,7 @@ const GenericNode: React.FC<GenericNodeProps> = ({
     <PaperCard
       className={cn(
         "relative flex min-w-[180px] flex-col items-center justify-center p-2.5",
-        "border border-[var(--border-default)] bg-white text-[var(--text-primary)]",
+        "border border-[hsl(var(--border-default))] bg-white text-[hsl(var(--text-primary))]",
         "rounded-md text-sm shadow-[0_2px_5px_var(--shadow-appbar)]",
         className
       )}
@@ -76,7 +76,7 @@ const GenericNode: React.FC<GenericNodeProps> = ({
         {showDelete && (
           <button
             type="button"
-            className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-sm p-0.5 text-[var(--text-muted)] hover:text-destructive focus:outline-none"
+            className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-sm p-0.5 text-[hsl(var(--text-muted))] hover:text-destructive focus:outline-none"
             onClick={handleDelete}
           >
             <X className="h-3.5 w-3.5" />
@@ -84,7 +84,7 @@ const GenericNode: React.FC<GenericNodeProps> = ({
         )}
       </div>
 
-      <div className="flex w-full flex-col items-center text-xs text-[var(--text-secondary)]">
+      <div className="flex w-full flex-col items-center text-xs text-[hsl(var(--text-secondary))]">
         {children}
       </div>
 

@@ -10,6 +10,9 @@ type Ticket struct {
 	ID                  int       `gorm:"primaryKey" json:"id"`
 	Status              string    `gorm:"not null;default:'pending'" json:"status"`
 	LastMessage         string    `gorm:"column:lastMessage" json:"lastMessage"`
+	// LastMessageType é o marcador de tipo da última mensagem quando ela não tem texto legível (image, video, poll,
+	// location...). A prévia do ticket é traduzida pela tela; o banco nunca guarda rótulo em um idioma.
+	LastMessageType string `gorm:"column:lastMessageType;size:30" json:"lastMessageType,omitempty"`
 	ContactID           int       `gorm:"column:contactId" json:"contactId"`
 	UserID              *int      `gorm:"column:userId" json:"userId"`
 	WhatsappID          int       `gorm:"column:whatsappId" json:"whatsappId"`

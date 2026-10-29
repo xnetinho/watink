@@ -196,16 +196,14 @@ func (qac *QuickAnswerController) Send(c *gin.Context) {
 		return
 	}
 
-	lastMessage := msgBody
-	if lastMessage == "" && msgMediaType != "" {
-		lastMessage = "[" + msgMediaType + "]"
-	}
+	lastMessage, lastKind := domain.LastMessagePreview(msgMediaType, msgBody, "")
 
 	writeDB.Model(&models.Ticket{}).
 		Where("id = ? AND \"tenantId\" = ?", input.TicketID, tenantID).
 		Updates(map[string]interface{}{
-			"lastMessage": lastMessage,
-			"updatedAt":   now,
+			"lastMessage":     lastMessage,
+			"lastMessageType": lastKind,
+			"updatedAt":       now,
 		})
 
 	ticketRoom := "chat:" + strconv.Itoa(input.TicketID)
@@ -218,9 +216,10 @@ func (qac *QuickAnswerController) Send(c *gin.Context) {
 	qac.broadcast.EmitToTenantRoom(tenantID.String(), "ticket", map[string]interface{}{
 		"action": "update",
 		"ticket": map[string]interface{}{
-			"id":          input.TicketID,
-			"lastMessage": lastMessage,
-			"updatedAt":   now,
+			"id":              input.TicketID,
+			"lastMessage":     lastMessage,
+			"lastMessageType": lastKind,
+			"updatedAt":       now,
 		},
 	})
 

@@ -664,6 +664,23 @@ const messages = {
         placeholder: "Filas",
       },
       tickets: {
+        lastMessageKind: {
+          image: "📷 Foto",
+          video: "📹 Vídeo",
+          audio: "🎵 Áudio",
+          document: "📎 Arquivo",
+          sticker: "Figurinha",
+          location: "📍 Localização",
+          vcard: "👤 Contato",
+          poll: "📊 Enquete",
+          event: "📅 Evento",
+          pix: "💠 PIX",
+          view_once: "👁 Visualização única",
+          unsupported: "⚠️ Mensagem não suportada",
+          call: "📞 Chamada",
+          other: "📎 Mensagem",
+        },
+        noMessages: "Sem mensagens",
         details: {
           connection: "Conexão",
         },
@@ -917,6 +934,23 @@ const messages = {
         },
       },
       messagesInput: {
+        emojiPicker: {
+          title: "Emojis",
+          search: "Buscar emoji",
+          none: "Nenhum emoji encontrado",
+          loading: "Carregando emojis...",
+          categories: {
+            "Smileys & Emotion": "Carinhas e emoções",
+            "People & Body": "Pessoas e corpo",
+            "Animals & Nature": "Animais e natureza",
+            "Food & Drink": "Comidas e bebidas",
+            "Travel & Places": "Viagens e lugares",
+            Activities: "Atividades",
+            Objects: "Objetos",
+            Symbols: "Símbolos",
+            Flags: "Bandeiras",
+          },
+        },
         placeholderOpen: "Digite uma mensagem ou tecle ''/'' para utilizar as respostas rápidas cadastrada",
         placeholderClosed:
           "Reabra ou aceite esse ticket para enviar uma mensagem.",

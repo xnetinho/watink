@@ -356,13 +356,10 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		outgoing.QuotedMsg = one[0].QuotedMsg
 	}
 
-	lastMessage := body
-	if lastMessage == "" && mediaURL != "" {
-		lastMessage = "📎 Mídia"
-	}
+	lastMessage, lastKind := domain.LastMessagePreview(mediaType, body, "")
 	writeDB.Model(&models.Ticket{}).
 		Where("id = ? AND \"tenantId\" = ?", ticketID, tenantID).
-		Updates(map[string]interface{}{"lastMessage": lastMessage, "updatedAt": now})
+		Updates(map[string]interface{}{"lastMessage": lastMessage, "lastMessageType": lastKind, "updatedAt": now})
 
 	// Emit socket events so the frontend updates in real-time without a page refresh.
 	// Pattern mirrors event_listener.go: appMessage to the ticket room + tenant room,
@@ -374,9 +371,10 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	mc.broadcast.EmitToTenantRoom(tenantID.String(), "ticket", map[string]interface{}{
 		"action": "update",
 		"ticket": map[string]interface{}{
-			"id":          ticketID,
-			"lastMessage": lastMessage,
-			"updatedAt":   now,
+			"id":              ticketID,
+			"lastMessage":     lastMessage,
+			"lastMessageType": lastKind,
+			"updatedAt":       now,
 		},
 	})
 

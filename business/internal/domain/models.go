@@ -12,6 +12,7 @@ type Ticket struct {
 	ID                  int       `json:"id"`
 	Status              string    `json:"status"`
 	LastMessage         string    `json:"lastMessage"`
+	LastMessageType     string    `json:"lastMessageType,omitempty"`
 	ContactID           int       `json:"contactId"`
 	UserID              *int      `json:"userId"`
 	WhatsappID          int       `json:"whatsappId"`

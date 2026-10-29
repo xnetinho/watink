@@ -1,5 +1,7 @@
 import React, { ReactNode } from "react";
 import Markdown from "markdown-to-jsx";
+import { splitEmojis } from "../../lib/emoji/emoji";
+import { Emojified } from "../Emojified";
 
 // All HTML elements — only allowedElements pass through as-is; rest are stripped to their children
 const elements: string[] = [
@@ -57,6 +59,14 @@ const MarkdownWrapper: React.FC<MarkdownWrapperProps> = ({
       forceInline: true,
       overrides: {
         a: { component: CustomLink },
+      },
+      // Todo texto corrido do Markdown passa por aqui: os emojis dele viram imagem (conjunto Apple, como o WhatsApp Web).
+      // O markdown-to-jsx entrega os filhos como UM array (não como argumentos soltos), então o filtro percorre o array.
+      createElement(type: string | React.FunctionComponent | React.ComponentClass, props: React.Attributes, ...children: React.ReactNode[]) {
+        const withEmoji = (node: React.ReactNode, i: number): React.ReactNode =>
+          typeof node === "string" && splitEmojis(node).some((p) => p.type === "emoji") ? <Emojified key={i}>{node}</Emojified> : node;
+        const mapped = children.map((c, i) => (Array.isArray(c) ? c.map((n, j) => withEmoji(n as React.ReactNode, j)) : withEmoji(c, i)));
+        return React.createElement(type as React.ElementType, props, ...mapped);
       },
     };
 

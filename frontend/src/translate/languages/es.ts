@@ -545,6 +545,23 @@ const messages = {
         placeholder: "Linhas",
       },
       tickets: {
+        lastMessageKind: {
+          image: "📷 Foto",
+          video: "📹 Video",
+          audio: "🎵 Audio",
+          document: "📎 Archivo",
+          sticker: "Sticker",
+          location: "📍 Ubicación",
+          vcard: "👤 Contacto",
+          poll: "📊 Encuesta",
+          event: "📅 Evento",
+          pix: "💠 PIX",
+          view_once: "👁 Ver una vez",
+          unsupported: "⚠️ Mensaje no compatible",
+          call: "📞 Llamada",
+          other: "📎 Mensaje",
+        },
+        noMessages: "Sin mensajes",
         details: {
           connection: "Conexión",
         },
@@ -753,6 +770,23 @@ const messages = {
         },
       },
       messagesInput: {
+        emojiPicker: {
+          title: "Emojis",
+          search: "Buscar emoji",
+          none: "Ningún emoji encontrado",
+          loading: "Cargando emojis...",
+          categories: {
+            "Smileys & Emotion": "Caras y emociones",
+            "People & Body": "Personas y cuerpo",
+            "Animals & Nature": "Animales y naturaleza",
+            "Food & Drink": "Comida y bebida",
+            "Travel & Places": "Viajes y lugares",
+            Activities: "Actividades",
+            Objects: "Objetos",
+            Symbols: "Símbolos",
+            Flags: "Banderas",
+          },
+        },
         placeholderOpen: "Escriba un mensaje o presione '' / '' para usar las respuestas rápidas registradas",
         placeholderClosed:
           "Vuelva a abrir o acepte este ticket para enviar un mensaje.",

@@ -1,6 +1,7 @@
 import React from "react";
 import { Reaction } from "../../../types/Message";
 import { Message } from "../types";
+import { Emojified } from "../../Emojified";
 
 interface Props {
   message: Message;
@@ -32,7 +33,7 @@ const MessageReactions: React.FC<Props> = ({ message }) => {
     <div className="absolute -bottom-2.5 left-2.5 bg-[hsl(var(--message-reaction-bg))] rounded-xl px-1.5 py-0.5 shadow-md text-xs flex items-center z-20 cursor-pointer border border-[hsl(var(--message-reaction-border))]">
       {aggregated.map((reaction, index) => (
         <span key={index} className="mr-1">
-          {reaction.emoji} {reaction.count > 1 ? reaction.count : ""}
+          <Emojified>{reaction.emoji}</Emojified> {reaction.count > 1 ? reaction.count : ""}
         </span>
       ))}
     </div>

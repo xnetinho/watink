@@ -30,11 +30,11 @@ interface AttachmentsListProps {
 
 const getFileIcon = (fileType?: string) => {
   const cls = "h-9 w-9";
-  if (fileType?.startsWith("image/")) return <ImageIcon className={cn(cls, "text-[var(--status-default-text)]")} />;
-  if (fileType === "application/pdf") return <FileType className={cn(cls, "text-[var(--status-error)]")} />;
-  if (fileType?.includes("word") || fileType?.includes("document")) return <FileText className={cn(cls, "text-[var(--status-info)]")} />;
-  if (fileType?.includes("excel") || fileType?.includes("spreadsheet")) return <File className={cn(cls, "text-[var(--status-success)]")} />;
-  return <File className={cn(cls, "text-[var(--text-muted)]")} />;
+  if (fileType?.startsWith("image/")) return <ImageIcon className={cn(cls, "text-[hsl(var(--status-default-text))]")} />;
+  if (fileType === "application/pdf") return <FileType className={cn(cls, "text-[hsl(var(--status-error))]")} />;
+  if (fileType?.includes("word") || fileType?.includes("document")) return <FileText className={cn(cls, "text-[hsl(var(--status-info))]")} />;
+  if (fileType?.includes("excel") || fileType?.includes("spreadsheet")) return <File className={cn(cls, "text-[hsl(var(--status-success))]")} />;
+  return <File className={cn(cls, "text-[hsl(var(--text-muted))]")} />;
 };
 
 const AttachmentsList: React.FC<AttachmentsListProps> = ({
@@ -86,7 +86,7 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
   if (!attachments || attachments.length === 0) {
     if (!showEmpty) return null;
     return (
-      <div className="text-center p-6 text-[var(--text-muted)] text-sm">
+      <div className="text-center p-6 text-[hsl(var(--text-muted))] text-sm">
         Nenhum anexo
       </div>
     );
@@ -100,8 +100,8 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
             <div
               key={attachment.id}
               className={cn(
-                "w-[110px] h-[120px] rounded-lg overflow-hidden border border-[var(--border-default)]",
-                "flex flex-col bg-[var(--bg-surface)] cursor-pointer",
+                "w-[110px] h-[120px] rounded-lg overflow-hidden border border-[hsl(var(--border-default))]",
+                "flex flex-col bg-[hsl(var(--bg-surface))] cursor-pointer",
                 "transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
               )}
               onClick={() => handleClick(attachment)}
@@ -113,11 +113,11 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
                   className="w-full h-20 object-cover"
                 />
               ) : (
-                <div className="w-full h-20 flex items-center justify-center bg-[var(--bg-surface-alt)]">
+                <div className="w-full h-20 flex items-center justify-center bg-[hsl(var(--bg-surface-alt))]">
                   {getFileIcon(attachment.fileType)}
                 </div>
               )}
-              <div className="px-2 py-1 bg-[var(--bg-surface)] border-t border-[var(--border-default)] flex-1 flex items-center justify-between">
+              <div className="px-2 py-1 bg-[hsl(var(--bg-surface))] border-t border-[hsl(var(--border-default))] flex-1 flex items-center justify-between">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="text-[10px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[60px]">
@@ -135,7 +135,7 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
                         onClick={(e) => handleDownload(attachment, e)}
                         aria-label="Baixar"
                       >
-                        <Download className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                        <Download className="h-3.5 w-3.5 text-[hsl(var(--text-muted))]" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>Baixar</TooltipContent>
@@ -149,7 +149,7 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
                           onClick={(e) => handleDelete(attachment, e)}
                           aria-label="Excluir"
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-[var(--status-error)]" />
+                          <Trash2 className="h-3.5 w-3.5 text-[hsl(var(--status-error))]" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent>Excluir</TooltipContent>
@@ -166,7 +166,7 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
           <DialogContent className="max-w-[95vw] bg-transparent border-none shadow-none p-0">
             <button
               type="button"
-              className="absolute top-4 right-4 z-50 p-1.5 rounded-full bg-[var(--overlay-dark-medium)] text-[var(--bg-surface)] hover:bg-[var(--overlay-dark-strong)] transition-colors"
+              className="absolute top-4 right-4 z-50 p-1.5 rounded-full bg-[var(--overlay-dark-medium)] text-[hsl(var(--bg-surface))] hover:bg-[var(--overlay-dark-strong)] transition-colors"
               onClick={() => setLightboxOpen(false)}
               aria-label="Fechar"
             >

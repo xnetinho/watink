@@ -12,34 +12,34 @@ const getFileIcon = (extension: string) => {
   const cls = "h-8 w-8";
   switch (extension) {
     case "pdf":
-      return <FileType className={cn(cls, "text-[var(--status-error)]")} />;
+      return <FileType className={cn(cls, "text-[hsl(var(--status-error))]")} />;
     case "doc":
     case "docx":
     case "txt":
     case "rtf":
-      return <FileText className={cn(cls, "text-[var(--status-info)]")} />;
+      return <FileText className={cn(cls, "text-[hsl(var(--status-info))]")} />;
     case "xls":
     case "xlsx":
     case "csv":
-      return <FileSpreadsheet className={cn(cls, "text-[var(--status-success)]")} />;
+      return <FileSpreadsheet className={cn(cls, "text-[hsl(var(--status-success))]")} />;
     case "jpg":
     case "jpeg":
     case "png":
     case "gif":
     case "bmp":
     case "webp":
-      return <ImageIcon className={cn(cls, "text-[var(--status-default-text)]")} />;
+      return <ImageIcon className={cn(cls, "text-[hsl(var(--status-default-text))]")} />;
     case "mp3":
     case "wav":
     case "ogg":
-      return <Music className={cn(cls, "text-[var(--text-muted)]")} />;
+      return <Music className={cn(cls, "text-[hsl(var(--text-muted))]")} />;
     case "mp4":
     case "avi":
     case "mkv":
     case "mov":
-      return <Video className={cn(cls, "text-[var(--text-muted)]")} />;
+      return <Video className={cn(cls, "text-[hsl(var(--text-muted))]")} />;
     default:
-      return <File className={cn(cls, "text-[var(--text-muted)]")} />;
+      return <File className={cn(cls, "text-[hsl(var(--text-muted))]")} />;
   }
 };
 
@@ -105,7 +105,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ mediaUrl, filename }) => {
   const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(extension);
 
   return (
-    <div className="flex items-center w-[300px] max-w-full p-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-sm overflow-hidden">
+    <div className="flex items-center w-[300px] max-w-full p-2 rounded-lg border border-[hsl(var(--border-default))] bg-[hsl(var(--bg-surface))] shadow-sm overflow-hidden">
       {isImage && mediaUrl ? (
         <img
           src={mediaUrl}
@@ -114,7 +114,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ mediaUrl, filename }) => {
         />
       ) : (
         <div
-          className="w-12 h-12 rounded-lg mr-3 shrink-0 flex items-center justify-center text-[var(--bg-surface)]"
+          className="w-12 h-12 rounded-lg mr-3 shrink-0 flex items-center justify-center text-[hsl(var(--bg-surface))]"
           style={{ backgroundColor: getFileColor(extension) }}
         >
           {getFileIcon(extension)}
@@ -123,12 +123,12 @@ const FilePreview: React.FC<FilePreviewProps> = ({ mediaUrl, filename }) => {
 
       <div className="flex-1 overflow-hidden flex flex-col justify-center">
         <p
-          className="text-sm font-semibold truncate text-[var(--text-primary)] leading-tight"
+          className="text-sm font-semibold truncate text-[hsl(var(--text-primary))] leading-tight"
           title={displayFilename}
         >
           {displayFilename}
         </p>
-        <span className="text-[11px] text-[var(--text-muted)] uppercase font-medium mt-0.5">
+        <span className="text-[11px] text-[hsl(var(--text-muted))] uppercase font-medium mt-0.5">
           {extension}
         </span>
       </div>
@@ -138,7 +138,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ mediaUrl, filename }) => {
         target="_blank"
         rel="noopener noreferrer"
         download
-        className="ml-2 p-1.5 rounded-full text-[var(--text-muted)] hover:bg-[var(--border-subtle)] hover:text-[var(--text-primary)] transition-colors"
+        className="ml-2 p-1.5 rounded-full text-[hsl(var(--text-muted))] hover:bg-[var(--border-subtle)] hover:text-[hsl(var(--text-primary))] transition-colors"
         aria-label="Baixar arquivo"
       >
         <Download className="h-4 w-4" />
