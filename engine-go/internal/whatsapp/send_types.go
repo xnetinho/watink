@@ -2,31 +2,50 @@ package whatsapp
 
 // Payload types — exported so main.go can unmarshal directly into these structs.
 
+// QuotedMedia descreve a mídia citada para o celular desenhar a caixa de citação como o cliente oficial (áudio com
+// duração e microfone, imagem com miniatura), em vez de só o texto do rótulo. Não leva chaves: citar não reenvia a mídia.
+type QuotedMedia struct {
+	Type      string `json:"type"` // audio | image | video | document | sticker
+	MimeType  string `json:"mimeType,omitempty"`
+	Voice     bool   `json:"voice,omitempty"`
+	Seconds   int    `json:"seconds,omitempty"`
+	Caption   string `json:"caption,omitempty"`
+	FileName  string `json:"fileName,omitempty"`
+	Thumbnail string `json:"thumbnail,omitempty"` // JPEG em base64
+}
+
 type TextCommandPayload struct {
-	SessionID   int      `json:"sessionId"`
-	MessageID   string   `json:"messageId"`
-	To          string   `json:"to"`
-	Body        string   `json:"body"`
-	QuotedMsgID string   `json:"quotedMsgId,omitempty"`
-	QuotedJID   string   `json:"quotedJid,omitempty"`
-	QuotedBody  string   `json:"quotedBody,omitempty"`
-	Mentions    []string `json:"mentions,omitempty"`
+	SessionID   int          `json:"sessionId"`
+	MessageID   string       `json:"messageId"`
+	To          string       `json:"to"`
+	Body        string       `json:"body"`
+	QuotedMsgID string       `json:"quotedMsgId,omitempty"`
+	QuotedJID   string       `json:"quotedJid,omitempty"`
+	QuotedBody  string       `json:"quotedBody,omitempty"`
+	QuotedMedia *QuotedMedia `json:"quotedMedia,omitempty"`
+	Mentions    []string     `json:"mentions,omitempty"`
+	// Forwarded marca a mensagem como encaminhada (selo "Encaminhada"); ForwardScore é quantas vezes já foi.
+	Forwarded    bool `json:"forwarded,omitempty"`
+	ForwardScore int  `json:"forwardScore,omitempty"`
 }
 
 type MediaCommandPayload struct {
-	SessionID   int      `json:"sessionId"`
-	MessageID   string   `json:"messageId"`
-	To          string   `json:"to"`
-	Body        string   `json:"body"`
-	MediaURL    string   `json:"mediaUrl"`
-	MediaType   string   `json:"mediaType"`
-	MimeType    string   `json:"mimeType"`
-	FileName    string   `json:"fileName"`
-	MediaData   string   `json:"mediaData"`
-	QuotedMsgID string   `json:"quotedMsgId,omitempty"`
-	QuotedJID   string   `json:"quotedJid,omitempty"`
-	QuotedBody  string   `json:"quotedBody,omitempty"`
-	Mentions    []string `json:"mentions,omitempty"`
+	SessionID    int          `json:"sessionId"`
+	MessageID    string       `json:"messageId"`
+	To           string       `json:"to"`
+	Body         string       `json:"body"`
+	MediaURL     string       `json:"mediaUrl"`
+	MediaType    string       `json:"mediaType"`
+	MimeType     string       `json:"mimeType"`
+	FileName     string       `json:"fileName"`
+	MediaData    string       `json:"mediaData"`
+	QuotedMsgID  string       `json:"quotedMsgId,omitempty"`
+	QuotedJID    string       `json:"quotedJid,omitempty"`
+	QuotedBody   string       `json:"quotedBody,omitempty"`
+	QuotedMedia  *QuotedMedia `json:"quotedMedia,omitempty"`
+	Mentions     []string     `json:"mentions,omitempty"`
+	Forwarded    bool         `json:"forwarded,omitempty"`
+	ForwardScore int          `json:"forwardScore,omitempty"`
 }
 
 // ReactionCommandPayload sends (or removes, when Reaction=="") an emoji
@@ -50,6 +69,19 @@ type PresenceCommandPayload struct {
 	SessionID int    `json:"sessionId"`
 	To        string `json:"to"`
 	State     string `json:"state"`
+}
+
+// PresenceSubscribePayload pede ao WhatsApp as atualizações de online/última vez visto de um contato.
+type PresenceSubscribePayload struct {
+	SessionID int    `json:"sessionId"`
+	To        string `json:"to"`
+}
+
+// PresencePolicyPayload muda a política de presença de uma sessão em andamento (never | on_demand | always).
+type PresencePolicyPayload struct {
+	SessionID   int    `json:"sessionId"`
+	Policy      string `json:"policy"`
+	IdleMinutes int    `json:"idleMinutes"`
 }
 
 type MarkReadCommandPayload struct {
@@ -106,6 +138,17 @@ type PollCommandPayload struct {
 	SelectableCount int      `json:"selectableCount"`
 }
 
+// PollVoteCommandPayload: voto em uma enquete recebida (ou enviada por nós). Chat, PollSender e PollID identificam a
+// mensagem original; Options são os NOMES das opções escolhidas (lista vazia remove o voto).
+type PollVoteCommandPayload struct {
+	SessionID  int      `json:"sessionId"`
+	Chat       string   `json:"chat"`
+	PollID     string   `json:"pollId"`
+	PollSender string   `json:"pollSender"`
+	PollFromMe bool     `json:"pollFromMe"`
+	Options    []string `json:"options"`
+}
+
 // InteractiveCommandPayload carries a NativeFlow (modern interactive) message.
 type InteractiveCommandPayload struct {
 	SessionID  int                        `json:"sessionId"`
@@ -122,6 +165,13 @@ type InteractiveButtonPayload struct {
 }
 
 // SyncContactPayload carries a contact sync request.
+// SaveContactPayload grava um contato criado no Watink na agenda do celular da conexão.
+type SaveContactPayload struct {
+	SessionID int    `json:"sessionId"`
+	Number    string `json:"number"`
+	Name      string `json:"name"`
+}
+
 type SyncContactPayload struct {
 	SessionID int    `json:"sessionId"`
 	Number    string `json:"number"`

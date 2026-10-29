@@ -104,9 +104,7 @@ export default defineConfig({
         ".js": "jsx",
       },
     },
-    include: [
-      "mic-recorder-to-mp3",
-    ],
+    include: [],
     exclude: [],
   },
   resolve: {

@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/application/usecases"
@@ -20,15 +21,20 @@ type TicketController struct {
 	broadcast    domain.Broadcaster
 	messages     domain.MessageRepository
 	publisher    domain.CommandPublisher
+	ticketRepo   domain.TicketRepository
 }
 
-func NewTicketController(ut *usecases.UpdateTicketUseCase, broadcast domain.Broadcaster, messages domain.MessageRepository, publisher domain.CommandPublisher) *TicketController {
-	return &TicketController{
+func NewTicketController(ut *usecases.UpdateTicketUseCase, broadcast domain.Broadcaster, messages domain.MessageRepository, publisher domain.CommandPublisher, ticketRepo ...domain.TicketRepository) *TicketController {
+	tc := &TicketController{
 		updateTicket: ut,
 		broadcast:    domain.BroadcastOrNop(broadcast),
 		messages:     messages,
 		publisher:    publisher,
 	}
+	if len(ticketRepo) > 0 && ticketRepo[0] != nil {
+		tc.ticketRepo = ticketRepo[0]
+	}
+	return tc
 }
 
 // historyCutoff converts a recovery range token into a unix cutoff timestamp.
@@ -75,9 +81,11 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 
 	searchParam := c.Query("searchParam")
 	if searchParam != "" {
-		query = query.Joins("JOIN \"Contacts\" ON \"Contacts\".id = \"Tickets\".\"contactId\"").
-			Where("(\"Contacts\".name ILIKE ? OR \"Contacts\".number ILIKE ? OR \"Tickets\".\"lastMessage\" ILIKE ?)",
-				"%"+searchParam+"%", "%"+searchParam+"%", "%"+searchParam+"%")
+		// EXISTS e não JOIN: o escopo da empresa (GetScoped) filtra por "tenantId" sem qualificar a tabela, e o JOIN com
+		// Contacts (que também tem tenantId) tornava a coluna ambígua e a busca respondia 500.
+		like := "%" + searchParam + "%"
+		query = query.Where(`("Tickets"."lastMessage" ILIKE ? OR EXISTS (SELECT 1 FROM "Contacts" ct WHERE ct.id = "Tickets"."contactId" AND (ct.name ILIKE ? OR ct.number ILIKE ?)))`,
+			like, like, like)
 	}
 
 	date := c.Query("date")
@@ -103,6 +111,8 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 	// isGroup absent → default to individual tickets (exclude groups from status-based tabs)
 	isGroup := c.Query("isGroup")
 	switch isGroup {
+	case "all":
+		// destino de encaminhamento: grupos e contatos juntos
 	case "true":
 		query = query.Where("\"Tickets\".\"isGroup\" = ?", true)
 		// Groups are informal chats — status filter doesn't apply.
@@ -110,6 +120,20 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 	default:
 		// "false" or absent: exclude groups so status-based tabs never mix individual and group tickets.
 		query = query.Where("\"Tickets\".\"isGroup\" = ?", false)
+	}
+
+	// channel restringe a um canal (destino de encaminhamento só no mesmo canal): o WhatsApp é o ticket sem conexão de canal.
+	if ch := c.Query("channel"); ch == string(domain.ChannelKindWhatsApp) {
+		query = query.Where("\"Tickets\".\"channelConnectionId\" IS NULL")
+	} else if ch != "" {
+		query = query.Where("\"Tickets\".\"channelConnectionId\" IN (?)",
+			db.Session(&gorm.Session{NewDB: true}).Model(&models.ChannelConnection{}).Select("id").Where("kind = ?", ch))
+	}
+	if n, err := strconv.Atoi(c.Query("limit")); err == nil && n > 0 {
+		if n > 100 {
+			n = 100
+		}
+		query = query.Limit(n)
 	}
 
 	if c.Query("withUnreadMessages") == "true" {
@@ -122,6 +146,7 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 	}
 
 	attachTicketTags(db, tenantID, tickets)
+	attachChannelInfo(db, tickets)
 
 	c.JSON(http.StatusOK, gin.H{
 		"tickets": tickets,
@@ -214,42 +239,124 @@ func (tc *TicketController) ShowTicket(c *gin.Context) {
 
 	// Resolve a política de resposta baseada nas capacidades do canal (D2 / ADR 0033)
 	policy := resolveTicketReplyPolicy(db, &ticket)
+	channelKind, caps := resolveTicketChannelAndCaps(db, &ticket)
 
 	var resp map[string]interface{}
 	ticketBytes, _ := json.Marshal(ticket)
 	_ = json.Unmarshal(ticketBytes, &resp)
+	resp["channel"] = channelKind
+	if c, ok := resolveTicketConnections(db, []models.Ticket{ticket})[ticket.ID]; ok {
+		resp["connection"] = c
+	}
+	resp["capabilities"] = caps
 	resp["replyPolicy"] = policy
 
 	c.JSON(http.StatusOK, resp)
 }
 
-// resolveTicketReplyPolicy calcula se o operador pode responder no ticket dado o canal e o histórico.
-func resolveTicketReplyPolicy(db *gorm.DB, ticket *models.Ticket) domain.ReplyPolicy {
-	now := time.Now()
-	// Default para canal WhatsApp
+// resolveTicketConnections identifica, em lote (no máximo 2 consultas), a conexão de cada ticket da lista. A regra de "de
+// qual tabela vem a conexão" é a de services.ConnectionOf; aqui só se evita 1 consulta por ticket. Ticket cuja conexão foi
+// apagada volta sem Connection e a tela mostra só o canal.
+func resolveTicketConnections(db *gorm.DB, tickets []models.Ticket) map[int]models.TicketConnectionInfo {
+	channelIDs, waIDs := map[int]bool{}, map[int]bool{}
+	for _, t := range tickets {
+		switch {
+		case t.ChannelConnectionID != nil:
+			channelIDs[*t.ChannelConnectionID] = true
+		case t.WhatsappID != 0:
+			waIDs[t.WhatsappID] = true
+		}
+	}
+	byChannel, byWhatsapp := map[int]models.TicketConnectionInfo{}, map[int]models.TicketConnectionInfo{}
+	if len(channelIDs) > 0 {
+		var conns []models.ChannelConnection
+		_ = db.Session(&gorm.Session{NewDB: true}).Select("id", "kind", "name").Where("id IN ?", connIDList(channelIDs)).Find(&conns).Error
+		for _, c := range conns {
+			byChannel[c.ID] = models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, Source: "channel"}
+		}
+	}
+	if len(waIDs) > 0 {
+		var was []models.Whatsapp
+		_ = db.Session(&gorm.Session{NewDB: true}).Select("id", "name", "profilePicUrl").Where("id IN ?", connIDList(waIDs)).Find(&was).Error
+		for _, w := range was {
+			byWhatsapp[w.ID] = models.TicketConnectionInfo{Kind: string(domain.ChannelKindWhatsApp), ID: w.ID, Name: w.Name, Source: "whatsapp", ProfilePicUrl: w.ProfilePicUrl}
+		}
+	}
+	res := map[int]models.TicketConnectionInfo{}
+	for _, t := range tickets {
+		if t.ChannelConnectionID != nil {
+			if c, ok := byChannel[*t.ChannelConnectionID]; ok {
+				res[t.ID] = c
+			}
+		} else if c, ok := byWhatsapp[t.WhatsappID]; ok {
+			res[t.ID] = c
+		}
+	}
+	return res
+}
+
+func connIDList(m map[int]bool) []int {
+	ks := make([]int, 0, len(m))
+	for k := range m {
+		ks = append(ks, k)
+	}
+	return ks
+}
+
+// attachChannelInfo preenche canal e conexão de cada ticket da lista (Tarefa 7.3; identificação do ticket).
+func attachChannelInfo(db *gorm.DB, tickets []models.Ticket) {
+	conns := resolveTicketConnections(db, tickets)
+	for i := range tickets {
+		tickets[i].Channel = string(domain.ChannelKindWhatsApp) // ticket sem conexão de canal é do WhatsApp (legado)
+		if c, ok := conns[tickets[i].ID]; ok {
+			tickets[i].Channel = c.Kind
+			cc := c
+			tickets[i].Connection = &cc
+		}
+	}
+}
+
+// resolveTicketChannelAndCaps devolve o tipo de canal e as capacidades do ticket.
+func resolveTicketChannelAndCaps(db *gorm.DB, ticket *models.Ticket) (string, domain.Capabilities) {
 	defaultWhatsAppCaps := domain.Capabilities{
 		InitiateConversation: true,
 		MaxTextBytes:         65535,
 		Groups:               true,
 		Auth:                 domain.AuthKindQR,
 		HasPhone:             true,
+		Voice:                true,
+		Video:                true,
 	}
 
 	if ticket.ChannelConnectionID == nil {
-		return domain.EvaluateReplyPolicy(defaultWhatsAppCaps, nil, nil, now)
+		return "whatsapp", defaultWhatsAppCaps
 	}
 
 	var conn models.ChannelConnection
 	if err := db.Session(&gorm.Session{NewDB: true}).Where("id = ?", *ticket.ChannelConnectionID).First(&conn).Error; err != nil {
-		return domain.EvaluateReplyPolicy(defaultWhatsAppCaps, nil, nil, now)
+		return "whatsapp", defaultWhatsAppCaps
 	}
 
 	channelAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind))
-	var caps domain.Capabilities
 	if err != nil {
-		caps = defaultWhatsAppCaps
-	} else {
-		caps = channelAdapter.Capabilities()
+		return conn.Kind, defaultWhatsAppCaps
+	}
+	return conn.Kind, channelAdapter.Capabilities()
+}
+
+// resolveTicketReplyPolicy calcula se o operador pode responder no ticket dado o canal e o histórico.
+func resolveTicketReplyPolicy(db *gorm.DB, ticket *models.Ticket) domain.ReplyPolicy {
+	now := time.Now()
+	channelKind, caps := resolveTicketChannelAndCaps(db, ticket)
+	_ = channelKind
+
+	if ticket.ChannelConnectionID == nil {
+		return domain.EvaluateReplyPolicy(caps, nil, nil, now)
+	}
+
+	var conn models.ChannelConnection
+	if err := db.Session(&gorm.Session{NewDB: true}).Where("id = ?", *ticket.ChannelConnectionID).First(&conn).Error; err != nil {
+		return domain.EvaluateReplyPolicy(caps, nil, nil, now)
 	}
 
 	// Busca o timestamp da última mensagem recebida do cliente

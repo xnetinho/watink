@@ -2,12 +2,17 @@ package whatsapp
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 
 	"go.mau.fi/whatsmeow"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, tenantID string, v *events.Message) {
@@ -15,10 +20,26 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 		return
 	}
 
+	if mediaInspectEnabled() {
+		if d := inspectMedia(v.Message); d != "" {
+			log.Printf("[media.inspect] %s de=%s: %s", v.Info.ID, v.Info.Sender.String(), d)
+		}
+		if d := inspectQuote(v.Message); d != "" {
+			log.Printf("[quote.inspect] %s de=%s: %s", v.Info.ID, v.Info.Sender.String(), d)
+		}
+	}
+
 	// WhatsApp Status/Stories ("status@broadcast") are not conversations and must
 	// not create tickets. They also frequently carry media whose synchronous
 	// download here would stall the serial event loop for the whole session.
 	if v.Info.Chat.String() == "status@broadcast" {
+		return
+	}
+
+	// Poll votes are encrypted at WhatsApp level. Decrypt before publishing; the business
+	// persists the event only when the originating poll opted into result capture.
+	if v.Message.GetPollUpdateMessage() != nil {
+		s.handlePollVoteEvent(client, id, tenantID, v)
 		return
 	}
 
@@ -50,6 +71,10 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 	// don't show up in the chat as blank bubbles rendering the raw number.
 	if content.msgType == "chat" && content.body == "" && content.protoB64 == "" {
 		return
+	}
+	if content.msgType == "unsupported" {
+		log.Printf("[Session-%d] mensagem de tipo não suportado (%s) id=%s: avisando o operador", id, content.body, v.Info.ID)
+		logRawMessage(id, v.Info.ID, v.Message)
 	}
 
 	isGroup := v.Info.IsGroup || v.Info.Chat.Server == types.GroupServer
@@ -113,6 +138,7 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 		pushName = ""
 	}
 
+	forwarded, fwdScore := forwardedOf(v.Message)
 	s.publishEvent(tenantID, id, "message.received", map[string]interface{}{
 		"sessionId": fmt.Sprintf("%d", id),
 		"message": map[string]interface{}{
@@ -135,6 +161,10 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 			"mentionedJids": mentionedJIDs,
 			"quotedMsgId":   quotedMsgID,
 			"mimetype":      content.mimeType,
+			"forwarded":     forwarded,
+			"forwardScore":  fwdScore,
+			"rich":          content.rich,
+			"fileLength":    content.fileLength,
 			// Media is NOT downloaded on receipt (keeps the event loop real-time).
 			// Ship the embedded JPEG thumbnail + serialized proto for on-demand DL.
 			"thumbnail":  content.thumbnail,
@@ -179,4 +209,54 @@ func (s *WhatsAppService) cachedGroupMeta(jid types.JID) groupMeta {
 	s.groupMetaMu.Lock()
 	defer s.groupMetaMu.Unlock()
 	return s.groupMetaMap[key]
+}
+
+func (s *WhatsAppService) handlePollVoteEvent(client *whatsmeow.Client, id int, tenantID string, v *events.Message) {
+	vote, err := client.DecryptPollVote(context.Background(), v)
+	if err != nil {
+		// Keep the event loop alive; an undecryptable vote is not actionable by business.
+		return
+	}
+	key := v.Message.GetPollUpdateMessage().GetPollCreationMessageKey()
+	if key == nil || key.GetID() == "" {
+		return
+	}
+	selected := make([]string, 0, len(vote.GetSelectedOptions()))
+	for _, option := range vote.GetSelectedOptions() {
+		selected = append(selected, hex.EncodeToString(option))
+	}
+	s.publishEvent(tenantID, id, "message.poll_vote", map[string]interface{}{
+		"sessionId":      fmt.Sprintf("%d", id),
+		"pollMessageId":  key.GetID(),
+		"voterJid":       v.Info.Sender.String(),
+		"optionSelected": strings.Join(selected, ","),
+	})
+}
+
+func pollVotePayload(id int, pollMessageID, voterJID string, selectedOptions [][]byte) map[string]interface{} {
+	selected := make([]string, 0, len(selectedOptions))
+	for _, option := range selectedOptions {
+		selected = append(selected, hex.EncodeToString(option))
+	}
+	return map[string]interface{}{
+		"sessionId":      idString(id),
+		"pollMessageId":  pollMessageID,
+		"voterJid":       voterJID,
+		"optionSelected": strings.Join(selected, ","),
+	}
+}
+
+func idString(id int) string { return fmt.Sprintf("%d", id) }
+
+// logRawMessage despeja o protobuf de uma mensagem que ainda não sabemos desenhar, para projetar o suporte a ela com
+// o conteúdo real. Desligado por padrão: o corpo pode ter dado pessoal (WATINK_LOG_UNSUPPORTED_RAW=1 só em diagnóstico).
+func logRawMessage(id int, msgID string, m *waProto.Message) {
+	if os.Getenv("WATINK_LOG_UNSUPPORTED_RAW") != "1" {
+		return
+	}
+	raw := protojson.Format(m)
+	if len(raw) > 6000 {
+		raw = raw[:6000] + "…"
+	}
+	log.Printf("[Session-%d] RAW %s: %s", id, msgID, strings.Join(strings.Fields(raw), " "))
 }

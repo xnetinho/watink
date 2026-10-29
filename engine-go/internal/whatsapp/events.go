@@ -11,7 +11,10 @@ import (
 
 // handleEvent dispatches whatsmeow events to the appropriate handler.
 func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) {
-	client, ok := s.clients[id]
+	client, ok := s.clientsByTenant[clientKey{tenantID, id}]
+	if !ok {
+		client, ok = s.clients[id]
+	}
 	if !ok {
 		return
 	}
@@ -23,13 +26,17 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 		s.handleUndecryptable(client, id, tenantID, v)
 	case *events.Receipt:
 		s.handleReceiptEvent(id, tenantID, v)
+	case *events.Presence:
+		s.handlePresenceEvent(id, tenantID, v)
 	case *events.Connected:
 		s.emitConnected(client, id, tenantID)
+		s.presenceOnConnect(id, client)
 	case *events.PairSuccess:
 		// Após a leitura do QR Code, whatsmeow dispara PairSuccess sem reabrir o
 		// WebSocket — sem este case, a primeira conexão nunca emite CONNECTED e
 		// fica presa em "Sem número / QR Code" até um Connect() manual.
 		s.emitConnected(client, id, tenantID)
+		s.presenceOnConnect(id, client)
 	case *events.Disconnected:
 		s.dropCalls(id)
 		s.emitStatus(id, tenantID, "DISCONNECTED")

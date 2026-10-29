@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/application/usecases"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -29,6 +31,7 @@ type EventListener struct {
 	db             *gorm.DB
 	flowSkeleton   *flow.Skeleton
 	mediaWaiter    *mediawait.Waiter
+	publisher      domain.CommandPublisher
 }
 
 // publisher is the minimal domain.CommandPublisher slice AssistantRuntime
@@ -48,7 +51,7 @@ func NewEventListener(sessions domain.ChannelSessionRepository, messages domain.
 	// query em Assistants/AssistantRouterOptions, sem enviar nada.
 	skeleton := flow.NewSkeleton(db, registry, redis)
 	skeleton.SetAssistantRuntime(plugins.NewAssistantRuntime(db, publisher, mediaWaiter))
-	return &EventListener{sessions: sessions, messages: messages, contacts: contacts, tickets: tickets, receiveMessage: rm, broadcast: domain.BroadcastOrNop(broadcast), db: db, flowSkeleton: skeleton, mediaWaiter: mediaWaiter}
+	return &EventListener{sessions: sessions, messages: messages, contacts: contacts, tickets: tickets, receiveMessage: rm, broadcast: domain.BroadcastOrNop(broadcast), db: db, flowSkeleton: skeleton, mediaWaiter: mediaWaiter, publisher: publisher}
 }
 
 // ConfigureKnowledge wires the flow skeleton's RAG retriever/responder (see
@@ -66,23 +69,33 @@ func (el *EventListener) bcast() domain.Broadcaster {
 	return domain.BroadcastOrNop(el.broadcast)
 }
 
-func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener) {
-	routingKeys := []string{
-		"wbot.*.*.session.qrcode",
-		"wbot.*.*.session.pairing_code",
-		"wbot.*.*.session.status",
-		"wbot.*.*.session.history_sync",
-		"wbot.*.*.session.risk",
-		"wbot.*.*.message.received",
-		"wbot.*.*.message.ack",
-		"wbot.*.*.message.revoke",
-		"wbot.*.*.message.reaction",
-		"wbot.*.*.message.media",
-		"wbot.*.*.contact.update",
-		"wbot.*.*.contact.import",
-		"wbot.*.*.session.jid_registered",
-		"wbot.*.*.message.poll_vote",
+// eventRoutingKeys são os eventos do engine que o business consome. Todo evento do contrato que o engine publica e que
+// tem tratador precisa estar aqui: o que falta é descartado em silêncio pelo broker (foi o que deixou o contato em
+// "Gravando na agenda do celular..." para sempre, com o evento contact.saved nunca entregue).
+func eventRoutingKeys() []string {
+	return []string{
+		wbot.EventPattern(wbot.EventEngineReady),
+		wbot.EventPattern(wbot.EventSessionQRCode),
+		wbot.EventPattern(wbot.EventSessionPairingCode),
+		wbot.EventPattern(wbot.EventSessionStatus),
+		wbot.EventPattern(wbot.EventSessionHistorySync),
+		wbot.EventPattern(wbot.EventSessionRisk),
+		wbot.EventPattern(wbot.EventMessageReceived),
+		wbot.EventPattern(wbot.EventMessageAck),
+		wbot.EventPattern(wbot.EventMessageRevoke),
+		wbot.EventPattern(wbot.EventMessageReaction),
+		wbot.EventPattern(wbot.EventMessageMedia),
+		wbot.EventPattern(wbot.EventContactUpdate),
+		wbot.EventPattern(wbot.EventContactImport),
+		wbot.EventPattern(wbot.EventContactSaved),
+		wbot.EventPattern(wbot.EventSessionJIDRegistered),
+		wbot.EventPattern(wbot.EventMessagePollVote),
+		wbot.EventPattern(wbot.EventContactPresence),
 	}
+}
+
+func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener) {
+	routingKeys := eventRoutingKeys()
 	// Eventos call.* NÃO entram aqui: têm fila e consumidor próprios em
 	// internal/calls (Service.Start), para não esperarem atrás das mensagens.
 
@@ -93,6 +106,9 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			return err
 		}
 
+		if env.Type == wbot.EventEngineReady {
+			return eventListener.handleEngineReady(context.Background())
+		}
 		tid, err := uuid.Parse(env.TenantID)
 		if err != nil {
 			return fmt.Errorf("invalid tenantId %q: %w", env.TenantID, err)
@@ -155,10 +171,14 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			return syncConnectionProfilePic(ctx, eventListener.sessions, eventListener.bcast(), env.Payload, tid)
 		case "contact.import":
 			return handleContactImport(ctx, eventListener.contacts, env.Payload, tid)
+		case "contact.saved":
+			return handleContactSaved(ctx, eventListener.contacts, eventListener.bcast(), env.Payload, tid)
 		case "session.jid_registered":
 			return handleJIDRegistered(ctx, eventListener.sessions, env.Payload, tid)
 		case "message.poll_vote":
 			return eventListener.handlePollVote(ctx, env.Payload, tid)
+		case "contact.presence":
+			return eventListener.handleContactPresence(env.Payload, tid)
 		default:
 			return nil
 		}
@@ -229,18 +249,39 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 		Mimetype:      p.Mimetype,
 		Thumbnail:     p.Thumbnail,
 		MediaProto:    p.MediaProto,
+		Forwarded:     p.Forwarded,
+		ForwardScore:  p.ForwardScore,
+		Rich:          p.Rich,
+		FileLength:    p.FileLength,
 		SessionID:     sessionID,
 		TenantID:      tenantID,
 	})
 	if err != nil {
 		return err
 	}
+	if result.Duplicate {
+		return nil // reentrega: já foi anunciada e roteada na primeira vez
+	}
 
 	room := "chat:" + strconv.Itoa(result.Ticket.ID)
-	msgPayload := map[string]interface{}{"action": "create", "message": result.Message, "ticket": result.Ticket, "contact": result.Contact}
+	attachQuote(ctx, el.messages, result.Message)
+	ticketOut := withConnectionIdentity(ctx, el.db, result.Ticket)
+	msgPayload := map[string]interface{}{"action": "create", "message": result.Message, "ticket": ticketOut, "contact": result.Contact}
 	el.bcast().EmitToRoom("/", room, "appMessage", msgPayload)
 	el.bcast().EmitToTenantRoom(tenantID.String(), "appMessage", msgPayload)
-	el.bcast().EmitToTenantRoom(tenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": result.Ticket, "contact": result.Contact})
+	el.bcast().EmitToTenantRoom(tenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": ticketOut, "contact": result.Contact})
+
+	// Mídia pequena baixa sozinha pelo mesmo comando do botão; ao terminar, o handler de message.media troca o
+	// "pendente" pela mídia real. Falha aqui não derruba o recebimento: a mensagem fica com o botão manual.
+	if el.publisher != nil && shouldAutoDownload(p.Type, p.FileLength, autoDownloadMaxBytes(), p.MediaProto != "") {
+		cmd := map[string]interface{}{
+			"id": uuid.New().String(), "timestamp": time.Now().UnixMilli(), "tenantId": tenantID.String(), "type": "media.download",
+			"payload": map[string]interface{}{"sessionId": sessionID, "messageId": result.Message.ID, "mediaType": p.Type, "mediaProto": p.MediaProto},
+		}
+		if err := el.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(sessionID), wbot.CommandMediaDownload), cmd); err != nil {
+			log.Printf("[EventListener] auto-download da mídia %s falhou ao enfileirar: %v", result.Message.ID, err)
+		}
+	}
 
 	// FlowBuilder FASE 1 seam: route the inbound through the runtime AFTER the
 	// real-time broadcasts, so its DB round-trip never delays SSE delivery. The
@@ -261,5 +302,59 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 		})
 	}
 
+	return nil
+}
+
+// HandleEngineReady é o ponto de entrada exportado de handleEngineReady (restauração das sessões ativas), no mesmo
+// padrão dos demais Handle* usados por transportes que não são o consumidor AMQP e pelos testes de integração.
+func (el *EventListener) HandleEngineReady(ctx context.Context) error {
+	return el.handleEngineReady(ctx)
+}
+
+// handleEngineReady asks the business-owned connection catalog to restore active sessions.
+// The engine never queries public business tables; it only announces readiness and receives commands.
+func (el *EventListener) handleEngineReady(ctx context.Context) error {
+	if el.db == nil || el.publisher == nil {
+		return nil
+	}
+	systemCtx, systemDone := tenantdb.SystemCtx(ctx, el.db)
+	defer systemDone()
+	var tenantIDs []uuid.UUID
+	if err := el.db.WithContext(systemCtx).Table(`"Tenants"`).Pluck("id", &tenantIDs).Error; err != nil {
+		return err
+	}
+	for _, tenantID := range tenantIDs {
+		tenantCtx, tenantDone := tenantdb.TenantCtx(ctx, el.db, tenantID)
+		sessions, err := el.sessions.FindAll(tenantCtx, tenantID)
+		if err != nil {
+			tenantDone()
+			return err
+		}
+		for _, session := range sessions {
+			if session.Status != "CONNECTED" && session.Status != "OPENING" && session.Status != "QRCODE" {
+				continue
+			}
+			model, err := el.sessions.FindByIDDetail(tenantCtx, session.ID, tenantID)
+			if err != nil || model == nil {
+				continue
+			}
+			payload := map[string]interface{}{
+				"type": wbot.CommandSessionStart,
+				"payload": map[string]interface{}{
+					"sessionId": session.ID,
+					"name":      session.Name,
+					"wid":       model.Wid,
+					// A política de presença precisa viajar também na restauração após o engine reiniciar.
+					"presencePolicy":      model.PresencePolicy,
+					"presenceIdleMinutes": model.PresenceIdleMinutes,
+				},
+			}
+			if err := el.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(session.ID), wbot.CommandSessionStart), payload); err != nil {
+				tenantDone()
+				return err
+			}
+		}
+		tenantDone()
+	}
 	return nil
 }

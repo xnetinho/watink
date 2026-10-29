@@ -13,6 +13,8 @@ export interface ChannelDefinition {
   borderClass: string;
   iconName: string;
   hasPhone: boolean;
+  /** A empresa pode cadastrar contato à mão? Falso quando só o cliente inicia a conversa (bot do Telegram, marketplaces). */
+  canCreateContacts: boolean;
   replyWindowHours?: number;
 }
 
@@ -28,6 +30,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
     borderClass: "border-emerald-500/30",
     iconName: "MessageCircle",
     hasPhone: true,
+    canCreateContacts: true,
   },
   {
     kind: "telegram",
@@ -40,6 +43,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
     borderClass: "border-sky-500/30",
     iconName: "Send",
     hasPhone: false,
+    canCreateContacts: false,
   },
   {
     kind: "mercadolivre",
@@ -52,6 +56,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
     borderClass: "border-amber-500/30",
     iconName: "ShoppingBag",
     hasPhone: false,
+    canCreateContacts: false,
     replyWindowHours: 48,
   },
   {
@@ -65,6 +70,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
     borderClass: "border-pink-500/30",
     iconName: "Instagram",
     hasPhone: false,
+    canCreateContacts: false,
     replyWindowHours: 24,
   },
   {
@@ -78,6 +84,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
     borderClass: "border-purple-500/30",
     iconName: "Tag",
     hasPhone: true,
+    canCreateContacts: false,
   },
   {
     kind: "tiktok",
@@ -90,6 +97,26 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
     borderClass: "border-border",
     iconName: "Video",
     hasPhone: false,
+    canCreateContacts: false,
     replyWindowHours: 48,
   },
 ];
+
+/** Canal usado quando o ticket não traz canal ou o canal não está no catálogo. */
+export const CHANNEL_FALLBACK: ChannelDefinition = CHANNELS_CATALOG[0];
+
+/** Definição do canal pela chave; canal desconhecido (ou ainda fora do catálogo) cai no genérico sem quebrar a tela. */
+export const channelDefinition = (kind?: string): ChannelDefinition =>
+  CHANNELS_CATALOG.find((c) => c.kind === kind) ??
+  (kind
+    ? {
+        ...CHANNEL_FALLBACK,
+        kind: kind as ChannelKind,
+        name: kind,
+        colorClass: "text-muted-foreground",
+        bgClass: "bg-muted",
+        borderClass: "border-border",
+        iconName: "Globe",
+        canCreateContacts: false, // canal que o catálogo não conhece: não promete cadastro manual
+      }
+    : CHANNEL_FALLBACK);

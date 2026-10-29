@@ -14,6 +14,7 @@ import {
   getMessageBody,
   getFileNameFromUrl,
   isDateValid,
+  isKnownMediaType,
   parseData,
 } from "../utils/messageHelpers";
 import { Message } from "../types";
@@ -35,12 +36,24 @@ const MEDIA_BUBBLE_TYPES = [
   "carousel",
   "call",
   "view_once",
+  "poll",
+  "event",
+  "pix",
 ];
+// Tipos desenhados por um cartão próprio: o body é só prévia/texto de reserva e não deve repetir sob o cartão.
+const CARD_TYPES = ["poll", "event", "pix", "unsupported", "location", "vcard", "view_once", "call"];
+export const hasOwnCard = (m: Message): boolean =>
+  CARD_TYPES.includes(m.mediaType ?? "") || (!!m.mediaType && !isKnownMediaType(m.mediaType));
+
 export const hasMediaBubble = (m: Message): boolean =>
-  !!m.mediaUrl || MEDIA_BUBBLE_TYPES.includes(m.mediaType ?? "");
+  !!m.mediaUrl ||
+  MEDIA_BUBBLE_TYPES.includes(m.mediaType ?? "") ||
+  m.mediaType === "unsupported" ||
+  (!!m.mediaType && !isKnownMediaType(m.mediaType));
 import MessageReactions from "./MessageReactions";
 import MessageInteractive from "./MessageInteractive";
 import MessageMetadata from "./MessageMetadata";
+import ForwardedLabel from "./ForwardedLabel";
 import LinkPreview from "./LinkPreview";
 import DailyTimestamp from "./DailyTimestamp";
 import SenderName from "./SenderName";
@@ -58,6 +71,29 @@ interface MessageBubbleProps {
     e: React.MouseEvent<HTMLButtonElement>,
     message: Message
   ) => void;
+  peer?: { name?: string; picUrl?: string | null };
+  self?: { name?: string; picUrl?: string | null };
+}
+
+/**
+ * Quem aparece no avatar do player de áudio: em grupo, o participante que falou; numa conversa 1:1 recebida, o contato; numa
+ * mensagem enviada por nós, a conexão (a foto do número pareado; sem foto, as iniciais do nome da conexão).
+ */
+export function senderOf(
+  message: Message,
+  isGroup: boolean | undefined,
+  peer?: { name?: string; picUrl?: string | null },
+  self?: { name?: string; picUrl?: string | null },
+): { name?: string; picUrl?: string | null } {
+  if (message.fromMe) return { name: self?.name, picUrl: self?.picUrl ? getBackendUrl(self.picUrl) : null };
+  const data = parseData(message.dataJson);
+  if (isGroup) {
+    return {
+      name: getContactDisplayName(message.contact) || (data.pushName as string) || message.participant?.replace(/\D/g, "") || undefined,
+      picUrl: getBackendUrl((data.senderPicUrl as string) || "") || null,
+    };
+  }
+  return { name: peer?.name, picUrl: peer?.picUrl ? getBackendUrl(peer.picUrl) : null };
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -69,6 +105,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   mentionsMap,
   colorCache,
   onOpenOptions,
+  peer,
+  self,
 }) => {
   const { setReplyingMessage } = useContext(ReplyMessageContext);
 
@@ -115,6 +153,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     message.mediaType === "video" ||
     message.mediaType === "location";
   const maxW = isMedia ? 332 : 600;
+  // Sticker tem fundo transparente: sem balão, como no WhatsApp Web.
+  const isSticker = message.mediaType === "sticker" && !!message.mediaUrl;
+  const bareBubble = "!bg-transparent !border-0 !shadow-none";
   const senderDivider =
     index > 0 && currentSenderKey !== previousSenderKey ? (
       <span className="block h-7 clear-both" />
@@ -137,7 +178,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     <div
       className={clsx(
         "overflow-wrap-break-word pt-0.5 pb-1.5 pl-1.5",
-        message.isDeleted ? "italic text-[var(--text-muted)] pr-20" : "pr-20"
+        message.isDeleted ? "italic text-[hsl(var(--text-muted))] pr-20" : "pr-20"
       )}
     >
       <DeletedMessage message={message} />
@@ -145,7 +186,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         <QuotedMessage message={message} isGroup={isGroup} />
       )}
       <LinkPreview message={message} />
-      {!(
+      {!hasOwnCard(message) && !(
         message.mediaUrl &&
         getFileNameFromUrl(message.mediaUrl) === message.body
       ) && (
@@ -190,9 +231,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               "whitespace-pre-wrap self-start",
               "pl-1.5 pr-1.5 pt-1.5 pb-0",
               appTheme === "saas"
-                ? "bg-[hsl(var(--message-saas-bg-alt))] text-[hsl(var(--message-left-text))] rounded-tl-xl rounded-tr-xl rounded-bl-none rounded-br-xl border border-[var(--border-default)]"
+                ? "bg-[hsl(var(--message-saas-bg-alt))] text-[hsl(var(--message-left-text))] rounded-tl-xl rounded-tr-xl rounded-bl-none rounded-br-xl border border-[hsl(var(--border-default))]"
                 : "bg-[hsl(var(--message-left-bg))] text-[hsl(var(--message-left-text))] rounded-tl-none rounded-tr-lg rounded-bl-lg rounded-br-lg shadow-sm",
-              "group"
+              "group",
+              isSticker && bareBubble
             )}
             style={{ marginTop, maxWidth: maxW }}
             onDoubleClick={handleDoubleClick}
@@ -205,7 +247,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 colorCache={colorCache}
               />
             )}
-            {hasMediaBubble(message) && <MessageMedia message={message} />}
+            <ForwardedLabel message={message} />
+            {hasMediaBubble(message) && <MessageMedia message={message} sender={senderOf(message, isGroup, peer, self)} />}
             {bodyContent}
             <MessageInteractive message={message} />
             <MessageReactions message={message} />
@@ -231,13 +274,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           appTheme === "saas"
             ? "bg-[hsl(var(--message-saas-bg))] text-[hsl(var(--message-saas-text))] rounded-tl-xl rounded-tr-xl rounded-bl-xl rounded-br-none"
             : "bg-[hsl(var(--message-right-bg))] text-[hsl(var(--message-right-text))] rounded-tl-lg rounded-tr-lg rounded-bl-lg rounded-br-none shadow-sm",
-          "group"
+          "group",
+          isSticker && bareBubble
         )}
         style={{ marginTop, maxWidth: maxW }}
             onDoubleClick={handleDoubleClick}
       >
         {actionsButton}
-        {hasMediaBubble(message) && <MessageMedia message={message} />}
+        <ForwardedLabel message={message} />
+            {hasMediaBubble(message) && <MessageMedia message={message} sender={senderOf(message, isGroup, peer, self)} />}
         {bodyContent}
         <MessageInteractive message={message} />
         <MessageReactions message={message} />

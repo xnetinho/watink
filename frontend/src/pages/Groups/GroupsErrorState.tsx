@@ -19,8 +19,8 @@ const GroupsErrorState: React.FC<GroupsErrorStateProps> = ({ error }) => {
     if (error.kind === "blocked") {
         return (
             <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6">
-                <div className="rounded-full bg-[var(--status-warning-bg)] p-4">
-                    <Lock className="h-8 w-8 text-[var(--status-warning-text)]" />
+                <div className="rounded-full bg-[hsl(var(--status-warning-bg))] p-4">
+                    <Lock className="h-8 w-8 text-[hsl(var(--status-warning-text))]" />
                 </div>
                 <div>
                     <h3 className="text-lg font-semibold">Plugin bloqueado</h3>
@@ -36,8 +36,8 @@ const GroupsErrorState: React.FC<GroupsErrorStateProps> = ({ error }) => {
     if (error.kind === "rateLimited") {
         return (
             <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6">
-                <div className="rounded-full bg-[var(--status-warning-bg)] p-4">
-                    <Clock className="h-8 w-8 text-[var(--status-warning-text)]" />
+                <div className="rounded-full bg-[hsl(var(--status-warning-bg))] p-4">
+                    <Clock className="h-8 w-8 text-[hsl(var(--status-warning-text))]" />
                 </div>
                 <div>
                     <h3 className="text-lg font-semibold">Muitas ações em sequência</h3>
@@ -52,8 +52,8 @@ const GroupsErrorState: React.FC<GroupsErrorStateProps> = ({ error }) => {
     if (error.kind === "notSupported") {
         return (
             <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6">
-                <div className="rounded-full bg-[var(--status-default-bg)] p-4">
-                    <PlugZap className="h-8 w-8 text-[var(--status-default-text)]" />
+                <div className="rounded-full bg-[hsl(var(--status-default-bg))] p-4">
+                    <PlugZap className="h-8 w-8 text-[hsl(var(--status-default-text))]" />
                 </div>
                 <div>
                     <h3 className="text-lg font-semibold">Conexão sem suporte a grupos</h3>
@@ -67,8 +67,8 @@ const GroupsErrorState: React.FC<GroupsErrorStateProps> = ({ error }) => {
 
     return (
         <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6">
-            <div className="rounded-full bg-[var(--status-error-bg)] p-4">
-                <AlertTriangle className="h-8 w-8 text-[var(--status-error-text)]" />
+            <div className="rounded-full bg-[hsl(var(--status-error-bg))] p-4">
+                <AlertTriangle className="h-8 w-8 text-[hsl(var(--status-error-text))]" />
             </div>
             <div>
                 <h3 className="text-lg font-semibold">Não foi possível carregar</h3>

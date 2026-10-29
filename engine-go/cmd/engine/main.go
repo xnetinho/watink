@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/alltomatos/watinkdev/engine-go/internal/callsapi"
 	"github.com/alltomatos/watinkdev/engine-go/internal/command"
 	"github.com/alltomatos/watinkdev/engine-go/internal/groupsapi"
@@ -50,8 +51,7 @@ func main() {
 	}
 	log.Println("Connected to RabbitMQ")
 
-	sessionLoader := whatsapp.NewPostgresSessionLoader(whatsapp.BuildPostgresDSN())
-	waService := whatsapp.NewWhatsAppService(rabbit, sessionLoader)
+	waService := whatsapp.NewWhatsAppService(rabbit)
 
 	// API interna de grupos/comunidades (T1.1, docker-internal only) — no-op
 	// se GROUPS_API_TOKEN não estiver configurado (fail-closed).
@@ -63,39 +63,37 @@ func main() {
 	callsLoad.Store(&load)
 	go callsapi.Start(ctx, waService)
 
-	go func() {
-		time.Sleep(5 * time.Second)
-		log.Println("Auto-restarting existing sessions...")
-		waService.AutoRestartSessions()
-	}()
-
 	routingKeys := []string{
-		"wbot.*.*.session.start",
-		"wbot.*.*.session.stop",
-		"wbot.*.*.session.delete",
-		"wbot.*.*.message.send.text",
-		"wbot.*.*.message.send.media",
-		"wbot.*.*.message.send.buttons",
-		"wbot.*.*.message.send.list",
-		"wbot.*.*.message.send.poll",
-		"wbot.*.*.message.send.interactive",
-		"wbot.*.*.message.send.template",
-		"wbot.*.*.message.send.carousel",
-		"wbot.*.*.message.react",
-		"wbot.*.*.message.markAsRead",
-		"wbot.*.*.media.download",
-		"wbot.*.*.contact.sync",
-		"wbot.*.*.contact.import",
-		"wbot.*.*.history.sync",
-		"wbot.*.*.history.recover",
-		"wbot.*.*.chat.presence",
+		wbot.CommandPattern(wbot.CommandSessionStart),
+		wbot.CommandPattern(wbot.CommandSessionStop),
+		wbot.CommandPattern(wbot.CommandSessionDelete),
+		wbot.CommandPattern(wbot.CommandMessageText),
+		wbot.CommandPattern(wbot.CommandMessageMedia),
+		wbot.CommandPattern(wbot.CommandMessageButtons),
+		wbot.CommandPattern(wbot.CommandMessageList),
+		wbot.CommandPattern(wbot.CommandMessagePoll),
+		wbot.CommandPattern(wbot.CommandMessagePollVote),
+		wbot.CommandPattern(wbot.CommandMessageInteractive),
+		wbot.CommandPattern(wbot.CommandMessageTemplate),
+		wbot.CommandPattern(wbot.CommandMessageCarousel),
+		wbot.CommandPattern(wbot.CommandMessageReact),
+		wbot.CommandPattern(wbot.CommandMessageMarkRead),
+		wbot.CommandPattern(wbot.CommandContactSave),
+		wbot.CommandPattern(wbot.CommandMediaDownload),
+		wbot.CommandPattern(wbot.CommandContactSync),
+		wbot.CommandPattern(wbot.CommandContactImport),
+		wbot.CommandPattern(wbot.CommandHistoryRecover),
+		wbot.CommandPattern(wbot.CommandChatPresence),
+		wbot.CommandPattern(wbot.CommandPresenceSubscribe),
+		wbot.CommandPattern(wbot.CommandPresencePolicy),
 	}
 
-	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) {
+	err := rabbit.ConsumeCommands("engine.go.commands", routingKeys, func(d amqp.Delivery) error {
 		if err := handleCommand(d, waService); err != nil {
 			log.Printf("Command failed %s: %v", d.RoutingKey, err)
+			return err
 		}
-		d.Ack(false)
+		return nil
 	})
 	if err != nil {
 		log.Fatalf("Failed to start command consumer: %v", err)
@@ -104,13 +102,18 @@ func main() {
 	// Comandos de chamada têm fila, canal e consumidor próprios, e cada um roda em
 	// goroutine: "Atender"/"Encerrar" nunca esperam o envio de mensagens (que usa
 	// o laço serial acima).
-	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) {
+	if err := rabbit.ConsumeCommandsConcurrent(callsQueue, callRoutingKeys, func(d amqp.Delivery) error {
 		if err := handleCommand(d, waService); err != nil {
 			log.Printf("Call command failed %s: %v", d.RoutingKey, err)
+			return err
 		}
-		d.Ack(false)
+		return nil
 	}); err != nil {
 		log.Fatalf("Failed to start call command consumer: %v", err)
+	}
+
+	if err := rabbit.PublishEvent(wbot.Event("system", "0", wbot.EventEngineReady), map[string]interface{}{"type": wbot.EventEngineReady, "tenantId": ""}); err != nil {
+		log.Printf("Failed to publish engine.ready: %v", err)
 	}
 
 	log.Println("Watink Engine Go (whatsmeow) started — PostgreSQL store, RabbitMQ connected")
@@ -127,7 +130,7 @@ func main() {
 
 const callsQueue = "engine.go.calls"
 
-var callRoutingKeys = []string{"wbot.*.*.call.*"}
+var callRoutingKeys = []string{wbot.EventPattern("call.*")}
 
 func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 	log.Printf("Received command: %s", d.RoutingKey)
@@ -164,10 +167,14 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 			PhoneNumber    string `json:"phoneNumber"`
 			Name           string `json:"name"`
 			Wid            string `json:"wid"`
+			PresencePolicy      string `json:"presencePolicy"`
+			PresenceIdleMinutes int    `json:"presenceIdleMinutes"`
 		}
 		if err := json.Unmarshal(env.Payload, &p); err != nil {
 			return err
 		}
+		// A política vale desde antes de conectar: presenceOnConnect a aplica quando a sessão sobe.
+		_ = svc.ApplyPresencePolicy(sessionID, tenantID, whatsapp.PresencePolicyPayload{SessionID: sessionID, Policy: p.PresencePolicy, IdleMinutes: p.PresenceIdleMinutes})
 		ts := env.Timestamp
 		if ts == 0 {
 			ts = time.Now().UnixMilli()
@@ -218,6 +225,13 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 		}
 		return svc.SendPoll(sessionID, tenantID, p)
 
+	case "message.vote.poll":
+		var p whatsapp.PollVoteCommandPayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.VotePoll(sessionID, tenantID, p)
+
 	case "message.send.interactive":
 		var p whatsapp.InteractiveCommandPayload
 		if err := json.Unmarshal(env.Payload, &p); err != nil {
@@ -245,6 +259,20 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 			return err
 		}
 		return svc.SendPresence(sessionID, tenantID, p)
+
+	case "presence.subscribe":
+		var p whatsapp.PresenceSubscribePayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.SubscribePresence(sessionID, tenantID, p)
+
+	case "presence.policy":
+		var p whatsapp.PresencePolicyPayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.ApplyPresencePolicy(sessionID, tenantID, p)
 
 	case "message.react":
 		var p whatsapp.ReactionCommandPayload
@@ -289,16 +317,19 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 	case "contact.import":
 		return svc.ImportContacts(sessionID, tenantID)
 
+	case "contact.save":
+		var p whatsapp.SaveContactPayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.SaveContact(sessionID, tenantID, p)
+
 	case "history.recover":
 		var p whatsapp.HistoryRecoverPayload
 		if err := json.Unmarshal(env.Payload, &p); err != nil {
 			return err
 		}
 		return svc.RecoverHistory(sessionID, tenantID, p)
-
-	case "history.sync":
-		log.Printf("Command %s received but not implemented in engine-go", cmd)
-		return nil
 
 	default:
 		log.Printf("Unknown command type: %s", cmd)

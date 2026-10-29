@@ -11,7 +11,7 @@ import (
 // CreateCommunity creates a community — a WhatsApp group with IsParent set
 // (whatsmeow auto-creates the linked announcement group server-side).
 func (s *WhatsAppService) CreateCommunity(sessionID int, tenantID, name string) (*CommunityInfo, error) {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (s *WhatsAppService) CreateCommunity(sessionID int, tenantID, name string) 
 
 // LinkGroupToCommunity links an existing group as a sub-group of a community.
 func (s *WhatsAppService) LinkGroupToCommunity(sessionID int, tenantID, communityJID, groupJID string) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (s *WhatsAppService) LinkGroupToCommunity(sessionID int, tenantID, communit
 
 // UnlinkGroupFromCommunity removes a sub-group from a community.
 func (s *WhatsAppService) UnlinkGroupFromCommunity(sessionID int, tenantID, communityJID, groupJID string) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
 	"time"
 
 	"net/http"
@@ -10,7 +12,9 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/infrastructure/enginego"
 	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -92,15 +96,25 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 		return err
 	}
 
+	// RLS (ADR 0034): o handle global recusa consulta sem escopo de empresa. O serviço só recebe o modelo, então
+	// abre o escopo a partir do tenant da própria conexão e o usa no UPDATE, no rollback e na resolução de proxy.
+	ctx, done := tenantdb.TenantCtx(context.Background(), wss.db, whatsapp.TenantID)
+	defer done()
+	db := wss.db.WithContext(ctx)
+
 	// previousStatus é o que a UI deve ver de volta se engine.StartSession falhar —
 	// sem isso, a conexão fica travada em "OPENING" pra sempre (isBusy nunca
 	// libera o botão "Gerar QR Code" no frontend).
 	previousStatus := whatsapp.Status
 
 	// Update Status — CRITICAL: tenant-scoped
-	if err := wss.db.Model(&whatsapp).Where("id = ? AND \"tenantId\" = ?", whatsapp.ID, whatsapp.TenantID).Update("status", "OPENING").Error; err != nil {
+	if err := db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
+		Where("id = ? AND \"tenantId\" = ?", whatsapp.ID, whatsapp.TenantID).
+		Update("status", "OPENING").Error; err != nil {
+		_ = wss.redisSvc.DelLock(lockKey)
 		return err
 	}
+	whatsapp.Status = "OPENING"
 
 	// Emit via Socket (via injected broadcast)
 	wss.broadcast.EmitToTenantRoom(whatsapp.TenantID.String(), "whatsappSession", map[string]interface{}{
@@ -112,13 +126,13 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 		"connection": whatsapp,
 	})
 
-	if err := engine.StartSession(context.Background(), whatsapp, usePairingCode, phoneNumber, force); err != nil {
+	if err := engine.StartSession(ctx, whatsapp, usePairingCode, phoneNumber, force); err != nil {
 		_ = wss.redisSvc.DelLock(lockKey)
 		revertStatus := previousStatus
 		if revertStatus == "" || revertStatus == "OPENING" || revertStatus == "PAIRING" {
 			revertStatus = "DISCONNECTED"
 		}
-		if updErr := wss.db.Model(&models.Whatsapp{}).
+		if updErr := db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
 			Where("id = ? AND \"tenantId\" = ?", whatsapp.ID, whatsapp.TenantID).
 			Update("status", revertStatus).Error; updErr == nil {
 			whatsapp.Status = revertStatus
@@ -150,4 +164,18 @@ func (wss *WhatsAppSessionService) DeleteWhatsAppSession(whatsapp models.Whatsap
 		return err
 	}
 	return engine.DeleteSession(context.Background(), whatsapp)
+}
+
+// ApplyPresencePolicy avisa o engine de uma mudança de política em uma sessão já em andamento. Best-effort: sem broker ou
+// com a sessão fora do ar, a nova política vale no próximo session.start, que a leva junto.
+func (wss *WhatsAppSessionService) ApplyPresencePolicy(tenantID uuid.UUID, sessionID int, policy string, idleMinutes int) {
+	if wss.publisher == nil {
+		return
+	}
+	cmd := map[string]interface{}{"type": "presence.policy", "payload": map[string]interface{}{
+		"sessionId": sessionID, "policy": policy, "idleMinutes": idleMinutes,
+	}}
+	if err := wss.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(sessionID), wbot.CommandPresencePolicy), cmd); err != nil {
+		log.Printf("[WhatsAppSession] política de presença da sessão %d não chegou ao engine: %v", sessionID, err)
+	}
 }

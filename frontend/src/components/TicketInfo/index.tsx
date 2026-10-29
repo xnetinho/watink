@@ -5,9 +5,16 @@ import { cn } from "@/lib/utils";
 import { i18n } from "../../translate/i18n";
 import { getBackendUrl } from "../../helpers/urlUtils";
 import { getContactDisplayName } from "../../utils/clientDisplayName";
+import { useContactPresence } from "../../hooks/useContactPresence";
+import { presenceLabel } from "../../lib/presence/format";
+import { TicketConnectionBadge } from "../TicketConnectionBadge";
+import { Emojified } from "../Emojified";
+import type { TicketConnection } from "../../types/Ticket";
 
 interface Contact {
   name: string;
+  number?: string;
+  lid?: string | null;
   profilePicUrl?: string | null;
   isGroup?: boolean;
   client?: { id: number; socialName?: string | null } | null;
@@ -19,6 +26,9 @@ interface TicketUser {
 
 interface Ticket {
   id: number;
+  connection?: TicketConnection;
+  /** "whatsapp" | "telegram" | ...: só o WhatsApp informa presença */
+  channel?: string;
   user?: TicketUser | null;
 }
 
@@ -29,6 +39,8 @@ interface TicketInfoProps {
 }
 
 const TicketInfo: React.FC<TicketInfoProps> = ({ contact, ticket, onClick }) => {
+  const presence = useContactPresence(ticket.id, [contact.number, contact.lid], ticket.channel === "whatsapp" && !contact.isGroup);
+  const presenceText = presenceLabel(presence, (k, o) => String(i18n.t(k, o ?? {}) ?? ""), i18n.language || "pt-BR");
   const assignedTo =
     ticket.user
       ? `${i18n.t("messagesList.header.assignedTo")} ${ticket.user.name}`
@@ -58,8 +70,16 @@ const TicketInfo: React.FC<TicketInfoProps> = ({ contact, ticket, onClick }) => 
 
       <div className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-semibold leading-tight text-foreground">
-          {getContactDisplayName(contact)} #{ticket.id}
+          <Emojified>{getContactDisplayName(contact)}</Emojified> #{ticket.id}
         </span>
+        {(ticket.connection || ticket.channel) && (
+          <TicketConnectionBadge channel={ticket.channel} connection={ticket.connection} size="sm" className="self-start" />
+        )}
+        {presenceText && (
+          <span className="truncate text-xs text-muted-foreground" data-testid="contact-presence">
+            {presenceText}
+          </span>
+        )}
         {assignedTo && (
           <span className="truncate text-xs text-muted-foreground">
             {assignedTo}

@@ -4,12 +4,14 @@ import { Loader2 } from "lucide-react";
 import PaperCard from "../../PaperCard";
 import { i18n } from "../../../translate/i18n";
 import { MediaItem } from "../hooks/useMessageInput";
+import { AudioKindPicker } from "../../AudioKindPicker";
 
 interface MediaPreviewPanelProps {
   medias: MediaItem[];
   loading: boolean;
   onRemoveMedia: (index: number) => void;
   onCaptionChange: (index: number, value: string) => void;
+  onAudioKindChange: (index: number, kind: "voice" | "file") => void;
   onAddMore: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCancelAll: () => void;
   onUpload: () => void;
@@ -20,6 +22,7 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
   loading,
   onRemoveMedia,
   onCaptionChange,
+  onAudioKindChange,
   onAddMore,
   onCancelAll,
   onUpload,
@@ -28,7 +31,7 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
     <PaperCard
       variant="flush"
       padding="none"
-      className="flex flex-col p-2 items-center w-full bg-[var(--border-default)] border-t border-[var(--border-divider)]"
+      className="flex flex-col p-2 items-center w-full bg-[hsl(var(--border-default))] border-t border-[var(--border-divider)]"
     >
       <button
         type="button"
@@ -43,10 +46,10 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
         {medias.map((media, index) => (
           <div
             key={index}
-            className="relative min-w-[150px] h-[180px] border border-[var(--border-divider)] rounded overflow-hidden flex flex-col justify-between items-center bg-[var(--bg-surface)] mr-2.5"
+            className="relative min-w-[150px] min-h-[180px] border border-[var(--border-divider)] rounded overflow-hidden flex flex-col justify-between items-center bg-[hsl(var(--bg-surface))] mr-2.5"
           >
             {loading ? (
-              <Loader2 className="h-5 w-5 animate-spin text-[var(--status-success)] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-70" />
+              <Loader2 className="h-5 w-5 animate-spin text-[hsl(var(--status-success))] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-70" />
             ) : (
               <>
                 <button
@@ -65,14 +68,19 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
                   />
                 ) : (
                   <div className="flex flex-col items-center p-1.5 text-[10px] text-center h-[120px] justify-center">
-                    <Paperclip className="h-10 w-10 text-[var(--text-muted)]" />
+                    <Paperclip className="h-10 w-10 text-[hsl(var(--text-muted))]" />
                     <span className="max-w-[130px] overflow-hidden text-ellipsis whitespace-nowrap">
                       {media.file.name}
                     </span>
                   </div>
                 )}
+                {media.audioKind && (
+                    <div className="w-full px-1.5 pb-1">
+                      <AudioKindPicker value={media.audioKind} onChange={(k) => onAudioKindChange(index, k)} name={`audio-kind-${index}`} className="flex flex-col gap-0.5 text-[10px]" compact />
+                    </div>
+                  )}
                 <textarea
-                  className="w-full p-1 text-xs border-none border-t border-[var(--border-divider)] outline-none h-[60px] resize-none bg-[var(--bg-surface)]"
+                  className="w-full p-1 text-xs border-none border-t border-[var(--border-divider)] outline-none h-[60px] resize-none bg-[hsl(var(--bg-surface))]"
                   placeholder={i18n.t("messagesInput.placeholderOpen") as string}
                   value={media.caption}
                   onChange={(e) => onCaptionChange(index, e.target.value)}
@@ -83,7 +91,7 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
         ))}
 
         {!loading && (
-          <div className="relative min-w-[150px] h-[180px] border border-dashed border-[var(--border-divider)] rounded overflow-hidden flex flex-col justify-center items-center bg-[var(--bg-surface)] mr-2.5 cursor-pointer">
+          <div className="relative min-w-[150px] h-[180px] border border-dashed border-[var(--border-divider)] rounded overflow-hidden flex flex-col justify-center items-center bg-[hsl(var(--bg-surface))] mr-2.5 cursor-pointer">
             <input
               multiple
               type="file"
@@ -95,7 +103,7 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
               htmlFor="add-more-media"
               className="w-full h-full flex justify-center items-center cursor-pointer"
             >
-              <Paperclip className="h-7 w-7 text-[var(--text-muted)]" />
+              <Paperclip className="h-7 w-7 text-[hsl(var(--text-muted))]" />
             </label>
           </div>
         )}

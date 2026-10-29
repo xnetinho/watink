@@ -50,3 +50,20 @@ func TestHandler_WithoutLoadOmitsCalls(t *testing.T) {
 		t.Fatalf("body=%s", w.Body.String())
 	}
 }
+
+func TestHandler_ExposesPrometheusMetrics(t *testing.T) {
+	h := Handler(func() (int, int) { return 4, 21 })
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "watink_engine_active_calls 4") {
+		t.Fatalf("expected watink_engine_active_calls 4, got %s", body)
+	}
+	if !strings.Contains(body, "watink_engine_audio_queued 21") {
+		t.Fatalf("expected watink_engine_audio_queued 21, got %s", body)
+	}
+}

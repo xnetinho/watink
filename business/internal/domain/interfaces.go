@@ -45,19 +45,32 @@ type TicketRepository interface {
 	CountOpenTicketsPerUser(ctx context.Context, userIDs []int, tenantID uuid.UUID) (map[int]int64, error)
 }
 
+// MessageInsertReporter é implementado por repositórios que sabem dizer se um CreateIfNotExists inseriu de fato.
+type MessageInsertReporter interface {
+	CreateIfNotExistsReport(ctx context.Context, msg *Message) (inserted bool, err error)
+}
+
 type MessageRepository interface {
 	Create(ctx context.Context, msg *Message) error
 	CreateIfNotExists(ctx context.Context, msg *Message) error
 	FindByID(ctx context.Context, id string, tenantID uuid.UUID) (*Message, error)
+	FindByTicket(ctx context.Context, ticketID int, tenantID uuid.UUID) ([]models.Message, error)
 	FindOldestByTicket(ctx context.Context, ticketID int, tenantID uuid.UUID) (*Message, error)
 	ExistsByID(ctx context.Context, id string, tenantID uuid.UUID) (bool, error)
 	Update(ctx context.Context, msg *Message, fields map[string]interface{}) error
 }
 
+// ContactFilter restringe a listagem de contatos. Vazio = todos.
+type ContactFilter struct {
+	Connection *ConnectionRef // só os contatos desta conexão
+	Channel    string         // só os contatos deste canal ("whatsapp", "telegram"...)
+	Limit      int
+}
+
 type ContactRepository interface {
-	FindByNumber(ctx context.Context, tenantID uuid.UUID, number string, isGroup bool) (*Contact, error)
+	FindByNumber(ctx context.Context, tenantID uuid.UUID, conn ConnectionRef, number string, isGroup bool) (*Contact, error)
 	FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*Contact, error)
-	Find(ctx context.Context, tenantID uuid.UUID, search string) ([]Contact, error)
+	Find(ctx context.Context, tenantID uuid.UUID, search string, filter ContactFilter) ([]Contact, error)
 	Create(ctx context.Context, contact *Contact) error
 	Update(ctx context.Context, contact *Contact, fields map[string]interface{}) error
 	Delete(ctx context.Context, id int, tenantID uuid.UUID) error
@@ -67,9 +80,9 @@ type ContactRepository interface {
 	// o WhatsApp entregou como LID, `knownNumber` é o telefone resolvido (vazio se
 	// desconhecido): se já existe um contato com esse número (ex.: cadastrado pela
 	// agenda), o LID é gravado NELE em vez de criar um segundo contato.
-	FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLID bool, from string, knownNumber string) (*Contact, error)
+	FindOrCreate(ctx context.Context, tenantID uuid.UUID, conn ConnectionRef, number string, pushName string, profilePicUrl string, isGroup bool, isLID bool, from string, knownNumber string) (*Contact, error)
 	// FindOrCreateByIdentity resolve o Contact através de uma ContactIdentity externa (ADR 0033).
-	FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, channel ChannelKind, externalID string, name string, avatarURL string) (*Contact, *models.ContactIdentity, error)
+	FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, conn ConnectionRef, channel ChannelKind, externalID string, name string, avatarURL string) (*Contact, *models.ContactIdentity, error)
 }
 
 type UserRepository interface {
@@ -86,11 +99,21 @@ type UserRepository interface {
 
 type QueueRepository interface {
 	FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*Queue, error)
+	FindByIDWithAssociations(ctx context.Context, id int, tenantID uuid.UUID) (*Queue, error)
 	FindAll(ctx context.Context, tenantID uuid.UUID) ([]Queue, error)
+	FindAllWithAssociations(ctx context.Context, tenantID uuid.UUID) ([]Queue, error)
+	Create(ctx context.Context, queue *Queue, whatsappIDs []int) error
+	Update(ctx context.Context, queue *Queue, fields map[string]interface{}, whatsappIDs []int) error
 	Save(ctx context.Context, queue *Queue) error
+	Delete(ctx context.Context, id int, tenantID uuid.UUID) error
 	// FindQueueIDsByChannel returns the queue IDs linked to a WhatsApp channel
 	// (via the whatsapp_queues join table), scoped to the tenant.
 	FindQueueIDsByChannel(ctx context.Context, channelID int, tenantID uuid.UUID) ([]int, error)
+}
+
+type WhatsAppConnectionDetailsRepository interface {
+	FindByConnectionID(ctx context.Context, connectionID int) (*models.WhatsAppConnectionDetails, error)
+	Save(ctx context.Context, details *models.WhatsAppConnectionDetails) error
 }
 
 type ChannelSessionRepository interface {
@@ -300,6 +323,15 @@ type UserQueueRepository interface {
 // TicketLogRepository persists audit log entries for ticket actions.
 type TicketLogRepository interface {
 	Create(ctx context.Context, log *models.TicketLog) error
+}
+
+// QuickAnswerRepository handles persistence and lookups for QuickAnswers.
+type QuickAnswerRepository interface {
+	Find(ctx context.Context, tenantID uuid.UUID, search string) ([]models.QuickAnswer, error)
+	FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*models.QuickAnswer, error)
+	Create(ctx context.Context, qa *models.QuickAnswer) error
+	Update(ctx context.Context, qa *models.QuickAnswer) error
+	Delete(ctx context.Context, id int, tenantID uuid.UUID) error
 }
 
 // TagRepository handles tag lookups and creation.

@@ -1,6 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 import { X } from "lucide-react";
+import { QuoteContent } from "../../MessagesList/components/QuotedMessage";
 
 interface ReplyPreviewProps {
   message: Record<string, unknown>;
@@ -12,7 +13,7 @@ interface ReplyPreviewProps {
 const ReplyPreview: React.FC<ReplyPreviewProps> = ({ message, loading, ticketStatus, onCancel }) => {
   const fromMe = message.fromMe as boolean;
   const body = message.body as string;
-  const dataJson = message.dataJson as string | object | undefined;
+  const dataJson = message.dataJson as string | Record<string, unknown> | undefined;
   const participant = message.participant as string | undefined;
   const contact = message.contact as { name?: string } | undefined;
 
@@ -43,17 +44,17 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ message, loading, ticketSta
       <div className="flex-1 mr-1.5 overflow-y-hidden bg-[var(--border-subtle)] rounded-[7.5px] flex relative">
         <span
           className={clsx("flex-none w-1", {
-            "bg-[var(--message-quote-side-left)]": !fromMe,
-            "bg-[var(--message-quote-side-right)]": fromMe,
+            "bg-[hsl(var(--message-quote-side-left))]": !fromMe,
+            "bg-[hsl(var(--message-quote-side-right))]": fromMe,
           })}
         />
         <div className="p-2.5 h-auto block whitespace-pre-wrap overflow-hidden">
           {!fromMe && (
-            <span className="flex text-[var(--message-quote-side-right)] font-medium">
+            <span className="flex text-[hsl(var(--message-quote-side-right))] font-medium">
               {senderName}
             </span>
           )}
-          {body}
+          <QuoteContent quoted={{ body, mediaType: message.mediaType as string | undefined, dataJson }} />
         </div>
       </div>
       <button

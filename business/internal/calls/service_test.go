@@ -185,7 +185,7 @@ func TestHandleIncoming_IsIdempotent(t *testing.T) {
 // 6.2: oferta por LID com telefone conhecido cai no contato da agenda.
 func TestResolveContact_LIDWithKnownPhoneUsesExistingContact(t *testing.T) {
 	r := newRig(t)
-	existing := models.Contact{Name: "Maria da agenda", Number: "5511988887777", TenantID: r.tenant}
+	existing := models.Contact{Name: "Maria da agenda", Number: "5511988887777", TenantID: r.tenant, ConnectionSource: "whatsapp", ConnectionID: r.waA.ID}
 	require.NoError(t, r.db.Create(&existing).Error)
 
 	c, tk, err := r.svc.ResolveContactAndTicket(ctx, r.tenant, r.waA.ID, "123456789@lid", "5511988887777")
@@ -317,7 +317,7 @@ func TestHandleMissed_CreatesPendingTicketWhenNoneOpen(t *testing.T) {
 
 func TestHandleMissed_UsesExistingOpenTicket(t *testing.T) {
 	r := newRig(t)
-	contact := models.Contact{Name: "Ana", Number: "5511999990006", TenantID: r.tenant}
+	contact := models.Contact{Name: "Ana", Number: "5511999990006", TenantID: r.tenant, ConnectionSource: "whatsapp", ConnectionID: r.waA.ID}
 	require.NoError(t, r.db.Create(&contact).Error)
 	open := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: r.waA.ID, TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&open).Error)

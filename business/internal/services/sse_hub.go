@@ -2,10 +2,13 @@ package services
 
 import (
 	"fmt"
+
 	"log"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
 )
 
 // sanitizeLog removes newlines from user-controlled strings before logging
@@ -82,7 +85,7 @@ func (h *SSEHub) Deliver(room, event string, data string) {
 
 // StartHeartbeat sends SSE comment pings to all connections every interval.
 func (h *SSEHub) StartHeartbeat(interval time.Duration) {
-	go func() {
+	safego.Go("sse.heartbeat", func() {
 		t := time.NewTicker(interval)
 		defer t.Stop()
 		for range t.C {
@@ -95,7 +98,7 @@ func (h *SSEHub) StartHeartbeat(interval time.Duration) {
 			}
 			h.mu.RUnlock()
 		}
-	}()
+	})
 }
 
 // HasSubscribers diz se existe ao menos uma conexão SSE inscrita na sala.

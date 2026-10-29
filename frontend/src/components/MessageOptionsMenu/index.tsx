@@ -11,7 +11,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Trash2, Reply } from "lucide-react";
+import { Trash2, Reply, Forward } from "lucide-react";
+import ForwardMessageDialog from "../ForwardMessageDialog";
+import { canForward, voiceOf } from "../../lib/messages/forward";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
@@ -33,6 +35,9 @@ interface MessageOptionsMenuProps {
   menuOpen: boolean;
   handleClose: () => void;
   anchorEl: HTMLElement | null;
+  /** Canal do ticket aberto: o encaminhamento só oferece destinos do mesmo canal. */
+  channel?: string;
+  contactId?: number | string;
 }
 
 const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
@@ -40,9 +45,12 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
   menuOpen,
   handleClose,
   anchorEl,
+  channel,
+  contactId,
 }) => {
   const { setReplyingMessage } = useContext(ReplyMessageContext);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [forwardOpen, setForwardOpen] = useState(false);
 
   const handleDeleteMessage = async () => {
     try {
@@ -54,6 +62,11 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
 
   const handleReplyMessage = () => {
     setReplyingMessage(message);
+    handleClose();
+  };
+
+  const handleOpenForward = () => {
+    setForwardOpen(true);
     handleClose();
   };
 
@@ -82,10 +95,22 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
         {i18n.t("messageOptionsMenu.confirmationModal.message")}
       </ConfirmationModal>
 
+      {forwardOpen && message.id !== undefined && (
+        <ForwardMessageDialog
+          open
+          onClose={() => setForwardOpen(false)}
+          messageId={message.id}
+          channel={channel}
+          currentContactId={contactId}
+          mediaType={typeof message.mediaType === "string" ? message.mediaType : undefined}
+          sourceIsVoice={voiceOf({ dataJson: message.dataJson })}
+        />
+      )}
+
       <DropdownMenu open={menuOpen} onOpenChange={(open) => !open && handleClose()}>
         {/*
           The trigger is the anchorEl provided from outside (the real
-          "Opções da mensagem" button rendered per-bubble in MessageBubble) --
+          message options button rendered per-bubble in MessageBubble) --
           we mirror its full bounding rect onto an invisible fixed-position
           span so Radix's Popper anchors/aligns the popover against the same
           area the real button occupies. Anchoring only a zero-size point at
@@ -109,7 +134,7 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
               <button
                 key={emoji}
                 type="button"
-                aria-label={`Reagir com ${emoji}`}
+                aria-label={String(i18n.t("messageOptionsMenu.reactWith", { emoji }) ?? "")}
                 className="rounded-md p-1 text-base leading-none hover:bg-accent transition-colors"
                 onClick={() => handleReact(emoji)}
               >
@@ -130,6 +155,12 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
             <Reply className="h-4 w-4" />
             {i18n.t("messageOptionsMenu.reply")}
           </DropdownMenuItem>
+          {canForward(message) && (
+            <DropdownMenuItem className="gap-2" onClick={handleOpenForward}>
+              <Forward className="h-4 w-4" />
+              {i18n.t("messageOptionsMenu.forward")}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </>

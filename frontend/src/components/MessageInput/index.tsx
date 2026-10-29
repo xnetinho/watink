@@ -60,6 +60,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
     handleChangeMedias,
     handleInputPaste,
     handleMediaCaptionChange,
+    handleAudioKindChange,
     handleUploadMedia,
     handleRemoveMedia,
     handleClearMedias,
@@ -72,7 +73,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
 
   if (ticketStatus !== "open") {
     return (
-      <div className="flex h-[62px] w-full shrink-0 items-center justify-center border-t border-[var(--border-divider)] bg-[var(--bg-surface-alt)] px-4">
+      <div className="flex h-[62px] w-full shrink-0 items-center justify-center border-t border-[var(--border-divider)] bg-[hsl(var(--bg-surface-alt))] px-4">
         <span className="text-sm text-muted-foreground">
           {i18n.t("messagesInput.placeholderClosed")}
         </span>
@@ -82,7 +83,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
 
   if (replyPolicy && replyPolicy.canReply === false) {
     return (
-      <div className="w-full shrink-0 border-t border-[var(--border-divider)] bg-[var(--bg-surface-alt)] px-4 py-3">
+      <div className="w-full shrink-0 border-t border-[var(--border-divider)] bg-[hsl(var(--bg-surface-alt))] px-4 py-3">
         <div className="w-full text-center bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg p-3 flex flex-col items-center">
           <span className="font-bold text-xs uppercase tracking-wider">Resposta Bloqueada pelo Canal</span>
           <span className="text-xs mt-1">
@@ -95,11 +96,11 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
 
   if (whatsappStatus && whatsappStatus !== "CONNECTED") {
     return (
-      <div className="w-full shrink-0 border-t border-[var(--border-divider)] bg-[var(--bg-surface-alt)] px-4 py-3">
-        <div className="w-full text-center bg-[var(--status-error-bg)] text-[var(--status-error-text)] rounded-lg p-3 flex flex-col items-center">
+      <div className="w-full shrink-0 border-t border-[var(--border-divider)] bg-[hsl(var(--bg-surface-alt))] px-4 py-3">
+        <div className="w-full text-center bg-[hsl(var(--status-error-bg))] text-[hsl(var(--status-error-text))] rounded-lg p-3 flex flex-col items-center">
           <span className="font-bold text-sm">CONEXÃO INTERROMPIDA</span>
           <span className="text-xs mt-1">
-            Não é possível enviar mensagens. Por favor, vá em "Conexões" e reconecte o WhatsApp.
+            Não é possível enviar mensagens. Por favor, vá em "Conexões" e reconecte o canal.
           </span>
         </div>
       </div>
@@ -113,6 +114,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
         loading={loading}
         onRemoveMedia={handleRemoveMedia}
         onCaptionChange={handleMediaCaptionChange}
+        onAudioKindChange={handleAudioKindChange}
         onAddMore={handleChangeMedias}
         onCancelAll={handleClearMedias}
         onUpload={handleUploadMedia}
@@ -121,7 +123,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
   }
 
   return (
-    <div className="w-full shrink-0 flex flex-col border-t border-[var(--border-divider)] bg-[var(--bg-surface-alt)]">
+    <div className="w-full shrink-0 flex flex-col border-t border-[var(--border-divider)] bg-[hsl(var(--bg-surface-alt))]">
       {replyingMessage && (
         <ReplyPreview
           message={replyingMessage}
@@ -131,7 +133,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
         />
       )}
 
-      <div className="bg-[var(--bg-surface-alt)] w-full flex px-3 py-2.5 items-center gap-1">
+      <div className="bg-[hsl(var(--bg-surface-alt))] w-full flex px-3 py-2.5 items-center gap-1">
         <InputToolbar
           loading={loading}
           recording={recording}
@@ -150,7 +152,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
         {/* Input area */}
         <div
           className={clsx(
-            "px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center rounded-full flex-1 relative min-h-[48px]",
+            "px-4 py-2.5 bg-[hsl(var(--bg-surface))] border border-[var(--border-subtle)] flex items-center rounded-full flex-1 relative min-h-[48px]",
             appTheme === "saas" && "shadow-none"
           )}
         >
@@ -214,7 +216,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
               <XOctagon className="h-5 w-5 text-red-500" />
             </button>
             {loading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-[var(--status-success)] opacity-70" />
+              <Loader2 className="h-6 w-6 animate-spin text-[hsl(var(--status-success))] opacity-70" />
             ) : (
               <RecordingTimer />
             )}

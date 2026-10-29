@@ -30,10 +30,14 @@ func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, tic
 	if busy {
 		return nil, ErrUserBusy
 	}
+	connID := ticket.WhatsappID
+	if ticket.ChannelConnectionID != nil && *ticket.ChannelConnectionID > 0 {
+		connID = *ticket.ChannelConnectionID
+	}
 	var onConn int64
 	if err := s.fresh(ctx).Model(&models.CallLog{}).
-		Where(`"tenantId" = ? AND "whatsappId" = ? AND "endedAt" IS NULL AND status IN ?`,
-			tenantID, ticket.WhatsappID, []string{StatusRinging, StatusActive}).Count(&onConn).Error; err != nil {
+		Where(`"tenantId" = ? AND ("whatsappId" = ? OR "channelConnectionId" = ?) AND "endedAt" IS NULL AND status IN ?`,
+			tenantID, connID, connID, []string{StatusRinging, StatusActive}).Count(&onConn).Error; err != nil {
 		return nil, err
 	}
 	if onConn > 0 {
@@ -48,14 +52,14 @@ func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, tic
 	now := s.now()
 	callID := newCallID()
 	l := &models.CallLog{
-		TenantID: tenantID, CallID: callID, WhatsappID: ticket.WhatsappID, ContactID: &contact.ID, TicketID: &ticket.ID,
+		TenantID: tenantID, CallID: callID, WhatsappID: connID, ChannelConnectionID: connID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "outgoing", Status: StatusRinging, PeerJid: peer, CallerPn: number, StartedAt: now,
 		HandledByUserID: &userID, AnsweredAt: nil,
 	}
 	if err := s.fresh(ctx).Create(l).Error; err != nil {
 		return nil, err
 	}
-	if err := s.command(tenantID, ticket.WhatsappID, "call.start", map[string]interface{}{"callId": callID, "to": peer}); err != nil {
+	if err := s.command(tenantID, connID, "call.start", map[string]interface{}{"callId": callID, "to": peer}); err != nil {
 		end := s.now()
 		s.fresh(ctx).Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
 			Updates(map[string]interface{}{"status": StatusFailed, "endReason": "failed", "endedAt": end})

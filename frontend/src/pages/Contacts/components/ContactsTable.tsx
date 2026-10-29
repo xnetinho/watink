@@ -16,6 +16,8 @@ import { getBackendUrl } from "../../../helpers/urlUtils";
 import { Contact } from "../contactsTypes";
 import ContactStatusBadge from "./ContactStatusBadge";
 import ContactActionsMenu from "./ContactActionsMenu";
+import ContactConnectionCell from "./ContactConnectionCell";
+import { useConnectionOptions } from "../../../hooks/useConnectionOptions";
 
 interface ContactsTableProps {
   contacts: Contact[];
@@ -42,6 +44,7 @@ const ContactsTable: React.FC<ContactsTableProps> = ({
   onToggleSelected,
   onToggleSelectAll,
 }) => {
+  const { options: connections } = useConnectionOptions();
   return (
     <div className="rounded-md border bg-card">
       <Table>
@@ -59,6 +62,7 @@ const ContactsTable: React.FC<ContactsTableProps> = ({
             <TableHead className="w-[80px]"></TableHead>
             <TableHead>{i18n.t("contacts.table.name")}</TableHead>
             <TableHead>{i18n.t("contacts.table.number")}</TableHead>
+            <TableHead>{String(i18n.t("contacts.table.connection") ?? "")}</TableHead>
             <TableHead>{i18n.t("contacts.table.email")}</TableHead>
             <TableHead className="text-right">{i18n.t("contacts.table.actions")}</TableHead>
           </TableRow>
@@ -102,6 +106,7 @@ const ContactsTable: React.FC<ContactsTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell>{contact.number}</TableCell>
+                <TableCell><ContactConnectionCell contact={contact} connections={connections} /></TableCell>
                 <TableCell>{contact.email}</TableCell>
                 <TableCell className="text-right">
                   <ContactActionsMenu

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -60,10 +61,11 @@ func (s *ChannelInboundService) Receive(ctx context.Context, msg domain.InboundM
 		return nil, fmt.Errorf("externalMessageId is required for inbound message")
 	}
 
-	// 1. Deduplicação por (channelConnectionId, externalMessageId) no Redis
+	// 1. Deduplicação no Redis. A conversa entra na chave porque o id do canal só é único dentro dela (Telegram).
 	dedupKey := ""
-	if s.redis != nil {
-		dedupKey = fmt.Sprintf("channel:msg:%s:%d:%s", msg.Channel, msg.ChannelConnectionID, msg.ExternalMessageID)
+	// Edição reusa o id da original: o dedup a descartaria. Ela é idempotente (só regrava o corpo), então dispensa a trava.
+	if s.redis != nil && !msg.Edited {
+		dedupKey = "channel:msg:" + domain.StorageMessageID(msg.Channel, msg.ChannelConnectionID, conversationKeyOf(msg), msg.ExternalMessageID)
 		acquired, err := s.redis.SetLock(dedupKey, "1", channelDedupTTL)
 		if err != nil {
 			log.Printf("[ChannelInbound] redis dedup lock check error (msg %s): %v", msg.ExternalMessageID, err)
@@ -111,6 +113,7 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	contact, _, err := s.contactRepo.FindOrCreateByIdentity(
 		ctx,
 		msg.TenantID,
+		domain.ChannelConnection(msg.ChannelConnectionID),
 		msg.Channel,
 		msg.Sender.ExternalID,
 		msg.Sender.Name,
@@ -121,10 +124,7 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	// 3.2 Resolve ou cria Ticket pela conversationKey
-	convKey := msg.ConversationKey
-	if convKey == "" {
-		convKey = msg.Sender.ExternalID
-	}
+	convKey := conversationKeyOf(msg)
 
 	ticket, err := s.ticketRepo.FindOpenByConversation(ctx, msg.TenantID, msg.ChannelConnectionID, convKey)
 	if err != nil {
@@ -151,29 +151,74 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 		mediaType = "chat"
 	}
 
-	message := &domain.Message{
-		ID:        msg.ExternalMessageID,
-		Body:      msg.Body,
-		Ack:       1, // recebida
-		Read:      false,
-		MediaType: mediaType,
-		MediaUrl:  msg.MediaURL,
-		TicketID:  ticket.ID,
-		ContactID: &contact.ID,
-		FromMe:    false,
-		TenantID:  msg.TenantID,
-		CreatedAt: msg.Timestamp,
-		UpdatedAt: msg.Timestamp,
+	dataJSON := "{}"
+	if msg.Forwarded || len(msg.Rich) > 0 {
+		d := map[string]interface{}{}
+		if msg.Forwarded {
+			d["forwarded"] = true
+		}
+		if len(msg.Rich) > 0 {
+			d["rich"] = msg.Rich
+		}
+		if b, err := json.Marshal(d); err == nil {
+			dataJSON = string(b)
+		}
 	}
 
-	if err := s.messageRepo.CreateIfNotExists(ctx, message); err != nil {
+	messageID := domain.StorageMessageID(msg.Channel, msg.ChannelConnectionID, convKey, msg.ExternalMessageID)
+	if msg.Edited {
+		// Edição (inclusive localização ao vivo, que reenvia a posição a cada ~30s): atualiza a mensagem original e avisa a
+		// tela, em vez de duplicar ou descartar. Se a original não existe, segue como mensagem nova.
+		if orig, err := s.messageRepo.FindByID(ctx, messageID, msg.TenantID); err == nil && orig != nil {
+			upd := map[string]interface{}{"body": msg.Body, "updatedAt": time.Now()}
+			if err := s.messageRepo.Update(ctx, orig, upd); err != nil {
+				return nil, fmt.Errorf("failed to update edited message: %w", err)
+			}
+			orig.Body = msg.Body
+			if s.broadcast != nil {
+				payload := map[string]interface{}{"action": "update", "message": orig}
+				s.broadcast.EmitToRoom("/", "chat:"+strconv.Itoa(orig.TicketID), "appMessage", payload)
+				s.broadcast.EmitToTenantRoom(msg.TenantID.String(), "appMessage", payload)
+			}
+			return &usecases.ReceiveMessageResult{Message: orig, Duplicate: true}, nil
+		}
+	}
+
+	message := &domain.Message{
+		ID:         messageID,
+		DataJson:   dataJSON,
+		ExternalID: msg.ExternalMessageID,
+		Body:       msg.Body,
+		Ack:        1, // recebida
+		Read:       false,
+		MediaType:  mediaType,
+		MediaUrl:   msg.MediaURL,
+		TicketID:   ticket.ID,
+		ContactID:  &contact.ID,
+		FromMe:     false,
+		TenantID:   msg.TenantID,
+		CreatedAt:  msg.Timestamp,
+		UpdatedAt:  msg.Timestamp,
+	}
+
+	if rep, ok := s.messageRepo.(domain.MessageInsertReporter); ok {
+		inserted, err := rep.CreateIfNotExistsReport(ctx, message)
+		if err != nil {
+			return nil, fmt.Errorf("failed to persist inbound message: %w", err)
+		}
+		if !inserted {
+			return &usecases.ReceiveMessageResult{Contact: contact, Ticket: ticket, Message: message, Duplicate: true}, nil
+		}
+	} else if err := s.messageRepo.CreateIfNotExists(ctx, message); err != nil {
 		return nil, fmt.Errorf("failed to persist inbound message: %w", err)
 	}
 
 	// Atualiza o ticket com a última mensagem e timestamp
+	lastMessage, lastKind := domain.LastMessagePreview(mediaType, msg.Body, "")
 	_ = s.ticketRepo.Update(ctx, ticket, map[string]interface{}{
-		"lastMessage": msg.Body,
-		"updatedAt":   time.Now(),
+		"lastMessage":     lastMessage,
+		"lastMessageType": lastKind,
+		"updatedAt":       time.Now(),
 	})
 
 	res := &usecases.ReceiveMessageResult{
@@ -185,10 +230,12 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	// 3.4 Broadcasts em tempo real (SSE)
 	if s.broadcast != nil {
 		room := "chat:" + strconv.Itoa(ticket.ID)
-		msgPayload := map[string]interface{}{"action": "create", "message": message, "ticket": ticket, "contact": contact}
+		attachQuote(ctx, s.messageRepo, message)
+		ticketOut := withConnectionIdentity(ctx, s.db, ticket)
+		msgPayload := map[string]interface{}{"action": "create", "message": message, "ticket": ticketOut, "contact": contact}
 		s.broadcast.EmitToRoom("/", room, "appMessage", msgPayload)
 		s.broadcast.EmitToTenantRoom(msg.TenantID.String(), "appMessage", msgPayload)
-		s.broadcast.EmitToTenantRoom(msg.TenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": ticket, "contact": contact})
+		s.broadcast.EmitToTenantRoom(msg.TenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": ticketOut, "contact": contact})
 	}
 
 	// 3.5 Integração com FlowBuilder
@@ -206,6 +253,14 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	return res, nil
+}
+
+// conversationKeyOf é a chave da conversa: a do canal ou, na falta dela, o remetente.
+func conversationKeyOf(msg domain.InboundMessage) string {
+	if msg.ConversationKey != "" {
+		return msg.ConversationKey
+	}
+	return msg.Sender.ExternalID
 }
 
 // MessagePayloadToInboundMessage converte o MessagePayload legado do WhatsApp

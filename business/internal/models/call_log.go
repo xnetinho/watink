@@ -13,7 +13,8 @@ type CallLog struct {
 	ID         int       `gorm:"primaryKey" json:"id"`
 	TenantID   uuid.UUID `gorm:"column:tenantId;type:uuid;not null;uniqueIndex:idx_calllogs_tenant_call,priority:1;index:idx_calllogs_tenant_started,priority:1" json:"-"`
 	CallID     string    `gorm:"column:callId;not null;uniqueIndex:idx_calllogs_tenant_call,priority:2" json:"callId"`
-	WhatsappID int       `gorm:"column:whatsappId;not null;index" json:"whatsappId"`
+	WhatsappID          int       `gorm:"column:whatsappId;not null;index" json:"whatsappId,omitempty"`
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;index" json:"channelConnectionId,omitempty"`
 	ContactID  *int      `gorm:"column:contactId" json:"contactId"`
 	TicketID   *int      `gorm:"column:ticketId" json:"ticketId"`
 

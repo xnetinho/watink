@@ -72,8 +72,8 @@ func NewTestDB(t *testing.T) *gorm.DB {
 	// (que o AutoMigrate não executa). Sem essas regras os testes rodariam sem a regra
 	// real de unicidade por tenant.
 	for _, ddl := range []string{
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number) WHERE number <> ''`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", "connectionSource", "connectionId", number) WHERE number <> ''`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", "connectionSource", "connectionId", lid) WHERE lid IS NOT NULL`,
 	} {
 		if err := db.Exec(ddl).Error; err != nil {
 			t.Fatalf("testutil.NewTestDB: %s: %v", ddl, err)
@@ -138,8 +138,10 @@ func allModels() []interface{} {
 		&models.ActivityChecklistItem{},
 		&models.ActivityMaterial{},
 		&models.ActivityOccurrence{},
+		&models.OutboxEvent{},
 		&models.Whatsapp{},
 		&models.ChannelConnection{},
+		&models.WhatsAppConnectionDetails{},
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},

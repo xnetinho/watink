@@ -2,6 +2,20 @@
 
 Guia para o Claude Code ao trabalhar neste repositório.
 
+
+## Banco de dados: sem migrações incrementais (regra do dono, 28/out/2026)
+O aplicativo está em desenvolvimento e **não há instância em produção nem dado legado**. Coluna ou tabela nova entra **somente no modelo GORM** (`internal/models`) e no baseline que o `watink-business migrate` cria. **Não** criar migração incremental, versão `SchemaMigrations` > 1, `ALTER TABLE` de compatibilidade, backfill nem fallback para "banco antigo". Ao mudar o esquema, recrie o banco de desenvolvimento (`docker compose down -v`) em vez de migrá-lo.
+
+## Repositórios de referência (consultar antes de reinventar)
+Clonar com `git clone --depth 1` em `/tmp/opencode/ref/` (o `WebFetch` falha com esses; o `git clone` funciona, tentar de novo se o DNS falhar).
+- **`github.com/devlikeapro/gows-plus`** (Go, motor GOWS do WAHA sobre `whatsmeow`): estrutura de `ImageMessage`/`VideoMessage`/`DocumentMessage` com `JPEGThumbnail`, `Width`/`Height`, `ThumbnailDirectPath` (miniatura de link). **Limites comprovados em 28/out/2026:** `Waveform()` e `Duration()` são `TODO` (não geram), PTT é sempre `true`, e a miniatura de documento só funciona para imagem (PDF fica sem miniatura nem `PageCount`). Útil como mapa de campos; **não** como implementação de áudio/PDF.
+- **`github.com/JotaDev66/waha-voip`** (fork do WAHA em NestJS com chamadas de áudio nativas no GOWS): referência para **chamadas** (`feat/gows-native-audio-calls`); nada relevante de mídia.
+- Para saber o que o **cliente oficial** manda, não suponha: ligue `WATINK_MEDIA_INSPECT=1` no engine e peça para reenviarem a mídia de um celular real; o log `[media.inspect]` mostra os campos (tamanhos, nunca conteúdo). Foi assim que se descobriu que o áudio não-PTT leva `waveform=64B`, e que o PDF leva `pageCount`, miniatura 51x72 e `thumbnailDirectPath`.
+
+## Testes do backend: nunca apontar `TEST_DATABASE_URL` para o banco do `lt`
+Os testes de `pkg/tenantdb` e `internal/database` **recriam os papéis `watink_app`, `watink_system` e `watink_owner` com senhas próprias** no cluster inteiro. Rodá-los contra o Postgres do `lt` troca a senha que o business usa: ele perde o banco, o refresh do token dá 401 e a sessão do navegador cai (aconteceu em 28/out/2026). Use um Postgres descartável:
+`docker run -d --name pgtest -e POSTGRES_PASSWORD=pgtest -p 127.0.0.1:5544:5432 --tmpfs /var/lib/postgresql/data postgres:16-alpine` e `TEST_DATABASE_URL=postgres://postgres:pgtest@127.0.0.1:5544/postgres?sslmode=disable`.
+
 ## Project Overview
 
 Watink — plataforma de atendimento e automação no WhatsApp. Microsserviços com RabbitMQ, multitenancy via PostgreSQL RLS, sistema de plugins com licenciamento centralizado.
@@ -196,7 +210,7 @@ MUI v4 **completamente removido** — `@material-ui/*` não é dependência do p
 ## Security
 
 - **NUNCA** commite `.env`, credenciais ou secrets.
-- PostgreSQL RLS + JWT `tenantId` — inclua sempre `tenantId` nas queries.
+- PostgreSQL RLS + JWT `tenantId` — inclua sempre `tenantId` nas queries **e** passe `ctx` com escopo de empresa (ADR 0034): o `db` global recusa consulta sem escopo (`ErrNoScope`). Leia `docs/dev/rls-escopo-de-empresa.md`. Qualquer menção abaixo a "RLS inerte" está desatualizada.
 - Plugins: sem licença nem marketplace (ADR 0035); `PluginInstallations.active` é a alocação por empresa e o único gate de runtime.
 
 ## Key Patterns
@@ -401,7 +415,8 @@ Medido ao vivo: um evento `message.media` (resultado de download de áudio) espe
 
 **O que NÃO fazer:**
 - Não reintroduzir `Group`, `user_roles`, `group_roles`, `RolePermission.Scope/Conditions` — descontinuados no reset (ADR 0022). Se precisar de ABAC condicional no futuro, desenhar de novo, não reativar o campo morto.
-- Não deixar uma rota de mutação sem `RequirePermission` "pra depois" — vira dívida idêntica ao estado anterior (permissão sem enforcement).
+- Não deixar uma rota de mutação sem `RequirePermission` "pra depois" — vira dívida idêntica ao estado anterior (permissão sem enforcement). O teste `TestEveryAuthenticatedWriteRouteRequiresPermission` (`internal/routes`) percorre o roteador real e reprova rota autenticada de escrita sem permissão; a única saída é uma entrada justificada em `permissionExemptions`.
+- Plugins registram rotas com `withPermission(recurso, ação, handler)` (`internal/plugins/permission.go`): `assistants`, `protocols` e `inventory` para os embarcados, `whatsappGroups` para Grupos.
 - Não modelar Gestor como Cargo próprio por Setor (ex. "Gestor de Vendas", "Gestor de Suporte") — multiplica cargos quase idênticos; usar a marca `ehGestor` + Cargo único "Gestor".
 - Não permitir remover/rebaixar o último Administrador do tenant nem o dono (`OwnerID`) pela API — validar antes de qualquer DELETE/UPDATE em Users ou vínculos de Cargo.
 - Não expor Permissions como CRUD solto no frontend — vivem dentro da tela de Cargo.

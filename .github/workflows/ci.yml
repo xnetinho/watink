@@ -27,6 +27,7 @@ env:
 jobs:
   build-backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -108,10 +109,38 @@ jobs:
         env:
           RABBITMQ_URL: amqp://guest:guest@localhost:5672/
           REDIS_URL: redis://localhost:6379
-        run: go test ./... -tags integration -v -count=1 -timeout 180s
+        run: go test ./... -tags integration -v -count=1 -timeout 600s
+
+      - name: Run race tests
+        working-directory: business
+        run: go test ./... -race -short -count=1 -timeout 600s
+
+      # Piso de cobertura (Tarefa 8.3): garante que pacotes críticos (auth, contrato, canais)
+      # mantenham no mínimo 50% de cobertura de código no CI.
+      - name: Enforce coverage floor on critical packages
+        working-directory: business
+        run: |
+          go test -cover ./pkg/auth ../contracts/wbot ./internal/channels/whatsapp ./internal/channels/fake | awk '
+          /coverage: [0-9.]+%/ {
+              line = $0
+              pkg = $2
+              sub(/.*coverage: /, "", line)
+              sub(/%.*/, "", line)
+              pct = line + 0.0
+              printf "%-65s %.1f%%\n", pkg, pct
+              if (pct < 50.0) {
+                  printf "ERROR: %s coverage (%.1f%%) is below the 50.0%% floor\n", pkg, pct
+                  failed = 1
+              }
+          }
+          END {
+              if (failed) exit 1
+          }
+          '
 
   build-frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -144,6 +173,19 @@ jobs:
 
   build-engine-go:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # RabbitMQ real: os testes de resiliência do engine (reentrega, DLQ, queda do broker, saída durável) não valem com mock.
+    services:
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+        options: >-
+          --name engine-test-rabbitmq
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v7
 
@@ -174,8 +216,18 @@ jobs:
         working-directory: engine-go
         run: go vet ./...
 
+      # -race: o engine é todo concorrente (sessões, consumidores, publicação). AMQP_TEST_CONTAINER deixa os testes
+      # derrubarem e religarem o broker de verdade.
+      - name: Test (race, com RabbitMQ real)
+        working-directory: engine-go
+        env:
+          AMQP_TEST_URL: amqp://guest:guest@localhost:5672/
+          AMQP_TEST_CONTAINER: engine-test-rabbitmq
+        run: go test ./... -race -count=1 -timeout 600s
+
   smoke-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: build-backend
     services:
       postgres:
@@ -314,6 +366,7 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [build-backend, build-frontend]
     services:
       postgres:

@@ -8,7 +8,8 @@ import (
 
 // TestContactDisplayName verifies that contactDisplayName picks the best
 // available human-readable name in priority order:
-//   FullName > FirstName > BusinessName > PushName
+//
+//	FullName > FirstName > BusinessName > PushName
 func TestContactDisplayName_FullName(t *testing.T) {
 	info := types.ContactInfo{
 		FullName:     "Alice Wonderland",

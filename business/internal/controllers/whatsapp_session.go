@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -90,6 +91,10 @@ func (sc *SessionController) StopSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update session status"})
 		return
 	}
+	// O objeto foi lido ANTES da gravação: sem isto o evento levava o status antigo (CONNECTED) e a tela de Conexões
+	// ficava "conectada" até um Ctrl+F5.
+	session.Status = "DISCONNECTED"
+	session.Qrcode = ""
 
 	if err := sc.sessionService.StopWhatsAppSession(channelSessionToModel(session)); err != nil {
 		utils.RespondWithFriendlyOrInternalError(c, err, "StopWhatsAppSession")
@@ -127,8 +132,16 @@ func (sc *SessionController) RestartAllSessions(c *gin.Context) {
 		return
 	}
 
+	failed := 0
 	for i := range whatsapps {
-		_ = sc.sessionService.StartWhatsAppSession(channelSessionToModel(&whatsapps[i]), false, "", true)
+		if err := sc.sessionService.StartWhatsAppSession(channelSessionToModel(&whatsapps[i]), false, "", true); err != nil {
+			failed++
+			log.Printf("[RestartAllSessions] conexão %d: %v", whatsapps[i].ID, err)
+		}
+	}
+	if failed > 0 {
+		c.JSON(http.StatusMultiStatus, gin.H{"message": "Some sessions failed to restart.", "failed": failed, "total": len(whatsapps)})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Restarting all sessions."})
@@ -136,31 +149,33 @@ func (sc *SessionController) RestartAllSessions(c *gin.Context) {
 
 func channelSessionToModel(s *domain.ChannelSession) models.Whatsapp {
 	return models.Whatsapp{
-		ID:                s.ID,
-		Session:           s.Session,
-		Qrcode:            s.Qrcode,
-		Status:            s.Status,
-		Battery:           s.Battery,
-		Plugged:           s.Plugged,
-		Name:              s.Name,
-		IsDefault:         s.IsDefault,
-		Retries:           s.Retries,
-		GreetingMessage:   s.GreetingMessage,
-		FarewellMessage:   s.FarewellMessage,
-		TenantID:          s.TenantID,
-		SyncHistory:       s.SyncHistory,
-		SyncPeriod:        s.SyncPeriod,
-		Number:            s.Number,
-		ProfilePicUrl:     s.ProfilePicUrl,
-		KeepAlive:         s.KeepAlive,
-		CreatedAt:         s.CreatedAt,
-		UpdatedAt:         s.UpdatedAt,
-		FirstConnection:   s.FirstConnection,
-		EngineType:        s.EngineType,
-		ProxyMode:         s.ProxyMode,
-		ProxyID:           s.ProxyID,
-		ProxyGroupID:      s.ProxyGroupID,
-		ConnectionGroupID: s.ConnectionGroupID,
-		Wid:               s.Wid,
+		ID:                  s.ID,
+		Session:             s.Session,
+		Qrcode:              s.Qrcode,
+		Status:              s.Status,
+		Battery:             s.Battery,
+		Plugged:             s.Plugged,
+		Name:                s.Name,
+		IsDefault:           s.IsDefault,
+		Retries:             s.Retries,
+		GreetingMessage:     s.GreetingMessage,
+		FarewellMessage:     s.FarewellMessage,
+		TenantID:            s.TenantID,
+		SyncHistory:         s.SyncHistory,
+		SyncPeriod:          s.SyncPeriod,
+		Number:              s.Number,
+		ProfilePicUrl:       s.ProfilePicUrl,
+		KeepAlive:           s.KeepAlive,
+		PresencePolicy:      s.PresencePolicy,
+		PresenceIdleMinutes: s.PresenceIdleMinutes,
+		CreatedAt:           s.CreatedAt,
+		UpdatedAt:           s.UpdatedAt,
+		FirstConnection:     s.FirstConnection,
+		EngineType:          s.EngineType,
+		ProxyMode:           s.ProxyMode,
+		ProxyID:             s.ProxyID,
+		ProxyGroupID:        s.ProxyGroupID,
+		ConnectionGroupID:   s.ConnectionGroupID,
+		Wid:                 s.Wid,
 	}
 }

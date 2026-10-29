@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
@@ -29,7 +30,12 @@ func handleContactUpdate(ctx context.Context, contacts domain.ContactRepository,
 		return nil
 	}
 
-	contact, err := contacts.FindByNumber(ctx, tenantID, number, false)
+	// O contato é da conexão que originou o evento: o mesmo número em outra conexão é outro contato.
+	sessionID := getSessionID(p.SessionID)
+	if sessionID == 0 {
+		return nil
+	}
+	contact, err := contacts.FindByNumber(ctx, tenantID, domain.WhatsappConnection(sessionID), number, false)
 	if err != nil {
 		return err
 	}
@@ -126,6 +132,13 @@ func handleContactImport(ctx context.Context, contacts domain.ContactRepository,
 		return err
 	}
 
+	// A importação é SEMPRE de uma conexão: o contato nasce ligado a ela e é por ela que recebe mensagens depois.
+	sessionID := getSessionID(p.SessionID)
+	if sessionID == 0 {
+		return fmt.Errorf("contact.import sem conexão (sessionId=%q)", p.SessionID)
+	}
+	conn := domain.WhatsappConnection(sessionID)
+
 	imported := 0
 	for _, c := range p.Contacts {
 		if c.Number == "" {
@@ -135,7 +148,7 @@ func handleContactImport(ctx context.Context, contacts domain.ContactRepository,
 		if name == "" {
 			name = c.PushName
 		}
-		if _, err := contacts.FindOrCreate(ctx, tenantID, c.Number, name, "", false, false, "", ""); err != nil {
+		if _, err := contacts.FindOrCreate(ctx, tenantID, conn, c.Number, name, "", false, false, "", ""); err != nil {
 			log.Printf("[ContactImport] failed to upsert contact %s: %v", c.Number, err)
 			continue
 		}
@@ -159,4 +172,45 @@ func handleJIDRegistered(ctx context.Context, sessions domain.ChannelSessionRepo
 		return nil
 	}
 	return sessions.Update(ctx, &domain.ChannelSession{ID: sessionID, TenantID: tenantID}, map[string]interface{}{"wid": p.JID})
+}
+
+// handleContactSaved registra o resultado de gravar um contato na agenda do celular (engine: contact.saved).
+func handleContactSaved(ctx context.Context, contacts domain.ContactRepository, b domain.Broadcaster, payload json.RawMessage, tenantID uuid.UUID) error {
+	var p struct {
+		SessionID string `json:"sessionId"`
+		Number    string `json:"number"`
+		OK        bool   `json:"ok"`
+		Error     string `json:"error"`
+	}
+	if err := json.Unmarshal(payload, &p); err != nil {
+		return err
+	}
+	sessionID := getSessionID(p.SessionID)
+	if sessionID == 0 || p.Number == "" {
+		return nil
+	}
+	c, err := contacts.FindByNumber(ctx, tenantID, domain.WhatsappConnection(sessionID), p.Number, false)
+	if err != nil || c == nil {
+		return err
+	}
+	state, detail := "saved", ""
+	if !p.OK {
+		state, detail = "failed", p.Error
+	}
+	if err := contacts.Update(ctx, c, map[string]interface{}{"phoneSync": state, "phoneSyncError": detail}); err != nil {
+		return err
+	}
+	c.PhoneSync, c.PhoneSyncError = state, detail
+	domain.BroadcastOrNop(b).EmitToTenantRoom(tenantID.String(), "contact", map[string]interface{}{"action": "update", "contact": c})
+	return nil
+}
+
+// HandleContactImportEvent e HandleContactSavedEvent são os pontos exportados dos handlers, para os testes de integração
+// com RLS real (o contexto carrega o escopo da empresa, ADR 0034).
+func HandleContactImportEvent(ctx context.Context, contacts domain.ContactRepository, payload json.RawMessage, tenantID uuid.UUID) error {
+	return handleContactImport(ctx, contacts, payload, tenantID)
+}
+
+func HandleContactSavedEvent(ctx context.Context, contacts domain.ContactRepository, payload json.RawMessage, tenantID uuid.UUID) error {
+	return handleContactSaved(ctx, contacts, nil, payload, tenantID)
 }

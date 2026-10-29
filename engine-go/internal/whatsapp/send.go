@@ -3,15 +3,17 @@ package whatsapp
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
+	"github.com/alltomatos/watinkdev/engine-go/internal/mediameta"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types"
 )
 
 // SendText sends a plain text message, with optional quoted reply and mentions.
 func (s *WhatsAppService) SendText(sessionID int, tenantID string, payload TextCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err
@@ -23,7 +25,7 @@ func (s *WhatsAppService) SendText(sessionID int, tenantID string, payload TextC
 		return fmt.Errorf("invalid JID %q: %w", payload.To, err)
 	}
 
-	msg := buildTextMessage(payload.Body, payload.QuotedMsgID, payload.QuotedJID, payload.QuotedBody, payload.Mentions)
+	msg := buildTextMessage(payload.Body, payload.QuotedMsgID, payload.QuotedJID, payload.QuotedBody, payload.QuotedMedia, payload.Mentions, forwardInfo(payload.Forwarded, payload.ForwardScore))
 	_, err = client.SendMessage(context.Background(), to, msg, whatsmeow.SendRequestExtra{ID: types.MessageID(payload.MessageID)})
 	if err != nil {
 		s.reportIfRiskSignal(sessionID, tenantID, "message.send", err)
@@ -36,7 +38,7 @@ func (s *WhatsAppService) SendText(sessionID int, tenantID string, payload TextC
 
 // SendMedia uploads and sends an image/video/audio/document message.
 func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload MediaCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err
@@ -54,6 +56,13 @@ func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload Medi
 		return err
 	}
 
+	// Miniatura, dimensões, duração e onda: o que o cliente oficial manda junto e uma biblioteca costuma omitir (sem a
+	// miniatura o celular do destinatário mostra a mídia "vazia" até baixá-la). Melhor esforço: falha aqui não barra o envio.
+	var meta mediameta.Meta
+	data, payload, meta = enrichMedia(context.Background(), data, payload)
+	log.Printf("[media] %s tipo=%s bytes=%d mime=%q miniatura=%dB %dx%d duração=%ds páginas=%d onda=%d barras ffmpeg=%v poppler=%v",
+		payload.MessageID, payload.MediaType, len(data), payload.MimeType, len(meta.Thumbnail), max(meta.Width, meta.ThumbW), max(meta.Height, meta.ThumbH), meta.Seconds, meta.Pages, len(meta.Waveform), mediameta.Available(), mediameta.AvailablePDF())
+
 	mediaType := normalizeMediaType(payload.MediaType)
 	uploaded, err := client.Upload(context.Background(), data, mediaType)
 	if err != nil {
@@ -62,7 +71,7 @@ func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload Medi
 		return err
 	}
 
-	message := buildMediaMessage(payload, uploaded)
+	message := buildMediaMessage(payload, uploaded, meta)
 	_, err = client.SendMessage(context.Background(), to, message, whatsmeow.SendRequestExtra{ID: types.MessageID(payload.MessageID)})
 	if err != nil {
 		s.reportIfRiskSignal(sessionID, tenantID, "message.send", err)
@@ -78,7 +87,7 @@ func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload Medi
 // forget pacing, not a delivery guarantee) — unlike SendText/SendMedia this
 // never emits an ack, since there's no per-message ID to correlate.
 func (s *WhatsAppService) SendPresence(sessionID int, tenantID string, payload PresenceCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return err
 	}
@@ -98,7 +107,7 @@ func (s *WhatsAppService) SendPresence(sessionID int, tenantID string, payload P
 
 // MarkRead marks one or more messages as read for the given chat.
 func (s *WhatsAppService) MarkRead(sessionID int, tenantID string, payload MarkReadCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return err
 	}
@@ -128,7 +137,7 @@ func (s *WhatsAppService) MarkRead(sessionID int, tenantID string, payload MarkR
 // SendReaction sends (or, when payload.Reaction == "", removes) an emoji
 // reaction to an existing message.
 func (s *WhatsAppService) SendReaction(sessionID int, tenantID string, payload ReactionCommandPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
 		return err

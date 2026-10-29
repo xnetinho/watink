@@ -15,9 +15,15 @@ import MessageBubble from "./components/MessageBubble";
 interface MessagesListProps {
   ticketId: string | number;
   isGroup?: boolean;
+  channel?: string;
+  contactId?: number | string;
+  /** Quem está do outro lado numa conversa 1:1 (foto/iniciais do áudio recebido). */
+  peer?: { name?: string; picUrl?: string | null };
+  /** A conexão que envia (foto, ou iniciais do nome, nos áudios enviados por nós). */
+  self?: { name?: string; picUrl?: string | null };
 }
 
-const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup }) => {
+const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel, contactId, peer, self }) => {
   const { appTheme } = useThemeContext();
 
   const {
@@ -56,6 +62,8 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup }) => {
         anchorEl={anchorEl}
         menuOpen={messageOptionsMenuOpen}
         handleClose={handleCloseMessageOptionsMenu}
+        channel={channel}
+        contactId={contactId}
       />
 
       <HistorySyncModal
@@ -87,6 +95,8 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup }) => {
               mentionsMap={mentionsMap}
               colorCache={groupColorCacheRef.current ?? new Map()}
               onOpenOptions={handleOpenMessageOptionsMenu}
+              peer={peer}
+              self={self}
             />
           ))
         )}
@@ -95,7 +105,7 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup }) => {
 
       {loading && (
         <div>
-          <Loader2 className="absolute top-3 left-1/2 -ml-3 h-6 w-6 animate-spin text-[var(--status-success)] opacity-70" />
+          <Loader2 className="absolute top-3 left-1/2 -ml-3 h-6 w-6 animate-spin text-[hsl(var(--status-success))] opacity-70" />
         </div>
       )}
     </div>

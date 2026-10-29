@@ -35,18 +35,18 @@ func (p *InventoryAdvancedPlugin) GetManifest() sdk.PluginManifest {
 func (p *InventoryAdvancedPlugin) OnInstall(core sdk.WatinkCore) error { return nil }
 
 func (p *InventoryAdvancedPlugin) OnActivate(core sdk.WatinkCore) error {
-	core.RegisterRoute("GET", "/warehouses", handleListWarehouses(core))
-	core.RegisterRoute("POST", "/warehouses", handleCreateWarehouse(core))
-	core.RegisterRoute("PUT", "/warehouses/:id", handleUpdateWarehouse(core))
-	core.RegisterRoute("DELETE", "/warehouses/:id", handleDeleteWarehouse(core))
-	core.RegisterRoute("POST", "/inventory/transfer", handleTransferStock(core))
+	core.RegisterRoute("GET", "/warehouses", withPermission("inventory", "read", handleListWarehouses(core)))
+	core.RegisterRoute("POST", "/warehouses", withPermission("inventory", "manage", handleCreateWarehouse(core)))
+	core.RegisterRoute("PUT", "/warehouses/:id", withPermission("inventory", "manage", handleUpdateWarehouse(core)))
+	core.RegisterRoute("DELETE", "/warehouses/:id", withPermission("inventory", "manage", handleDeleteWarehouse(core)))
+	core.RegisterRoute("POST", "/inventory/transfer", withPermission("inventory", "manage", handleTransferStock(core)))
 
-	core.RegisterRoute("GET", "/price-tables", handleListPriceTables(core))
-	core.RegisterRoute("POST", "/price-tables", handleCreatePriceTable(core))
-	core.RegisterRoute("PUT", "/price-tables/:id/prices", handleUpsertSKUPrice(core))
+	core.RegisterRoute("GET", "/price-tables", withPermission("inventory", "read", handleListPriceTables(core)))
+	core.RegisterRoute("POST", "/price-tables", withPermission("inventory", "manage", handleCreatePriceTable(core)))
+	core.RegisterRoute("PUT", "/price-tables/:id/prices", withPermission("inventory", "manage", handleUpsertSKUPrice(core)))
 
-	core.RegisterRoute("GET", "/products/:id/composition", handleListComposition(core))
-	core.RegisterRoute("PUT", "/products/:id/composition", handleReplaceComposition(core))
+	core.RegisterRoute("GET", "/products/:id/composition", withPermission("inventory", "read", handleListComposition(core)))
+	core.RegisterRoute("PUT", "/products/:id/composition", withPermission("inventory", "manage", handleReplaceComposition(core)))
 	return nil
 }
 

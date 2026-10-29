@@ -17,7 +17,7 @@ const LinkPreview: React.FC<Props> = ({ message }) => {
   };
   return (
     <div
-      className="mt-1.5 mb-1.5 bg-[var(--bg-surface-alt)] rounded-lg overflow-hidden max-w-[300px] border border-[var(--border-default)] cursor-pointer"
+      className="mt-1.5 mb-1.5 bg-[hsl(var(--bg-surface-alt))] rounded-lg overflow-hidden max-w-[300px] border border-[hsl(var(--border-default))] cursor-pointer"
       onClick={() => preview.url && window.open(preview.url, "_blank")}
     >
       {preview.image && (

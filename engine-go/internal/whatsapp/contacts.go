@@ -19,7 +19,7 @@ const contactImportBatchSize = 500
 // Only regular user contacts are imported — groups, broadcast lists and
 // LID-only entries are skipped, since those are not address-book contacts.
 func (s *WhatsAppService) ImportContacts(sessionID int, tenantID string) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (s *WhatsAppService) ImportContacts(sessionID int, tenantID string) error {
 // SyncContact checks whether a number is on WhatsApp and emits a contact.update event
 // with the resolved JID (and LID mapping if applicable).
 func (s *WhatsAppService) SyncContact(sessionID int, tenantID string, payload SyncContactPayload) error {
-	client, err := s.getConnectedClient(sessionID)
+	client, err := s.getConnectedClient(sessionID, tenantID)
 	if err != nil {
 		return err
 	}

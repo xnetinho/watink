@@ -1,6 +1,6 @@
 ﻿/* @jsxImportSource react */
 import React from "react";
-import { Search, Plus, Download, List, LayoutGrid, Trash2 } from "lucide-react";
+import { Search, Plus, List, LayoutGrid, Trash2 } from "lucide-react";
 
 import { PageContainer, PageHeader, PageContent } from "../../components/ui/page-layout";
 import ContactModal from "../../components/ContactModal";
@@ -26,10 +26,8 @@ const Contacts: React.FC = () => {
     clientModalOpen,
     selectedInitialContact,
     confirmOpen,
-    importConfirmOpen,
     setView,
     setConfirmOpen,
-    setImportConfirmOpen,
     handleSearch,
     handleScroll,
     handleOpenContactModal,
@@ -40,7 +38,6 @@ const Contacts: React.FC = () => {
     handleSaveTicket,
     connectionDialog,
     handleDeleteContact,
-    handleImportContacts,
     handleRequestDelete,
     selectedIds,
     isAllSelected,
@@ -82,15 +79,6 @@ const Contacts: React.FC = () => {
       </ConfirmationModal>
 
       <ConfirmationModal
-        title={i18n.t("contacts.confirmationModal.importTitlte")}
-        open={importConfirmOpen}
-        onClose={() => setImportConfirmOpen(false)}
-        onConfirm={handleImportContacts}
-      >
-        {i18n.t("contacts.confirmationModal.importMessage")}
-      </ConfirmationModal>
-
-      <ConfirmationModal
         title={i18n.t("contacts.confirmationModal.bulkDeleteTitle")}
         open={bulkDeleteConfirmOpen}
         onClose={() => setBulkDeleteConfirmOpen(false)}
@@ -122,16 +110,6 @@ const Contacts: React.FC = () => {
               className="pl-9 h-10"
             />
           </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setImportConfirmOpen(true)}
-            className="hidden sm:flex"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            {i18n.t("contacts.buttons.import")}
-          </Button>
 
           <Button size="sm" onClick={handleOpenContactModal}>
             <Plus className="mr-2 h-4 w-4" />

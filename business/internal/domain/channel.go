@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -71,18 +72,21 @@ type Capabilities struct {
 	Typing               bool                  `json:"typing"`
 	ReadReceipts         bool                  `json:"readReceipts"`
 	Reactions            bool                  `json:"reactions"`
+	Voice                bool                  `json:"voice"`
+	Video                bool                  `json:"video"`
 	Auth                 AuthKind              `json:"auth"`
 	HasPhone             bool                  `json:"hasPhone"` // Se o canal garante telefone real do contato
+	Forward              bool                  `json:"forward"`  // Se o canal encaminha mensagem de verdade (selo "Encaminhada")
 }
 
 // InboundSender carrega os dados de quem enviou a mensagem externa.
 type InboundSender struct {
-	ExternalID  string `json:"externalId"` // Identificador único no canal (JID, chat_id, IGSID, etc.)
-	Name        string `json:"name"`
-	AvatarURL   string `json:"avatarUrl"`
-	Phone       string `json:"phone,omitempty"`
-	IsGroup     bool   `json:"isGroup"`
-	GroupJID    string `json:"groupJid,omitempty"`
+	ExternalID string `json:"externalId"` // Identificador único no canal (JID, chat_id, IGSID, etc.)
+	Name       string `json:"name"`
+	AvatarURL  string `json:"avatarUrl"`
+	Phone      string `json:"phone,omitempty"`
+	IsGroup    bool   `json:"isGroup"`
+	GroupJID   string `json:"groupJid,omitempty"`
 }
 
 // InboundMessage é o contrato neutro e universal de mensagem recebida de qualquer canal (D6 / ADR 0033).
@@ -99,6 +103,13 @@ type InboundMessage struct {
 	Timestamp           time.Time     `json:"timestamp"`
 	QuotedMessageID     string        `json:"quotedMessageId,omitempty"`
 	RawPayload          []byte        `json:"-"`
+	// Edited marca a edição de uma mensagem já entregue (Telegram edited_message, inclusive localização ao vivo): atualiza a
+	// original em vez de ser descartada como duplicata.
+	Edited bool `json:"edited,omitempty"`
+	// Forwarded: o canal informou que a mensagem foi encaminhada.
+	Forwarded bool `json:"forwarded,omitempty"`
+	// Rich: forma estruturada (enquete, localização ao vivo...) para o chat desenhar um cartão; Body segue como texto.
+	Rich map[string]interface{} `json:"rich,omitempty"`
 }
 
 // OutboundMessage representa uma mensagem a ser transmitida para a plataforma externa.
@@ -111,6 +122,30 @@ type OutboundMessage struct {
 	MediaData       []byte            `json:"-"`
 	QuotedMessageID string            `json:"quotedMessageId,omitempty"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
+	// Forward pede o encaminhamento nativo de uma mensagem já entregue neste mesmo canal; nil é envio comum.
+	Forward *ForwardRef `json:"forward,omitempty"`
+}
+
+// ErrForwardUnsupported: o canal não consegue encaminhar de verdade neste caso (ex.: Telegram entre conexões diferentes).
+var ErrForwardUnsupported = errors.New("forward not supported")
+
+// ForwardRef aponta a mensagem original de um encaminhamento nativo. O canal só consegue encaminhar o que a MESMA conexão
+// enxerga (no Telegram, o bot precisa estar no chat de origem); SameConnection diz se origem e destino são a mesma conexão.
+type ForwardRef struct {
+	FromConversationKey string `json:"fromConversationKey"`
+	ExternalMessageID   string `json:"externalMessageId"`
+	AsNew               bool   `json:"asNew"` // true: copia sem o selo "Encaminhada"
+	SameConnection      bool   `json:"sameConnection"`
+}
+
+// StorageMessageID é o id com que a mensagem é gravada em Messages. O id do canal só é único dentro do seu escopo (no
+// Telegram, dentro do chat), então fora do WhatsApp o id inclui canal, conexão e conversa. O WhatsApp mantém o id cru
+// porque o engine, as citações e as confirmações de leitura dependem dele.
+func StorageMessageID(kind ChannelKind, connectionID int, conversationKey, externalID string) string {
+	if kind == ChannelKindWhatsApp {
+		return externalID
+	}
+	return fmt.Sprintf("%s:%d:%s:%s", kind, connectionID, conversationKey, externalID)
 }
 
 // SendResult traz os dados de confirmação da entrega ao canal externo.
@@ -142,6 +177,7 @@ type Channel interface {
 	Connect(ctx context.Context, conn *models.ChannelConnection, input ConnectInput) (ConnectResult, error)
 	Disconnect(ctx context.Context, conn *models.ChannelConnection) error
 	Send(ctx context.Context, conn *models.ChannelConnection, msg OutboundMessage) (SendResult, error)
+	ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error)
 	ParseInbound(ctx context.Context, conn *models.ChannelConnection, raw []byte, headers map[string]string) ([]InboundMessage, error)
 }
 

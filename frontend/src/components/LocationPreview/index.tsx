@@ -15,7 +15,7 @@ const LocationPreview: React.FC<LocationPreviewProps> = ({
 }) => {
   const handleLocation = () => {
     try {
-      if (link) window.open(link);
+      if (link && /^https?:\/\//i.test(link)) window.open(link, "_blank", "noopener,noreferrer");
     } catch (err) {
       toastError(err);
     }
@@ -25,21 +25,19 @@ const LocationPreview: React.FC<LocationPreviewProps> = ({
     <div className="min-w-[250px]">
       <div>
         <div className="float-left">
-          <img
-            src={image}
-            onClick={handleLocation}
-            className="w-[100px] cursor-pointer"
-            alt="location"
-          />
+          {image ? (
+            <img
+              src={image}
+              onClick={handleLocation}
+              className="w-[100px] cursor-pointer"
+              alt="location"
+            />
+          ) : null}
         </div>
         {description && (
           <div className="flex flex-wrap">
             <p className="mb-2 ml-4 mr-4 mt-3 text-base font-medium text-primary">
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: description.replace("\\n", "<br />"),
-                }}
-              />
+              <span className="whitespace-pre-line">{description}</span>
             </p>
           </div>
         )}

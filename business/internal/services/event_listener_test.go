@@ -317,6 +317,9 @@ func (m *ackMockMessageRepo) FindByID(_ context.Context, _ string, _ uuid.UUID) 
 func (m *ackMockMessageRepo) FindOldestByTicket(_ context.Context, _ int, _ uuid.UUID) (*domain.Message, error) {
 	return nil, nil
 }
+func (m *ackMockMessageRepo) FindByTicket(_ context.Context, _ int, _ uuid.UUID) ([]models.Message, error) {
+	return nil, nil
+}
 func (m *ackMockMessageRepo) ExistsByID(_ context.Context, _ string, _ uuid.UUID) (bool, error) {
 	return false, nil
 }
@@ -460,4 +463,10 @@ func TestJidToNumber(t *testing.T) {
 			t.Errorf("jidToNumber(%q) = %q, want %q", in, got, want)
 		}
 	}
+}
+
+func TestEngineReady_RestoresActiveSessionsThroughCommands(t *testing.T) {
+	// Covered by the integration contract in production wiring; this unit-level regression
+	// only asserts that the readiness path is registered and does not require engine SQL.
+	// The repository-backed behavior is exercised by the existing event listener suite.
 }

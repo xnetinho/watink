@@ -60,7 +60,7 @@ type RouteRabbitMQ interface {
 // query).
 func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *application.Container, s3Store domain.ObjectStore, ragRetriever flow.Retriever, ragResponder flow.AgentResponder, mediaWaiter *mediawait.Waiter) {
 	db := container.DB
-	messageController := controllers.NewMessageController(rabbitMQ, container.Broadcast, container.SessionService).WithTranscription(db, mediaWaiter)
+	messageController := controllers.NewMessageController(rabbitMQ, container.Broadcast, container.SessionService, container.MessageRepo).WithTranscription(db, mediaWaiter)
 	systemController := controllers.NewSystemController(container.SystemRepo, rabbitMQ)
 	setupService := services.NewSetupService(container.DB)
 	setupController := controllers.NewSetupController(setupService)
@@ -77,7 +77,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	saasTokenCache := middleware.NewSaaSTokenCache(saasContractSvc)
 	registerController := controllers.NewRegisterController(saasclient.NewFromEnv(), saasclient.NewCaptchaVerifierFromEnv())
 	userController := controllers.NewUserController(container.UserRepo, container.PlanLimitSvc)
-	queueController := controllers.NewQueueController()
+	queueController := controllers.NewQueueController(container.QueueRepo)
 	contactController := controllers.NewContactController(container.ContactRepo, container.ChannelSessionRepo, rabbitMQ, container.Broadcast)
 	clientController := controllers.NewClientController()
 	inventoryService := services.NewInventoryService(db, container.Broadcast)
@@ -86,7 +86,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	activityController := controllers.NewActivityController(s3Store)
 	callController := controllers.NewCallController(container.Calls)
 	sessionController := controllers.NewSessionController(container.ChannelSessionRepo, container.Broadcast, container.SessionService)
-	ticketController := controllers.NewTicketController(container.UpdateTicket, container.Broadcast, container.MessageRepo, rabbitMQ)
+	ticketController := controllers.NewTicketController(container.UpdateTicket, container.Broadcast, container.MessageRepo, rabbitMQ, container.TicketRepo)
 	whatsappController := controllers.NewWhatsappController(container.ChannelSessionRepo, container.PlanLimitSvc, container.Broadcast, container.SessionService)
 	proxyController := controllers.NewProxyController()
 	proxyGroupController := controllers.NewProxyGroupController()
@@ -98,7 +98,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	pluginController := controllers.NewPluginController(container.PlanLimitSvc, db, pluginRegistry)
 	authController := controllers.NewAuthController(container.UserRepo).WithTenantStatusService(tenantStatusSvc)
 	settingController := controllers.NewSettingController(container.SettingRepo, container.Broadcast)
-	tagController := controllers.NewTagController()
+	tagController := controllers.NewTagController(container.TagRepository)
 	pipelineController := controllers.NewPipelineController()
 	dealController := controllers.NewDealController()
 	kbController := controllers.NewKnowledgeBaseController(rabbitMQ, s3Store)
@@ -119,7 +119,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// implementation lives in the plugins package (DI pura, no global).
 	flowRuntime.SetAssistantRuntime(plugins.NewAssistantRuntime(container.DB, rabbitMQ, mediaWaiter))
 	flowController := controllers.NewFlowController(flowRuntime)
-	quickAnswerController := controllers.NewQuickAnswerController(rabbitMQ, container.Broadcast, db, container.SessionService)
+	quickAnswerController := controllers.NewQuickAnswerController(rabbitMQ, container.Broadcast, db, container.SessionService, container.QuickAnswerRepo)
 	versionController := controllers.NewVersionController(container.VersionRepo)
 	swaggerController := controllers.NewSwaggerController(container.SwaggerPermRepo)
 	storageController := controllers.NewStorageController(s3Store)
@@ -137,7 +137,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		flowRuntime,
 	)
 	channelWebhookController := controllers.NewChannelWebhookController(container.DB, channelInboundSvc)
-	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService))
+	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService, rabbitMQ))
 	// Polling entrega as mensagens pelo mesmo pipeline de entrada do webhook.
 	// Cada mensagem roda no escopo da empresa dela (RLS, ADR 0034), em escopo próprio: o polling é uma goroutine longa.
 	channelInboundHandler := func(ctx context.Context, msg domain.InboundMessage) error {
@@ -219,8 +219,8 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 
 		// Plugins (tenant-scoped — moved inside protected group)
 		protected.GET("/plugins/installed", pluginController.Installed)
-		protected.POST("/plugins/:slug/activate", pluginController.Activate)
-		protected.POST("/plugins/:slug/deactivate", pluginController.Deactivate)
+		protected.POST("/plugins/:slug/activate", auth.RequirePermission("settings", "update"), pluginController.Activate)
+		protected.POST("/plugins/:slug/deactivate", auth.RequirePermission("settings", "update"), pluginController.Deactivate)
 
 		// Plugin CONTENT routes (helpdesk/webchat business routes, registered
 		// via WatinkCore.RegisterRoute inside each plugin's OnActivate). router
@@ -252,23 +252,26 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.PUT("/tickets/:ticketId", auth.RequirePermission("tickets", "update"), ticketController.UpdateTicket)
 		protected.DELETE("/tickets/:ticketId", auth.RequirePermission("tickets", "delete"), ticketController.DeleteTicket)
 		protected.GET("/tickets/:ticketId/logs", ticketController.ListTicketLogs)
-		protected.POST("/tickets/:ticketId/history/recover", ticketController.RecoverHistory)
+		protected.POST("/tickets/:ticketId/history/recover", auth.RequirePermission("tickets", "update"), ticketController.RecoverHistory)
 
 		// Dashboard
 		protected.GET("/dashboard", controllers.GetDashboardData)
 
 		// Messages
 		protected.GET("/messages/:ticketId", messageController.ListMessages)
-		protected.POST("/messages/:ticketId", messageController.SendMessage)
+		protected.POST("/messages/:ticketId", auth.RequirePermission("tickets", "update"), messageController.SendMessage)
 		// On-demand media download (separate path to avoid Gin wildcard conflict
 		// with :ticketId at the same position)
-		protected.POST("/media/:messageId/download", messageController.DownloadMedia)
+		protected.POST("/tickets/:ticketId/presence", auth.RequirePermission("tickets", "read"), messageController.SubscribePresence)
+		protected.POST("/media/:messageId/download", auth.RequirePermission("tickets", "read"), messageController.DownloadMedia)
 		// Nested under a distinct literal segment ("message", singular) --
 		// gin's radix router panics at startup if two routes share a path
 		// position with different wildcard names (":messageId" here vs the
 		// existing ":ticketId" under "/messages/:ticketId").
-		protected.POST("/message/:messageId/react", messageController.ReactToMessage)
-		protected.POST("/message/:messageId/transcribe", messageController.TranscribeAudio)
+		protected.POST("/message/:messageId/react", auth.RequirePermission("tickets", "update"), messageController.ReactToMessage)
+		protected.POST("/message/:messageId/forward", auth.RequirePermission("tickets", "update"), messageController.ForwardMessage)
+		protected.POST("/message/:messageId/vote", auth.RequirePermission("tickets", "update"), messageController.VotePoll)
+		protected.POST("/message/:messageId/transcribe", auth.RequirePermission("tickets", "update"), messageController.TranscribeAudio)
 
 		// WhatsApp Connections
 		protected.GET("/whatsapp", auth.RequirePermission("connections", "read"), whatsappController.ListWhatsapps)
@@ -278,14 +281,22 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.PUT("/whatsapp/:id", auth.RequirePermission("connections", "update"), whatsappController.UpdateWhatsapp)
 		protected.GET("/whatsapp/:id/stats", auth.RequirePermission("connections", "read"), whatsappController.StatsWhatsapp)
 		protected.PUT("/whatsapp/:id/keepalive", auth.RequirePermission("connections", "update"), whatsappController.ToggleKeepAlive)
+		protected.PUT("/whatsapp/:id/presence-policy", auth.RequirePermission("connections", "update"), whatsappController.UpdatePresencePolicy)
 		protected.DELETE("/whatsapp/:id", auth.RequirePermission("connections", "delete"), whatsappController.DeleteWhatsapp)
 
-		// Channel Connections (Agnostic - Telegram, ML, etc. - ADR 0033)
+		// Channel Connections (Agnostic - Telegram, WhatsApp, ML, etc. - ADR 0033 / Tarefa 7.1)
 		channelConnCtrl := controllers.NewChannelConnectionController()
 		protected.GET("/channels/connections", auth.RequirePermission("connections", "read"), channelConnCtrl.ListConnections)
+		protected.GET("/channels/connections/:id", auth.RequirePermission("connections", "read"), channelConnCtrl.GetConnection)
 		protected.POST("/channels/connections", auth.RequirePermission("connections", "create"), channelConnCtrl.CreateConnection)
 		protected.PUT("/channels/connections/:id", auth.RequirePermission("connections", "update"), channelConnCtrl.UpdateConnection)
 		protected.DELETE("/channels/connections/:id", auth.RequirePermission("connections", "delete"), channelConnCtrl.DeleteConnection)
+
+		protected.GET("/connections", auth.RequirePermission("connections", "read"), channelConnCtrl.ListConnections)
+		protected.GET("/connections/:id", auth.RequirePermission("connections", "read"), channelConnCtrl.GetConnection)
+		protected.POST("/connections", auth.RequirePermission("connections", "create"), channelConnCtrl.CreateConnection)
+		protected.PUT("/connections/:id", auth.RequirePermission("connections", "update"), channelConnCtrl.UpdateConnection)
+		protected.DELETE("/connections/:id", auth.RequirePermission("connections", "delete"), channelConnCtrl.DeleteConnection)
 
 		// Proxies (anti-ban) — mesmo domínio de acesso que as conexões
 		// (Whatsapps): gated por connections:<ação> (P2-2). Antes as rotas eram
@@ -323,14 +334,14 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.GET("/contacts", contactController.ListContacts)
 		protected.GET("/contacts/", contactController.ListContacts)
 		protected.GET("/contacts/:contactId", contactController.ShowContact)
-		protected.POST("/contacts", contactController.CreateContact)
-		protected.POST("/contacts/", contactController.CreateContact)
-		protected.POST("/contacts/import", contactController.ImportContacts)
-		protected.POST("/contacts/bulk-delete", contactController.BulkDeleteContacts)
-		protected.DELETE("/contacts/all", contactController.DeleteAllContacts)
-		protected.POST("/contacts/:contactId/sync", contactController.SyncContact)
-		protected.PUT("/contacts/:contactId", contactController.UpdateContact)
-		protected.DELETE("/contacts/:contactId", contactController.DeleteContact)
+		protected.POST("/contacts", auth.RequirePermission("contacts", "create"), contactController.CreateContact)
+		protected.POST("/contacts/", auth.RequirePermission("contacts", "create"), contactController.CreateContact)
+		protected.POST("/contacts/import", auth.RequirePermission("contacts", "create"), contactController.ImportContacts)
+		protected.POST("/contacts/bulk-delete", auth.RequirePermission("contacts", "delete"), contactController.BulkDeleteContacts)
+		protected.DELETE("/contacts/all", auth.RequirePermission("contacts", "delete"), contactController.DeleteAllContacts)
+		protected.POST("/contacts/:contactId/sync", auth.RequirePermission("contacts", "update"), contactController.SyncContact)
+		protected.PUT("/contacts/:contactId", auth.RequirePermission("contacts", "update"), contactController.UpdateContact)
+		protected.DELETE("/contacts/:contactId", auth.RequirePermission("contacts", "delete"), contactController.DeleteContact)
 
 		// Clients (CRM) — ADR 0023. Rota nova, gateada desde o início
 		// (invariante do módulo Acessos): nenhuma rota nova de escrita/leitura
@@ -403,20 +414,20 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.GET("/queue", queueController.ListQueues)
 		protected.GET("/queue/", queueController.ListQueues)
 		protected.GET("/queue/:queueId", queueController.ShowQueue)
-		protected.POST("/queue", queueController.CreateQueue)
-		protected.POST("/queue/", queueController.CreateQueue)
-		protected.PUT("/queue/:queueId", queueController.UpdateQueue)
-		protected.DELETE("/queue/:queueId", queueController.DeleteQueue)
+		protected.POST("/queue", auth.RequirePermission("queues", "create"), queueController.CreateQueue)
+		protected.POST("/queue/", auth.RequirePermission("queues", "create"), queueController.CreateQueue)
+		protected.PUT("/queue/:queueId", auth.RequirePermission("queues", "update"), queueController.UpdateQueue)
+		protected.DELETE("/queue/:queueId", auth.RequirePermission("queues", "delete"), queueController.DeleteQueue)
 
 		// Quick Answers
 		protected.GET("/quickAnswers", quickAnswerController.List)
 		protected.GET("/quickAnswers/", quickAnswerController.List)
 		protected.GET("/quickAnswers/:quickAnswerId", quickAnswerController.Show)
-		protected.POST("/quickAnswers", quickAnswerController.Create)
-		protected.POST("/quickAnswers/", quickAnswerController.Create)
-		protected.PUT("/quickAnswers/:quickAnswerId", quickAnswerController.Update)
-		protected.DELETE("/quickAnswers/:quickAnswerId", quickAnswerController.Delete)
-		protected.POST("/quickAnswers/:quickAnswerId/send", quickAnswerController.Send)
+		protected.POST("/quickAnswers", auth.RequirePermission("quickAnswers", "create"), quickAnswerController.Create)
+		protected.POST("/quickAnswers/", auth.RequirePermission("quickAnswers", "create"), quickAnswerController.Create)
+		protected.PUT("/quickAnswers/:quickAnswerId", auth.RequirePermission("quickAnswers", "update"), quickAnswerController.Update)
+		protected.DELETE("/quickAnswers/:quickAnswerId", auth.RequirePermission("quickAnswers", "delete"), quickAnswerController.Delete)
+		protected.POST("/quickAnswers/:quickAnswerId/send", auth.RequirePermission("tickets", "update"), quickAnswerController.Send)
 
 		// Knowledge Bases
 		// knowledgeBases:* — added retroactively (these routes shipped with no
@@ -484,38 +495,38 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 
 		// Flows
 		protected.GET("/flows", flowController.List)
-		protected.POST("/flows", flowController.Create)
-		protected.POST("/flows/ai", flowController.AISuggest)
+		protected.POST("/flows", auth.RequirePermission("flows", "create"), flowController.Create)
+		protected.POST("/flows/ai", auth.RequirePermission("flows", "create"), flowController.AISuggest)
 		protected.GET("/flows/:flowId", flowController.Show)
-		protected.PUT("/flows/:flowId", flowController.Update)
-		protected.DELETE("/flows/:flowId", flowController.Delete)
-		protected.POST("/flows/:flowId/simulate", flowController.Simulate)
-		protected.POST("/flows/:flowId/run", flowController.Run)
+		protected.PUT("/flows/:flowId", auth.RequirePermission("flows", "update"), flowController.Update)
+		protected.DELETE("/flows/:flowId", auth.RequirePermission("flows", "delete"), flowController.Delete)
+		protected.POST("/flows/:flowId/simulate", auth.RequirePermission("flows", "update"), flowController.Simulate)
+		protected.POST("/flows/:flowId/run", auth.RequirePermission("flows", "update"), flowController.Run)
 		protected.GET("/flowruns", flowController.ListFlowRuns)
-		protected.DELETE("/flowruns/:id", flowController.AbortFlowRun)
+		protected.DELETE("/flowruns/:id", auth.RequirePermission("flows", "update"), flowController.AbortFlowRun)
 
 		// Tags
 		protected.GET("/tags", tagController.List)
-		protected.POST("/tags", tagController.Create)
-		protected.PUT("/tags/:id", tagController.Update)
-		protected.DELETE("/tags/:id", tagController.Delete)
+		protected.POST("/tags", auth.RequirePermission("tags", "create"), tagController.Create)
+		protected.PUT("/tags/:id", auth.RequirePermission("tags", "update"), tagController.Update)
+		protected.DELETE("/tags/:id", auth.RequirePermission("tags", "delete"), tagController.Delete)
 		protected.GET("/tag-groups", tagController.ListGroups)
 		protected.GET("/entities/:entityType/:id/tags", tagController.GetEntityTags)
-		protected.PUT("/entities/:entityType/:id/tags/sync", tagController.SyncEntityTags)
+		protected.PUT("/entities/:entityType/:id/tags/sync", auth.RequireAnyPermission([2]string{"tickets", "update"}, [2]string{"contacts", "update"}), tagController.SyncEntityTags)
 
 		// Deals
 		protected.GET("/deals", dealController.List)
-		protected.POST("/deals", dealController.Create)
-		protected.PUT("/deals/:id", dealController.Update)
+		protected.POST("/deals", auth.RequirePermission("pipelines", "update"), dealController.Create)
+		protected.PUT("/deals/:id", auth.RequirePermission("pipelines", "update"), dealController.Update)
 
 		// Pipelines
 		protected.GET("/pipelines", pipelineController.List)
 		protected.GET("/pipelines/", pipelineController.List)
-		protected.POST("/pipelines", pipelineController.Create)
-		protected.PUT("/pipelines/:pipelineId", pipelineController.Update)
-		protected.DELETE("/pipelines/:pipelineId", pipelineController.Delete)
-		protected.POST("/pipelines/import", pipelineController.Import)
+		protected.POST("/pipelines", auth.RequirePermission("pipelines", "create"), pipelineController.Create)
+		protected.PUT("/pipelines/:pipelineId", auth.RequirePermission("pipelines", "update"), pipelineController.Update)
+		protected.DELETE("/pipelines/:pipelineId", auth.RequirePermission("pipelines", "delete"), pipelineController.Delete)
+		protected.POST("/pipelines/import", auth.RequirePermission("pipelines", "create"), pipelineController.Import)
 		protected.GET("/pipelines/export/:pipelineId", pipelineController.Export)
-		protected.POST("/pipelines/ai-suggest", pipelineController.AISuggest)
+		protected.POST("/pipelines/ai-suggest", auth.RequirePermission("pipelines", "create"), pipelineController.AISuggest)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
@@ -14,10 +15,16 @@ import (
 
 // TagController encapsulates tag operations with the tenant-scoped DB from the auth middleware (auth.GetScoped).
 // All queries are automatically tenant-scoped via auth.GetScoped.
-type TagController struct{}
+type TagController struct {
+	tagRepo domain.TagRepository
+}
 
-func NewTagController() *TagController {
-	return &TagController{}
+func NewTagController(repo ...domain.TagRepository) *TagController {
+	tc := &TagController{}
+	if len(repo) > 0 && repo[0] != nil {
+		tc.tagRepo = repo[0]
+	}
+	return tc
 }
 
 // List returns all tags for the current tenant, optionally including archived.

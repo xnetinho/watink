@@ -4,10 +4,10 @@ import "testing"
 
 func TestParseRoutingKey_ValidCommands(t *testing.T) {
 	cases := []struct {
-		key      string
-		tenant   string
-		session  string
-		cmd      string
+		key     string
+		tenant  string
+		session string
+		cmd     string
 	}{
 		{"wbot.tenant-1.42.session.start", "tenant-1", "42", "session.start"},
 		{"wbot.tenant-1.42.session.stop", "tenant-1", "42", "session.stop"},
@@ -21,7 +21,7 @@ func TestParseRoutingKey_ValidCommands(t *testing.T) {
 		{"wbot.tenant-1.42.message.markAsRead", "tenant-1", "42", "message.markAsRead"},
 		{"wbot.tenant-1.42.contact.sync", "tenant-1", "42", "contact.sync"},
 		{"wbot.tenant-1.42.contact.import", "tenant-1", "42", "contact.import"},
-		{"wbot.tenant-1.42.history.sync", "tenant-1", "42", "history.sync"},
+		{"wbot.tenant-1.42.contact.save", "tenant-1", "42", "contact.save"},
 	}
 
 	for _, tc := range cases {

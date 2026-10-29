@@ -5,22 +5,22 @@ import { cn } from '@/lib/utils';
 
 // Color gradient map — mirrors the original makeStyles token set
 const COLOR_MAP: Record<string, string> = {
-  colorTrigger: 'bg-gradient-to-b from-[var(--status-success)] to-[var(--emerald-700)]',
-  colorMessage: 'bg-gradient-to-b from-[var(--action-primary)] to-[var(--action-primary-active)]',
-  colorMenu: 'bg-gradient-to-b from-[var(--status-warning)] to-[var(--amber-700)]',
+  colorTrigger: 'bg-gradient-to-b from-[hsl(var(--status-success))] to-[var(--emerald-700)]',
+  colorMessage: 'bg-gradient-to-b from-[hsl(var(--action-primary))] to-[hsl(var(--action-primary-active))]',
+  colorMenu: 'bg-gradient-to-b from-[hsl(var(--status-warning))] to-[var(--amber-700)]',
   colorSwitch: 'bg-gradient-to-b from-[var(--violet-400)] to-[var(--violet-800)]',
   colorDatabase: 'bg-gradient-to-b from-[var(--slate-500)] to-[var(--slate-800)]',
-  colorFilter: 'bg-gradient-to-b from-[var(--status-info)] to-[var(--google-blue)]',
+  colorFilter: 'bg-gradient-to-b from-[hsl(var(--status-info))] to-[var(--google-blue)]',
   colorPipeline: 'bg-gradient-to-b from-[var(--google-blue)] to-[var(--blue-400)]',
-  colorWebhook: 'bg-gradient-to-b from-[var(--status-error)] to-[var(--red-700)]',
-  colorApi: 'bg-gradient-to-b from-[var(--status-info)] to-[var(--google-blue)]',
+  colorWebhook: 'bg-gradient-to-b from-[hsl(var(--status-error))] to-[var(--red-700)]',
+  colorApi: 'bg-gradient-to-b from-[hsl(var(--status-info))] to-[var(--google-blue)]',
   colorKnowledge: 'bg-gradient-to-b from-[var(--google-pink)] to-[var(--red-700)]',
   colorAgent: 'bg-gradient-to-b from-[var(--violet-500)] to-[var(--violet-800)]',
-  colorEnd: 'bg-gradient-to-b from-[var(--status-error)] to-[var(--red-700)]',
+  colorEnd: 'bg-gradient-to-b from-[hsl(var(--status-error))] to-[var(--red-700)]',
   colorDefault: 'bg-gradient-to-b from-[var(--slate-500)] to-[var(--slate-700)]',
   colorTicket: 'bg-gradient-to-b from-[var(--google-pink)] to-[var(--red-700)]',
   colorHelpdesk: 'bg-gradient-to-b from-[var(--emerald-600)] to-[var(--emerald-800)]',
-  colorQuickAnswer: 'bg-gradient-to-b from-[var(--status-info)] to-[var(--google-blue)]',
+  colorQuickAnswer: 'bg-gradient-to-b from-[hsl(var(--status-info))] to-[var(--google-blue)]',
 };
 
 export interface HandleConfig {
@@ -77,9 +77,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 id={handle.id ?? undefined}
                 isConnectable={isConnectable}
                 className={cn(
-                  'w-[10px] h-[10px] bg-[var(--bg-surface)] border-2 border-[var(--action-primary)]',
+                  'w-[10px] h-[10px] bg-[hsl(var(--bg-surface))] border-2 border-[hsl(var(--action-primary))]',
                   'shadow-sm transition-all duration-200',
-                  'hover:scale-125 hover:bg-[var(--action-primary)]',
+                  'hover:scale-125 hover:bg-[hsl(var(--action-primary))]',
                   handlePositionClass[handle.position],
                 )}
                 style={handle.style}
@@ -96,21 +96,21 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 gradientClass,
               )}
             >
-              {Icon && <Icon className="text-[28px] text-[var(--bg-surface)]" />}
+              {Icon && <Icon className="text-[28px] text-[hsl(var(--bg-surface))]" />}
               {badge != null && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--bg-surface)] flex items-center justify-center text-[10px] font-bold shadow-sm">
+                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[hsl(var(--bg-surface))] flex items-center justify-center text-[10px] font-bold shadow-sm">
                   {badge}
                 </div>
               )}
             </div>
 
             {/* Label */}
-            <p className="mt-2 text-[12px] font-semibold text-[var(--text-primary)] text-center max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap leading-[1.2]">
+            <p className="mt-2 text-[12px] font-semibold text-[hsl(var(--text-primary))] text-center max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap leading-[1.2]">
               {label}
             </p>
 
             {displaySublabel && (
-              <p className="text-[10px] text-[var(--text-secondary)] text-center mt-[2px]">
+              <p className="text-[10px] text-[hsl(var(--text-secondary))] text-center mt-[2px]">
                 {displaySublabel}
               </p>
             )}
@@ -124,9 +124,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 id={handle.id ?? undefined}
                 isConnectable={isConnectable}
                 className={cn(
-                  'w-[10px] h-[10px] bg-[var(--bg-surface)] border-2 border-[var(--action-primary)]',
+                  'w-[10px] h-[10px] bg-[hsl(var(--bg-surface))] border-2 border-[hsl(var(--action-primary))]',
                   'shadow-sm transition-all duration-200',
-                  'hover:scale-125 hover:bg-[var(--action-primary)]',
+                  'hover:scale-125 hover:bg-[hsl(var(--action-primary))]',
                   handlePositionClass[handle.position],
                 )}
                 style={handle.style}

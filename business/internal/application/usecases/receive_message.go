@@ -37,6 +37,10 @@ type ReceiveMessageInput struct {
 	Mimetype      string
 	Thumbnail     string // base64 JPEG preview for pending (not-yet-downloaded) media
 	MediaProto    string // base64 serialized media message for on-demand download
+	Forwarded     bool
+	ForwardScore  int
+	Rich          map[string]interface{}
+	FileLength    int64
 	SessionID     int
 	TenantID      uuid.UUID
 }
@@ -46,6 +50,8 @@ type ReceiveMessageResult struct {
 	Contact *domain.Contact
 	Ticket  *domain.Ticket
 	Message *domain.Message
+	// Duplicate indica reentrega de uma mensagem já gravada: nada mudou e o chamador não deve anunciá-la de novo.
+	Duplicate bool
 }
 
 // ReceiveMessageUseCase handles the business logic for receiving messages.
@@ -110,6 +116,7 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 	contact, err := uc.contactRepo.FindOrCreate(
 		ctx,
 		input.TenantID,
+		domain.WhatsappConnection(input.SessionID),
 		number,
 		contactName,
 		input.ProfilePicURL,
@@ -193,7 +200,18 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		}
 	}
 
-	dataJSON, _ := json.Marshal(map[string]interface{}{
+	extra := map[string]interface{}{}
+	if input.Forwarded {
+		extra["forwarded"] = true
+		extra["forwardScore"] = input.ForwardScore
+	}
+	if len(input.Rich) > 0 {
+		extra["rich"] = input.Rich
+	}
+	if input.FileLength > 0 {
+		extra["fileLength"] = input.FileLength
+	}
+	dataMap := map[string]interface{}{
 		"jid":          contactJID,
 		"participant":  input.Participant,
 		"pushName":     input.PushName,     // sender name shown in group bubble
@@ -205,17 +223,19 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		"thumbnail":    input.Thumbnail,
 		"mediaProto":   input.MediaProto,
 		"mediaStatus":  mediaStatus,
-	})
+	}
+	for k, v := range extra {
+		dataMap[k] = v
+	}
+	dataJSON, _ := json.Marshal(dataMap)
 
 	createdAt := time.Unix(input.Timestamp, 0)
 	if createdAt.IsZero() || input.Timestamp == 0 {
 		createdAt = time.Now()
 	}
 
+	// Visualização única: o corpo fica vazio; a tela desenha o aviso traduzido (chat.viewOnce.*), nada em idioma no banco.
 	body := input.Body
-	if mediaType == "view_once" && body == "" {
-		body = viewOnceNotice
-	}
 
 	msg := &domain.Message{
 		ID:          input.ID,
@@ -242,18 +262,24 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		}
 	}
 
-	if err := uc.messageRepo.CreateIfNotExists(ctx, msg); err != nil {
+	inserted := true
+	if rep, ok := uc.messageRepo.(domain.MessageInsertReporter); ok {
+		var err error
+		if inserted, err = rep.CreateIfNotExistsReport(ctx, msg); err != nil {
+			return nil, err
+		}
+	} else if err := uc.messageRepo.CreateIfNotExists(ctx, msg); err != nil {
 		return nil, err
 	}
 
-	lastMsg := msg.Body
-	if mediaType == "view_once" {
-		lastMsg = "👁 Visualização única"
+	// O engine entrega ao menos uma vez: o mesmo evento pode chegar de novo. A mensagem já existe, então não há o que
+	// atualizar nem anunciar; sem este retorno cada reentrega somava mais um "não lida" ao ticket.
+	if !inserted {
+		return &ReceiveMessageResult{Contact: contact, Ticket: ticket, Message: msg, Duplicate: true}, nil
 	}
-	if lastMsg == "" {
-		lastMsg = mimeTypeLabel(input.Mimetype)
-	}
-	updates := map[string]interface{}{"lastMessage": lastMsg, "updatedAt": time.Now()}
+
+	lastMsg, lastKind := domain.LastMessagePreview(mediaType, msg.Body, input.Mimetype)
+	updates := map[string]interface{}{"lastMessage": lastMsg, "lastMessageType": lastKind, "updatedAt": time.Now()}
 	if !input.FromMe {
 		// Atomic DB increment (column = column + 1) — evita lost update quando
 		// duas mensagens do mesmo ticket são processadas em paralelo em instâncias
@@ -266,6 +292,7 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		return nil, err
 	}
 	ticket.LastMessage = lastMsg
+	ticket.LastMessageType = lastKind
 	ticket.UpdatedAt = time.Now()
 
 	_ = uc.eventBus.Publish(ctx, domain.NewMessageReceivedEvent(msg.ID, ticket.ID, input.TenantID))

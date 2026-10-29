@@ -34,8 +34,17 @@ func (r *GORMMessageRepository) Create(ctx context.Context, msg *domain.Message)
 
 // CreateIfNotExists inserts a message only if it doesn't already exist.
 func (r *GORMMessageRepository) CreateIfNotExists(ctx context.Context, msg *domain.Message) error {
+	_, err := r.CreateIfNotExistsReport(ctx, msg)
+	return err
+}
+
+// CreateIfNotExistsReport faz o mesmo e diz se a linha foi de fato inserida. O INSERT ... ON CONFLICT DO NOTHING é
+// atômico, então duas entregas simultâneas do mesmo evento não passam as duas: só uma insere. Quem reage à chegada de
+// uma mensagem nova (contador de não lidas, eventos) usa isto para não repetir o efeito numa reentrega.
+func (r *GORMMessageRepository) CreateIfNotExistsReport(ctx context.Context, msg *domain.Message) (bool, error) {
 	m := messageDomainToModel(msg)
-	return r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(m).Error
+	res := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(m)
+	return res.RowsAffected > 0, res.Error
 }
 
 // FindByID returns the message with the given id under tenantID, or nil if not found.
@@ -51,6 +60,16 @@ func (r *GORMMessageRepository) FindByID(ctx context.Context, id string, tenantI
 		return nil, err
 	}
 	return messageModelToDomain(&m), nil
+}
+
+// FindByTicket returns all messages belonging to a ticket in chronological order.
+func (r *GORMMessageRepository) FindByTicket(ctx context.Context, ticketID int, tenantID uuid.UUID) ([]models.Message, error) {
+	var messages []models.Message
+	err := r.db.WithContext(ctx).
+		Where("\"ticketId\" = ? AND \"tenantId\" = ?", ticketID, tenantID).
+		Order("createdAt ASC").
+		Find(&messages).Error
+	return messages, err
 }
 
 // ExistsByID checks if a message with the given id exists under tenantID.
@@ -96,8 +115,10 @@ func (r *GORMMessageRepository) Update(ctx context.Context, msg *domain.Message,
 
 func messageModelToDomain(m *models.Message) *domain.Message {
 	return &domain.Message{
-		ID:          m.ID,
-		Body:        m.Body,
+		ID:                  m.ID,
+		ExternalID:          m.ExternalID,
+		ChannelConnectionID: m.ChannelConnectionID,
+		Body:                m.Body,
 		Ack:         m.Ack,
 		Read:        m.Read,
 		MediaType:   m.MediaType,
@@ -118,8 +139,10 @@ func messageModelToDomain(m *models.Message) *domain.Message {
 
 func messageDomainToModel(d *domain.Message) *models.Message {
 	return &models.Message{
-		ID:          d.ID,
-		Body:        d.Body,
+		ID:                  d.ID,
+		ExternalID:          d.ExternalID,
+		ChannelConnectionID: d.ChannelConnectionID,
+		Body:                d.Body,
 		Ack:         d.Ack,
 		Read:        d.Read,
 		MediaType:   d.MediaType,

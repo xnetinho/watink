@@ -9,16 +9,17 @@ import (
 
 // Ticket represents a support ticket in the system
 type Ticket struct {
-	ID             int       `json:"id"`
-	Status         string    `json:"status"`
-	LastMessage    string    `json:"lastMessage"`
-	ContactID      int       `json:"contactId"`
-	UserID         *int      `json:"userId"`
-	WhatsappID     int       `json:"whatsappId"`
-	IsGroup        bool      `json:"isGroup"`
-	IsCommunity    bool      `json:"isCommunity"`
-	IsSubGroup     bool      `json:"isSubGroup"`
-	UnreadMessages int       `json:"unreadMessages"`
+	ID                  int       `json:"id"`
+	Status              string    `json:"status"`
+	LastMessage         string    `json:"lastMessage"`
+	LastMessageType     string    `json:"lastMessageType,omitempty"`
+	ContactID           int       `json:"contactId"`
+	UserID              *int      `json:"userId"`
+	WhatsappID          int       `json:"whatsappId"`
+	IsGroup             bool      `json:"isGroup"`
+	IsCommunity         bool      `json:"isCommunity"`
+	IsSubGroup          bool      `json:"isSubGroup"`
+	UnreadMessages      int       `json:"unreadMessages"`
 	QueueID             *int      `json:"queueId"`
 	TenantID            uuid.UUID `json:"tenantId"`
 	ChannelConnectionID *int      `json:"channelConnectionId,omitempty"`
@@ -29,26 +30,45 @@ type Ticket struct {
 
 // Message represents a message in a ticket conversation
 type Message struct {
-	ID          string    `json:"id"`
-	Body        string    `json:"body"`
-	Ack         int       `json:"ack"`
-	Read        bool      `json:"read"`
-	MediaType   string    `json:"mediaType"`
-	MediaUrl    string    `json:"mediaUrl"`
-	TicketID    int       `json:"ticketId"`
-	FromMe      bool      `json:"fromMe"`
-	IsDeleted   bool      `json:"isDeleted"`
-	ContactID   *int      `json:"contactId"`
-	QuotedMsgID *string   `json:"quotedMsgId"`
-	TenantID    uuid.UUID `json:"tenantId"`
-	Reactions   string    `json:"reactions"`
-	DataJson    string    `json:"dataJson"`
-	Participant string    `json:"participant"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID                  string    `json:"id"`
+	ExternalID          string    `json:"externalId"` // id da mensagem no canal; vazio no WhatsApp, onde ID já é o id do canal
+	ChannelConnectionID *int      `json:"channelConnectionId,omitempty"`
+	Body                string    `json:"body"`
+	Ack                 int       `json:"ack"`
+	Read                bool      `json:"read"`
+	MediaType           string    `json:"mediaType"`
+	MediaUrl            string    `json:"mediaUrl"`
+	TicketID            int       `json:"ticketId"`
+	FromMe              bool      `json:"fromMe"`
+	IsDeleted           bool      `json:"isDeleted"`
+	ContactID           *int      `json:"contactId"`
+	QuotedMsgID         *string   `json:"quotedMsgId"`
+	TenantID            uuid.UUID `json:"tenantId"`
+	Reactions           string    `json:"reactions"`
+	DataJson            string    `json:"dataJson"`
+	Participant         string    `json:"participant"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+	// QuotedMsg é a mensagem citada, anexada só ao anunciar a mensagem em tempo real (não é persistida).
+	QuotedMsg *Message `json:"quotedMsg,omitempty"`
 }
 
 // Contact represents a customer contact
+// ConnectionRef identifica a conexão (de qual tabela e qual id) de onde um contato deriva.
+type ConnectionRef struct {
+	Source string // ConnectionSourceWhatsapp ou ConnectionSourceChannel
+	ID     int
+}
+
+const (
+	ConnectionSourceWhatsapp = "whatsapp" // Whatsapps
+	ConnectionSourceChannel  = "channel"  // ChannelConnections (Telegram...)
+)
+
+// WhatsappConnection e ChannelConnection constroem a referência a partir do id que cada fluxo já tem.
+func WhatsappConnection(id int) ConnectionRef { return ConnectionRef{ConnectionSourceWhatsapp, id} }
+func ChannelConnection(id int) ConnectionRef  { return ConnectionRef{ConnectionSourceChannel, id} }
+
 type Contact struct {
 	ID            int       `json:"id"`
 	Name          string    `json:"name"`
@@ -59,8 +79,13 @@ type Contact struct {
 	TenantID      uuid.UUID `json:"tenantId"`
 	Lid           *string   `json:"lid"`
 	WalletUserID  *int      `json:"walletUserId"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	// Conexão de origem do contato (ver models.Contact).
+	ConnectionSource string    `json:"connectionSource"`
+	ConnectionID     int       `json:"connectionId"`
+	PhoneSync        string    `json:"phoneSync"`
+	PhoneSyncError   string    `json:"phoneSyncError,omitempty"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
 // Queue represents a support queue with distribution settings
@@ -115,32 +140,34 @@ func (u *User) CheckPassword(password string) bool {
 
 // ChannelSession represents a session with a messaging channel (WhatsApp, Telegram, etc.)
 type ChannelSession struct {
-	ID                int        `json:"id"`
-	Session           string     `json:"session"`
-	Qrcode            string     `json:"qrcode"`
-	Status            string     `json:"status"`
-	Battery           string     `json:"battery"`
-	Plugged           bool       `json:"plugged"`
-	Name              string     `json:"name"`
-	IsDefault         bool       `json:"isDefault"`
-	Retries           int        `json:"retries"`
-	GreetingMessage   string     `json:"greetingMessage"`
-	FarewellMessage   string     `json:"farewellMessage"`
-	TenantID          uuid.UUID  `json:"tenantId"`
-	SyncHistory       bool       `json:"syncHistory"`
-	SyncPeriod        string     `json:"syncPeriod"`
-	Number            string     `json:"number"`
-	ProfilePicUrl     string     `json:"profilePicUrl"`
-	KeepAlive         bool       `json:"keepAlive"`
-	CreatedAt         time.Time  `json:"createdAt"`
-	UpdatedAt         time.Time  `json:"updatedAt"`
-	FirstConnection   *time.Time `json:"firstConnection"`
-	LastConnectedAt   *time.Time `json:"lastConnectedAt"`
-	EngineType        string     `json:"engineType"`
-	ProxyMode         string     `json:"proxyMode"`
-	ProxyID           *int       `json:"proxyId"`
-	ProxyGroupID      *int       `json:"proxyGroupId"`
-	ConnectionGroupID *int       `json:"connectionGroupId"`
+	ID                  int        `json:"id"`
+	Session             string     `json:"session"`
+	Qrcode              string     `json:"qrcode"`
+	Status              string     `json:"status"`
+	Battery             string     `json:"battery"`
+	Plugged             bool       `json:"plugged"`
+	Name                string     `json:"name"`
+	IsDefault           bool       `json:"isDefault"`
+	Retries             int        `json:"retries"`
+	GreetingMessage     string     `json:"greetingMessage"`
+	FarewellMessage     string     `json:"farewellMessage"`
+	TenantID            uuid.UUID  `json:"tenantId"`
+	SyncHistory         bool       `json:"syncHistory"`
+	SyncPeriod          string     `json:"syncPeriod"`
+	Number              string     `json:"number"`
+	ProfilePicUrl       string     `json:"profilePicUrl"`
+	KeepAlive           bool       `json:"keepAlive"`
+	PresencePolicy      string     `json:"presencePolicy"`
+	PresenceIdleMinutes int        `json:"presenceIdleMinutes"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	UpdatedAt           time.Time  `json:"updatedAt"`
+	FirstConnection     *time.Time `json:"firstConnection"`
+	LastConnectedAt     *time.Time `json:"lastConnectedAt"`
+	EngineType          string     `json:"engineType"`
+	ProxyMode           string     `json:"proxyMode"`
+	ProxyID             *int       `json:"proxyId"`
+	ProxyGroupID        *int       `json:"proxyGroupId"`
+	ConnectionGroupID   *int       `json:"connectionGroupId"`
 	// Wid é o JID whatsmeow (ex: "5511999999999:2@s.whatsapp.net") que identifica
 	// QUAL device store reusar no engine ao reconectar. Sem ele, resolveDeviceStore
 	// não acha o device existente e cria um NOVO — deslogando a conta real.

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/alltomatos/watinkdev/engine-go/internal/calls"
 	"github.com/alltomatos/watinkdev/engine-go/internal/rabbitmq"
 	_ "github.com/lib/pq"
@@ -17,12 +19,19 @@ import (
 )
 
 // WhatsAppService manages all active WhatsApp client sessions for a single engine-go instance.
+type clientKey struct {
+	tenant string
+	id     int
+}
+
 type WhatsAppService struct {
-	container     *sqlstore.Container
-	clients       map[int]*whatsmeow.Client
-	mu            sync.RWMutex
-	rabbit        *rabbitmq.RabbitMQService
-	sessionLoader SessionLoader
+	container       *sqlstore.Container
+	clients         map[int]*whatsmeow.Client
+	clientsByTenant map[clientKey]*whatsmeow.Client
+	mu              sync.RWMutex
+	presenceMu      sync.Mutex
+	presence        map[int]*presenceState // política e estado de presença por sessão
+	rabbit          *rabbitmq.RabbitMQService
 
 	historyMu       sync.Mutex
 	historyRequests map[string]*pendingHistory
@@ -50,7 +59,7 @@ type groupMeta struct {
 }
 
 // NewWhatsAppService creates a WhatsAppService connecting whatsmeow to PostgreSQL via sqlstore.
-func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService, sessionLoader SessionLoader) *WhatsAppService {
+func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService) *WhatsAppService {
 	dbLog := waLog.Stdout("Database", "DEBUG", true)
 	dsn := BuildPostgresDSN()
 
@@ -62,8 +71,8 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService, sessionLoader SessionL
 	svc := &WhatsAppService{
 		container:       container,
 		clients:         make(map[int]*whatsmeow.Client),
+		clientsByTenant: make(map[clientKey]*whatsmeow.Client),
 		rabbit:          rabbit,
-		sessionLoader:   sessionLoader,
 		historyRequests: make(map[string]*pendingHistory),
 		groupNames:      make(map[string]string),
 		groupMetaMap:    make(map[string]groupMeta),
@@ -75,11 +84,26 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService, sessionLoader SessionL
 }
 
 // getConnectedClient returns the client for sessionID if it is connected and logged in.
-func (s *WhatsAppService) getConnectedClient(sessionID int) (*whatsmeow.Client, error) {
+func (s *WhatsAppService) getConnectedClient(sessionID int, tenantIDs ...string) (*whatsmeow.Client, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	client, ok := s.clients[sessionID]
-	if !ok || !client.IsConnected() || !client.IsLoggedIn() {
+	var client *whatsmeow.Client
+	if len(tenantIDs) > 0 && tenantIDs[0] != "" {
+		client = s.clientsByTenant[clientKey{tenantIDs[0], sessionID}]
+	} else {
+		client = s.clients[sessionID]
+		if client == nil {
+			for key, candidate := range s.clientsByTenant {
+				if key.id == sessionID {
+					if client != nil {
+						return nil, fmt.Errorf("%w: session %d is ambiguous across tenants", ErrSessionNotConnected, sessionID)
+					}
+					client = candidate
+				}
+			}
+		}
+	}
+	if client == nil || !client.IsConnected() || !client.IsLoggedIn() {
 		return nil, fmt.Errorf("%w: session %d", ErrSessionNotConnected, sessionID)
 	}
 	return client, nil
@@ -114,7 +138,7 @@ func (s *WhatsAppService) defaultPublishEvent(tenantID string, sessionID int, ev
 		"type":      eventType,
 		"payload":   eventPayloadWithTenant(tenantID, payload),
 	}
-	if err := s.rabbit.PublishEvent(fmt.Sprintf("wbot.%s.%d.%s", tenantID, sessionID, eventType), envelope); err != nil {
+	if err := s.rabbit.PublishEvent(wbot.Event(tenantID, strconv.Itoa(sessionID), eventType), envelope); err != nil {
 		log.Printf("Failed to publish %s for session %d: %v", eventType, sessionID, err)
 	}
 }

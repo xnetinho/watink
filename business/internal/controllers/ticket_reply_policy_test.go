@@ -123,6 +123,10 @@ func TestTicketReplyPolicy_ShowAndSend409(t *testing.T) {
 	var showBody map[string]interface{}
 	require.NoError(t, json.Unmarshal(wShow.Body.Bytes(), &showBody))
 	assert.Contains(t, showBody, "replyPolicy")
+	assert.Equal(t, "instagram", showBody["channel"])
+	assert.Contains(t, showBody, "capabilities")
+	caps := showBody["capabilities"].(map[string]interface{})
+	assert.Equal(t, false, caps["initiateConversation"])
 	rp := showBody["replyPolicy"].(map[string]interface{})
 	assert.Equal(t, false, rp["canReply"])
 	assert.Equal(t, string(domain.ReplyBlockWindowExpired), rp["reason"])
@@ -139,4 +143,11 @@ func TestTicketReplyPolicy_ShowAndSend409(t *testing.T) {
 	require.NoError(t, json.Unmarshal(wSend.Body.Bytes(), &sendErr))
 	assert.Equal(t, "reply_not_allowed", sendErr["error"])
 	assert.Equal(t, string(domain.ReplyBlockWindowExpired), sendErr["code"])
+}
+
+func (c *dummyChannel) ResolveAddress(ctx context.Context, conn *models.ChannelConnection, contact *models.Contact) (string, error) {
+	if contact != nil && contact.Number != "" {
+		return contact.Number, nil
+	}
+	return "mock_addr", nil
 }

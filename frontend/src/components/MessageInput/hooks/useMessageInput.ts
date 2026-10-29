@@ -94,12 +94,12 @@ export const useMessageInput = () => {
         const groupName = ticket.contact.name as string | undefined;
 
         if (groupName && inputMessage.includes(`@${groupName}`)) {
-          mentionedIds.push(...participants.map((p) => p.number + "@s.whatsapp.net"));
+          mentionedIds.push(...participants.map((p) => p.number));
           finalBody = finalBody.replace(`@${groupName}`, "").trim();
         }
         participants.forEach((p) => {
           if (inputMessage.includes(`@${p.name}`) || inputMessage.includes(`@${p.number}`)) {
-            mentionedIds.push(p.number + "@s.whatsapp.net");
+            mentionedIds.push(p.number);
           }
         });
         mentionedIds = [...new Set(mentionedIds)];
@@ -157,6 +157,7 @@ export const useMessageInput = () => {
     handleInputPaste,
     handleMediaCaptionChange: mediaUpload.handleMediaCaptionChange,
     handleUploadMedia: (e?: React.FormEvent) => mediaUpload.handleUploadMedia(ticketId, e),
+    handleAudioKindChange: mediaUpload.handleAudioKindChange,
     handleRemoveMedia: mediaUpload.handleRemoveMedia,
     handleClearMedias: mediaUpload.clearMedias,
     // mentions

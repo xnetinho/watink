@@ -20,10 +20,15 @@ type MessageController struct {
 	engines     domain.WhatsAppEngineResolver
 	db          *gorm.DB
 	mediaWaiter *mediawait.Waiter
+	messages    domain.MessageRepository
 }
 
-func NewMessageController(r domain.CommandPublisher, b domain.Broadcaster, engines domain.WhatsAppEngineResolver) *MessageController {
-	return &MessageController{rabbit: r, broadcast: domain.BroadcastOrNop(b), engines: engines}
+func NewMessageController(r domain.CommandPublisher, b domain.Broadcaster, engines domain.WhatsAppEngineResolver, messages ...domain.MessageRepository) *MessageController {
+	mc := &MessageController{rabbit: r, broadcast: domain.BroadcastOrNop(b), engines: engines}
+	if len(messages) > 0 && messages[0] != nil {
+		mc.messages = messages[0]
+	}
+	return mc
 }
 
 // WithTranscription attaches the dependencies used only by the on-demand

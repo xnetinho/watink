@@ -19,7 +19,6 @@ interface UpdateDialogProps {
   releaseMeta: ReleaseMeta;
   changelog: string[];
   blockedByCompatibility: boolean;
-  onConfirm: () => void;
 }
 
 const UpdateDialog: React.FC<UpdateDialogProps> = ({
@@ -30,7 +29,6 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
   releaseMeta,
   changelog,
   blockedByCompatibility,
-  onConfirm,
 }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent>
@@ -79,9 +77,9 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
         )}
 
         <p className="pt-2">
-          Ao atualizar, o sistema irá entrar em manutenção e reiniciar os serviços.
+          A atualização é feita no servidor, puxando as novas imagens:
         </p>
-        <p>Deseja prosseguir agora?</p>
+        <pre className="rounded bg-muted p-2 text-xs">docker compose pull && docker compose up -d</pre>
 
         {blockedByCompatibility && (
           <p className="text-destructive">
@@ -92,10 +90,7 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          Agora não
-        </Button>
-        <Button onClick={onConfirm} disabled={blockedByCompatibility}>
-          {blockedByCompatibility ? "Release incompatível" : "Sim, Atualizar Agora"}
+          Fechar
         </Button>
       </DialogFooter>
     </DialogContent>

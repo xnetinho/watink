@@ -197,3 +197,48 @@ func TestChannelSessionToModel_PreservesWid(t *testing.T) {
 	m := channelSessionToModel(s)
 	assert.Equal(t, wid, m.Wid, "channelSessionToModel deve preservar o Wid")
 }
+
+type tenantEventCapture struct{ events []map[string]interface{} }
+
+func (b *tenantEventCapture) EmitToRoom(_, _, _ string, _ interface{})   {}
+func (b *tenantEventCapture) EmitToNamespace(_, _ string, _ interface{}) {}
+func (b *tenantEventCapture) EmitToTenantRoom(_, event string, p interface{}) {
+	if m, ok := p.(map[string]interface{}); ok {
+		cp := map[string]interface{}{"event": event}
+		for k, v := range m {
+			cp[k] = v
+		}
+		b.events = append(b.events, cp)
+	}
+}
+
+// Regressão do "continua Conectado até o Ctrl+F5": o controller lia a sessão, gravava DISCONNECTED e emitia o OBJETO
+// LIDO ANTES (status antigo). O navegador recebia "CONNECTED" no evento de desconectar.
+func TestSessionController_StopSession_EventoCarregaOStatusNovo(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	tenantID := uuid.New()
+	db := newSessionTestDB(t)
+	sess := &domain.ChannelSession{ID: 1, Name: "zap", TenantID: tenantID, EngineType: "whatsmeow", Status: "CONNECTED", Qrcode: "old"}
+	bc := &tenantEventCapture{}
+	wss := services.NewWhatsAppSessionService(db, noopCommandPublisher{}, busyLockRedis{}, bc)
+	ctrl := NewSessionController(&mockChannelSessionRepo{session: sess}, bc, wss)
+
+	c, w := setupSessionGinContext(tenantID, "DELETE", "/whatsappsession/1", db)
+	c.Params = gin.Params{{Key: "whatsappId", Value: "1"}}
+	ctrl.StopSession(c)
+
+	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.NotEmpty(t, bc.events)
+	for _, e := range bc.events {
+		var st, qr string
+		switch s := e["session"].(type) {
+		case *domain.ChannelSession:
+			st, qr = s.Status, s.Qrcode
+		}
+		if c, ok := e["connection"].(*domain.ChannelSession); ok {
+			st, qr = c.Status, c.Qrcode
+		}
+		assert.Equal(t, "DISCONNECTED", st, "evento %v", e["event"])
+		assert.Empty(t, qr)
+	}
+}

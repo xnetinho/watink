@@ -15,6 +15,12 @@ export interface Contact {
   lid?: string;
   extraInfo?: ExtraInfo[];
   client?: { id: number; socialName?: string | null } | null;
+  /** Conexão de origem: o contato pertence a UMA conexão e é por ela que recebe e envia. */
+  connectionSource?: "whatsapp" | "channel";
+  connectionId?: number;
+  /** Resultado de gravar o contato na agenda do celular (só WhatsApp): pending | saved | failed. */
+  phoneSync?: "" | "pending" | "saved" | "failed";
+  phoneSyncError?: string;
 }
 
 export interface Tag {
@@ -35,11 +41,27 @@ export interface Whatsapp {
   status?: string;
 }
 
+export interface ChannelCapabilities {
+  initiateConversation?: boolean;
+  replyWindow?: number | null;
+  maxTextBytes?: number;
+  media?: string[];
+  groups?: boolean;
+  typing?: boolean;
+  readReceipts?: boolean;
+  reactions?: boolean;
+  hasPhone?: boolean;
+  voice?: boolean;
+  video?: boolean;
+}
+
 export interface Ticket {
   id: number;
   status: "open" | "pending" | "closed";
   unreadMessages: number;
   lastMessage: string;
+  /** Marcador de tipo quando a última mensagem não tem texto (image, video, poll...); a tela o traduz. */
+  lastMessageType?: string;
   isGroup: boolean;
   createdAt: string;
   updatedAt: string;
@@ -55,4 +77,29 @@ export interface Ticket {
     name: string;
   };
   tags?: Tag[];
+  channel?: string;
+  /** Identificação do ticket: canal + conexão, no mesmo formato para qualquer canal (ver TicketConnection). */
+  connection?: TicketConnection;
+  capabilities?: ChannelCapabilities;
+  replyPolicy?: {
+    canReply: boolean;
+    reason?: string;
+    message?: string;
+  };
+}
+
+/**
+ * Por onde um ticket conversa: o canal (`kind`, uma chave do catálogo em config/channels.ts) e a conexão (`id` + `name`).
+ * É o contrato de identificação do ticket e vale para TODO canal (WhatsApp, Telegram, Mercado Livre, OLX, Instagram,
+ * TikTok...): o backend o preenche a partir da conexão do ticket e a tela só o desenha, sem `if` por canal. Canal novo
+ * entra no catálogo (config/channels.ts) e ganha o selo sem tocar nos componentes de ticket.
+ */
+export interface TicketConnection {
+  kind: string;
+  id: number;
+  name: string;
+  /** Tabela de origem do id ("whatsapp" | "channel"); some quando o WhatsApp migrar para ChannelConnections. */
+  source: "whatsapp" | "channel";
+  /** Foto da conexão (hoje só a do WhatsApp): avatar das mensagens enviadas pelo Watink. */
+  profilePicUrl?: string;
 }

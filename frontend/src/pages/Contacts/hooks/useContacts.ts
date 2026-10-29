@@ -23,7 +23,6 @@ export function useContacts(): UseContactsReturn {
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [selectedInitialContact, setSelectedInitialContact] = useState<Contact | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [view, setView] = useLocalStorage<ContactsView>("contactsView", "table");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -124,17 +123,6 @@ export function useContacts(): UseContactsReturn {
     setPageNumber(1);
   };
 
-  const handleImportContacts = async () => {
-    try {
-      await api.post("/contacts/import");
-      toast.success(i18n.t("contacts.toasts.importSuccess"));
-      setSearchParam("");
-      setPageNumber(1);
-    } catch (err) {
-      toastError(err);
-    }
-  };
-
   const toggleSelected = (contactId: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -197,10 +185,8 @@ export function useContacts(): UseContactsReturn {
     clientModalOpen,
     selectedInitialContact,
     confirmOpen,
-    importConfirmOpen,
     setView,
     setConfirmOpen,
-    setImportConfirmOpen,
     handleSearch,
     handleScroll,
     handleOpenContactModal,
@@ -211,7 +197,6 @@ export function useContacts(): UseContactsReturn {
     handleSaveTicket,
     connectionDialog,
     handleDeleteContact,
-    handleImportContacts,
     handleRequestDelete,
     selectedIds,
     isAllSelected,

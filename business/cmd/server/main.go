@@ -21,6 +21,7 @@ package main
 
 import (
 	"context"
+
 	"io/fs"
 	"log"
 	"net/http"
@@ -39,12 +40,14 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/knowledge"
 	"github.com/alltomatos/watinkdev/business/internal/mediawait"
 	"github.com/alltomatos/watinkdev/business/internal/middleware"
+	"github.com/alltomatos/watinkdev/business/internal/monitoring"
 	"github.com/alltomatos/watinkdev/business/internal/routes"
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/internal/web"
 	"github.com/alltomatos/watinkdev/business/pkg/engineaddr"
 	"github.com/alltomatos/watinkdev/business/pkg/s3store"
+	"github.com/alltomatos/watinkdev/business/pkg/safego"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	otelgin "go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -113,7 +116,7 @@ func main() {
 	// Watink SaaS. ~30s entre ciclos — mesma cadência do contrato do lado
 	// servidor (watink-saas#28, staleness em 5x este intervalo).
 	saasSyncWorker := saasclient.NewWorker(services.NewSaaSContractService(database.DB), database.DB, services.NewSetupService(database.DB), GitCommit)
-	go saasSyncWorker.Run(context.Background(), 30*time.Second)
+	safego.Go("saas.syncWorker", func() { saasSyncWorker.Run(context.Background(), 30*time.Second) })
 
 	// Knowledge Base file sources: build the S3-compatible object store from
 	// env. When S3 is unconfigured or init fails, s3Store stays nil and the
@@ -175,7 +178,7 @@ func main() {
 			log.Printf("[knowledge] ingest worker: %v", err)
 		}
 		reconciler := knowledge.NewReconciler(database.DB, redisSvc)
-		go reconciler.Start(context.Background())
+		safego.Go("knowledge.reconciler", func() { reconciler.Start(context.Background()) })
 
 		// Consumes the ingest worker's own status events (knowledge.events)
 		// and reflects them onto the source rows + broadcasts to the tenant
@@ -203,12 +206,19 @@ func main() {
 		calls.NewEngineDialer(engineaddr.CallsAudioURL()), database.DB)
 	r.GET("/api/v1/calls/:id/audio", callAudioController.Stream)
 
+	readinessHandler := func(c *gin.Context) {
+		status := services.CheckReadiness(c.Request.Context(), database.DB, redisSvc, rabbitMQ)
+		code := http.StatusOK
+		if status.Status != "OK" {
+			code = http.StatusServiceUnavailable
+		}
+		c.JSON(code, status)
+	}
+
 	apiGroup := r.Group("/api/v1")
 	apiGroup.Use(gin.Logger())
 	{
-		apiGroup.GET("/health", func(c *gin.Context) {
-			c.JSON(200, gin.H{"status": "OK", "service": "watink-business"})
-		})
+		apiGroup.GET("/health", readinessHandler)
 
 		apiGroup.GET("/about", func(c *gin.Context) {
 			version := "dev"
@@ -242,11 +252,12 @@ func main() {
 		})
 
 		routes.SetupRoutes(apiGroup, rabbitMQ, container, s3Store, ragRetriever, ragResponder, mediaWaiter)
+		apiGroup.GET("/metrics", gin.WrapH(monitoring.Handler()))
 	}
 
-	r.GET("/api/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "OK", "service": "watink-business"})
-	})
+	r.GET("/metrics", gin.WrapH(monitoring.Handler()))
+	r.GET("/api/health", readinessHandler)
+	r.GET("/health", readinessHandler)
 	setupCtrl := controllers.NewSetupController(services.NewSetupService(database.DB))
 	r.GET("/api/initial-setup/check", setupCtrl.CheckSetup)
 	r.POST("/api/initial-setup", setupCtrl.InitialSetup)
@@ -264,10 +275,18 @@ func main() {
 		f, err := publicFS.Open(strings.TrimPrefix(path, "/"))
 		if err == nil {
 			_ = f.Close()
-			if strings.HasPrefix(path, "/assets/") {
+			// /assets/ tem hash no nome; /emoji/ é um conjunto versionado e imutável (3.783 imagens): ambos com cache longo.
+			if strings.HasPrefix(path, "/assets/") || strings.HasPrefix(path, "/emoji/") {
 				c.Header("Cache-Control", "public, max-age=31536000, immutable")
 			}
 			http.FileServer(http.FS(publicFS)).ServeHTTP(c.Writer, c.Request)
+			return
+		}
+
+		// Arquivo estático que não existe é 404, não a página inicial: senão uma imagem ausente (ex.: um emoji fora do
+		// conjunto) volta como HTML com status 200 e o navegador a trata como imagem quebrada em vez de cair no texto.
+		if strings.HasPrefix(path, "/emoji/") || strings.HasPrefix(path, "/assets/") {
+			c.Status(http.StatusNotFound)
 			return
 		}
 

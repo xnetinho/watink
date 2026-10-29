@@ -1,29 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "react-toastify";
-import { Save, PlayCircle, Loader2, CheckCircle2, XCircle, Info } from "lucide-react";
+import { Save, PlayCircle } from "lucide-react";
 import { PageContainer, PageHeader, PageContent } from "@/components/ui/page-layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import api from "../../services/api";
 import {
     Assistant,
@@ -37,32 +21,13 @@ import {
 import { listAiGateways, AiGateway } from "../../services/aiGatewayService";
 import AssistantRouterOptions from "./AssistantRouterOptions";
 import AssistantGroupsPanel from "./AssistantGroupsPanel";
-import PersonaSectionsEditor from "./PersonaSectionsEditor";
 import { PersonaSectionValues, buildPersonaFromSections, parsePersonaSections } from "./personaSections";
-
-interface WhatsappOption {
-    id: number;
-    name: string;
-}
-interface FlowOption {
-    id: number;
-    name: string;
-}
-interface PipelineOption {
-    id: number;
-    name: string;
-}
-interface KnowledgeBaseOption {
-    id: number;
-    name: string;
-}
-
-const PIPELINE_EVENTS = [
-    { value: "deal_created", label: "Ticket/negócio criado" },
-    { value: "stage_changed", label: "Mudança de estágio" },
-    { value: "idle", label: "Parado há X dias" },
-    { value: "closed", label: "Finalizado" },
-];
+import { AssistantTestDialog } from "./components/AssistantTestDialog";
+import { AssistantAdvancedTab } from "./components/AssistantAdvancedTab";
+import { AssistantBehaviorTab } from "./components/AssistantBehaviorTab";
+import { AssistantTriggerTab } from "./components/AssistantTriggerTab";
+import { AssistantBasicInfoCard } from "./components/AssistantBasicInfoCard";
+import type { WhatsappOption, FlowOption, PipelineOption, KnowledgeBaseOption } from "./assistantCreatorTypes";
 
 const emptyPersonaSections = (): PersonaSectionValues => parsePersonaSections("");
 
@@ -107,10 +72,7 @@ const AssistantCreator: React.FC = () => {
     const [acceptsAudio, setAcceptsAudio] = useState(false);
     const [respondsWithAudio, setRespondsWithAudio] = useState(false);
 
-    // Modo flow
     const [flowId, setFlowId] = useState<string>("");
-
-    // Modo persona (e pipeline.respondsAfterProactive) — editor guiado em 5 seções
     const [personaSections, setPersonaSections] = useState<PersonaSectionValues>(emptyPersonaSections());
     const [knowledgeBaseId, setKnowledgeBaseId] = useState<string>("");
     const [maxTurns, setMaxTurns] = useState("6");
@@ -118,14 +80,13 @@ const AssistantCreator: React.FC = () => {
     const [ragFallbackBehavior, setRagFallbackBehavior] = useState("handoff");
     const [ragFallbackMessage, setRagFallbackMessage] = useState("");
 
-    // Modo pipeline
     const [pipelineId, setPipelineId] = useState<string>("");
     const [pipelineEvents, setPipelineEvents] = useState<string[]>(["stage_changed"]);
     const [idleThresholdDays, setIdleThresholdDays] = useState("3");
     const [respondsAfterProactive, setRespondsAfterProactive] = useState(false);
 
     useEffect(() => {
-        (async () => {
+        const loadDependencies = async () => {
             try {
                 const [wa, fl, pl, kb, gw] = await Promise.all([
                     api.get("/whatsapp"),
@@ -134,74 +95,104 @@ const AssistantCreator: React.FC = () => {
                     api.get("/knowledge-bases"),
                     listAiGateways(),
                 ]);
-                setWhatsapps(Array.isArray(wa.data) ? wa.data : []);
-                setFlows(Array.isArray(fl.data) ? fl.data : []);
-                setPipelines(Array.isArray(pl.data) ? pl.data : []);
-                setKnowledgeBases(Array.isArray(kb.data) ? kb.data : []);
+                setWhatsapps(
+                    (wa.data as Array<{ id: number; name: string }>).map((w) => ({
+                        id: w.id,
+                        name: w.name,
+                    }))
+                );
+                setFlows(fl.data);
+                setPipelines(pl.data);
+                setKnowledgeBases(kb.data);
                 setAiGateways(gw);
             } catch {
-                toast.error("Erro ao carregar opções de conexão/flow/pipeline");
+                toast.error("Erro ao carregar dependências");
             }
-        })();
-    }, []);
+        };
 
-    useEffect(() => {
-        if (!isEditing) return;
-        (async () => {
+        const loadAssistant = async () => {
+            if (!assistantId) return;
             try {
                 const a: Assistant = await getAssistant(Number(assistantId));
                 setName(a.name);
                 setDescription(a.description ?? "");
                 setWhatsappId(a.whatsappId ? String(a.whatsappId) : "");
-                setAllowMultipleOnConnection(a.allowMultipleOnConnection);
+                setAllowMultipleOnConnection(a.allowMultipleOnConnection ?? false);
                 setMode(a.mode);
                 setActive(a.active);
-                setTriggerType(a.triggerType);
-                setTriggerOperator(a.triggerOperator || "contains");
-                setTriggerValue(a.triggerValue || "");
-                setSessionExpiryMinutes(a.sessionExpiryMinutes ? String(a.sessionExpiryMinutes) : "");
-                setTypingDelayMs(a.typingDelayMs ? String(a.typingDelayMs) : "");
-                setDebounceSeconds(a.debounceSeconds ? String(a.debounceSeconds) : "");
+
+                const t = (a as unknown as { trigger?: { type?: string; operator?: string; value?: string } }).trigger ?? {};
+                setTriggerType(t.type === "keyword" ? "keyword" : "any");
+                setTriggerOperator(t.operator ?? "contains");
+                setTriggerValue(t.value ?? "");
+
+                setSessionExpiryMinutes(
+                    a.sessionExpiryMinutes !== undefined && a.sessionExpiryMinutes !== null
+                        ? String(a.sessionExpiryMinutes)
+                        : ""
+                );
+                setTypingDelayMs(a.typingDelayMs !== undefined && a.typingDelayMs !== null ? String(a.typingDelayMs) : "");
+                setDebounceSeconds(
+                    a.debounceSeconds !== undefined && a.debounceSeconds !== null ? String(a.debounceSeconds) : ""
+                );
                 setEndKeyword(a.endKeyword ?? "");
                 setExpiryMessage(a.expiryMessage ?? "");
                 setClosingMessage(a.closingMessage ?? "");
-                setStopOnHumanReply(a.stopOnHumanReply);
-                setIgnoreGroups(a.ignoreGroups);
+                setStopOnHumanReply(a.stopOnHumanReply ?? true);
+                setIgnoreGroups(a.ignoreGroups ?? true);
                 setGroupsMode(a.groupsMode ?? "legacy");
-                setAcceptsAudio(a.acceptsAudio);
-                setRespondsWithAudio(a.respondsWithAudio);
+                setAcceptsAudio(a.acceptsAudio ?? false);
+                setRespondsWithAudio(a.respondsWithAudio ?? false);
 
                 const cfg = (a.config ?? {}) as Record<string, unknown>;
-                if (a.mode === "flow") setFlowId(cfg.flowId ? String(cfg.flowId) : "");
-                if (a.mode === "persona") {
-                    setPersonaSections(parsePersonaSections((cfg.persona as string) ?? ""));
-                    setKnowledgeBaseId(cfg.knowledgeBaseId ? String(cfg.knowledgeBaseId) : "");
-                    setMaxTurns(cfg.maxTurns ? String(cfg.maxTurns) : "6");
-                    setAiGatewayId(cfg.aiGatewayId ? String(cfg.aiGatewayId) : "");
-                    setRagFallbackBehavior((cfg.ragFallbackBehavior as string) ?? "handoff");
-                    setRagFallbackMessage((cfg.ragFallbackMessage as string) ?? "");
+                if (a.mode === "flow" && typeof cfg.flowId === "number") {
+                    setFlowId(String(cfg.flowId));
+                }
+                const hasPersona = a.mode === "persona" || (a.mode === "pipeline" && cfg.respondsAfterProactive);
+                if (hasPersona) {
+                    if (typeof cfg.persona === "string") {
+                        setPersonaSections(parsePersonaSections(cfg.persona));
+                    }
+                    if (typeof cfg.knowledgeBaseId === "number") {
+                        setKnowledgeBaseId(String(cfg.knowledgeBaseId));
+                    }
+                    if (typeof cfg.maxTurns === "number") {
+                        setMaxTurns(String(cfg.maxTurns));
+                    }
+                    if (typeof cfg.aiGatewayId === "number") {
+                        setAiGatewayId(String(cfg.aiGatewayId));
+                    }
+                    if (typeof cfg.ragFallbackBehavior === "string") {
+                        setRagFallbackBehavior(cfg.ragFallbackBehavior);
+                    }
+                    if (typeof cfg.ragFallbackMessage === "string") {
+                        setRagFallbackMessage(cfg.ragFallbackMessage);
+                    }
                 }
                 if (a.mode === "pipeline") {
-                    setPipelineId(cfg.pipelineId ? String(cfg.pipelineId) : "");
-                    setPipelineEvents((cfg.events as string[]) ?? ["stage_changed"]);
-                    setIdleThresholdDays(cfg.idleThresholdDays ? String(cfg.idleThresholdDays) : "3");
-                    setRespondsAfterProactive(!!cfg.respondsAfterProactive);
-                    setPersonaSections(parsePersonaSections((cfg.persona as string) ?? ""));
-                    setKnowledgeBaseId(cfg.knowledgeBaseId ? String(cfg.knowledgeBaseId) : "");
-                    setMaxTurns(cfg.maxTurns ? String(cfg.maxTurns) : "6");
-                    setAiGatewayId(cfg.aiGatewayId ? String(cfg.aiGatewayId) : "");
-                    setRagFallbackBehavior((cfg.ragFallbackBehavior as string) ?? "handoff");
-                    setRagFallbackMessage((cfg.ragFallbackMessage as string) ?? "");
+                    if (typeof cfg.pipelineId === "number") {
+                        setPipelineId(String(cfg.pipelineId));
+                    }
+                    if (Array.isArray(cfg.events)) {
+                        setPipelineEvents(cfg.events as string[]);
+                    }
+                    if (typeof cfg.idleThresholdDays === "number") {
+                        setIdleThresholdDays(String(cfg.idleThresholdDays));
+                    }
+                    setRespondsAfterProactive(Boolean(cfg.respondsAfterProactive));
                 }
             } catch {
                 toast.error("Erro ao carregar assistente");
             }
-        })();
-    }, [assistantId, isEditing]);
+        };
+
+        loadDependencies();
+        loadAssistant();
+    }, [assistantId]);
 
     const toggleEvent = (value: string) => {
         setPipelineEvents((prev) =>
-            prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+            prev.includes(value) ? prev.filter((e) => e !== value) : [...prev, value]
         );
     };
 
@@ -211,85 +202,81 @@ const AssistantCreator: React.FC = () => {
 
     const buildConfig = (): Record<string, unknown> => {
         const persona = buildPersonaFromSections(personaSections);
-        switch (mode) {
-            case "flow":
-                return { flowId: Number(flowId) };
-            case "persona":
-                return {
-                    persona,
-                    knowledgeBaseId: knowledgeBaseId ? Number(knowledgeBaseId) : null,
-                    maxTurns: Number(maxTurns) || 6,
-                    aiGatewayId: Number(aiGatewayId),
-                    ragFallbackBehavior,
-                    ragFallbackMessage: ragFallbackBehavior === "fixed_message" ? ragFallbackMessage : null,
-                };
-            case "pipeline":
-                return {
-                    pipelineId: Number(pipelineId),
-                    events: pipelineEvents,
-                    idleThresholdDays: Number(idleThresholdDays) || 0,
-                    respondsAfterProactive,
-                    ...(respondsAfterProactive
-                        ? {
-                              persona,
-                              knowledgeBaseId: knowledgeBaseId ? Number(knowledgeBaseId) : null,
-                              maxTurns: Number(maxTurns) || 6,
-                              aiGatewayId: Number(aiGatewayId),
-                              ragFallbackBehavior,
-                              ragFallbackMessage:
-                                  ragFallbackBehavior === "fixed_message" ? ragFallbackMessage : null,
-                          }
-                        : {}),
-                };
-            case "router":
-            default:
-                return {};
+        if (mode === "flow") {
+            return { flowId: flowId ? Number(flowId) : undefined };
         }
+        if (mode === "persona") {
+            return {
+                persona,
+                knowledgeBaseId: knowledgeBaseId ? Number(knowledgeBaseId) : undefined,
+                maxTurns: maxTurns ? Number(maxTurns) : 6,
+                aiGatewayId: aiGatewayId ? Number(aiGatewayId) : undefined,
+                ragFallbackBehavior,
+                ragFallbackMessage: ragFallbackBehavior === "apologize" ? ragFallbackMessage : undefined,
+            };
+        }
+        if (mode === "pipeline") {
+            const cfg: Record<string, unknown> = {
+                pipelineId: pipelineId ? Number(pipelineId) : undefined,
+                events: pipelineEvents,
+                idleThresholdDays: pipelineEvents.includes("idle") && idleThresholdDays ? Number(idleThresholdDays) : undefined,
+                respondsAfterProactive,
+            };
+            if (respondsAfterProactive) {
+                cfg.persona = persona;
+                cfg.knowledgeBaseId = knowledgeBaseId ? Number(knowledgeBaseId) : undefined;
+                cfg.maxTurns = maxTurns ? Number(maxTurns) : 6;
+                cfg.aiGatewayId = aiGatewayId ? Number(aiGatewayId) : undefined;
+                cfg.ragFallbackBehavior = ragFallbackBehavior;
+                cfg.ragFallbackMessage = ragFallbackBehavior === "apologize" ? ragFallbackMessage : undefined;
+            }
+            return cfg;
+        }
+        return {};
     };
 
     const handleSave = async () => {
         if (!name.trim()) {
-            toast.error("Informe um nome para o assistente");
-            setActiveTab("geral");
+            toast.warning("Nome é obrigatório");
             return;
         }
+
         setSaving(true);
         try {
             const payload = {
-                name,
-                description,
-                whatsappId: whatsappId ? Number(whatsappId) : null,
+                name: name.trim(),
+                description: description.trim() || undefined,
+                whatsappId: whatsappId ? Number(whatsappId) : undefined,
                 allowMultipleOnConnection,
                 mode,
+                active,
+                trigger: {
+                    type: triggerType,
+                    operator: triggerType === "keyword" ? triggerOperator : undefined,
+                    value: triggerType === "keyword" ? triggerValue.trim() : undefined,
+                },
                 config: buildConfig(),
-                triggerType,
-                triggerOperator: triggerType === "keyword" ? triggerOperator : "",
-                triggerValue: triggerType === "keyword" ? triggerValue : "",
-                sessionExpiryMinutes: sessionExpiryMinutes ? Number(sessionExpiryMinutes) : null,
-                typingDelayMs: typingDelayMs ? Number(typingDelayMs) : null,
-                debounceSeconds: debounceSeconds ? Number(debounceSeconds) : null,
-                endKeyword: endKeyword || null,
-                expiryMessage: expiryMessage || null,
-                closingMessage: closingMessage || null,
+                sessionExpiryMinutes: sessionExpiryMinutes ? Number(sessionExpiryMinutes) : undefined,
+                typingDelayMs: typingDelayMs ? Number(typingDelayMs) : undefined,
+                debounceSeconds: debounceSeconds ? Number(debounceSeconds) : undefined,
+                endKeyword: endKeyword.trim() || undefined,
+                expiryMessage: expiryMessage.trim() || undefined,
+                closingMessage: closingMessage.trim() || undefined,
                 stopOnHumanReply,
-                ignoreGroups,
+                ignoreGroups: groupsMode === "selective" ? false : ignoreGroups,
                 groupsMode,
                 acceptsAudio,
                 respondsWithAudio,
-                active,
             };
 
             if (isEditing) {
                 await updateAssistant(Number(assistantId), payload);
-                toast.success("Assistente atualizado com sucesso!");
+                toast.success("Assistente atualizado!");
             } else {
                 const created = await createAssistant(payload);
-                toast.success("Assistente criado com sucesso!");
-                navigate(`/assistants/${created.id}/edit`);
-                setSaving(false);
-                return;
+                toast.success("Assistente criado!");
+                navigate(`/assistants/${created.id}`);
             }
-            navigate("/assistants");
         } catch (err) {
             const message =
                 (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
@@ -347,60 +334,19 @@ const AssistantCreator: React.FC = () => {
 
             <PageContent>
                 <div className="max-w-4xl mx-auto flex flex-col gap-4">
-                    <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
-                        <CardContent className="p-5 flex flex-col gap-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="flex flex-col gap-1.5">
-                                    <Label>Nome</Label>
-                                    <Input value={name} onChange={(e) => setName(e.target.value)} />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <Label>Conexão</Label>
-                                    <Select value={whatsappId} onValueChange={setWhatsappId}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {whatsapps.map((w) => (
-                                                <SelectItem key={w.id} value={String(w.id)}>
-                                                    {w.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-1.5">
-                                <Label>Descrição (opcional)</Label>
-                                <Textarea
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    rows={2}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="flex items-center justify-between rounded-xl border p-3">
-                                    <div>
-                                        <p className="text-sm font-medium">Permitir múltiplos nesta conexão</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Por padrão só um assistente pode estar ativo por conexão
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        checked={allowMultipleOnConnection}
-                                        onCheckedChange={setAllowMultipleOnConnection}
-                                    />
-                                </div>
-
-                                <div className="flex items-center justify-between rounded-xl border p-3">
-                                    <p className="text-sm font-medium">Assistente ativo</p>
-                                    <Switch checked={active} onCheckedChange={setActive} />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <AssistantBasicInfoCard
+                        name={name}
+                        onNameChange={setName}
+                        whatsappId={whatsappId}
+                        onWhatsappIdChange={setWhatsappId}
+                        whatsapps={whatsapps}
+                        description={description}
+                        onDescriptionChange={setDescription}
+                        active={active}
+                        onActiveChange={setActive}
+                        allowMultipleOnConnection={allowMultipleOnConnection}
+                        onAllowMultipleOnConnectionChange={setAllowMultipleOnConnection}
+                    />
 
                     <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                         <CardContent className="p-5 flex flex-col gap-4">
@@ -412,182 +358,40 @@ const AssistantCreator: React.FC = () => {
                                     <TabsTrigger value="grupos">Grupos</TabsTrigger>
                                 </TabsList>
 
-                                <TabsContent value="comportamento" className="flex flex-col gap-4 pt-2">
-                                    <div className="flex flex-col gap-1.5">
-                                        <Label>Ao que este assistente está ligado?</Label>
-                                        <Tabs value={mode} onValueChange={(v) => setMode(v as AssistantMode)}>
-                                            <TabsList className="grid grid-cols-4 w-full">
-                                                <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
-                                                <TabsTrigger value="flow">Flow</TabsTrigger>
-                                                <TabsTrigger value="persona">Persona</TabsTrigger>
-                                                <TabsTrigger value="router">Roteador</TabsTrigger>
-                                            </TabsList>
-                                        </Tabs>
-                                    </div>
-
-                                    {mode === "flow" && (
-                                        <div className="flex flex-col gap-1.5">
-                                            <Label>Flow</Label>
-                                            <Select value={flowId} onValueChange={setFlowId}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione um flow" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {flows.map((f) => (
-                                                        <SelectItem key={f.id} value={String(f.id)}>
-                                                            {f.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-
-                                    {mode === "pipeline" && (
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex flex-col gap-1.5">
-                                                <Label>Pipeline</Label>
-                                                <Select value={pipelineId} onValueChange={setPipelineId}>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione um pipeline" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {pipelines.map((p) => (
-                                                            <SelectItem key={p.id} value={String(p.id)}>
-                                                                {p.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            <div className="flex flex-col gap-2">
-                                                <Label>Eventos que disparam a notificação</Label>
-                                                {PIPELINE_EVENTS.map((ev) => (
-                                                    <label
-                                                        key={ev.value}
-                                                        className="flex items-center gap-2 text-sm cursor-pointer"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={pipelineEvents.includes(ev.value)}
-                                                            onChange={() => toggleEvent(ev.value)}
-                                                        />
-                                                        {ev.label}
-                                                    </label>
-                                                ))}
-                                            </div>
-
-                                            {pipelineEvents.includes("idle") && (
-                                                <div className="flex flex-col gap-1.5 max-w-[220px]">
-                                                    <Label>Dias parado até disparar</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={idleThresholdDays}
-                                                        onChange={(e) => setIdleThresholdDays(e.target.value)}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            <div className="flex items-center justify-between rounded-xl border p-3">
-                                                <div>
-                                                    <p className="text-sm font-medium">
-                                                        Responder ativamente após a notificação
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Se desligado, é só uma notificação — respostas do
-                                                        contato caem para a fila humana
-                                                    </p>
-                                                </div>
-                                                <Switch
-                                                    checked={respondsAfterProactive}
-                                                    onCheckedChange={setRespondsAfterProactive}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {showPersonaSections && (
-                                        <div className="flex flex-col gap-4 border-t pt-4">
-                                            <PersonaSectionsEditor
-                                                values={personaSections}
-                                                onChange={handlePersonaSectionChange}
-                                            />
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
-                                                <div className="flex flex-col gap-1.5">
-                                                    <Label>Base de conhecimento</Label>
-                                                    <Select value={knowledgeBaseId} onValueChange={setKnowledgeBaseId}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Nenhuma" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {knowledgeBases.map((kb) => (
-                                                                <SelectItem key={kb.id} value={String(kb.id)}>
-                                                                    {kb.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div className="flex flex-col gap-1.5">
-                                                    <Label>Gateway de IA</Label>
-                                                    <Select value={aiGatewayId} onValueChange={setAiGatewayId}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Selecione um gateway" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {aiGateways.map((g) => (
-                                                                <SelectItem key={g.id} value={String(g.id)}>
-                                                                    {g.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <div className="flex flex-col gap-1.5">
-                                                    <Label>Máximo de turnos</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={maxTurns}
-                                                        onChange={(e) => setMaxTurns(e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col gap-1.5">
-                                                    <Label>Quando o RAG não souber responder</Label>
-                                                    <Select
-                                                        value={ragFallbackBehavior}
-                                                        onValueChange={setRagFallbackBehavior}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="handoff">Transferir para humano</SelectItem>
-                                                            <SelectItem value="generic_answer">
-                                                                Responder com conhecimento genérico
-                                                            </SelectItem>
-                                                            <SelectItem value="fixed_message">Mensagem fixa</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-                                            {ragFallbackBehavior === "fixed_message" && (
-                                                <div className="flex flex-col gap-1.5">
-                                                    <Label>Mensagem fixa</Label>
-                                                    <Textarea
-                                                        value={ragFallbackMessage}
-                                                        onChange={(e) => setRagFallbackMessage(e.target.value)}
-                                                        rows={2}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
+                                <TabsContent value="comportamento">
+                                    <AssistantBehaviorTab
+                                        mode={mode}
+                                        onModeChange={setMode}
+                                        flowId={flowId}
+                                        onFlowIdChange={setFlowId}
+                                        flows={flows}
+                                        pipelineId={pipelineId}
+                                        onPipelineIdChange={setPipelineId}
+                                        pipelines={pipelines}
+                                        pipelineEvents={pipelineEvents}
+                                        onToggleEvent={toggleEvent}
+                                        idleThresholdDays={idleThresholdDays}
+                                        onIdleThresholdDaysChange={setIdleThresholdDays}
+                                        respondsAfterProactive={respondsAfterProactive}
+                                        onRespondsAfterProactiveChange={setRespondsAfterProactive}
+                                        showPersonaSections={showPersonaSections}
+                                        personaSections={personaSections}
+                                        onPersonaSectionChange={handlePersonaSectionChange}
+                                        knowledgeBaseId={knowledgeBaseId}
+                                        onKnowledgeBaseIdChange={setKnowledgeBaseId}
+                                        knowledgeBases={knowledgeBases}
+                                        aiGatewayId={aiGatewayId}
+                                        onAiGatewayIdChange={setAiGatewayId}
+                                        aiGateways={aiGateways}
+                                        maxTurns={maxTurns}
+                                        onMaxTurnsChange={setMaxTurns}
+                                        ragFallbackBehavior={ragFallbackBehavior}
+                                        onRagFallbackBehaviorChange={setRagFallbackBehavior}
+                                        ragFallbackMessage={ragFallbackMessage}
+                                        onRagFallbackMessageChange={setRagFallbackMessage}
+                                    />
                                     {mode === "router" && (
-                                        <>
+                                        <div className="pt-2">
                                             {isEditing ? (
                                                 <AssistantRouterOptions assistantId={Number(assistantId)} />
                                             ) : (
@@ -595,170 +399,71 @@ const AssistantCreator: React.FC = () => {
                                                     Salve o assistente primeiro para configurar as opções do menu.
                                                 </p>
                                             )}
-                                        </>
-                                    )}
-                                </TabsContent>
-
-                                <TabsContent value="gatilho" className="flex flex-col gap-4 pt-2">
-                                    <Label>Gatilho</Label>
-                                    <Tabs
-                                        value={triggerType}
-                                        onValueChange={(v) => setTriggerType(v as "any" | "keyword")}
-                                    >
-                                        <TabsList className="grid grid-cols-2 w-full max-w-xs">
-                                            <TabsTrigger value="any">Todas as mensagens</TabsTrigger>
-                                            <TabsTrigger value="keyword">Palavra-chave</TabsTrigger>
-                                        </TabsList>
-                                    </Tabs>
-
-                                    {triggerType === "keyword" && (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div className="flex flex-col gap-1.5">
-                                                <Label>Operador</Label>
-                                                <Select value={triggerOperator} onValueChange={setTriggerOperator}>
-                                                    <SelectTrigger>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="contains">contém</SelectItem>
-                                                        <SelectItem value="equals">igual</SelectItem>
-                                                        <SelectItem value="starts_with">começa com</SelectItem>
-                                                        <SelectItem value="ends_with">termina com</SelectItem>
-                                                        <SelectItem value="regex">regex</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="flex flex-col gap-1.5">
-                                                <Label>Valor do gatilho</Label>
-                                                <Input
-                                                    value={triggerValue}
-                                                    onChange={(e) => setTriggerValue(e.target.value)}
-                                                    placeholder="Ex: oi, menu, começar"
-                                                />
-                                            </div>
                                         </div>
                                     )}
                                 </TabsContent>
 
-                                <TabsContent value="avancado" className="flex flex-col gap-4 pt-2">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <Label>Expirar sessão (min)</Label>
-                                            <Input
-                                                type="number"
-                                                value={sessionExpiryMinutes}
-                                                onChange={(e) => setSessionExpiryMinutes(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <Label>Atraso de digitação (ms)</Label>
-                                            <Input
-                                                type="number"
-                                                value={typingDelayMs}
-                                                onChange={(e) => setTypingDelayMs(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <Label>Debounce (s)</Label>
-                                            <Input
-                                                type="number"
-                                                value={debounceSeconds}
-                                                onChange={(e) => setDebounceSeconds(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <Label>Palavra para encerrar</Label>
-                                            <Input
-                                                value={endKeyword}
-                                                onChange={(e) => setEndKeyword(e.target.value)}
-                                                placeholder="Ex: sair"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-1.5">
-                                        <Label>Mensagem de expiração</Label>
-                                        <Textarea
-                                            value={expiryMessage}
-                                            onChange={(e) => setExpiryMessage(e.target.value)}
-                                            rows={2}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-1.5">
-                                        <Label>Mensagem de encerramento</Label>
-                                        <Textarea
-                                            value={closingMessage}
-                                            onChange={(e) => setClosingMessage(e.target.value)}
-                                            rows={2}
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="flex items-center justify-between rounded-xl border p-3">
-                                            <p className="text-sm font-medium">Parar assistente quando eu responder</p>
-                                            <Switch checked={stopOnHumanReply} onCheckedChange={setStopOnHumanReply} />
-                                        </div>
-                                        {groupsMode === "legacy" && (
-                                            <div className="flex items-center justify-between rounded-xl border p-3">
-                                                <p className="text-sm font-medium">Ignorar grupos</p>
-                                                <Switch checked={ignoreGroups} onCheckedChange={setIgnoreGroups} />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="flex items-center justify-between rounded-xl border p-3">
-                                            <div>
-                                                <p className="text-sm font-medium">Entende áudio</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Transcreve mensagens de voz recebidas via o AiGateway configurado.
-                                                    Se desligado, responde avisando que não entende áudio.
-                                                </p>
-                                            </div>
-                                            <Switch checked={acceptsAudio} onCheckedChange={setAcceptsAudio} />
-                                        </div>
-                                        <div className="flex items-center justify-between rounded-xl border p-3">
-                                            <div>
-                                                <p className="text-sm font-medium">Responde com áudio</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Sintetiza as respostas como mensagem de voz em vez de texto.
-                                                </p>
-                                            </div>
-                                            <Switch checked={respondsWithAudio} onCheckedChange={setRespondsWithAudio} />
-                                        </div>
-                                    </div>
+                                <TabsContent value="gatilho">
+                                    <AssistantTriggerTab
+                                        triggerType={triggerType}
+                                        onTriggerTypeChange={setTriggerType}
+                                        triggerOperator={triggerOperator}
+                                        onTriggerOperatorChange={setTriggerOperator}
+                                        triggerValue={triggerValue}
+                                        onTriggerValueChange={setTriggerValue}
+                                    />
+                                </TabsContent>
+
+                                <TabsContent value="avancado">
+                                    <AssistantAdvancedTab
+                                        sessionExpiryMinutes={sessionExpiryMinutes}
+                                        onSessionExpiryMinutesChange={setSessionExpiryMinutes}
+                                        typingDelayMs={typingDelayMs}
+                                        onTypingDelayMsChange={setTypingDelayMs}
+                                        debounceSeconds={debounceSeconds}
+                                        onDebounceSecondsChange={setDebounceSeconds}
+                                        endKeyword={endKeyword}
+                                        onEndKeywordChange={setEndKeyword}
+                                        expiryMessage={expiryMessage}
+                                        onExpiryMessageChange={setExpiryMessage}
+                                        closingMessage={closingMessage}
+                                        onClosingMessageChange={setClosingMessage}
+                                        stopOnHumanReply={stopOnHumanReply}
+                                        onStopOnHumanReplyChange={setStopOnHumanReply}
+                                        groupsMode={groupsMode}
+                                        ignoreGroups={ignoreGroups}
+                                        onIgnoreGroupsChange={setIgnoreGroups}
+                                        acceptsAudio={acceptsAudio}
+                                        onAcceptsAudioChange={setAcceptsAudio}
+                                        respondsWithAudio={respondsWithAudio}
+                                        onRespondsWithAudioChange={setRespondsWithAudio}
+                                    />
                                 </TabsContent>
 
                                 <TabsContent value="grupos" className="flex flex-col gap-4 pt-2">
-                                    <div className="flex flex-col gap-1.5 rounded-xl border p-3">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-sm font-medium">Selecionar grupos específicos</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Em vez de ignorar/permitir todos os grupos de uma vez, escolha
-                                                    quais grupos o assistente enxerga. Um grupo ativo só recebe
-                                                    resposta automática quando o assistente é mencionado — fora
-                                                    isso, ele só observa.
-                                                </p>
-                                            </div>
-                                            <Switch
-                                                checked={groupsMode === "selective"}
-                                                onCheckedChange={(checked) =>
-                                                    setGroupsMode(checked ? "selective" : "legacy")
-                                                }
-                                            />
-                                        </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <Label>Modo de operação em grupos</Label>
+                                        <Select
+                                            value={groupsMode}
+                                            onValueChange={(v) => setGroupsMode(v as "legacy" | "selective")}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="legacy">
+                                                    Padrão (ignora todos ou responde todos)
+                                                </SelectItem>
+                                                <SelectItem value="selective">
+                                                    Grupos selecionados (escolha abaixo)
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
-
-                                    {groupsMode !== "selective" && (
-                                        <p className="text-sm text-muted-foreground">
-                                            Grupos desligado (modo "Ignorar grupos" na aba Avançado decide
-                                            tudo-ou-nada). Ative "Selecionar grupos específicos" acima para
-                                            escolher grupo a grupo.
-                                        </p>
-                                    )}
 
                                     {groupsMode === "selective" && !isEditing && (
                                         <p className="text-sm text-muted-foreground">
-                                            Salve o assistente primeiro para configurar os grupos — a lista de
-                                            grupos é vinculada ao assistente já criado.
+                                            Salve o assistente primeiro para selecionar quais grupos ele atenderá.
                                         </p>
                                     )}
 
@@ -772,72 +477,16 @@ const AssistantCreator: React.FC = () => {
                 </div>
             </PageContent>
 
-            <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Testar Bot — {name || "Assistente"}</DialogTitle>
-                    </DialogHeader>
-                    <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-1.5">
-                            <Label>Mensagem de teste</Label>
-                            <Textarea
-                                value={testMessage}
-                                onChange={(e) => setTestMessage(e.target.value)}
-                                placeholder="Olá, isso é um teste. Pode responder normalmente?"
-                                rows={2}
-                            />
-                        </div>
-                        <Button onClick={handleRunTest} disabled={testing}>
-                            {testing ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Testando...
-                                </>
-                            ) : (
-                                <>
-                                    <PlayCircle className="mr-2 h-4 w-4" /> Enviar teste
-                                </>
-                            )}
-                        </Button>
-
-                        {testResult && (
-                            <div className="rounded-xl border p-3 flex flex-col gap-2">
-                                {testResult.testable === false ? (
-                                    <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                                        <Info className="h-4 w-4 mt-0.5 shrink-0" />
-                                        <span>{testResult.message}</span>
-                                    </div>
-                                ) : testResult.success ? (
-                                    <>
-                                        <div className="flex items-center gap-2 text-sm font-medium text-green-600">
-                                            <CheckCircle2 className="h-4 w-4" /> Resposta real do assistente
-                                        </div>
-                                        <p className="text-sm whitespace-pre-wrap bg-muted/40 rounded-lg p-3">
-                                            {testResult.reply}
-                                        </p>
-                                        {testResult.action && (
-                                            <p className="text-xs text-muted-foreground">
-                                                Ação do modelo: <span className="font-medium">{testResult.action}</span>
-                                                {typeof testResult.confidence === "number" &&
-                                                    ` · confiança ${(testResult.confidence * 100).toFixed(0)}%`}
-                                            </p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <div className="flex items-start gap-2 text-sm text-destructive">
-                                        <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                                        <span>{testResult.error ?? "Falha ao testar o assistente."}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setTestDialogOpen(false)}>
-                            Fechar
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <AssistantTestDialog
+                open={testDialogOpen}
+                onOpenChange={setTestDialogOpen}
+                name={name}
+                testMessage={testMessage}
+                onTestMessageChange={setTestMessage}
+                testing={testing}
+                testResult={testResult}
+                onRunTest={handleRunTest}
+            />
         </PageContainer>
     );
 };

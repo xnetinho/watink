@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -11,6 +12,34 @@ import (
 )
 
 var DB *gorm.DB
+
+// MigrateVersioned applies the greenfield schema baseline exactly once per database.
+// The advisory lock is acquired by RunMigrations before this function; the version row makes
+// reruns observable and prevents silently treating a partial future migration as complete.
+func MigrateVersioned(ctx context.Context, db *gorm.DB) error {
+	if err := db.Exec(`CREATE TABLE IF NOT EXISTS "SchemaMigrations" ("version" bigint PRIMARY KEY, "appliedAt" timestamptz NOT NULL DEFAULT NOW())`).Error; err != nil {
+		return err
+	}
+	var applied bool
+	if err := db.Raw(`SELECT EXISTS (SELECT 1 FROM "SchemaMigrations" WHERE "version" = 1)`).Scan(&applied).Error; err != nil {
+		return err
+	}
+	if applied {
+		return nil
+	}
+	if err := migrateBaseline(db); err != nil {
+		return err
+	}
+	return db.Exec(`INSERT INTO "SchemaMigrations" ("version") VALUES (1) ON CONFLICT ("version") DO NOTHING`).Error
+}
+
+func migrateBaseline(db *gorm.DB) error {
+	previous := DB
+	DB = db
+	defer func() { DB = previous }()
+	Migrate()
+	return nil
+}
 
 func Migrate() {
 	if err := dropLegacyRBAC(); err != nil {
@@ -29,6 +58,7 @@ func Migrate() {
 		&models.ClientAddress{},
 		&models.Whatsapp{},
 		&models.ChannelConnection{},
+		&models.WhatsAppConnectionDetails{},
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},
@@ -65,6 +95,7 @@ func Migrate() {
 		&models.ActivityChecklistItem{},
 		&models.ActivityMaterial{},
 		&models.ActivityOccurrence{},
+		&models.OutboxEvent{},
 		&models.Assistant{},
 		&models.AssistantRouterOption{},
 		&models.AssistantGroup{},
@@ -114,10 +145,6 @@ func Migrate() {
 
 	addClientAddressGeography()
 
-	if err := BackfillContactIdentities(DB); err != nil {
-		log.Printf("Warning: failed to backfill contact identities: %v", err)
-	}
-
 	if err := BackfillTicketConversationKeys(DB); err != nil {
 		log.Printf("Warning: failed to backfill ticket conversation keys: %v", err)
 	}
@@ -161,35 +188,6 @@ func addClientAddressGeography() {
 	if err := DB.Exec(`ALTER TABLE "ClientAddresses" ADD COLUMN IF NOT EXISTS geog geography(Point,4326)`).Error; err != nil {
 		log.Printf("Warning: failed to add ClientAddresses.geog (PostGIS extension may be missing): %v", err)
 	}
-}
-
-// BackfillContactIdentities cria registros em ContactIdentities para todos os Contacts existentes
-// com number ou lid válidos, atribuindo channel='whatsapp'. É 100% idempotente (ON CONFLICT DO NOTHING).
-// Task 2.1 (ADR 0033).
-func BackfillContactIdentities(db *gorm.DB) error {
-	return db.Transaction(func(tx *gorm.DB) error {
-		// Backfill por number
-		qNumber := `
-			INSERT INTO "ContactIdentities" ("tenantId", "contactId", "channel", "externalId", "displayName", "avatarUrl", "meta", "createdAt", "updatedAt")
-			SELECT c."tenantId", c.id, 'whatsapp', c.number, c.name, COALESCE(c."profilePicUrl", ''), '{}'::jsonb, NOW(), NOW()
-			FROM "Contacts" c
-			WHERE c.number IS NOT NULL AND c.number != ''
-			ON CONFLICT ("tenantId", "channel", "externalId") DO NOTHING;
-		`
-		if err := tx.Exec(qNumber).Error; err != nil {
-			return err
-		}
-
-		// Backfill por lid
-		qLid := `
-			INSERT INTO "ContactIdentities" ("tenantId", "contactId", "channel", "externalId", "displayName", "avatarUrl", "meta", "createdAt", "updatedAt")
-			SELECT c."tenantId", c.id, 'whatsapp', c.lid, c.name, COALESCE(c."profilePicUrl", ''), '{}'::jsonb, NOW(), NOW()
-			FROM "Contacts" c
-			WHERE c.lid IS NOT NULL AND c.lid != ''
-			ON CONFLICT ("tenantId", "channel", "externalId") DO NOTHING;
-		`
-		return tx.Exec(qLid).Error
-	})
 }
 
 // BackfillTicketConversationKeys preenche conversationKey com contactId::text para tickets legados
@@ -287,6 +285,23 @@ func Seed() {
 		{Resource: "queues", Action: "create", Description: "Criar Filas"},
 		{Resource: "queues", Action: "update", Description: "Editar Filas"},
 		{Resource: "queues", Action: "delete", Description: "Excluir Filas"},
+		// quickAnswers (respostas rápidas): ler/enviar é do atendimento; gerir o catálogo é separado
+		{Resource: "quickAnswers", Action: "read", Description: "Visualizar Respostas Rápidas"},
+		{Resource: "quickAnswers", Action: "create", Description: "Criar Respostas Rápidas"},
+		{Resource: "quickAnswers", Action: "update", Description: "Editar Respostas Rápidas"},
+		{Resource: "quickAnswers", Action: "delete", Description: "Excluir Respostas Rápidas"},
+		// tags
+		{Resource: "tags", Action: "read", Description: "Visualizar Tags"},
+		{Resource: "tags", Action: "create", Description: "Criar Tags"},
+		{Resource: "tags", Action: "update", Description: "Editar Tags"},
+		{Resource: "tags", Action: "delete", Description: "Excluir Tags"},
+		// assistants / aiGateways (plugin "assistant")
+		{Resource: "assistants", Action: "read", Description: "Visualizar Assistentes de IA"},
+		{Resource: "assistants", Action: "manage", Description: "Criar/editar/excluir/testar Assistentes de IA e seus gateways"},
+		// helpdesk (plugin "helpdesk")
+		{Resource: "protocols", Action: "read", Description: "Visualizar Protocolos do Helpdesk"},
+		{Resource: "protocols", Action: "manage", Description: "Criar/editar Protocolos e anexos do Helpdesk"},
+		// inventário avançado (plugin "inventory-advanced"): leitura reaproveita inventory:read; escrita é inventory:manage
 		// whatsappGroups (plugin "groups" — gestão de grupos/comunidades WhatsApp)
 		{Resource: "whatsappGroups", Action: "read", Description: "Visualizar grupos e comunidades do WhatsApp"},
 		{Resource: "whatsappGroups", Action: "manage", Description: "Criar/configurar grupos e comunidades, vincular/desvincular subgrupos"},
@@ -424,8 +439,8 @@ func addCustomIndexes() error {
 	}
 
 	indexes := []string{
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number) WHERE number <> ''`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", "connectionSource", "connectionId", number) WHERE number <> ''`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", "connectionSource", "connectionId", lid) WHERE lid IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_status ON "Tickets" ("tenantId", "status")`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_queue_status ON "Tickets" ("tenantId", "queueId", "status")`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_open_conversation ON "Tickets" ("tenantId", "channelConnectionId", "conversationKey") WHERE "status" IN ('open', 'pending') AND "channelConnectionId" IS NOT NULL AND "conversationKey" IS NOT NULL AND "conversationKey" != ''`,

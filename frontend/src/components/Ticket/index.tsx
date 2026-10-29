@@ -1,3 +1,4 @@
+import type { TicketConnection } from "../../types/Ticket";
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { toast } from "react-toastify";
@@ -38,6 +39,8 @@ interface TicketData {
   contact: Contact;
   user?: TicketUser | null;
   whatsapp?: WhatsApp;
+  connection?: TicketConnection;
+  channel?: string;
 }
 
 interface TicketProps {
@@ -135,7 +138,7 @@ const Ticket: React.FC<TicketProps> = ({ onToggleDetails, showDetails }) => {
       </TicketHeader>
 
       <ReplyMessageProvider>
-        <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} />
+        <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} channel={ticket.channel} contactId={ticket.contact?.id} peer={{ name: ticket.contact?.name, picUrl: ticket.contact?.profilePicUrl }} self={{ name: ticket.connection?.name, picUrl: ticket.connection?.profilePicUrl }} />
         <MessageInput
           ticketStatus={ticket.status}
           whatsappStatus={ticket.whatsapp?.status}

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"net/http"
 	"strconv"
@@ -153,10 +154,6 @@ func pluginContactJID(contact models.Contact) string {
 // the outbound pipeline of controllers.MessageController.SendMessage (text-only,
 // no media) so plugin-originated messages behave identically to agent-sent ones.
 func (c *coreImpl) SendTicketMessage(tenantID uuid.UUID, ticketID int, body string) error {
-	if c.rabbit == nil {
-		return errors.New("command publisher not configured")
-	}
-
 	var ticket models.Ticket
 	if err := c.db.Preload("Contact").Where(`id = ? AND "tenantId" = ?`, ticketID, tenantID).First(&ticket).Error; err != nil {
 		return err
@@ -166,37 +163,70 @@ func (c *coreImpl) SendTicketMessage(tenantID uuid.UUID, ticketID int, body stri
 	}
 
 	messageID := pluginWAMessageID()
+	var externalID string
 	to := pluginContactJID(ticket.Contact)
-	command := map[string]interface{}{
-		"type": "message.send.text",
-		"payload": map[string]interface{}{
-			"sessionId": ticket.WhatsappID,
-			"messageId": messageID,
-			"to":        to,
-			"ticketId":  ticketID,
-			"body":      body,
-		},
-	}
-	routingKey := fmt.Sprintf("wbot.%s.%d.%s", tenantID.String(), ticket.WhatsappID, "message.send.text")
-	if err := c.rabbit.PublishCommand(routingKey, command); err != nil {
-		return err
+
+	if ticket.ChannelConnectionID != nil {
+		var conn models.ChannelConnection
+		if err := c.db.Session(&gorm.Session{NewDB: true}).
+			Where(`id = ? AND "tenantId" = ?`, *ticket.ChannelConnectionID, tenantID).
+			First(&conn).Error; err == nil {
+			if chAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind)); err == nil {
+				targetAddr, _ := chAdapter.ResolveAddress(context.Background(), &conn, &ticket.Contact)
+				if targetAddr == "" {
+					targetAddr = to
+				}
+				outMsg := domain.OutboundMessage{
+					ConversationKey: ticket.ConversationKey,
+					ExternalID:      targetAddr,
+					Body:            body,
+				}
+				sendRes, err := chAdapter.Send(context.Background(), &conn, outMsg)
+				if err != nil {
+					return err
+				}
+				externalID = sendRes.ExternalMessageID
+				if externalID != "" {
+					messageID = domain.StorageMessageID(domain.ChannelKind(conn.Kind), conn.ID, ticket.ConversationKey, externalID)
+				}
+			}
+		}
+	} else {
+		if c.rabbit == nil {
+			return errors.New("command publisher not configured")
+		}
+		command := map[string]interface{}{
+			"type": "message.send.text",
+			"payload": map[string]interface{}{
+				"sessionId": ticket.WhatsappID,
+				"messageId": messageID,
+				"to":        to,
+				"ticketId":  ticketID,
+				"body":      body,
+			},
+		}
+		routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), wbot.CommandMessageText)
+		if err := c.rabbit.PublishCommand(routingKey, command); err != nil {
+			return err
+		}
 	}
 
 	writeDB := c.db.Session(&gorm.Session{NewDB: true})
 	now := time.Now()
 	contactID := ticket.ContactID
 	outgoing := models.Message{
-		ID:        messageID,
-		Body:      body,
-		Ack:       0,
-		TicketID:  ticketID,
-		FromMe:    true,
-		ContactID: &contactID,
-		TenantID:  tenantID,
-		Reactions: "[]",
-		DataJson:  "{}",
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:         messageID,
+		ExternalID: externalID,
+		Body:       body,
+		Ack:        0,
+		TicketID:   ticketID,
+		FromMe:     true,
+		ContactID:  &contactID,
+		TenantID:   tenantID,
+		Reactions:  "[]",
+		DataJson:   "{}",
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}
 	if err := writeDB.Create(&outgoing).Error; err != nil {
 		log.Printf("[SendTicketMessage] persist outgoing message failed (ticket %d): %v", ticketID, err)

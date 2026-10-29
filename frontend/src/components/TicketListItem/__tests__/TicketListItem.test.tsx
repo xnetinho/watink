@@ -104,7 +104,7 @@ describe("TicketListItem", () => {
   it("exibe o nome da conexão como badge", () => {
     render(
       <TicketListItem
-        ticket={{ ...baseTicket, whatsapp: { name: "zap-01" } }}
+        ticket={{ ...baseTicket, channel: "whatsapp", connection: { kind: "whatsapp", id: 1, name: "zap-01", source: "whatsapp" } }}
       />
     );
     expect(screen.getByText("zap-01")).toBeTruthy();
