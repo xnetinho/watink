@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -183,6 +184,10 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 				res, err := RecordEdit(ctx, s.db, RecordEditInput{
 					TenantID: msg.TenantID, MessageID: orig.ID, Body: msg.Body, EditedAt: msg.EditedAt, EditedBy: models.EditedByContact,
 				})
+				if errors.Is(err, ErrEmptyEdit) {
+					// Legenda removida ou formato que não sabemos ler: manter o texto atual em vez de esvaziar a mensagem.
+					return &usecases.ReceiveMessageResult{Message: orig, Duplicate: true}, nil
+				}
 				if err != nil {
 					return nil, fmt.Errorf("failed to record edit: %w", err)
 				}

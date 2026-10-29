@@ -83,6 +83,7 @@ func eventRoutingKeys() []string {
 		wbot.EventPattern(wbot.EventMessageReceived),
 		wbot.EventPattern(wbot.EventMessageAck),
 		wbot.EventPattern(wbot.EventMessageRevoke),
+		wbot.EventPattern(wbot.EventMessageEdited),
 		wbot.EventPattern(wbot.EventMessageReaction),
 		wbot.EventPattern(wbot.EventMessageMedia),
 		wbot.EventPattern(wbot.EventContactUpdate),
@@ -140,6 +141,8 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			return eventListener.handleMessageAck(ctx, env.Payload, tid)
 		case "message.revoke":
 			return eventListener.handleMessageRevoke(ctx, env.Payload, tid)
+		case "message.edited":
+			return eventListener.handleMessageEdited(ctx, env.Payload, tid)
 		case "message.reaction":
 			return eventListener.handleMessageReaction(ctx, env.Payload, tid)
 		case "message.media":

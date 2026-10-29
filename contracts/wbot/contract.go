@@ -56,6 +56,7 @@ const (
 	EventMessageReceived      = "message.received"
 	EventMessageAck           = "message.ack"
 	EventMessageRevoke        = "message.revoke"
+	EventMessageEdited        = "message.edited" // o contato editou uma mensagem (texto novo + id da original)
 	EventMessageReaction      = "message.reaction"
 	EventMessageMedia         = "message.media"
 	EventMessagePollVote      = "message.poll_vote"

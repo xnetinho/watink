@@ -29,6 +29,7 @@ func TestWBotContract_BidirectionalCoverage(t *testing.T) {
 		{"received", wbot.EventMessageReceived, `"message.received"`, `"message.received"`},
 		{"ack", wbot.EventMessageAck, `"message.ack"`, `"message.ack"`},
 		{"revoke", wbot.EventMessageRevoke, `"message.revoke"`, `"message.revoke"`},
+		{"edited", wbot.EventMessageEdited, `"message.edited"`, `"message.edited"`},
 		{"reaction", wbot.EventMessageReaction, `"message.reaction"`, `"message.reaction"`},
 		{"media", wbot.EventMessageMedia, `"message.media"`, `"message.media"`},
 		{"contact update", wbot.EventContactUpdate, `"contact.update"`, `"contact.update"`},

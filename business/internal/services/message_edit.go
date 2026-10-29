@@ -14,6 +14,9 @@ import (
 // ErrEditTargetNotFound: a mensagem editada não existe nesta empresa (ex.: veio antes de a original ser gravada).
 var ErrEditTargetNotFound = errors.New("message to edit not found")
 
+// ErrEmptyEdit: a edição chegou sem texto novo; nada é gravado.
+var ErrEmptyEdit = errors.New("edit has no text")
+
 // RecordEditInput descreve uma edição. EditedAt é o instante dela segundo o canal: é ele que ordena a cadeia, e não a
 // hora em que o evento chegou aqui.
 type RecordEditInput struct {
@@ -47,6 +50,11 @@ type RecordEditResult struct {
 // Vale para qualquer canal: o WhatsApp e o Telegram chegam aqui pelo mesmo caminho.
 func RecordEdit(ctx context.Context, db *gorm.DB, in RecordEditInput) (RecordEditResult, error) {
 	var res RecordEditResult
+	// Edição sem texto não é edição: gravá-la apagaria o texto da mensagem no chat. Acontece se o canal mandar a edição num
+	// formato que não sabemos ler (foi o que a primeira prova no celular mostrou); melhor ignorar do que esvaziar a mensagem.
+	if in.Body == "" {
+		return res, ErrEmptyEdit
+	}
 	if in.EditedAt.IsZero() {
 		in.EditedAt = time.Now()
 	}
