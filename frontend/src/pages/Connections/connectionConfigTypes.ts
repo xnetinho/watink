@@ -32,6 +32,8 @@ export interface WhatsApp {
   pairingCode?: string;
   profilePicUrl?: string;
   keepAlive?: boolean;
+  presencePolicy?: string;
+  presenceIdleMinutes?: number;
   isDefault?: boolean;
   lastConnectedAt?: string | null;
   firstConnection?: string | null;
@@ -69,6 +71,7 @@ export interface UseConnectionConfigReturn {
   loading: boolean;
   stats: Stats | null;
   keepAliveSaving: boolean;
+  presenceSaving: boolean;
   status: string;
   isConnected: boolean;
   isBusy: boolean;
@@ -98,5 +101,6 @@ export interface UseConnectionConfigReturn {
   handleDisconnect: () => Promise<void>;
   handleDelete: () => Promise<void>;
   handleToggleKeepAlive: (next: boolean) => Promise<void>;
+  handleChangePresencePolicy: (policy: import("./presencePolicy").PresencePolicy, idleMinutes: number) => Promise<void>;
   handleCancelPairing: () => void;
 }

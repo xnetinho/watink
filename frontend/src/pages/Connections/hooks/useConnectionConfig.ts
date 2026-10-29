@@ -50,6 +50,7 @@ export const useConnectionConfig = (): UseConnectionConfigReturn => {
     loading,
     stats,
     keepAliveSaving: actions.keepAliveSaving,
+    presenceSaving: actions.presenceSaving,
     status,
     isConnected,
     isBusy,
@@ -79,6 +80,7 @@ export const useConnectionConfig = (): UseConnectionConfigReturn => {
     handleDisconnect: actions.handleDisconnect,
     handleDelete: actions.handleDelete,
     handleToggleKeepAlive: actions.handleToggleKeepAlive,
+    handleChangePresencePolicy: actions.handleChangePresencePolicy,
     handleCancelPairing: actions.handleCancelPairing,
   };
 };

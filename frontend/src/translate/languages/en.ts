@@ -258,6 +258,29 @@ const messages = {
       },
       connections: {
         title: "Connections",
+        invalidPhone: "Invalid phone number",
+        presencePolicy: {
+          title: "Number presence",
+          fieldLabel: "When the number is available (online)",
+          ariaLabel: "Presence policy",
+          idleLabel: "Return to normal after (minutes without an operator)",
+          updated: "Presence policy updated.",
+          never: {
+            label: "Never available",
+            summary:
+              "The phone keeps receiving notifications. Contacts do not see this number online. Contacts' online status and last seen barely appear in Watink.",
+          },
+          on_demand: {
+            label: "Available during attendance",
+            summary:
+              "The number is available only while an operator has a conversation of this connection open, and returns to normal after the idle time. The phone only loses notifications during that period.",
+          },
+          always: {
+            label: "Always available",
+            summary:
+              "The number is always available, even after reconnecting. Contacts' online status and last seen always appear, but the phone does not receive notifications while the connection is active.",
+          },
+        },
         toasts: {
           deleted: "WhatsApp connection deleted sucessfully!",
           disconnected: "Session disconnected!",
@@ -467,6 +490,46 @@ const messages = {
         viewOnce: {
           title: "View once",
           hint: "WhatsApp only delivers this content to the phone. Open it there.",
+        },
+        pix: {
+          title: "Pay with PIX",
+          key: "Key",
+          copy: "Copy PIX key",
+          copied: "Copied",
+        },
+        event: {
+          fallbackName: "Event",
+          canceled: "Event canceled",
+          until: "until",
+          join: "Join the meeting",
+        },
+        poll: {
+          single: "Select one option",
+          multiple: "Select up to {{limit}} options",
+          telegramSingle: "Poll",
+          telegramMultiple: "Poll · multiple answers",
+          vote_zero: "{{count}} votes",
+          vote_one: "{{count}} vote",
+          vote_other: "{{count}} votes",
+          send: "Vote",
+          sending: "Sending…",
+          sent: "Vote sent",
+          remove: "Remove vote",
+        },
+        liveLocation: "Live location",
+        forwarded: "Forwarded",
+        forwardedMany: "Forwarded many times",
+        previews: {
+          unsupported: "⚠️ Unsupported message",
+          location: "Location",
+          contact: "Contact",
+          carousel: "Carousel",
+        },
+        presence: {
+          online: "online",
+          today: "last seen today at {{time}}",
+          yesterday: "last seen yesterday at {{time}}",
+          date: "last seen on {{date}} at {{time}}",
         },
         noTicketMessage: "Select a ticket to start chatting.",
       },

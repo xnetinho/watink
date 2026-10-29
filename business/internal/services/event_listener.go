@@ -294,6 +294,12 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 	return nil
 }
 
+// HandleEngineReady é o ponto de entrada exportado de handleEngineReady (restauração das sessões ativas), no mesmo
+// padrão dos demais Handle* usados por transportes que não são o consumidor AMQP e pelos testes de integração.
+func (el *EventListener) HandleEngineReady(ctx context.Context) error {
+	return el.handleEngineReady(ctx)
+}
+
 // handleEngineReady asks the business-owned connection catalog to restore active sessions.
 // The engine never queries public business tables; it only announces readiness and receives commands.
 func (el *EventListener) handleEngineReady(ctx context.Context) error {
@@ -327,6 +333,9 @@ func (el *EventListener) handleEngineReady(ctx context.Context) error {
 					"sessionId": session.ID,
 					"name":      session.Name,
 					"wid":       model.Wid,
+					// A política de presença precisa viajar também na restauração após o engine reiniciar.
+					"presencePolicy":      model.PresencePolicy,
+					"presenceIdleMinutes": model.PresenceIdleMinutes,
 				},
 			}
 			if err := el.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(session.ID), wbot.CommandSessionStart), payload); err != nil {

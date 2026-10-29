@@ -311,6 +311,29 @@ const messages = {
       },
       connections: {
         title: "Conexões",
+        invalidPhone: "Número de telefone inválido",
+        presencePolicy: {
+          title: "Presença do número",
+          fieldLabel: "Quando o número fica disponível (online)",
+          ariaLabel: "Política de presença",
+          idleLabel: "Voltar ao normal após (minutos sem operador)",
+          updated: "Política de presença atualizada.",
+          never: {
+            label: "Nunca disponível",
+            summary:
+              "O celular continua recebendo notificações. O contato não vê este número online. O online e a última vez visto dos contatos praticamente não aparecem no Watink.",
+          },
+          on_demand: {
+            label: "Disponível durante o atendimento",
+            summary:
+              "O número fica disponível só enquanto um operador está com uma conversa desta conexão aberta, e volta ao normal depois do tempo ocioso. O celular só fica sem notificações nesse período.",
+          },
+          always: {
+            label: "Sempre disponível",
+            summary:
+              "O número fica sempre disponível, mesmo após reconectar. O online e a última vez visto dos contatos aparecem sempre, mas o celular não recebe notificações enquanto a conexão estiver ativa.",
+          },
+        },
         toasts: {
           deleted: "Conexão deletada!",
           disconnected: "Sessão desconectada!",
@@ -589,6 +612,46 @@ const messages = {
         viewOnce: {
           title: "Visualização única",
           hint: "O WhatsApp só entrega esse conteúdo no celular. Veja nele.",
+        },
+        pix: {
+          title: "Pagar com PIX",
+          key: "Chave",
+          copy: "Copiar chave PIX",
+          copied: "Copiado",
+        },
+        event: {
+          fallbackName: "Evento",
+          canceled: "Evento cancelado",
+          until: "até",
+          join: "Entrar na reunião",
+        },
+        poll: {
+          single: "Selecione uma opção",
+          multiple: "Selecione até {{limit}} opções",
+          telegramSingle: "Enquete",
+          telegramMultiple: "Enquete · várias respostas",
+          vote_zero: "{{count}} votos",
+          vote_one: "{{count}} voto",
+          vote_other: "{{count}} votos",
+          send: "Votar",
+          sending: "Enviando…",
+          sent: "Voto enviado",
+          remove: "Remover voto",
+        },
+        liveLocation: "Localização em tempo real",
+        forwarded: "Encaminhada",
+        forwardedMany: "Encaminhada com frequência",
+        previews: {
+          unsupported: "⚠️ Mensagem não suportada",
+          location: "Localização",
+          contact: "Contato",
+          carousel: "Carrossel",
+        },
+        presence: {
+          online: "online",
+          today: "visto por último hoje às {{time}}",
+          yesterday: "visto por último ontem às {{time}}",
+          date: "visto por último em {{date}} às {{time}}",
         },
         noTicketMessage: "Selecione um ticket para começar a conversar.",
       },

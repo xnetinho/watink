@@ -169,3 +169,44 @@ func TestWithConnectionIdentity_EventoComRLSReal(t *testing.T) {
 	_, has := out["connection"]
 	assert.False(t, has, "sem escopo de empresa, nada de identificação (e nada vaza)")
 }
+
+type capturePublisher struct{ payloads []map[string]interface{} }
+
+func (c *capturePublisher) PublishCommand(_ string, payload interface{}) error {
+	b, _ := json.Marshal(payload)
+	var m map[string]interface{}
+	_ = json.Unmarshal(b, &m)
+	c.payloads = append(c.payloads, m)
+	return nil
+}
+
+// Regressão: ao reiniciar, o engine anuncia engine.ready e o business restaura as sessões com session.start. Esse
+// comando NÃO levava a política de presença, então toda conexão voltava como "never" depois de um restart do engine.
+func TestEngineReady_RestauraSessaoComAPoliticaDePresenca(t *testing.T) {
+	admin, app, system, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	require.NoError(t, seedRow(admin, "Whatsapps", tenant))
+	_, err = admin.Exec(`UPDATE "Whatsapps" SET status='CONNECTED', "presencePolicy"='always', "presenceIdleMinutes"=17 WHERE "tenantId"=$1`, tenant)
+	require.NoError(t, err)
+
+	router, err := tenantdb.NewRouter(app, system) // restaurar sessões descobre as empresas pelo pool de sistema
+	require.NoError(t, err)
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: router}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+	pub := &capturePublisher{}
+	el := services.NewEventListener(repository.NewGORMChannelSessionRepo(gdb), repository.NewGORMMessageRepo(gdb), nil, nil, nil, nil, gdb, nil, nil, pub, nil)
+
+	require.NoError(t, el.HandleEngineReady(context.Background()))
+
+	var started []map[string]interface{}
+	for _, p := range pub.payloads {
+		if p["type"] == "session.start" {
+			started = append(started, p["payload"].(map[string]interface{}))
+		}
+	}
+	require.NotEmpty(t, started, "a sessão CONNECTED precisa ser restaurada")
+	assert.Equal(t, "always", started[0]["presencePolicy"])
+	assert.EqualValues(t, 17, started[0]["presenceIdleMinutes"])
+}

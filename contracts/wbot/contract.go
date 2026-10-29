@@ -36,6 +36,7 @@ const (
 	CommandHistoryRecover     = "history.recover"
 	CommandChatPresence       = "chat.presence"
 	CommandPresenceSubscribe  = "presence.subscribe"
+	CommandPresencePolicy     = "presence.policy"
 	CommandCallReady          = "call.ready"
 	CommandCallAccept         = "call.accept"
 	CommandCallReject         = "call.reject"
