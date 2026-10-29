@@ -86,6 +86,7 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 		wbot.EventPattern(wbot.EventContactImport),
 		wbot.EventPattern(wbot.EventSessionJIDRegistered),
 		wbot.EventPattern(wbot.EventMessagePollVote),
+		wbot.EventPattern(wbot.EventContactPresence),
 	}
 	// Eventos call.* NÃO entram aqui: têm fila e consumidor próprios em
 	// internal/calls (Service.Start), para não esperarem atrás das mensagens.
@@ -166,6 +167,8 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			return handleJIDRegistered(ctx, eventListener.sessions, env.Payload, tid)
 		case "message.poll_vote":
 			return eventListener.handlePollVote(ctx, env.Payload, tid)
+		case "contact.presence":
+			return eventListener.handleContactPresence(env.Payload, tid)
 		default:
 			return nil
 		}
