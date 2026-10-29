@@ -22,3 +22,4 @@ Registro do que foi decidido ao fechar a consolidação de canais, para não dep
 3. **Migração `Whatsapps` → `ChannelConnections`.** ~90 arquivos de produção; eliminar a dívida do campo `source`, em fatias verticais.
 4. **Voz** (ver `backlog-voz-transcricao-sintese.md`): transcrição, síntese e chamadas automatizadas pelo flowbuilder; exige desacoplar o código de chamadas.
 5. **Menores:** textos fixos que restam no frontend; áudio WAV, vídeo e sticker enviados pelo operador; `ThumbnailDirectPath/SHA256` do PDF só se a prévia falhar; emojis lado a lado com o WhatsApp Web não comparados.
+6. **Edição de mensagens enviadas pelo WhatsApp** (ver `backlog-edicao-mensagens.md`): a API existe no whatsmeow (`BuildEdit`, janela de 20 min); falta contrato, engine, backend e tela. A edição do contato hoje é descartada em silêncio.
