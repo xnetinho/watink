@@ -77,6 +77,7 @@ func main() {
 		wbot.CommandPattern(wbot.CommandMessageTemplate),
 		wbot.CommandPattern(wbot.CommandMessageCarousel),
 		wbot.CommandPattern(wbot.CommandMessageReact),
+		wbot.CommandPattern(wbot.CommandMessageEdit),
 		wbot.CommandPattern(wbot.CommandMessageMarkRead),
 		wbot.CommandPattern(wbot.CommandContactSave),
 		wbot.CommandPattern(wbot.CommandMediaDownload),
@@ -280,6 +281,13 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 			return err
 		}
 		return svc.SendReaction(sessionID, tenantID, p)
+
+	case "message.edit":
+		var p whatsapp.EditCommandPayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.SendEdit(sessionID, tenantID, p)
 
 	case "message.markAsRead":
 		var p whatsapp.MarkReadCommandPayload

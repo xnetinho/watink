@@ -184,3 +184,34 @@ func TestRecordEdit_EdicaoSemTextoNaoApagaAMensagem(t *testing.T) {
 	assert.Equal(t, 0, e.message(t).EditCount)
 	assert.Empty(t, e.chain(t), "nem a versão 1 é criada por uma edição vazia")
 }
+
+// O eco da própria edição (a que o operador enviou volta pelo barramento com outro horário) não vira uma versão nova.
+func TestRecordEdit_EcoDaPropriaEdicaoNaoDuplica(t *testing.T) {
+	e := newEditEnv(t)
+	first := e.edit(t, "texto novo", e.t0.Add(time.Minute), models.EditedByMe)
+	echo := e.edit(t, "texto novo", e.t0.Add(time.Minute+37*time.Millisecond), models.EditedByContact)
+
+	assert.True(t, first.Applied)
+	assert.True(t, echo.Duplicate, "mesmo texto da versão atual, horário diferente: é o eco")
+	assert.Equal(t, []string{"Oi", "texto novo"}, bodies(e.chain(t)))
+	assert.Equal(t, models.EditedByMe, e.chain(t)[1].EditedBy, "vale a versão original do envio")
+	assert.Equal(t, 1, e.message(t).EditCount)
+}
+
+func TestRecordEdit_EdicaoParaOMesmoTextoOriginalNaoCriaVersao(t *testing.T) {
+	e := newEditEnv(t)
+	r := e.edit(t, "Oi", e.t0.Add(time.Minute), models.EditedByContact)
+	assert.True(t, r.Duplicate)
+	assert.Empty(t, e.chain(t), "sem versões: a mensagem nunca mudou")
+	assert.Equal(t, 0, e.message(t).EditCount)
+}
+
+// Voltar a um texto ANTERIOR (não o atual) é uma edição legítima e entra na cadeia.
+func TestRecordEdit_VoltarAUmTextoAnteriorEUmaEdicao(t *testing.T) {
+	e := newEditEnv(t)
+	e.edit(t, "B", e.t0.Add(1*time.Minute), models.EditedByContact)
+	e.edit(t, "C", e.t0.Add(2*time.Minute), models.EditedByContact)
+	r := e.edit(t, "B", e.t0.Add(3*time.Minute), models.EditedByContact)
+	assert.True(t, r.Applied)
+	assert.Equal(t, []string{"Oi", "B", "C", "B"}, bodies(e.chain(t)))
+}

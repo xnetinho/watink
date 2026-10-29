@@ -23,6 +23,7 @@ func ParseRoutingKey(routingKey string) (tenantID string, sessionID string, cmd 
 		wbot.CommandMessageText, wbot.CommandMessageMedia,
 		wbot.CommandMessageButtons, wbot.CommandMessageList, wbot.CommandMessagePoll, wbot.CommandMessagePollVote, wbot.CommandMessageInteractive, wbot.CommandMessageTemplate, wbot.CommandMessageCarousel,
 		wbot.CommandMessageReact,
+		wbot.CommandMessageEdit,
 		wbot.CommandMessageMarkRead, wbot.CommandMediaDownload,
 		wbot.CommandContactSync, wbot.CommandContactImport, wbot.CommandContactSave, wbot.CommandHistoryRecover,
 		wbot.CommandChatPresence, wbot.CommandPresenceSubscribe, wbot.CommandPresencePolicy,

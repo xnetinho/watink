@@ -59,6 +59,7 @@ func TestWBotContract_BidirectionalCoverage(t *testing.T) {
 		{"presence subscribe", wbot.CommandPresenceSubscribe, "CommandPresenceSubscribe", "CommandPresenceSubscribe"},
 		{"poll vote", wbot.CommandMessagePollVote, "CommandMessagePollVote", "CommandMessagePollVote"},
 		{"react", wbot.CommandMessageReact, "CommandMessageReact", "CommandMessageReact"},
+		{"edit", wbot.CommandMessageEdit, "CommandMessageEdit", "CommandMessageEdit"},
 		{"media download", wbot.CommandMediaDownload, "CommandMediaDownload", "CommandMediaDownload"},
 		{"contact sync", wbot.CommandContactSync, "CommandContactSync", "CommandContactSync"},
 		{"contact save", wbot.CommandContactSave, "CommandContactSave", "CommandContactSave"},
