@@ -28,7 +28,10 @@ func (el *EventListener) handleMessageAck(ctx context.Context, payload json.RawM
 		// synced on connect) — nothing to update.
 		return nil
 	}
-	if p.Ack > msg.Ack {
+	// O ack só sobe, com uma exceção: o 5 pode ser um palpite do vigia de entrega (a mensagem não tinha saído do engine
+	// no prazo) ou de uma tentativa do engine que falhou e foi repetida. Qualquer confirmação depois dele (1 a 4) prova
+	// que a mensagem saiu e desfaz a falha. O ack 1 só é emitido quando o envio deu certo, então não desfaz um erro real.
+	if p.Ack > msg.Ack || (msg.Ack == ackFailed && p.Ack >= 1 && p.Ack < ackFailed) {
 		if err := messages.Update(ctx, msg, map[string]interface{}{"ack": p.Ack}); err != nil {
 			return err
 		}
