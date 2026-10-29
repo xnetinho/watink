@@ -280,6 +280,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.PUT("/whatsapp/:id", auth.RequirePermission("connections", "update"), whatsappController.UpdateWhatsapp)
 		protected.GET("/whatsapp/:id/stats", auth.RequirePermission("connections", "read"), whatsappController.StatsWhatsapp)
 		protected.PUT("/whatsapp/:id/keepalive", auth.RequirePermission("connections", "update"), whatsappController.ToggleKeepAlive)
+		protected.PUT("/whatsapp/:id/presence-policy", auth.RequirePermission("connections", "update"), whatsappController.UpdatePresencePolicy)
 		protected.DELETE("/whatsapp/:id", auth.RequirePermission("connections", "delete"), whatsappController.DeleteWhatsapp)
 
 		// Channel Connections (Agnostic - Telegram, WhatsApp, ML, etc. - ADR 0033 / Tarefa 7.1)

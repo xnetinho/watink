@@ -13,6 +13,7 @@ import IdentityCard from "./components/IdentityCard";
 import PairingCodePanel from "./components/PairingCodePanel";
 import QrCodePanel from "./components/QrCodePanel";
 import SessionDetailsCard from "./components/SessionDetailsCard";
+import PresencePolicyCard from "./components/PresencePolicyCard";
 
 const ConnectionConfig = () => {
   const {
@@ -21,6 +22,7 @@ const ConnectionConfig = () => {
     loading,
     stats,
     keepAliveSaving,
+    presenceSaving,
     status,
     isConnected,
     isBusy,
@@ -49,6 +51,7 @@ const ConnectionConfig = () => {
     handleDisconnect,
     handleDelete,
     handleToggleKeepAlive,
+    handleChangePresencePolicy,
     handleCancelPairing,
   } = useConnectionConfig();
 
@@ -134,6 +137,13 @@ const ConnectionConfig = () => {
             status={status}
             keepAliveSaving={keepAliveSaving}
             onToggleKeepAlive={handleToggleKeepAlive}
+          />
+
+          <PresencePolicyCard
+            policy={whatsapp.presencePolicy}
+            idleMinutes={whatsapp.presenceIdleMinutes}
+            saving={presenceSaving}
+            onChange={handleChangePresencePolicy}
           />
         </div>
       </PageContent>

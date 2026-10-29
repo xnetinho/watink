@@ -25,7 +25,7 @@ func ParseRoutingKey(routingKey string) (tenantID string, sessionID string, cmd 
 		wbot.CommandMessageReact,
 		wbot.CommandMessageMarkRead, wbot.CommandMediaDownload,
 		wbot.CommandContactSync, wbot.CommandContactImport, wbot.CommandHistoryRecover,
-		wbot.CommandChatPresence, wbot.CommandPresenceSubscribe,
+		wbot.CommandChatPresence, wbot.CommandPresenceSubscribe, wbot.CommandPresencePolicy,
 		wbot.CommandCallReady, wbot.CommandCallAccept, wbot.CommandCallReject, wbot.CommandCallEnd, wbot.CommandCallStart:
 		return tenantID, sessionID, cmd, nil
 	default:

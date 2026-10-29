@@ -45,7 +45,6 @@ services:
     container_name: lt-engine
     environment:
       - WATINK_LOG_UNSUPPORTED_RAW=1
-      - WATINK_PRESENCE_MARK_AVAILABLE=1
     build:
       context: .
       dockerfile: engine-go/Dockerfile

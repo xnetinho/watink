@@ -36,7 +36,7 @@ interface TicketInfoProps {
 
 const TicketInfo: React.FC<TicketInfoProps> = ({ contact, ticket, onClick }) => {
   const presence = useContactPresence(ticket.id, [contact.number, contact.lid], ticket.channel === "whatsapp" && !contact.isGroup);
-  const presenceText = presenceLabel(presence);
+  const presenceText = presenceLabel(presence, (k, o) => String(i18n.t(k, o ?? {}) ?? ""), i18n.language || "pt-BR");
   const assignedTo =
     ticket.user
       ? `${i18n.t("messagesList.header.assignedTo")} ${ticket.user.name}`
