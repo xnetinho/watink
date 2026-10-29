@@ -52,6 +52,19 @@ type PresenceCommandPayload struct {
 	State     string `json:"state"`
 }
 
+// PresenceSubscribePayload pede ao WhatsApp as atualizações de online/última vez visto de um contato.
+type PresenceSubscribePayload struct {
+	SessionID int    `json:"sessionId"`
+	To        string `json:"to"`
+}
+
+// PresencePolicyPayload muda a política de presença de uma sessão em andamento (never | on_demand | always).
+type PresencePolicyPayload struct {
+	SessionID   int    `json:"sessionId"`
+	Policy      string `json:"policy"`
+	IdleMinutes int    `json:"idleMinutes"`
+}
+
 type MarkReadCommandPayload struct {
 	ChatJID    string   `json:"chatJid"`
 	SenderJID  string   `json:"senderJid"`

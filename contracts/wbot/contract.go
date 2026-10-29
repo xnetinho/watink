@@ -35,6 +35,8 @@ const (
 	CommandContactImport      = "contact.import"
 	CommandHistoryRecover     = "history.recover"
 	CommandChatPresence       = "chat.presence"
+	CommandPresenceSubscribe  = "presence.subscribe"
+	CommandPresencePolicy     = "presence.policy"
 	CommandCallReady          = "call.ready"
 	CommandCallAccept         = "call.accept"
 	CommandCallReject         = "call.reject"
@@ -58,6 +60,7 @@ const (
 	EventMessagePollVote      = "message.poll_vote"
 	EventContactUpdate        = "contact.update"
 	EventContactImport        = "contact.import"
+	EventContactPresence      = "contact.presence"
 )
 
 // Command returns a routing key for a command sent to engine-go.

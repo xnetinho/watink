@@ -117,32 +117,34 @@ func (u *User) CheckPassword(password string) bool {
 
 // ChannelSession represents a session with a messaging channel (WhatsApp, Telegram, etc.)
 type ChannelSession struct {
-	ID                int        `json:"id"`
-	Session           string     `json:"session"`
-	Qrcode            string     `json:"qrcode"`
-	Status            string     `json:"status"`
-	Battery           string     `json:"battery"`
-	Plugged           bool       `json:"plugged"`
-	Name              string     `json:"name"`
-	IsDefault         bool       `json:"isDefault"`
-	Retries           int        `json:"retries"`
-	GreetingMessage   string     `json:"greetingMessage"`
-	FarewellMessage   string     `json:"farewellMessage"`
-	TenantID          uuid.UUID  `json:"tenantId"`
-	SyncHistory       bool       `json:"syncHistory"`
-	SyncPeriod        string     `json:"syncPeriod"`
-	Number            string     `json:"number"`
-	ProfilePicUrl     string     `json:"profilePicUrl"`
-	KeepAlive         bool       `json:"keepAlive"`
-	CreatedAt         time.Time  `json:"createdAt"`
-	UpdatedAt         time.Time  `json:"updatedAt"`
-	FirstConnection   *time.Time `json:"firstConnection"`
-	LastConnectedAt   *time.Time `json:"lastConnectedAt"`
-	EngineType        string     `json:"engineType"`
-	ProxyMode         string     `json:"proxyMode"`
-	ProxyID           *int       `json:"proxyId"`
-	ProxyGroupID      *int       `json:"proxyGroupId"`
-	ConnectionGroupID *int       `json:"connectionGroupId"`
+	ID                  int        `json:"id"`
+	Session             string     `json:"session"`
+	Qrcode              string     `json:"qrcode"`
+	Status              string     `json:"status"`
+	Battery             string     `json:"battery"`
+	Plugged             bool       `json:"plugged"`
+	Name                string     `json:"name"`
+	IsDefault           bool       `json:"isDefault"`
+	Retries             int        `json:"retries"`
+	GreetingMessage     string     `json:"greetingMessage"`
+	FarewellMessage     string     `json:"farewellMessage"`
+	TenantID            uuid.UUID  `json:"tenantId"`
+	SyncHistory         bool       `json:"syncHistory"`
+	SyncPeriod          string     `json:"syncPeriod"`
+	Number              string     `json:"number"`
+	ProfilePicUrl       string     `json:"profilePicUrl"`
+	KeepAlive           bool       `json:"keepAlive"`
+	PresencePolicy      string     `json:"presencePolicy"`
+	PresenceIdleMinutes int        `json:"presenceIdleMinutes"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	UpdatedAt           time.Time  `json:"updatedAt"`
+	FirstConnection     *time.Time `json:"firstConnection"`
+	LastConnectedAt     *time.Time `json:"lastConnectedAt"`
+	EngineType          string     `json:"engineType"`
+	ProxyMode           string     `json:"proxyMode"`
+	ProxyID             *int       `json:"proxyId"`
+	ProxyGroupID        *int       `json:"proxyGroupId"`
+	ConnectionGroupID   *int       `json:"connectionGroupId"`
 	// Wid é o JID whatsmeow (ex: "5511999999999:2@s.whatsapp.net") que identifica
 	// QUAL device store reusar no engine ao reconectar. Sem ele, resolveDeviceStore
 	// não acha o device existente e cria um NOVO — deslogando a conta real.

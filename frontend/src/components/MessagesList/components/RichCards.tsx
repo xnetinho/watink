@@ -2,8 +2,12 @@ import React, { useState } from "react";
 import { CalendarDays, Copy, Check, MapPin, Video, QrCode, Radio } from "lucide-react";
 import { parseData } from "../utils/messageHelpers";
 import api from "../../../services/api";
+import { i18n } from "../../../translate/i18n";
 import toastError from "../../../errors/toastError";
 import { Message } from "../types";
+
+// i18n.t() deste projeto pode devolver null; os cartões só querem string.
+const tr = (key: string, opts: Record<string, string | number> = {}): string => String(i18n.t(key, opts) ?? "");
 
 const card = "flex max-w-[300px] flex-col gap-1.5 rounded-xl bg-[hsl(var(--bg-surface))] px-3 py-2.5 text-sm";
 
@@ -28,7 +32,7 @@ export const PixCard: React.FC<{ message: Message }> = ({ message }) => {
   return (
     <div className={card} data-testid="pix-card">
       <div className="flex items-center gap-2 font-medium text-[hsl(var(--action-primary))]">
-        <QrCode className="h-4 w-4" /> Pagar com PIX
+        <QrCode className="h-4 w-4" /> {tr("chat.pix.title")}
       </div>
       {typeof r.name === "string" && r.name && <div className="text-xs text-[hsl(var(--text-muted))]">{r.name}</div>}
       {typeof r.amount === "number" && r.amount > 0 && (
@@ -36,7 +40,7 @@ export const PixCard: React.FC<{ message: Message }> = ({ message }) => {
       )}
       {key && (
         <div className="break-all text-xs">
-          <span className="text-[hsl(var(--text-muted))]">Chave{typeof r.keyType === "string" ? ` (${r.keyType})` : ""}: </span>
+          <span className="text-[hsl(var(--text-muted))]">{tr("chat.pix.key")}{typeof r.keyType === "string" ? ` (${r.keyType})` : ""}: </span>
           {key}
         </div>
       )}
@@ -47,7 +51,7 @@ export const PixCard: React.FC<{ message: Message }> = ({ message }) => {
           className="mt-0.5 flex items-center justify-center gap-1.5 rounded-lg bg-[hsl(var(--action-primary)/0.1)] py-1.5 text-xs font-medium text-[hsl(var(--action-primary))]"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? "Copiado" : "Copiar chave PIX"}
+          {copied ? tr("chat.pix.copied") : tr("chat.pix.copy")}
         </button>
       )}
     </div>
@@ -75,10 +79,10 @@ export const EventCard: React.FC<{ message: Message }> = ({ message }) => {
     <div className={card} data-testid="event-card">
       <div className="flex items-center gap-2 font-medium">
         <CalendarDays className="h-4 w-4 shrink-0 text-[hsl(var(--action-primary))]" />
-        <span className="break-words">{String(r.name ?? "Evento")}</span>
+        <span className="break-words">{String(r.name ?? tr("chat.event.fallbackName"))}</span>
       </div>
-      {r.canceled === true && <div className="text-xs font-medium text-[hsl(var(--status-error))]">Evento cancelado</div>}
-      {when && <div className="text-xs text-[hsl(var(--text-muted))]">{when}{end ? ` até ${end}` : ""}</div>}
+      {r.canceled === true && <div className="text-xs font-medium text-[hsl(var(--status-error))]">{tr("chat.event.canceled")}</div>}
+      {when && <div className="text-xs text-[hsl(var(--text-muted))]">{when}{end ? ` ${tr("chat.event.until")} ${end}` : ""}</div>}
       {typeof r.location === "string" && r.location && (
         <div className="flex items-center gap-1.5 text-xs"><MapPin className="h-3.5 w-3.5 shrink-0" />{r.location}</div>
       )}
@@ -90,7 +94,7 @@ export const EventCard: React.FC<{ message: Message }> = ({ message }) => {
           rel="noopener noreferrer"
           className="mt-0.5 flex items-center justify-center gap-1.5 rounded-lg bg-[hsl(var(--action-primary))] py-1.5 text-xs font-medium text-white"
         >
-          <Video className="h-3.5 w-3.5" /> Entrar na reunião
+          <Video className="h-3.5 w-3.5" /> {tr("chat.event.join")}
         </a>
       )}
     </div>
@@ -143,7 +147,7 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
     <div className="flex w-[330px] max-w-full flex-col gap-2.5 rounded-xl bg-[hsl(var(--bg-surface))] px-4 py-3 text-[15px]" data-testid="poll-card">
       <div className="text-base font-semibold leading-snug">{String(r.question ?? "")}</div>
       <div className="text-xs text-[hsl(var(--text-muted))]">
-        {isTelegram ? (multi ? "Enquete · várias respostas" : "Enquete") : multi ? `Selecione até ${limit} opções` : "Selecione uma opção"}
+        {isTelegram ? tr(multi ? "chat.poll.telegramMultiple" : "chat.poll.telegramSingle") : multi ? tr("chat.poll.multiple", { limit }) : tr("chat.poll.single")}
       </div>
       {options.map((o, i) => {
         const on = chosen.includes(o);
@@ -174,7 +178,7 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
               )}
             </label>
             {voters > 0 && (
-              <div className="ml-[30px] h-1 overflow-hidden rounded-full bg-[var(--border-subtle)]" aria-hidden>
+              <div className="ml-[30px] h-1 overflow-hidden rounded-full bg-[hsl(var(--border-subtle))]" aria-hidden>
                 <div className="h-full rounded-full bg-[hsl(var(--action-primary))]" style={{ width: `${pct}%` }} />
               </div>
             )}
@@ -182,7 +186,7 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
         );
       })}
       <div className="text-xs text-[hsl(var(--text-muted))]" data-testid="poll-voters">
-        {voters} {voters === 1 ? "voto" : "votos"}
+        {tr("chat.poll.vote", { count: voters })}
       </div>
       {canVote && (
         <button
@@ -191,7 +195,7 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
           disabled={busy || sent || (chosen.length === 0 && mine.length === 0)}
           className="rounded-lg bg-[hsl(var(--action-primary))] py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          {busy ? "Enviando…" : sent ? "Voto enviado" : chosen.length === 0 ? "Remover voto" : "Votar"}
+          {busy ? tr("chat.poll.sending") : sent ? tr("chat.poll.sent") : chosen.length === 0 ? tr("chat.poll.remove") : tr("chat.poll.send")}
         </button>
       )}
     </div>
@@ -201,6 +205,6 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
 export const LiveLocationBadge: React.FC<{ message: Message }> = ({ message }) =>
   getRich(message).live === true ? (
     <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-[hsl(var(--status-error))]" data-testid="live-location">
-      <Radio className="h-3.5 w-3.5" /> Localização em tempo real
+      <Radio className="h-3.5 w-3.5" /> {tr("chat.liveLocation")}
     </div>
   ) : null;

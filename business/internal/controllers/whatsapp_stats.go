@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/engineaddr"
@@ -120,4 +121,65 @@ func (wc *WhatsappController) ToggleKeepAlive(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"keepAlive": input.KeepAlive})
+}
+
+// UpdatePresencePolicy define quando o número desta conexão fica "disponível" no WhatsApp.
+//
+// @Summary      Política de presença da conexão
+// @Tags         whatsapp
+// @Accept       json
+// @Produce      json
+// @Param        id    path      int     true  "ID da conexão"
+// @Param        body  body      object  true  "presencePolicy (never|on_demand|always) e presenceIdleMinutes"
+// @Success      200   {object}  map[string]interface{}
+// @Security     BearerAuth
+// @Router       /whatsapp/{id}/presence-policy [put]
+func (wc *WhatsappController) UpdatePresencePolicy(c *gin.Context) {
+	_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	if !ok {
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var input struct {
+		PresencePolicy      string `json:"presencePolicy"`
+		PresenceIdleMinutes *int   `json:"presenceIdleMinutes"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utils.RespondWithBindError(c, err)
+		return
+	}
+	policy, valid := domain.ParsePresencePolicy(input.PresencePolicy)
+	if !valid || input.PresencePolicy == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "presencePolicy deve ser never, on_demand ou always"})
+		return
+	}
+	whatsapp, err := wc.sessionRepo.FindByID(c.Request.Context(), id, tenantID)
+	if err != nil || whatsapp == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "WhatsApp connection not found or access denied"})
+		return
+	}
+	idle := whatsapp.PresenceIdleMinutes
+	if input.PresenceIdleMinutes != nil {
+		if *input.PresenceIdleMinutes < 1 || *input.PresenceIdleMinutes > domain.MaxPresenceIdleMinutes {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "presenceIdleMinutes deve estar entre 1 e " + strconv.Itoa(domain.MaxPresenceIdleMinutes)})
+			return
+		}
+		idle = *input.PresenceIdleMinutes
+	}
+	idle = domain.NormalizePresenceIdle(idle)
+
+	fields := map[string]interface{}{"presencePolicy": string(policy), "presenceIdleMinutes": idle}
+	if err := wc.sessionRepo.Update(c.Request.Context(), whatsapp, fields); err != nil {
+		utils.RespondWithInternalError(c, err, "UpdatePresencePolicy")
+		return
+	}
+	// Aplica na hora à sessão em andamento (sem precisar reconectar).
+	if wc.sessionService != nil {
+		wc.sessionService.ApplyPresencePolicy(whatsapp.TenantID, whatsapp.ID, string(policy), idle)
+	}
+	c.JSON(http.StatusOK, gin.H{"presencePolicy": string(policy), "presenceIdleMinutes": idle})
 }

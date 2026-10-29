@@ -33,6 +33,7 @@ func TestWBotContract_BidirectionalCoverage(t *testing.T) {
 		{"media", wbot.EventMessageMedia, `"message.media"`, `"message.media"`},
 		{"contact update", wbot.EventContactUpdate, `"contact.update"`, `"contact.update"`},
 		{"contact import", wbot.EventContactImport, `"contact.import"`, `"contact.import"`},
+		{"contact presence", wbot.EventContactPresence, `"contact.presence"`, "EventContactPresence"},
 		{"poll vote", wbot.EventMessagePollVote, `"message.poll_vote"`, "EventMessagePollVote"},
 	}
 	for _, event := range events {
@@ -53,6 +54,8 @@ func TestWBotContract_BidirectionalCoverage(t *testing.T) {
 		{"text", wbot.CommandMessageText, "CommandMessageText", "message.send.text"},
 		{"media", wbot.CommandMessageMedia, "CommandMessageMedia", "message.send.media"},
 		{"poll", wbot.CommandMessagePoll, "CommandMessagePoll", "message.send.poll"},
+		{"presence policy", wbot.CommandPresencePolicy, "CommandPresencePolicy", "CommandPresencePolicy"},
+		{"presence subscribe", wbot.CommandPresenceSubscribe, "CommandPresenceSubscribe", "CommandPresenceSubscribe"},
 		{"poll vote", wbot.CommandMessagePollVote, "CommandMessagePollVote", "CommandMessagePollVote"},
 		{"react", wbot.CommandMessageReact, "CommandMessageReact", "CommandMessageReact"},
 		{"media download", wbot.CommandMediaDownload, "CommandMediaDownload", "CommandMediaDownload"},

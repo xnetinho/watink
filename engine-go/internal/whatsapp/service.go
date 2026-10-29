@@ -29,6 +29,8 @@ type WhatsAppService struct {
 	clients         map[int]*whatsmeow.Client
 	clientsByTenant map[clientKey]*whatsmeow.Client
 	mu              sync.RWMutex
+	presenceMu      sync.Mutex
+	presence        map[int]*presenceState // política e estado de presença por sessão
 	rabbit          *rabbitmq.RabbitMQService
 
 	historyMu       sync.Mutex

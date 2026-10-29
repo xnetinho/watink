@@ -262,6 +262,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.POST("/messages/:ticketId", auth.RequirePermission("tickets", "update"), messageController.SendMessage)
 		// On-demand media download (separate path to avoid Gin wildcard conflict
 		// with :ticketId at the same position)
+		protected.POST("/tickets/:ticketId/presence", auth.RequirePermission("tickets", "read"), messageController.SubscribePresence)
 		protected.POST("/media/:messageId/download", auth.RequirePermission("tickets", "read"), messageController.DownloadMedia)
 		// Nested under a distinct literal segment ("message", singular) --
 		// gin's radix router panics at startup if two routes share a path
@@ -279,6 +280,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.PUT("/whatsapp/:id", auth.RequirePermission("connections", "update"), whatsappController.UpdateWhatsapp)
 		protected.GET("/whatsapp/:id/stats", auth.RequirePermission("connections", "read"), whatsappController.StatsWhatsapp)
 		protected.PUT("/whatsapp/:id/keepalive", auth.RequirePermission("connections", "update"), whatsappController.ToggleKeepAlive)
+		protected.PUT("/whatsapp/:id/presence-policy", auth.RequirePermission("connections", "update"), whatsappController.UpdatePresencePolicy)
 		protected.DELETE("/whatsapp/:id", auth.RequirePermission("connections", "delete"), whatsappController.DeleteWhatsapp)
 
 		// Channel Connections (Agnostic - Telegram, WhatsApp, ML, etc. - ADR 0033 / Tarefa 7.1)

@@ -123,6 +123,9 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 			// Sem isso, toda RECONEXÃO (Parar+Iniciar) deixava number/profilePicUrl
 			// intocados no banco, mesmo a sessão estando saudável.
 			s.emitConnected(client, id, tenantID)
+			// Restauração após reiniciar o engine: o whatsmeow não dispara events.Connected aqui, então a política
+			// de presença precisa ser reaplicada neste caminho também.
+			s.presenceOnConnect(id, client)
 		} else {
 			log.Printf("Session %d has device ID but is not logged in — requesting QR", id)
 			qrChan, err = client.GetQRChannel(context.Background())
