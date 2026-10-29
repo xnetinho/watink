@@ -500,6 +500,8 @@ const messages = {
         success: "User saved successfully.",
       },
       chat: {
+        sendFailedRetry: "Send failed — click to try again",
+        resendFailed: "Could not resend the message.",
         audioPlayer: {
           play: "Play",
           pause: "Pause",

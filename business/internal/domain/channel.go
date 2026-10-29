@@ -106,6 +106,8 @@ type InboundMessage struct {
 	// Edited marca a edição de uma mensagem já entregue (Telegram edited_message, inclusive localização ao vivo): atualiza a
 	// original em vez de ser descartada como duplicata.
 	Edited bool `json:"edited,omitempty"`
+	// EditedAt é o instante da edição segundo o canal (Telegram edit_date); vazio usa a hora do recebimento.
+	EditedAt time.Time `json:"editedAt,omitempty"`
 	// Forwarded: o canal informou que a mensagem foi encaminhada.
 	Forwarded bool `json:"forwarded,omitempty"`
 	// Rich: forma estruturada (enquete, localização ao vivo...) para o chat desenhar um cartão; Body segue como texto.

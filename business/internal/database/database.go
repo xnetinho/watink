@@ -62,6 +62,7 @@ func Migrate() {
 		&models.Queue{},
 		&models.Ticket{},
 		&models.Message{},
+		&models.MessageEdit{},
 		&models.Setor{},
 		&models.Cargo{},
 		&models.Permission{},

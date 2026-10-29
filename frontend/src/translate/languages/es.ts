@@ -504,6 +504,8 @@ const messages = {
         success: "Usuario guardado satisfactoriamente.",
       },
       chat: {
+        sendFailedRetry: "Error al enviar — haz clic para intentar de nuevo",
+        resendFailed: "No se pudo reenviar el mensaje.",
         audioPlayer: {
           play: "Reproducir",
           pause: "Pausar",

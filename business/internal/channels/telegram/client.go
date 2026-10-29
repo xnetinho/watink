@@ -414,3 +414,11 @@ func (c *Client) sendMedia(ctx context.Context, method, field, chatID, mediaURL,
 	}
 	return msgRes.MessageID, nil
 }
+
+// editDate é o instante da edição (edit_date), que ordena a cadeia de versões; zero quando não é edição ou o Telegram não o informou.
+func editDate(msg *TelegramMessage, edited bool) time.Time {
+	if !edited || msg == nil || msg.EditDate == 0 {
+		return time.Time{}
+	}
+	return time.Unix(msg.EditDate, 0)
+}

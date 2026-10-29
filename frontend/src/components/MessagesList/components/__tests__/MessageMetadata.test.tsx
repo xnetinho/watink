@@ -1,6 +1,6 @@
 import React from "react";
-import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import MessageMetadata, { MessageAck } from "../MessageMetadata";
 import type { Message } from "../../types";
 
@@ -32,5 +32,18 @@ describe("tique de lido", () => {
   it("ack 2 (entregue) NÃO é azul", () => {
     const { container } = render(<MessageAck message={readMsg(2)} />);
     expect(container.querySelector("svg")?.getAttribute("class")).not.toContain("action-primary");
+  });
+});
+
+describe("mensagem que falhou (ack 5)", () => {
+  const failed = { id: "m", body: "", fromMe: true, ack: 5, createdAt: new Date().toISOString() } as Message;
+
+  it("o alerta vem traduzido (nada de texto fixo) e chama o reenvio ao clicar", () => {
+    const onRetry = vi.fn();
+    const { container } = render(<MessageAck message={failed} onRetry={onRetry} />);
+    const alerta = container.querySelector("span[title]") as HTMLElement;
+    expect(alerta.getAttribute("title")).toBe("Erro ao enviar — clique para tentar novamente");
+    fireEvent.click(alerta);
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });
