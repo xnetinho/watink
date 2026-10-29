@@ -178,7 +178,7 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
               )}
             </label>
             {voters > 0 && (
-              <div className="ml-[30px] h-1 overflow-hidden rounded-full bg-[var(--border-subtle)]" aria-hidden>
+              <div className="ml-[30px] h-1 overflow-hidden rounded-full bg-[hsl(var(--border-subtle))]" aria-hidden>
                 <div className="h-full rounded-full bg-[hsl(var(--action-primary))]" style={{ width: `${pct}%` }} />
               </div>
             )}
