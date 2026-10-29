@@ -116,6 +116,7 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 	contact, err := uc.contactRepo.FindOrCreate(
 		ctx,
 		input.TenantID,
+		domain.WhatsappConnection(input.SessionID),
 		number,
 		contactName,
 		input.ProfilePicURL,

@@ -60,6 +60,7 @@ func TestWBotContract_BidirectionalCoverage(t *testing.T) {
 		{"react", wbot.CommandMessageReact, "CommandMessageReact", "CommandMessageReact"},
 		{"media download", wbot.CommandMediaDownload, "CommandMediaDownload", "CommandMediaDownload"},
 		{"contact sync", wbot.CommandContactSync, "CommandContactSync", "CommandContactSync"},
+		{"contact save", wbot.CommandContactSave, "CommandContactSave", "CommandContactSave"},
 		{"contact import", wbot.CommandContactImport, "CommandContactImport", "CommandContactImport"},
 		{"history recover", wbot.CommandHistoryRecover, "CommandHistoryRecover", "CommandHistoryRecover"},
 		{"presence", wbot.CommandChatPresence, "CommandChatPresence", "chat.presence"},

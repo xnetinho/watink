@@ -113,6 +113,7 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	contact, _, err := s.contactRepo.FindOrCreateByIdentity(
 		ctx,
 		msg.TenantID,
+		domain.ChannelConnection(msg.ChannelConnectionID),
 		msg.Channel,
 		msg.Sender.ExternalID,
 		msg.Sender.Name,

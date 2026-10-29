@@ -52,6 +52,21 @@ type Message struct {
 }
 
 // Contact represents a customer contact
+// ConnectionRef identifica a conexão (de qual tabela e qual id) de onde um contato deriva.
+type ConnectionRef struct {
+	Source string // ConnectionSourceWhatsapp ou ConnectionSourceChannel
+	ID     int
+}
+
+const (
+	ConnectionSourceWhatsapp = "whatsapp" // Whatsapps
+	ConnectionSourceChannel  = "channel"  // ChannelConnections (Telegram...)
+)
+
+// WhatsappConnection e ChannelConnection constroem a referência a partir do id que cada fluxo já tem.
+func WhatsappConnection(id int) ConnectionRef { return ConnectionRef{ConnectionSourceWhatsapp, id} }
+func ChannelConnection(id int) ConnectionRef  { return ConnectionRef{ConnectionSourceChannel, id} }
+
 type Contact struct {
 	ID            int       `json:"id"`
 	Name          string    `json:"name"`
@@ -62,8 +77,13 @@ type Contact struct {
 	TenantID      uuid.UUID `json:"tenantId"`
 	Lid           *string   `json:"lid"`
 	WalletUserID  *int      `json:"walletUserId"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	// Conexão de origem do contato (ver models.Contact).
+	ConnectionSource string    `json:"connectionSource"`
+	ConnectionID     int       `json:"connectionId"`
+	PhoneSync        string    `json:"phoneSync"`
+	PhoneSyncError   string    `json:"phoneSyncError,omitempty"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
 // Queue represents a support queue with distribution settings

@@ -89,7 +89,7 @@ func (s *Service) ResolveContactAndTicket(ctx context.Context, tenantID uuid.UUI
 	if number == "" {
 		number = peerNumber(peer)
 	}
-	contact, err := s.contacts.FindOrCreate(ctx, tenantID, number, "", "", false, isLID, peer, callerPn)
+	contact, err := s.contacts.FindOrCreate(ctx, tenantID, domain.WhatsappConnection(whatsappID), number, "", "", false, isLID, peer, callerPn)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -69,8 +69,11 @@ func (el *EventListener) bcast() domain.Broadcaster {
 	return domain.BroadcastOrNop(el.broadcast)
 }
 
-func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener) {
-	routingKeys := []string{
+// eventRoutingKeys são os eventos do engine que o business consome. Todo evento do contrato que o engine publica e que
+// tem tratador precisa estar aqui: o que falta é descartado em silêncio pelo broker (foi o que deixou o contato em
+// "Gravando na agenda do celular..." para sempre, com o evento contact.saved nunca entregue).
+func eventRoutingKeys() []string {
+	return []string{
 		wbot.EventPattern(wbot.EventEngineReady),
 		wbot.EventPattern(wbot.EventSessionQRCode),
 		wbot.EventPattern(wbot.EventSessionPairingCode),
@@ -84,10 +87,15 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 		wbot.EventPattern(wbot.EventMessageMedia),
 		wbot.EventPattern(wbot.EventContactUpdate),
 		wbot.EventPattern(wbot.EventContactImport),
+		wbot.EventPattern(wbot.EventContactSaved),
 		wbot.EventPattern(wbot.EventSessionJIDRegistered),
 		wbot.EventPattern(wbot.EventMessagePollVote),
 		wbot.EventPattern(wbot.EventContactPresence),
 	}
+}
+
+func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener) {
+	routingKeys := eventRoutingKeys()
 	// Eventos call.* NÃO entram aqui: têm fila e consumidor próprios em
 	// internal/calls (Service.Start), para não esperarem atrás das mensagens.
 
@@ -163,6 +171,8 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			return syncConnectionProfilePic(ctx, eventListener.sessions, eventListener.bcast(), env.Payload, tid)
 		case "contact.import":
 			return handleContactImport(ctx, eventListener.contacts, env.Payload, tid)
+		case "contact.saved":
+			return handleContactSaved(ctx, eventListener.contacts, eventListener.bcast(), env.Payload, tid)
 		case "session.jid_registered":
 			return handleJIDRegistered(ctx, eventListener.sessions, env.Payload, tid)
 		case "message.poll_vote":

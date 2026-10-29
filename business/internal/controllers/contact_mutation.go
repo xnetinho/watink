@@ -3,11 +3,14 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // @Summary      Criar contato
@@ -19,18 +22,21 @@ import (
 // @Security     BearerAuth
 // @Router       /contacts [post]
 func (cc *ContactController) CreateContact(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Contacts")
+	db, tenantID, ok := auth.GetScoped(c, "Contacts")
 	if !ok {
 		return
 	}
 
 	var input struct {
-		Name          string `json:"name"`
-		Number        string `json:"number"`
-		ProfilePicUrl string `json:"profilePicUrl"`
-		Email         string `json:"email"`
-		IsGroup       bool   `json:"isGroup"`
-		WalletUserID  *int   `json:"walletUserId"`
+		// Conexão de origem, obrigatória: o contato pertence a uma conexão e é por ela que recebe mensagens.
+		ConnectionSource string `json:"connectionSource"`
+		ConnectionID     int    `json:"connectionId"`
+		Name             string `json:"name"`
+		Number           string `json:"number"`
+		ProfilePicUrl    string `json:"profilePicUrl"`
+		Email            string `json:"email"`
+		IsGroup          bool   `json:"isGroup"`
+		WalletUserID     *int   `json:"walletUserId"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -59,14 +65,40 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 		return
 	}
 
+	conn, found := resolveConnection(db, tenantID, input.ConnectionSource, input.ConnectionID)
+	if !found {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "connection_required"})
+		return
+	}
+
 	contact := &domain.Contact{
-		Name:          name,
-		Number:        number,
-		ProfilePicUrl: profilePicUrl,
-		Email:         email,
-		IsGroup:       input.IsGroup,
-		WalletUserID:  input.WalletUserID,
-		TenantID:      tenantID,
+		ConnectionSource: conn.Ref.Source,
+		ConnectionID:     conn.Ref.ID,
+		Name:             name,
+		Number:           number,
+		ProfilePicUrl:    profilePicUrl,
+		Email:            email,
+		IsGroup:          input.IsGroup,
+		WalletUserID:     input.WalletUserID,
+		TenantID:         tenantID,
+	}
+
+	// Contato de WhatsApp criado aqui também vai para a agenda do celular, como o WhatsApp Web faz. Conexão fora do ar
+	// não impede o cadastro: o contato nasce e "failed" diz que o celular não o recebeu.
+	// Um contato criado à mão só faz sentido onde a empresa PODE iniciar a conversa. O bot do Telegram só responde a quem
+	// escreveu primeiro (Capabilities.InitiateConversation=false), então não há o que cadastrar: o contato dele nasce
+	// quando a pessoa fala com o bot.
+	if ad, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind)); err == nil && !ad.Capabilities().InitiateConversation {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "channel_cannot_initiate"})
+		return
+	}
+
+	toPhone := conn.Kind == string(domain.ChannelKindWhatsApp) && !input.IsGroup && number != ""
+	if toPhone {
+		contact.PhoneSync = "pending"
+		if conn.Status != "CONNECTED" || cc.publisher == nil {
+			contact.PhoneSync, contact.PhoneSyncError = "failed", "connection_not_connected"
+		}
 	}
 
 	if err := cc.contactRepo.Create(c.Request.Context(), contact); err != nil {
@@ -76,6 +108,18 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 		}
 		utils.RespondWithInternalError(c, err, "CreateContact")
 		return
+	}
+
+	if toPhone && contact.PhoneSync == "pending" {
+		cmd := map[string]interface{}{
+			"id": uuid.New().String(), "timestamp": time.Now().UnixMilli(), "tenantId": tenantID.String(), "type": wbot.CommandContactSave,
+			"payload": map[string]interface{}{"sessionId": conn.Ref.ID, "number": number, "name": name},
+		}
+		key := wbot.Command(tenantID.String(), strconv.Itoa(conn.Ref.ID), wbot.CommandContactSave)
+		if err := cc.publisher.PublishCommand(key, cmd); err != nil {
+			contact.PhoneSync, contact.PhoneSyncError = "failed", "publish_failed"
+			_ = cc.contactRepo.Update(c.Request.Context(), contact, map[string]interface{}{"phoneSync": contact.PhoneSync, "phoneSyncError": contact.PhoneSyncError})
+		}
 	}
 
 	cc.broadcast.EmitToTenantRoom(tenantID.String(), "contact", gin.H{"action": "create", "contact": contact})

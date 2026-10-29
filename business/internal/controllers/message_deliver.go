@@ -58,9 +58,15 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 	contact := ticket.Contact
 	ticketID := ticket.ID
 	body, mediaType, mediaURL, mimeType, quotedID := in.Body, in.MediaType, in.MediaURL, in.MimeType, in.QuotedID
+	// O mimetype fica gravado na mensagem: sem ele, encaminhar uma mídia que o operador enviou a reenviaria sem tipo.
 	dataJSON := in.DataJSON
 	if dataJSON == "" {
 		dataJSON = "{}"
+		if mimeType != "" {
+			if b, err := json.Marshal(map[string]string{"mimetype": mimeType}); err == nil {
+				dataJSON = string(b)
+			}
+		}
 	}
 
 	messageID := newWAMessageID()
@@ -108,7 +114,9 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 					QuotedMessageID: quotedExternalID,
 				}
 				if in.Forward != nil {
-					if !in.Forward.AsNew && !chAdapter.Capabilities().Forward {
+					// Encaminhar com selo exige que o canal suporte E que origem e destino sejam a MESMA conexão (o Telegram só
+					// encaminha o que o próprio bot enxerga). A regra vale antes do adaptador para qualquer canal.
+					if !in.Forward.AsNew && (!chAdapter.Capabilities().Forward || !in.Forward.SameConnection) {
 						return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "forward_not_supported"}
 					}
 					outMsg.Forward = &domain.ForwardRef{

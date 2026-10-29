@@ -28,6 +28,7 @@ interface ConnectionCardProps {
   onRequestQrCode: (id: number) => void;
   onEdit: (whatsApp: ConnectionSession) => void;
   onDelete: (whatsApp: ConnectionSession) => void;
+  onImportContacts?: (id: number) => void;
 }
 
 export const ConnectionCard: React.FC<ConnectionCardProps> = ({
@@ -39,6 +40,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
   onRequestQrCode,
   onEdit,
   onDelete,
+  onImportContacts,
 }) => {
   return (
     <Card
@@ -123,6 +125,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
           onEdit={onEdit}
           onDelete={onDelete}
           onConfigure={onNavigate}
+          onImportContacts={onImportContacts}
         />
       </CardFooter>
     </Card>

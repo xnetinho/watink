@@ -6,6 +6,10 @@ Guia para o Claude Code ao trabalhar neste repositório.
 ## Banco de dados: sem migrações incrementais (regra do dono, 28/out/2026)
 O aplicativo está em desenvolvimento e **não há instância em produção nem dado legado**. Coluna ou tabela nova entra **somente no modelo GORM** (`internal/models`) e no baseline que o `watink-business migrate` cria. **Não** criar migração incremental, versão `SchemaMigrations` > 1, `ALTER TABLE` de compatibilidade, backfill nem fallback para "banco antigo". Ao mudar o esquema, recrie o banco de desenvolvimento (`docker compose down -v`) em vez de migrá-lo.
 
+## Testes do backend: nunca apontar `TEST_DATABASE_URL` para o banco do `lt`
+Os testes de `pkg/tenantdb` e `internal/database` **recriam os papéis `watink_app`, `watink_system` e `watink_owner` com senhas próprias** no cluster inteiro. Rodá-los contra o Postgres do `lt` troca a senha que o business usa: ele perde o banco, o refresh do token dá 401 e a sessão do navegador cai (aconteceu em 28/out/2026). Use um Postgres descartável:
+`docker run -d --name pgtest -e POSTGRES_PASSWORD=pgtest -p 127.0.0.1:5544:5432 --tmpfs /var/lib/postgresql/data postgres:16-alpine` e `TEST_DATABASE_URL=postgres://postgres:pgtest@127.0.0.1:5544/postgres?sslmode=disable`.
+
 ## Project Overview
 
 Watink — plataforma de atendimento e automação no WhatsApp. Microsserviços com RabbitMQ, multitenancy via PostgreSQL RLS, sistema de plugins com licenciamento centralizado.

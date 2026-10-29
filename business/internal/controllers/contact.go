@@ -36,7 +36,18 @@ func (cc *ContactController) ListContacts(c *gin.Context) {
 	}
 
 	searchParam := c.Query("searchParam")
-	contacts, err := cc.contactRepo.Find(c.Request.Context(), tenantID, searchParam)
+	filter := domain.ContactFilter{Channel: c.Query("channel")}
+	if n, err := strconv.Atoi(c.Query("limit")); err == nil && n > 0 {
+		filter.Limit = min(n, 100)
+	}
+	if id, err := strconv.Atoi(c.Query("connectionId")); err == nil && id > 0 {
+		src := c.Query("connectionSource")
+		if src == "" {
+			src = domain.ConnectionSourceWhatsapp
+		}
+		filter.Connection = &domain.ConnectionRef{Source: src, ID: id}
+	}
+	contacts, err := cc.contactRepo.Find(c.Request.Context(), tenantID, searchParam, filter)
 	if err != nil {
 		utils.RespondWithInternalError(c, err, "ListContacts")
 		return

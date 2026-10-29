@@ -15,6 +15,12 @@ export interface Contact {
   lid?: string;
   extraInfo?: ExtraInfo[];
   client?: { id: number; socialName?: string | null } | null;
+  /** Conexão de origem: o contato pertence a UMA conexão e é por ela que recebe e envia. */
+  connectionSource?: "whatsapp" | "channel";
+  connectionId?: number;
+  /** Resultado de gravar o contato na agenda do celular (só WhatsApp): pending | saved | failed. */
+  phoneSync?: "" | "pending" | "saved" | "failed";
+  phoneSyncError?: string;
 }
 
 export interface Tag {

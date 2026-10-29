@@ -210,3 +210,48 @@ func TestWithConnectionIdentity_EventoComRLSReal(t *testing.T) {
 	_, has := out["connection"]
 	assert.False(t, has, "sem escopo de empresa, nada de identificação (e nada vaza)")
 }
+
+// Importar contatos e receber o resultado da gravação no celular, com o papel SEM BYPASSRLS: cada contato nasce ligado à
+// conexão que o trouxe, o mesmo telefone em outra conexão é outro contato, e o resultado só altera o contato da conexão.
+func TestContatosPorConexao_ImportEResultadoDaGravacao_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+	repo := repository.NewGORMContactRepo(gdb)
+
+	err = tenantdb.WithTenant(context.Background(), gdb, tenant, func(ctx context.Context) error {
+		imp := func(session string) json.RawMessage {
+			b, _ := json.Marshal(map[string]interface{}{"sessionId": session, "contacts": []map[string]string{{"number": "5583999990001", "name": "Maria"}}})
+			return b
+		}
+		require.NoError(t, services.HandleContactImportEvent(ctx, repo, imp("1"), tenant))
+		require.NoError(t, services.HandleContactImportEvent(ctx, repo, imp("2"), tenant))
+		require.NoError(t, services.HandleContactImportEvent(ctx, repo, imp("1"), tenant), "reimportar não duplica")
+		assert.Error(t, services.HandleContactImportEvent(ctx, repo, imp(""), tenant), "importação sem conexão é recusada, nunca grava contato órfão")
+
+		a, err := repo.FindByNumber(ctx, tenant, domain.WhatsappConnection(1), "5583999990001", false)
+		require.NoError(t, err)
+		b, err := repo.FindByNumber(ctx, tenant, domain.WhatsappConnection(2), "5583999990001", false)
+		require.NoError(t, err)
+		require.NotNil(t, a)
+		require.NotNil(t, b)
+		assert.NotEqual(t, a.ID, b.ID, "mesmo telefone em duas conexões = dois contatos")
+
+		saved, _ := json.Marshal(map[string]interface{}{"sessionId": "2", "number": "5583999990001", "ok": false, "error": "5583999990001 não tem WhatsApp"})
+		require.NoError(t, services.HandleContactSavedEvent(ctx, repo, saved, tenant))
+		a, _ = repo.FindByNumber(ctx, tenant, domain.WhatsappConnection(1), "5583999990001", false)
+		b, _ = repo.FindByNumber(ctx, tenant, domain.WhatsappConnection(2), "5583999990001", false)
+		assert.Equal(t, "failed", b.PhoneSync)
+		assert.Contains(t, b.PhoneSyncError, "não tem WhatsApp")
+		assert.Empty(t, a.PhoneSync, "o resultado vale só para a conexão que o gerou")
+		return nil
+	})
+	require.NoError(t, err)
+
+	var n int
+	require.NoError(t, admin.QueryRow(`SELECT count(*) FROM "Contacts" WHERE "tenantId" = $1`, tenant).Scan(&n))
+	assert.Equal(t, 2, n)
+}

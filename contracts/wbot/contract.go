@@ -33,6 +33,7 @@ const (
 	CommandMediaDownload      = "media.download"
 	CommandContactSync        = "contact.sync"
 	CommandContactImport      = "contact.import"
+	CommandContactSave        = "contact.save" // grava o contato na agenda do celular (como o WhatsApp Web)
 	CommandHistoryRecover     = "history.recover"
 	CommandChatPresence       = "chat.presence"
 	CommandPresenceSubscribe  = "presence.subscribe"
@@ -60,6 +61,7 @@ const (
 	EventMessagePollVote      = "message.poll_vote"
 	EventContactUpdate        = "contact.update"
 	EventContactImport        = "contact.import"
+	EventContactSaved         = "contact.saved" // resultado da gravação do contato na agenda do celular
 	EventContactPresence      = "contact.presence"
 )
 

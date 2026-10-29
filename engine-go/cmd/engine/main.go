@@ -78,6 +78,7 @@ func main() {
 		wbot.CommandPattern(wbot.CommandMessageCarousel),
 		wbot.CommandPattern(wbot.CommandMessageReact),
 		wbot.CommandPattern(wbot.CommandMessageMarkRead),
+		wbot.CommandPattern(wbot.CommandContactSave),
 		wbot.CommandPattern(wbot.CommandMediaDownload),
 		wbot.CommandPattern(wbot.CommandContactSync),
 		wbot.CommandPattern(wbot.CommandContactImport),
@@ -315,6 +316,13 @@ func handleCommand(d amqp.Delivery, svc *whatsapp.WhatsAppService) error {
 
 	case "contact.import":
 		return svc.ImportContacts(sessionID, tenantID)
+
+	case "contact.save":
+		var p whatsapp.SaveContactPayload
+		if err := json.Unmarshal(env.Payload, &p); err != nil {
+			return err
+		}
+		return svc.SaveContact(sessionID, tenantID, p)
 
 	case "history.recover":
 		var p whatsapp.HistoryRecoverPayload

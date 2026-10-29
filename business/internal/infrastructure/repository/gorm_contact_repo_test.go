@@ -27,18 +27,22 @@ func seedTwoTenantsContacts(t *testing.T, db *gorm.DB) (tenantA, tenantB uuid.UU
 	require.NoError(t, db.Create(&TenantTest{ID: tenantB, Name: "Tenant B"}).Error)
 
 	contactA = &models.Contact{
-		Name:     "Carlos A",
-		Number:   "5599991111",
-		Email:    "carlos@tenant-a.com",
-		IsGroup:  false,
-		TenantID: tenantA,
+		Name:             "Carlos A",
+		Number:           "5599991111",
+		Email:            "carlos@tenant-a.com",
+		IsGroup:          false,
+		TenantID:         tenantA,
+		ConnectionSource: domain.ConnectionSourceWhatsapp,
+		ConnectionID:     1,
 	}
 	contactB = &models.Contact{
-		Name:     "Diana B",
-		Number:   "5599992222",
-		Email:    "diana@tenant-b.com",
-		IsGroup:  false,
-		TenantID: tenantB,
+		Name:             "Diana B",
+		Number:           "5599992222",
+		Email:            "diana@tenant-b.com",
+		IsGroup:          false,
+		TenantID:         tenantB,
+		ConnectionSource: domain.ConnectionSourceWhatsapp,
+		ConnectionID:     1,
 	}
 	require.NoError(t, db.Create(contactA).Error)
 	require.NoError(t, db.Create(contactB).Error)
@@ -70,13 +74,13 @@ func TestGORMContactRepo_Find_TenantIsolation(t *testing.T) {
 	ctx := context.Background()
 
 	// Find vazio tenantA → só Carlos
-	contactsA, err := repo.Find(ctx, tenantA, "")
+	contactsA, err := repo.Find(ctx, tenantA, "", domain.ContactFilter{})
 	assert.NoError(t, err)
 	assert.Len(t, contactsA, 1, "tenantA deveria ter exatamente 1 contato")
 	assert.Equal(t, "Carlos A", contactsA[0].Name)
 
 	// Find vazio tenantB → só Diana
-	contactsB, err := repo.Find(ctx, tenantB, "")
+	contactsB, err := repo.Find(ctx, tenantB, "", domain.ContactFilter{})
 	assert.NoError(t, err)
 	assert.Len(t, contactsB, 1, "tenantB deveria ter exatamente 1 contato")
 	assert.Equal(t, "Diana B", contactsB[0].Name)
@@ -89,12 +93,12 @@ func TestGORMContactRepo_FindByNumber_TenantIsolation(t *testing.T) {
 	ctx := context.Background()
 
 	// Buscar número do tenantA com tenantA → deve encontrar
-	found, err := repo.FindByNumber(ctx, tenantA, contactA.Number, false)
+	found, err := repo.FindByNumber(ctx, tenantA, domain.WhatsappConnection(1), contactA.Number, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, found, "deveria encontrar contato pelo número no tenant correto")
 
 	// Buscar número do tenantA com tenantB → nil (isolamento)
-	leaked, err := repo.FindByNumber(ctx, tenantB, contactA.Number, false)
+	leaked, err := repo.FindByNumber(ctx, tenantB, domain.WhatsappConnection(1), contactA.Number, false)
 	assert.NoError(t, err)
 	assert.Nil(t, leaked, "VAZAMENTO DE DADOS: encontrou contato de outro tenant via FindByNumber")
 }
@@ -131,8 +135,10 @@ func TestGORMContactRepo_Update_TenantIsolation(t *testing.T) {
 
 	// Tentar update com tenant errado
 	domainContact := &domain.Contact{
-		ID:       contactA.ID,
-		TenantID: tenantB,
+		ID:               contactA.ID,
+		TenantID:         tenantB,
+		ConnectionSource: domain.ConnectionSourceWhatsapp,
+		ConnectionID:     1,
 	}
 	fields := map[string]interface{}{"name": "Hacked Contact"}
 	err := repo.Update(ctx, domainContact, fields)
@@ -194,15 +200,17 @@ func TestGORMContactRepo_Create(t *testing.T) {
 	ctx := context.Background()
 
 	contact := &domain.Contact{
-		Name:     "New Contact",
-		Number:   "5599887766",
-		Email:    "new@tenant-a.com",
-		TenantID: tenantA,
+		Name:             "New Contact",
+		Number:           "5599887766",
+		Email:            "new@tenant-a.com",
+		TenantID:         tenantA,
+		ConnectionSource: domain.ConnectionSourceWhatsapp,
+		ConnectionID:     1,
 	}
 	err := repo.Create(ctx, contact)
 	require.NoError(t, err)
 
-	found, err := repo.FindByNumber(ctx, tenantA, "5599887766", false)
+	found, err := repo.FindByNumber(ctx, tenantA, domain.WhatsappConnection(1), "5599887766", false)
 	require.NoError(t, err)
 	require.NotNil(t, found)
 	assert.Equal(t, "New Contact", found.Name)
@@ -216,14 +224,14 @@ func TestGORMContactRepo_FindOrCreate_TenantIsolation(t *testing.T) {
 	ctx := context.Background()
 
 	// FindOrCreate com novo número → deve criar no tenant correto
-	created, err := repo.FindOrCreate(ctx, tenantA, "5599993333", "New Contact", "", false, false, "", "")
+	created, err := repo.FindOrCreate(ctx, tenantA, domain.WhatsappConnection(1), "5599993333", "New Contact", "", false, false, "", "")
 	assert.NoError(t, err)
 	assert.NotNil(t, created, "FindOrCreate deveria retornar o contato criado")
 	assert.Equal(t, "New Contact", created.Name)
 	assert.Equal(t, tenantA, created.TenantID)
 
 	// FindOrCreate com mesmo número e tenantA → deve retornar existente
-	found, err := repo.FindOrCreate(ctx, tenantA, "5599993333", "Other Name", "", false, false, "", "")
+	found, err := repo.FindOrCreate(ctx, tenantA, domain.WhatsappConnection(1), "5599993333", "Other Name", "", false, false, "", "")
 	assert.NoError(t, err)
 	assert.NotNil(t, found)
 	assert.Equal(t, created.ID, found.ID, "FindOrCreate deveria retornar o mesmo contato")
@@ -235,13 +243,13 @@ func TestGORMContactRepo_FindOrCreate_RefreshesExpiredProfilePicUrl(t *testing.T
 	repo := NewGORMContactRepo(db)
 	ctx := context.Background()
 
-	created, err := repo.FindOrCreate(ctx, tenantA, "5599994444", "Ana", "https://cdn.example.com/old.jpg", false, false, "", "")
+	created, err := repo.FindOrCreate(ctx, tenantA, domain.WhatsappConnection(1), "5599994444", "Ana", "https://cdn.example.com/old.jpg", false, false, "", "")
 	require.NoError(t, err)
 	require.Equal(t, "https://cdn.example.com/old.jpg", created.ProfilePicUrl)
 
 	// URL da CDN expirou e uma nova chega -- deve substituir a antiga, não
 	// ficar travada porque o campo já estava preenchido.
-	updated, err := repo.FindOrCreate(ctx, tenantA, "5599994444", "Ana", "https://cdn.example.com/new.jpg", false, false, "", "")
+	updated, err := repo.FindOrCreate(ctx, tenantA, domain.WhatsappConnection(1), "5599994444", "Ana", "https://cdn.example.com/new.jpg", false, false, "", "")
 	require.NoError(t, err)
 	assert.Equal(t, "https://cdn.example.com/new.jpg", updated.ProfilePicUrl)
 }
@@ -326,13 +334,13 @@ func TestGORMContactRepo_FindOrCreate_NeverErasesProfilePicUrlWithEmpty(t *testi
 	repo := NewGORMContactRepo(db)
 	ctx := context.Background()
 
-	created, err := repo.FindOrCreate(ctx, tenantA, "5599995555", "Bruno", "https://cdn.example.com/pic.jpg", false, false, "", "")
+	created, err := repo.FindOrCreate(ctx, tenantA, domain.WhatsappConnection(1), "5599995555", "Bruno", "https://cdn.example.com/pic.jpg", false, false, "", "")
 	require.NoError(t, err)
 	require.Equal(t, "https://cdn.example.com/pic.jpg", created.ProfilePicUrl)
 
 	// Falha transitória de busca de foto chega como string vazia -- nunca
 	// deve apagar a URL já persistida.
-	updated, err := repo.FindOrCreate(ctx, tenantA, "5599995555", "Bruno", "", false, false, "", "")
+	updated, err := repo.FindOrCreate(ctx, tenantA, domain.WhatsappConnection(1), "5599995555", "Bruno", "", false, false, "", "")
 	require.NoError(t, err)
 	assert.Equal(t, "https://cdn.example.com/pic.jpg", updated.ProfilePicUrl)
 }
@@ -377,10 +385,10 @@ func TestGORMContactRepo_FindOrCreate_LIDReplyReusesAgendaContactByPhone(t *test
 	repo := NewGORMContactRepo(db)
 	ctx := context.Background()
 
-	agenda := &domain.Contact{Name: "Fulano da Agenda", Number: "558382341576", TenantID: tenant}
+	agenda := &domain.Contact{Name: "Fulano da Agenda", Number: "558382341576", TenantID: tenant, ConnectionSource: domain.ConnectionSourceWhatsapp, ConnectionID: 1}
 	require.NoError(t, repo.Create(ctx, agenda))
 
-	got, err := repo.FindOrCreate(ctx, tenant, "163423740493865", "Fulano", "", false, true, "163423740493865@lid", "558382341576")
+	got, err := repo.FindOrCreate(ctx, tenant, domain.WhatsappConnection(1), "163423740493865", "Fulano", "", false, true, "163423740493865@lid", "558382341576")
 	require.NoError(t, err)
 
 	assert.Equal(t, agenda.ID, got.ID, "deve reaproveitar o contato da agenda, não criar outro")
@@ -397,13 +405,13 @@ func TestGORMContactRepo_FindOrCreate_NextLIDMessageFindsItByLID(t *testing.T) {
 	repo := NewGORMContactRepo(db)
 	ctx := context.Background()
 
-	agenda := &domain.Contact{Name: "Fulano", Number: "558382341576", TenantID: tenant}
+	agenda := &domain.Contact{Name: "Fulano", Number: "558382341576", TenantID: tenant, ConnectionSource: domain.ConnectionSourceWhatsapp, ConnectionID: 1}
 	require.NoError(t, repo.Create(ctx, agenda))
-	first, err := repo.FindOrCreate(ctx, tenant, "163423740493865", "", "", false, true, "163423740493865@lid", "558382341576")
+	first, err := repo.FindOrCreate(ctx, tenant, domain.WhatsappConnection(1), "163423740493865", "", "", false, true, "163423740493865@lid", "558382341576")
 	require.NoError(t, err)
 
 	// Próxima mensagem: o telefone pode nem vir mais; o LID já está gravado.
-	second, err := repo.FindOrCreate(ctx, tenant, "163423740493865", "", "", false, true, "163423740493865@lid", "")
+	second, err := repo.FindOrCreate(ctx, tenant, domain.WhatsappConnection(1), "163423740493865", "", "", false, true, "163423740493865@lid", "")
 	require.NoError(t, err)
 	assert.Equal(t, first.ID, second.ID)
 	assert.Equal(t, int64(1), countContacts(t, db, tenant))
@@ -414,7 +422,7 @@ func TestGORMContactRepo_FindOrCreate_LIDWithoutKnownPhoneStillCreatesLIDContact
 	tenant := uuid.New()
 	repo := NewGORMContactRepo(db)
 
-	got, err := repo.FindOrCreate(context.Background(), tenant, "999888777", "Anônimo", "", false, true, "999888777@lid", "")
+	got, err := repo.FindOrCreate(context.Background(), tenant, domain.WhatsappConnection(1), "999888777", "Anônimo", "", false, true, "999888777@lid", "")
 	require.NoError(t, err)
 	require.NotNil(t, got.Lid)
 	assert.Equal(t, "999888777@lid", *got.Lid)
@@ -426,7 +434,7 @@ func TestGORMContactRepo_FindOrCreate_KnownPhoneButNoContactYetCreatesWithRealPh
 	tenant := uuid.New()
 	repo := NewGORMContactRepo(db)
 
-	got, err := repo.FindOrCreate(context.Background(), tenant, "163423740493865", "Beltrano", "", false, true, "163423740493865@lid", "558382341576")
+	got, err := repo.FindOrCreate(context.Background(), tenant, domain.WhatsappConnection(1), "163423740493865", "Beltrano", "", false, true, "163423740493865@lid", "558382341576")
 	require.NoError(t, err)
 	assert.Equal(t, "558382341576", got.Number, "com o telefone conhecido, number guarda o telefone (não o LID)")
 	require.NotNil(t, got.Lid)
@@ -439,8 +447,8 @@ func TestGORMContactRepo_FindOrCreate_PhoneMatchNeverCrossesTenants(t *testing.T
 	repo := NewGORMContactRepo(db)
 	ctx := context.Background()
 
-	require.NoError(t, repo.Create(ctx, &domain.Contact{Name: "Do A", Number: "558382341576", TenantID: tenantA}))
-	got, err := repo.FindOrCreate(ctx, tenantB, "163423740493865", "Do B", "", false, true, "163423740493865@lid", "558382341576")
+	require.NoError(t, repo.Create(ctx, &domain.Contact{Name: "Do A", Number: "558382341576", TenantID: tenantA, ConnectionSource: domain.ConnectionSourceWhatsapp, ConnectionID: 1}))
+	got, err := repo.FindOrCreate(ctx, tenantB, domain.WhatsappConnection(1), "163423740493865", "Do B", "", false, true, "163423740493865@lid", "558382341576")
 	require.NoError(t, err)
 
 	assert.Equal(t, tenantB, got.TenantID, "o contato do tenant A não pode ser reaproveitado pelo B")
@@ -454,10 +462,69 @@ func TestGORMContactRepo_FindOrCreate_PhoneMatchedContactAlreadyHasOtherLIDIsNot
 	ctx := context.Background()
 
 	other := "111111111111@lid"
-	require.NoError(t, repo.Create(ctx, &domain.Contact{Name: "X", Number: "558382341576", TenantID: tenant, Lid: &other}))
+	require.NoError(t, repo.Create(ctx, &domain.Contact{Name: "X", Number: "558382341576", TenantID: tenant, ConnectionSource: domain.ConnectionSourceWhatsapp, ConnectionID: 1, Lid: &other}))
 
-	got, err := repo.FindOrCreate(ctx, tenant, "222222222222", "Y", "", false, true, "222222222222@lid", "558382341576")
+	got, err := repo.FindOrCreate(ctx, tenant, domain.WhatsappConnection(1), "222222222222", "Y", "", false, true, "222222222222@lid", "558382341576")
 	require.NoError(t, err)
 	require.NotNil(t, got.Lid)
 	assert.Equal(t, "111111111111@lid", *got.Lid, "não troca silenciosamente o LID de um contato que já tem outro")
+}
+
+func TestGORMContactRepo_ContatoPertenceAUmaConexao(t *testing.T) {
+	db := setupContactTestDB(t)
+	repo := NewGORMContactRepo(db)
+	ctx := context.Background()
+	tenant := uuid.New()
+	a, b := domain.WhatsappConnection(1), domain.WhatsappConnection(2)
+
+	ca, err := repo.FindOrCreate(ctx, tenant, a, "5511999990001", "Ana", "", false, false, "", "")
+	require.NoError(t, err)
+	cb, err := repo.FindOrCreate(ctx, tenant, b, "5511999990001", "Ana", "", false, false, "", "")
+	require.NoError(t, err)
+	again, err := repo.FindOrCreate(ctx, tenant, a, "5511999990001", "Ana", "", false, false, "", "")
+	require.NoError(t, err)
+
+	assert.NotEqual(t, ca.ID, cb.ID, "o mesmo telefone em outra conexão é outro contato")
+	assert.Equal(t, ca.ID, again.ID, "na mesma conexão é o mesmo")
+	assert.Equal(t, domain.ConnectionSourceWhatsapp, ca.ConnectionSource)
+	assert.Equal(t, 1, ca.ConnectionID)
+	assert.Equal(t, 2, cb.ConnectionID)
+
+	onlyB, err := repo.Find(ctx, tenant, "", domain.ContactFilter{Connection: &b})
+	require.NoError(t, err)
+	require.Len(t, onlyB, 1)
+	assert.Equal(t, cb.ID, onlyB[0].ID, "a listagem filtra pela conexão")
+	all, err := repo.Find(ctx, tenant, "", domain.ContactFilter{Channel: "whatsapp"})
+	require.NoError(t, err)
+	assert.Len(t, all, 2)
+}
+
+func TestGORMContactRepo_LidDaMesmaPessoaEmConexoesDiferentesNaoColide(t *testing.T) {
+	db := setupContactTestDB(t)
+	repo := NewGORMContactRepo(db)
+	ctx := context.Background()
+	tenant := uuid.New()
+	for _, c := range []int{1, 2} {
+		_, err := repo.FindOrCreate(ctx, tenant, domain.WhatsappConnection(c), "163423740493865", "Fulano", "", false, true, "163423740493865@lid", "")
+		require.NoError(t, err, "o índice único do LID é por conexão")
+	}
+}
+
+func TestGORMContactRepo_ContatoDeCanalTambemPertenceAUmaConexao(t *testing.T) {
+	db := setupContactTestDB(t)
+	repo := NewGORMContactRepo(db)
+	ctx := context.Background()
+	tenant := uuid.New()
+
+	c1, _, err := repo.FindOrCreateByIdentity(ctx, tenant, domain.ChannelConnection(1), domain.ChannelKindTelegram, "5001", "Ana", "")
+	require.NoError(t, err)
+	c2, _, err := repo.FindOrCreateByIdentity(ctx, tenant, domain.ChannelConnection(2), domain.ChannelKindTelegram, "5001", "Ana", "")
+	require.NoError(t, err)
+	same, _, err := repo.FindOrCreateByIdentity(ctx, tenant, domain.ChannelConnection(1), domain.ChannelKindTelegram, "5001", "Ana", "")
+	require.NoError(t, err)
+
+	assert.NotEqual(t, c1.ID, c2.ID, "o mesmo chat visto por dois bots são dois contatos")
+	assert.Equal(t, c1.ID, same.ID)
+	assert.Equal(t, domain.ConnectionSourceChannel, c1.ConnectionSource)
+	assert.Equal(t, 2, c2.ConnectionID)
 }

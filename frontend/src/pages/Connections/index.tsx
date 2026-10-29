@@ -1,5 +1,8 @@
 /* @jsxImportSource react */
-import React from "react";
+import React, { useState } from "react";
+import { toast } from "react-toastify";
+import api from "../../services/api";
+import toastError from "../../errors/toastError";
 import { Plus, MessageSquare } from "lucide-react";
 
 import { i18n } from "../../translate/i18n";
@@ -48,6 +51,19 @@ const Connections = () => {
     handleCloseConfirm,
     navigate,
   } = useConnections();
+  const [importingId, setImportingId] = useState<number | null>(null);
+
+  // A importação é sempre de UMA conexão: o contato nasce ligado a ela.
+  const handleImportContacts = async () => {
+    if (importingId === null) return;
+    try {
+      await api.post("/contacts/import", { connectionId: importingId });
+      toast.success(String(i18n.t("connections.importContacts.started") ?? ""));
+    } catch (err) {
+      toastError(err);
+    }
+    setImportingId(null);
+  };
 
   return (
     <PageContainer>
@@ -70,6 +86,14 @@ const Connections = () => {
         whatsAppId={selectedWhatsApp?.id}
         onSaved={async () => { await reloadWhatsApps(); }}
       />
+      <ConfirmationModal
+        title={String(i18n.t("connections.importContacts.title") ?? "")}
+        open={importingId !== null}
+        onClose={() => setImportingId(null)}
+        onConfirm={handleImportContacts}
+      >
+        {String(i18n.t("connections.importContacts.message") ?? "")}
+      </ConfirmationModal>
       <ConfirmationModal
         title={i18n.t("connections.confirmationModal.deleteTitle")}
         open={confirmModalOpen}
@@ -188,6 +212,7 @@ const Connections = () => {
               onRequestQrCode={handleRequestNewQrCode}
               onEdit={handleEditWhatsApp}
               onDelete={handleOpenConfirm}
+              onImportContacts={setImportingId}
             />
           ))}
         </div>

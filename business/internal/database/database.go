@@ -145,10 +145,6 @@ func Migrate() {
 
 	addClientAddressGeography()
 
-	if err := BackfillContactIdentities(DB); err != nil {
-		log.Printf("Warning: failed to backfill contact identities: %v", err)
-	}
-
 	if err := BackfillTicketConversationKeys(DB); err != nil {
 		log.Printf("Warning: failed to backfill ticket conversation keys: %v", err)
 	}
@@ -192,35 +188,6 @@ func addClientAddressGeography() {
 	if err := DB.Exec(`ALTER TABLE "ClientAddresses" ADD COLUMN IF NOT EXISTS geog geography(Point,4326)`).Error; err != nil {
 		log.Printf("Warning: failed to add ClientAddresses.geog (PostGIS extension may be missing): %v", err)
 	}
-}
-
-// BackfillContactIdentities cria registros em ContactIdentities para todos os Contacts existentes
-// com number ou lid válidos, atribuindo channel='whatsapp'. É 100% idempotente (ON CONFLICT DO NOTHING).
-// Task 2.1 (ADR 0033).
-func BackfillContactIdentities(db *gorm.DB) error {
-	return db.Transaction(func(tx *gorm.DB) error {
-		// Backfill por number
-		qNumber := `
-			INSERT INTO "ContactIdentities" ("tenantId", "contactId", "channel", "externalId", "displayName", "avatarUrl", "meta", "createdAt", "updatedAt")
-			SELECT c."tenantId", c.id, 'whatsapp', c.number, c.name, COALESCE(c."profilePicUrl", ''), '{}'::jsonb, NOW(), NOW()
-			FROM "Contacts" c
-			WHERE c.number IS NOT NULL AND c.number != ''
-			ON CONFLICT ("tenantId", "channel", "externalId") DO NOTHING;
-		`
-		if err := tx.Exec(qNumber).Error; err != nil {
-			return err
-		}
-
-		// Backfill por lid
-		qLid := `
-			INSERT INTO "ContactIdentities" ("tenantId", "contactId", "channel", "externalId", "displayName", "avatarUrl", "meta", "createdAt", "updatedAt")
-			SELECT c."tenantId", c.id, 'whatsapp', c.lid, c.name, COALESCE(c."profilePicUrl", ''), '{}'::jsonb, NOW(), NOW()
-			FROM "Contacts" c
-			WHERE c.lid IS NOT NULL AND c.lid != ''
-			ON CONFLICT ("tenantId", "channel", "externalId") DO NOTHING;
-		`
-		return tx.Exec(qLid).Error
-	})
 }
 
 // BackfillTicketConversationKeys preenche conversationKey com contactId::text para tickets legados
@@ -472,8 +439,8 @@ func addCustomIndexes() error {
 	}
 
 	indexes := []string{
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", number) WHERE number <> ''`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", lid) WHERE lid IS NOT NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", "connectionSource", "connectionId", number) WHERE number <> ''`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", "connectionSource", "connectionId", lid) WHERE lid IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_status ON "Tickets" ("tenantId", "status")`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_queue_status ON "Tickets" ("tenantId", "queueId", "status")`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_open_conversation ON "Tickets" ("tenantId", "channelConnectionId", "conversationKey") WHERE "status" IN ('open', 'pending') AND "channelConnectionId" IS NOT NULL AND "conversationKey" IS NOT NULL AND "conversationKey" != ''`,

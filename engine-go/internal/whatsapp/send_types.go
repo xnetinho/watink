@@ -151,6 +151,13 @@ type InteractiveButtonPayload struct {
 }
 
 // SyncContactPayload carries a contact sync request.
+// SaveContactPayload grava um contato criado no Watink na agenda do celular da conexão.
+type SaveContactPayload struct {
+	SessionID int    `json:"sessionId"`
+	Number    string `json:"number"`
+	Name      string `json:"name"`
+}
+
 type SyncContactPayload struct {
 	SessionID int    `json:"sessionId"`
 	Number    string `json:"number"`

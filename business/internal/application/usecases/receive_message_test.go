@@ -19,13 +19,13 @@ type mockRcvContactRepo struct {
 	findOrCreateErr error
 }
 
-func (m *mockRcvContactRepo) FindByNumber(_ context.Context, _ uuid.UUID, _ string, _ bool) (*domain.Contact, error) {
+func (m *mockRcvContactRepo) FindByNumber(_ context.Context, _ uuid.UUID, _ domain.ConnectionRef, _ string, _ bool) (*domain.Contact, error) {
 	return nil, nil
 }
 func (m *mockRcvContactRepo) FindByID(_ context.Context, _ int, _ uuid.UUID) (*domain.Contact, error) {
 	return nil, nil
 }
-func (m *mockRcvContactRepo) Find(_ context.Context, _ uuid.UUID, _ string) ([]domain.Contact, error) {
+func (m *mockRcvContactRepo) Find(_ context.Context, _ uuid.UUID, _ string, _ domain.ContactFilter) ([]domain.Contact, error) {
 	return nil, nil
 }
 func (m *mockRcvContactRepo) Create(_ context.Context, _ *domain.Contact) error { return nil }
@@ -37,10 +37,10 @@ func (m *mockRcvContactRepo) BulkDelete(_ context.Context, _ []int, _ uuid.UUID)
 	return 0, nil
 }
 func (m *mockRcvContactRepo) DeleteAll(_ context.Context, _ uuid.UUID) (int64, error) { return 0, nil }
-func (m *mockRcvContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _ string, _ string, _ string, _ bool, _ bool, _ string, _ string) (*domain.Contact, error) {
+func (m *mockRcvContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _ domain.ConnectionRef, _ string, _ string, _ string, _ bool, _ bool, _ string, _ string) (*domain.Contact, error) {
 	return m.contact, m.findOrCreateErr
 }
-func (m *mockRcvContactRepo) FindOrCreateByIdentity(_ context.Context, _ uuid.UUID, _ domain.ChannelKind, _, _, _ string) (*domain.Contact, *models.ContactIdentity, error) {
+func (m *mockRcvContactRepo) FindOrCreateByIdentity(_ context.Context, _ uuid.UUID, _ domain.ConnectionRef, _ domain.ChannelKind, _, _, _ string) (*domain.Contact, *models.ContactIdentity, error) {
 	return m.contact, nil, nil
 }
 
@@ -445,7 +445,7 @@ type capturingContactRepo struct {
 	capturedProfilePicURL string
 }
 
-func (m *capturingContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _, _, profilePicURL string, _ bool, _ bool, _ string, _ string) (*domain.Contact, error) {
+func (m *capturingContactRepo) FindOrCreate(_ context.Context, _ uuid.UUID, _ domain.ConnectionRef, _, _, profilePicURL string, _ bool, _ bool, _ string, _ string) (*domain.Contact, error) {
 	m.capturedProfilePicURL = profilePicURL
 	return m.contact, m.findOrCreateErr
 }

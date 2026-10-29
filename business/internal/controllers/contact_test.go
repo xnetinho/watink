@@ -14,6 +14,8 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/testutil"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
@@ -98,19 +100,19 @@ func (m *MockContactRepo) FindByID(ctx context.Context, id int, tenantID uuid.UU
 func (m *MockContactRepo) Update(ctx context.Context, contact *domain.Contact, fields map[string]interface{}) error {
 	return m.db.Model(&models.Contact{}).Where("id = ? AND \"tenantId\" = ?", contact.ID, contact.TenantID).Updates(fields).Error
 }
-func (m *MockContactRepo) Find(ctx context.Context, tenantID uuid.UUID, search string) ([]domain.Contact, error) {
+func (m *MockContactRepo) Find(ctx context.Context, tenantID uuid.UUID, search string, _ domain.ContactFilter) ([]domain.Contact, error) {
 	return nil, nil
 }
-func (m *MockContactRepo) FindByNumber(ctx context.Context, tenantID uuid.UUID, number string, isGroup bool) (*domain.Contact, error) {
+func (m *MockContactRepo) FindByNumber(ctx context.Context, tenantID uuid.UUID, _ domain.ConnectionRef, number string, isGroup bool) (*domain.Contact, error) {
 	return nil, nil
 }
 func (m *MockContactRepo) FindByLID(ctx context.Context, tenantID uuid.UUID, lid string, isGroup bool) (*domain.Contact, error) {
 	return nil, nil
 }
-func (m *MockContactRepo) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number, pushName, profilePicUrl string, isGroup, isLid bool, lid, _ string) (*domain.Contact, error) {
+func (m *MockContactRepo) FindOrCreate(ctx context.Context, tenantID uuid.UUID, _ domain.ConnectionRef, number, pushName, profilePicUrl string, isGroup, isLid bool, lid, _ string) (*domain.Contact, error) {
 	return nil, nil
 }
-func (m *MockContactRepo) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
+func (m *MockContactRepo) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, _ domain.ConnectionRef, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
 	return nil, nil, nil
 }
 func (m *MockContactRepo) Create(ctx context.Context, contact *domain.Contact) error { return nil }
@@ -210,14 +212,17 @@ func TestContactController_ShowContact_NotFound(t *testing.T) {
 func TestContactController_CreateContact_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db, tenantID := setupContactTestDB(t)
+	wa := models.Whatsapp{Name: "Comercial", Status: "CONNECTED", TenantID: tenantID}
+	require.NoError(t, db.Create(&wa).Error)
 
 	payload, _ := json.Marshal(map[string]interface{}{
-		"name":   "Carlos",
-		"number": "5511003",
-		"email":  "carlos@test.com",
+		"name":         "Carlos",
+		"number":       "5511003",
+		"email":        "carlos@test.com",
+		"connectionId": wa.ID,
 	})
 
-	router := newContactRouter(db, tenantID.String())
+	router := contactRouter(t, db, tenantID) // repositório real: o que se verifica é a conexão gravada
 	req := httptest.NewRequest(http.MethodPost, "/contacts", bytes.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -226,6 +231,35 @@ func TestContactController_CreateContact_Success(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
+	var saved models.Contact
+	require.NoError(t, db.Where(`"tenantId" = ? AND number = ?`, tenantID, "5511003").First(&saved).Error)
+	assert.Equal(t, "whatsapp", saved.ConnectionSource)
+	assert.Equal(t, wa.ID, saved.ConnectionID, "o contato nasce ligado à conexão escolhida")
+}
+
+func TestContactController_CreateContact_SemConexaoOuDeOutraEmpresaRecusa(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, tenantID := setupContactTestDB(t)
+	alheia := models.Whatsapp{Name: "Alheia", Status: "CONNECTED", TenantID: uuid.New()}
+	require.NoError(t, db.Create(&alheia).Error)
+	router := newContactRouter(db, tenantID.String())
+
+	for name, body := range map[string]map[string]interface{}{
+		"sem conexão":      {"name": "A", "number": "5511"},
+		"inexistente":      {"name": "A", "number": "5511", "connectionId": 99999},
+		"de outra empresa": {"name": "A", "number": "5511", "connectionId": alheia.ID},
+	} {
+		payload, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/contacts", bytes.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code, name)
+		assert.Contains(t, w.Body.String(), "connection_required", name)
+	}
+	var n int64
+	db.Model(&models.Contact{}).Where(`"tenantId" = ?`, tenantID).Count(&n)
+	assert.Zero(t, n, "nenhum contato órfão pode ser criado")
 }
 
 func TestContactController_BulkDeleteContacts_DeletesOnlyOwnTenant(t *testing.T) {

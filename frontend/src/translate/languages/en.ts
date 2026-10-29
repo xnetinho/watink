@@ -257,6 +257,12 @@ const messages = {
         }
       },
       connections: {
+        importContacts: {
+          action: "Import contacts",
+          title: "Import this connection's contacts",
+          message: "The contacts this WhatsApp connection already knows will be brought into Watink, linked to it. Contacts that already exist on this connection are not duplicated.",
+          started: "Import started. Contacts will show up shortly.",
+        },
         title: "Connections",
         invalidPhone: "Invalid phone number",
         presencePolicy: {
@@ -352,6 +358,14 @@ const messages = {
         message: "Read QrCode to start the session",
       },
       contacts: {
+        phoneSync: {
+          pending: "Saving to the phone address book...",
+          failed: "Not on the phone",
+          errors: {
+            connection_not_connected: "The connection was offline; the contact did not reach the phone address book.",
+            publish_failed: "Couldn't send the contact to the phone.",
+          },
+        },
         title: "Contacts",
         toasts: {
           deleted: "Contact deleted sucessfully!",
@@ -361,10 +375,8 @@ const messages = {
         searchPlaceholder: "Search ...",
         confirmationModal: {
           deleteTitle: "Delete",
-          importTitlte: "Import contacts",
           deleteMessage:
             "Are you sure you want to delete this contact? All related tickets will be lost.",
-          importMessage: "Do you want to import all contacts from the phone?",
           bulkDeleteTitle: "Delete selected contacts",
           bulkDeleteMessage:
             "Are you sure you want to delete {{count}} selected contact(s)? This action cannot be undone.",
@@ -373,7 +385,6 @@ const messages = {
             "Warning: this will permanently delete ALL contacts of this tenant, including linked ticket history. This action cannot be undone.",
         },
         buttons: {
-          import: "Import Contacts",
           add: "Add Contact",
           deleteSelected: "Delete Selected",
           deselectAll: "Deselect",
@@ -383,6 +394,7 @@ const messages = {
           selectedCount: "{{count}} selected",
         },
         table: {
+          connection: "Connection",
           name: "Name",
           whatsapp: "WhatsApp",
           email: "Email",
@@ -397,6 +409,11 @@ const messages = {
           edit: "Edit contact",
         },
         form: {
+          connection: "Connection",
+          connectionPlaceholder: "Select the connection",
+          connectionHint: "The contact sends and receives messages through this connection. For WhatsApp, it is also saved to the phone address book.",
+          connectionLocked: "A contact's connection can't be changed.",
+          connectionRequired: "Choose the contact's connection.",
           mainInfo: "Contact details",
           extraInfo: "Additional information",
           name: "Name",
@@ -897,14 +914,14 @@ const messages = {
         forward: "Forward",
         forwardDialog: {
           title: "Forward message",
-          search: "Search conversation",
+          search: "Search contact",
           modeLabel: "How to forward",
           modeForward: "Forward",
           modeForwardHint: "Shows with the \"Forwarded\" label.",
           modeCopy: "Resend as new",
           modeCopyHint: "Goes out as your own message, without the label.",
-          sameChannelOnly: "Only conversations on the same channel ({{channel}}) are listed.",
-          none: "No conversation found.",
+          sameChannelOnly: "Only contacts on the same channel ({{channel}}) are listed. Each message goes out through the contact's own connection.",
+          none: "No contact found.",
           selected: "{{count}} selected",
           send: "Send",
           sending: "Sending...",
@@ -913,6 +930,9 @@ const messages = {
           done: "Message forwarded to {{count}} conversation(s).",
           partial: "{{ok}} sent, {{failed}} failed.",
           errors: {
+            contact_not_found: "Contact not found.",
+            connection_required: "The contact has no valid connection.",
+            conversation_unavailable: "Couldn't open the conversation with this contact.",
             forward_not_supported: "This channel only forwards with the label inside the same connection. Use \"Resend as new\".",
             different_channel: "The conversation is on another channel.",
             ticket_not_found: "Conversation not found.",

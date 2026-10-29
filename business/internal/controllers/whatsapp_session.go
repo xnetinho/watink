@@ -91,6 +91,10 @@ func (sc *SessionController) StopSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update session status"})
 		return
 	}
+	// O objeto foi lido ANTES da gravação: sem isto o evento levava o status antigo (CONNECTED) e a tela de Conexões
+	// ficava "conectada" até um Ctrl+F5.
+	session.Status = "DISCONNECTED"
+	session.Qrcode = ""
 
 	if err := sc.sessionService.StopWhatsAppSession(channelSessionToModel(session)); err != nil {
 		utils.RespondWithFriendlyOrInternalError(c, err, "StopWhatsAppSession")

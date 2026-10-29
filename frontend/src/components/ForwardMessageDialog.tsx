@@ -10,8 +10,10 @@ import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { TicketConnectionBadge } from "./TicketConnectionBadge";
+import { useConnectionOptions } from "../hooks/useConnectionOptions";
+import { connectionKey, type ConnectionOption } from "../lib/connections/connectionRef";
 import { Emojified } from "./Emojified";
-import type { Ticket } from "../types/Ticket";
+import type { Contact } from "../types/Ticket";
 
 // i18n.t() deste projeto pode devolver null; a tela só quer string.
 const tr = (key: string, opts: Record<string, string | number> = {}): string => String(i18n.t(key, opts) ?? "");
@@ -20,7 +22,7 @@ const tr = (key: string, opts: Record<string, string | number> = {}): string => 
 const MAX_TARGETS = 20;
 
 type Mode = "forward" | "copy";
-type Result = { ticketId: number; ok: boolean; code?: string };
+type Result = { contactId: number; ok: boolean; code?: string };
 
 interface Props {
   open: boolean;
@@ -28,16 +30,24 @@ interface Props {
   messageId: string | number;
   /** Canal da conversa de origem: só conversas do mesmo canal são oferecidas como destino. */
   channel?: string;
-  currentTicketId?: number | string;
+  /** Contato da conversa aberta: não é oferecido como destino. */
+  currentContactId?: number | string;
 }
 
-const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, channel, currentTicketId }) => {
+// O contato carrega só (origem, id) da conexão; o nome vem da lista de conexões da empresa.
+const connectionOf = (c: Contact, options: ConnectionOption[]) => {
+  const o = options.find((x) => connectionKey(x) === `${c.connectionSource}:${c.connectionId}`);
+  return o ? { kind: o.kind, id: o.id, name: o.name, source: o.source } : undefined;
+};
+
+const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, channel, currentContactId }) => {
   const kind = channelDefinition(channel).kind;
   const [search, setSearch] = useState("");
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [mode, setMode] = useState<Mode>("forward");
   const [sending, setSending] = useState(false);
+  const { options: connections } = useConnectionOptions(open);
 
   useEffect(() => {
     if (!open) return;
@@ -50,14 +60,15 @@ const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, chann
     if (!open) return;
     const timer = setTimeout(async () => {
       try {
-        const { data } = await api.get("/tickets", { params: { isGroup: "all", channel: kind, searchParam: search || undefined, limit: 50 } });
-        setTickets((data.tickets as Ticket[]).filter((t) => String(t.id) !== String(currentTicketId)));
+        // O destino é o CONTATO: lista os contatos do mesmo canal; cada um envia pela conexão a que pertence.
+        const { data } = await api.get("/contacts", { params: { channel: kind, searchParam: search || undefined, limit: 50 } });
+        setContacts((data.contacts as Contact[]).filter((c) => String(c.id) !== String(currentContactId)));
       } catch (err) {
         toastError(err);
       }
     }, 250);
     return () => clearTimeout(timer);
-  }, [open, kind, search, currentTicketId]);
+  }, [open, kind, search, currentContactId]);
 
   const toggle = (id: number) =>
     setSelected((cur) => {
@@ -72,7 +83,7 @@ const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, chann
   const send = async () => {
     setSending(true);
     try {
-      const { data } = await api.post<{ results: Result[] }>(`/message/${messageId}/forward`, { ticketIds: selected, mode });
+      const { data } = await api.post<{ results: Result[] }>(`/message/${messageId}/forward`, { contactIds: selected, mode });
       const failed = data.results.filter((r) => !r.ok);
       if (failed.length === 0) {
         toast.success(tr("messageOptionsMenu.forwardDialog.done", { count: data.results.length }));
@@ -85,7 +96,7 @@ const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, chann
       const text = tr(key);
       toast.error(text === key ? tr("messageOptionsMenu.forwardDialog.errors.send_failed") : text);
       // Mantém no diálogo só o que falhou, para tentar de novo (ex.: trocar para "reenviar como nova").
-      setSelected(failed.map((r) => r.ticketId));
+      setSelected(failed.map((r) => r.contactId));
     } catch (err) {
       const code = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       const key = `messageOptionsMenu.forwardDialog.errors.${code}`;
@@ -133,15 +144,16 @@ const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, chann
           </p>
 
           <ul className="max-h-64 overflow-y-auto" data-testid="forward-targets">
-            {tickets.length === 0 && <li className="p-3 text-center text-sm text-[hsl(var(--text-muted))]">{tr("messageOptionsMenu.forwardDialog.none")}</li>}
-            {tickets.map((t) => (
-              <li key={t.id}>
+            {contacts.length === 0 && <li className="p-3 text-center text-sm text-[hsl(var(--text-muted))]">{tr("messageOptionsMenu.forwardDialog.none")}</li>}
+            {contacts.map((c) => (
+              <li key={c.id}>
                 <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-[var(--border-subtle)]">
-                  <Checkbox checked={selected.includes(t.id)} onCheckedChange={() => toggle(t.id)} aria-label={t.contact?.name} />
+                  <Checkbox checked={selected.includes(c.id)} onCheckedChange={() => toggle(c.id)} aria-label={c.name} />
                   <span className="min-w-0 flex-1 truncate text-sm">
-                    <Emojified>{t.contact?.name || t.contact?.number}</Emojified>
+                    <Emojified>{c.name || c.number}</Emojified>
+                    {c.number && c.name !== c.number && <span className="ml-2 text-xs text-[hsl(var(--text-muted))]">{c.number}</span>}
                   </span>
-                  <TicketConnectionBadge channel={t.channel} connection={t.connection} size="sm" />
+                  <TicketConnectionBadge connection={connectionOf(c, connections)} channel={kind} size="sm" />
                 </label>
               </li>
             ))}

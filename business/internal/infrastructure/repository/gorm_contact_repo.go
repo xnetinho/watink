@@ -26,11 +26,11 @@ func NewGORMContactRepo(db *gorm.DB) *GORMContactRepository {
 
 // ContactRepository interface implementation
 
-// FindByNumber returns the contact with the given number and isGroup flag under tenantID, or nil if not found.
-func (r *GORMContactRepository) FindByNumber(ctx context.Context, tenantID uuid.UUID, number string, isGroup bool) (*domain.Contact, error) {
+// FindByNumber returns the contact of the given connection with the given number and isGroup flag under tenantID, or nil if not found.
+func (r *GORMContactRepository) FindByNumber(ctx context.Context, tenantID uuid.UUID, conn domain.ConnectionRef, number string, isGroup bool) (*domain.Contact, error) {
 	var m models.Contact
 	err := r.db.WithContext(ctx).
-		Where("\"number\" = ? AND \"isGroup\" = ? AND \"tenantId\" = ?", number, isGroup, tenantID).
+		Where("\"number\" = ? AND \"isGroup\" = ? AND \"tenantId\" = ? AND \"connectionSource\" = ? AND \"connectionId\" = ?", number, isGroup, tenantID, conn.Source, conn.ID).
 		First(&m).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -67,9 +67,9 @@ func (r *GORMContactRepository) FindByLID(ctx context.Context, tenantID uuid.UUI
 //  2. por telefone (contato cadastrado pela agenda), gravando o LID nele;
 //  3. senão, cria. Com telefone conhecido o number é o telefone; sem ele, o LID
 //     (comportamento anterior, único jeito de identificar quem não expõe número).
-func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.UUID, number string, pushName string, profilePicUrl string, isGroup bool, isLid bool, lid string, knownNumber string) (*domain.Contact, error) {
+func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.UUID, conn domain.ConnectionRef, number string, pushName string, profilePicUrl string, isGroup bool, isLid bool, lid string, knownNumber string) (*domain.Contact, error) {
 	var m models.Contact
-	query := r.db.WithContext(ctx).Where("\"tenantId\" = ? AND \"isGroup\" = ?", tenantID, isGroup)
+	query := r.db.WithContext(ctx).Where("\"tenantId\" = ? AND \"isGroup\" = ? AND \"connectionSource\" = ? AND \"connectionId\" = ?", tenantID, isGroup, conn.Source, conn.ID)
 	if isLid {
 		query = query.Where("lid = ?", lid)
 	} else {
@@ -80,7 +80,7 @@ func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.
 	if errors.Is(err, gorm.ErrRecordNotFound) && isLid && !isGroup && knownNumber != "" {
 		// Sessão nova por consulta: query acima já acumulou condições.
 		err = r.db.WithContext(ctx).
-			Where("\"tenantId\" = ? AND \"isGroup\" = ? AND number = ?", tenantID, false, knownNumber).
+			Where("\"tenantId\" = ? AND \"isGroup\" = ? AND \"connectionSource\" = ? AND \"connectionId\" = ? AND number = ?", tenantID, false, conn.Source, conn.ID, knownNumber).
 			First(&m).Error
 		if err == nil && m.Lid == nil {
 			if upErr := r.db.WithContext(ctx).Model(&models.Contact{}).
@@ -107,6 +107,9 @@ func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.
 			TenantID:      tenantID,
 			IsGroup:       isGroup,
 			ProfilePicUrl: profilePicUrl,
+
+			ConnectionSource: conn.Source,
+			ConnectionID:     conn.ID,
 		}
 		if m.Name == "" {
 			m.Name = storedNumber
@@ -147,10 +150,10 @@ func (r *GORMContactRepository) FindOrCreate(ctx context.Context, tenantID uuid.
 }
 
 // FindOrCreateByIdentity resolve o Contact através de uma ContactIdentity externa (ADR 0033).
-func (r *GORMContactRepository) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
+func (r *GORMContactRepository) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, conn domain.ConnectionRef, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
 	var ident models.ContactIdentity
 	err := r.db.WithContext(ctx).
-		Where(`"tenantId" = ? AND "channel" = ? AND "externalId" = ?`, tenantID, string(channel), externalID).
+		Where(`"tenantId" = ? AND "channel" = ? AND "connectionId" = ? AND "externalId" = ?`, tenantID, string(channel), conn.ID, externalID).
 		First(&ident).Error
 
 	if err == nil {
@@ -190,19 +193,23 @@ func (r *GORMContactRepository) FindOrCreateByIdentity(ctx context.Context, tena
 			Name:          contactName,
 			TenantID:      tenantID,
 			ProfilePicUrl: avatarURL,
+
+			ConnectionSource: conn.Source,
+			ConnectionID:     conn.ID,
 		}
 		if err := tx.Create(&createdContact).Error; err != nil {
 			return fmt.Errorf("failed to create contact: %w", err)
 		}
 
 		createdIdent = models.ContactIdentity{
-			TenantID:    tenantID,
-			ContactID:   createdContact.ID,
-			Channel:     string(channel),
-			ExternalID:  externalID,
-			DisplayName: contactName,
-			AvatarURL:   avatarURL,
-			Meta:        "{}",
+			TenantID:     tenantID,
+			ContactID:    createdContact.ID,
+			Channel:      string(channel),
+			ConnectionID: conn.ID,
+			ExternalID:   externalID,
+			DisplayName:  contactName,
+			AvatarURL:    avatarURL,
+			Meta:         "{}",
 		}
 		if err := tx.Create(&createdIdent).Error; err != nil {
 			return fmt.Errorf("failed to create contact identity: %w", err)
@@ -233,11 +240,25 @@ func (r *GORMContactRepository) FindByID(ctx context.Context, id int, tenantID u
 }
 
 // Find returns contacts matching a search term under tenantID.
-func (r *GORMContactRepository) Find(ctx context.Context, tenantID uuid.UUID, search string) ([]domain.Contact, error) {
+func (r *GORMContactRepository) Find(ctx context.Context, tenantID uuid.UUID, search string, filter domain.ContactFilter) ([]domain.Contact, error) {
 	var m []models.Contact
 	query := r.db.WithContext(ctx).Where("\"tenantId\" = ?", tenantID)
 	if search != "" {
-		query = query.Where("name ILIKE ? OR number ILIKE ?", "%"+search+"%", "%"+search+"%")
+		query = query.Where("(name ILIKE ? OR number ILIKE ?)", "%"+search+"%", "%"+search+"%")
+	}
+	if filter.Connection != nil {
+		query = query.Where(`"connectionSource" = ? AND "connectionId" = ?`, filter.Connection.Source, filter.Connection.ID)
+	}
+	switch filter.Channel {
+	case "":
+	case string(domain.ChannelKindWhatsApp):
+		query = query.Where(`"connectionSource" = ?`, domain.ConnectionSourceWhatsapp)
+	default:
+		query = query.Where(`"connectionSource" = ? AND "connectionId" IN (SELECT id FROM "ChannelConnections" WHERE kind = ? AND "tenantId" = ?)`,
+			domain.ConnectionSourceChannel, filter.Channel, tenantID)
+	}
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
 	}
 	if err := query.Find(&m).Error; err != nil {
 		return nil, err
@@ -367,8 +388,13 @@ func contactModelToDomain(m *models.Contact) *domain.Contact {
 		TenantID:      m.TenantID,
 		Lid:           m.Lid,
 		WalletUserID:  m.WalletUserID,
-		CreatedAt:     m.CreatedAt,
-		UpdatedAt:     m.UpdatedAt,
+
+		ConnectionSource: m.ConnectionSource,
+		ConnectionID:     m.ConnectionID,
+		PhoneSync:        m.PhoneSync,
+		PhoneSyncError:   m.PhoneSyncError,
+		CreatedAt:        m.CreatedAt,
+		UpdatedAt:        m.UpdatedAt,
 	}
 }
 
@@ -383,7 +409,12 @@ func contactDomainToModel(d *domain.Contact) *models.Contact {
 		TenantID:      d.TenantID,
 		Lid:           d.Lid,
 		WalletUserID:  d.WalletUserID,
-		CreatedAt:     d.CreatedAt,
-		UpdatedAt:     d.UpdatedAt,
+
+		ConnectionSource: d.ConnectionSource,
+		ConnectionID:     d.ConnectionID,
+		PhoneSync:        d.PhoneSync,
+		PhoneSyncError:   d.PhoneSyncError,
+		CreatedAt:        d.CreatedAt,
+		UpdatedAt:        d.UpdatedAt,
 	}
 }
