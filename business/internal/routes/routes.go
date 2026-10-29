@@ -262,6 +262,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.POST("/messages/:ticketId", auth.RequirePermission("tickets", "update"), messageController.SendMessage)
 		// On-demand media download (separate path to avoid Gin wildcard conflict
 		// with :ticketId at the same position)
+		protected.POST("/tickets/:ticketId/presence", auth.RequirePermission("tickets", "read"), messageController.SubscribePresence)
 		protected.POST("/media/:messageId/download", auth.RequirePermission("tickets", "read"), messageController.DownloadMedia)
 		// Nested under a distinct literal segment ("message", singular) --
 		// gin's radix router panics at startup if two routes share a path
