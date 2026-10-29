@@ -64,7 +64,13 @@ func extractMessageContent(msg *waProto.Message) mediaContent {
 		return mediaContent{fileLength: ptv.GetFileLength(), msgType: "video", mimeType: ptv.GetMimetype(), thumbnail: encodeThumb(ptv.GetJPEGThumbnail()), protoB64: marshalMedia(ptv), rich: map[string]interface{}{"round": true}}
 	}
 	if audio := msg.GetAudioMessage(); audio != nil {
-		return mediaContent{fileLength: audio.GetFileLength(), msgType: "audio", mimeType: audio.GetMimetype(), protoB64: marshalMedia(audio)}
+		c := mediaContent{fileLength: audio.GetFileLength(), msgType: "audio", mimeType: audio.GetMimetype(), protoB64: marshalMedia(audio)}
+		c.rich = map[string]interface{}{"seconds": audio.GetSeconds()}
+		if audio.GetPTT() {
+			// Mensagem de voz recebida: o encaminhamento usa isto como padrão para continuar sendo voz.
+			c.rich["voice"] = true
+		}
+		return c
 	}
 	if doc := msg.GetDocumentMessage(); doc != nil {
 		caption := doc.GetCaption()

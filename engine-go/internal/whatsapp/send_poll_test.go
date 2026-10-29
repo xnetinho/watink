@@ -12,13 +12,13 @@ import (
 
 // mockPollClient is a minimal WhatsAppClient mock for send_poll tests.
 type mockPollClient struct {
-	buildCalled    bool
-	buildName      string
-	buildOptions   []string
-	buildCount     int
-	sendCalled     bool
-	sendErr        error
-	sendMsg        *waE2E.Message
+	buildCalled  bool
+	buildName    string
+	buildOptions []string
+	buildCount   int
+	sendCalled   bool
+	sendErr      error
+	sendMsg      *waE2E.Message
 }
 
 func (m *mockPollClient) SendMessage(_ context.Context, _ types.JID, msg *waE2E.Message, _ ...whatsmeow.SendRequestExtra) (whatsmeow.SendResponse, error) {
