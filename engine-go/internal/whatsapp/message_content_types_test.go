@@ -150,3 +150,22 @@ func TestExtractMessageContent_RecadoDeVideo(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 }
+
+func TestExtractMessageContent_AudioPTTRecebidoMarcaVoz(t *testing.T) {
+	voz := extractMessageContent(&waProto.Message{AudioMessage: &waProto.AudioMessage{Mimetype: proto.String("audio/ogg; codecs=opus"), PTT: proto.Bool(true)}})
+	if voz.msgType != "audio" || voz.rich["voice"] != true {
+		t.Fatalf("PTT recebido deve marcar voice: %+v", voz.rich)
+	}
+	arq := extractMessageContent(&waProto.Message{AudioMessage: &waProto.AudioMessage{Mimetype: proto.String("audio/mpeg"), PTT: proto.Bool(false)}})
+	if _, isVoice := arq.rich["voice"]; isVoice {
+		t.Fatalf("arquivo de áudio recebido não é voz: %+v", arq.rich)
+	}
+	comDuracao := extractMessageContent(&waProto.Message{AudioMessage: &waProto.AudioMessage{Mimetype: proto.String("audio/mpeg"), Seconds: proto.Uint32(7)}})
+	if comDuracao.rich["seconds"] != uint32(7) {
+		t.Fatalf("a duração do áudio recebido precisa ser guardada (a citação a usa): %+v", comDuracao.rich)
+	}
+	ausente := extractMessageContent(&waProto.Message{AudioMessage: &waProto.AudioMessage{Mimetype: proto.String("audio/mpeg")}})
+	if _, isVoice := ausente.rich["voice"]; isVoice {
+		t.Fatalf("ptt ausente não é voz: %+v", ausente.rich)
+	}
+}

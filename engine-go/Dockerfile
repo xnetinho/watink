@@ -15,8 +15,13 @@ COPY engine-go/ .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o watink-engine cmd/engine/main.go
 
-# Stage 2: minimal runtime
-FROM gcr.io/distroless/static-debian12@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2
+# Stage 2: runtime. Precisa do ffmpeg/ffprobe: o engine gera miniatura, dimensões, duração e forma de onda (e converte
+# áudio para Opus; poppler-utils dá a miniatura e o nº de páginas de PDF) para que as mídias saiam como as de um cliente oficial do WhatsApp (pacote internal/mediameta).
+# Alpine em vez de distroless só por causa do ffmpeg. O usuário continua o mesmo de antes (root): o volume do outbox já
+# pertence a ele, e trocar de UID faria o engine perder o acesso ao outbox existente (hardening fica para outra mudança).
+FROM alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f
+
+RUN apk add --no-cache ffmpeg poppler-utils ca-certificates tzdata
 
 WORKDIR /
 

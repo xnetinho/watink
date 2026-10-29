@@ -20,6 +20,15 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 		return
 	}
 
+	if mediaInspectEnabled() {
+		if d := inspectMedia(v.Message); d != "" {
+			log.Printf("[media.inspect] %s de=%s: %s", v.Info.ID, v.Info.Sender.String(), d)
+		}
+		if d := inspectQuote(v.Message); d != "" {
+			log.Printf("[quote.inspect] %s de=%s: %s", v.Info.ID, v.Info.Sender.String(), d)
+		}
+	}
+
 	// WhatsApp Status/Stories ("status@broadcast") are not conversations and must
 	// not create tickets. They also frequently carry media whose synchronous
 	// download here would stall the serial event loop for the whole session.
