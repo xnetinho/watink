@@ -49,7 +49,7 @@ const SimulatorLogsSidebar: React.FC<SimulatorLogsSidebarProps> = ({ result }) =
         >
           <LogIcon status={log.status} />
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-[var(--text-primary)] truncate">{log.nodeLabel}</p>
+            <p className="font-semibold text-[hsl(var(--text-primary))] truncate">{log.nodeLabel}</p>
             <p className="text-muted-foreground">{log.action || log.message}</p>
           </div>
         </div>

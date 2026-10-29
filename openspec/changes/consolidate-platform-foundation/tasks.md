@@ -67,7 +67,7 @@
 
 - [x] 6.1 Hooks do `CallManager` assíncronos com fila ordenada por chamada; verificar com teste de ordem e com `-race`
 - [x] 6.2 `Capabilities.voice` e `video`; comandos `call.*` com `connectionId`; remover a leitura de `Ticket.WhatsappID` das chamadas; verificar que chamada recebida e iniciada continuam passando nos testes de ponta a ponta
-- [x] 6.3 Vídeo atrás de flag experimental, desligada por padrão; atualizar o ADR 0032 com o que existe e o que não foi validado; verificar que com a flag desligada nenhum caminho de vídeo é exposto
+- [x] 6.3 Vídeo liberado por padrão, sem flag (a `ENABLE_EXPERIMENTAL_VIDEO_CALLS` era código morto: nenhum caminho a lia e foi removida); ADR 0032 atualizado com o que existe e o que continua NOT VALIDATED
 - [x] 6.4 Testes caóticos de chamada: UDP bloqueado, perda de relay e reinício do engine no meio da chamada; verificar que a chamada termina com o motivo correto e libera a conexão
 - [x] 6.5 Autenticação por token na API de áudio do engine, aceitando só o business; verificar com teste que requisição sem token é recusada
 - [x] 6.6 Levantar a procedência de `mic_clip.raw` e das capturas em `testdata` e registrar a decisão do dono; verificar com nota no `NOTICE.md`

@@ -213,13 +213,11 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	// Atualiza o ticket com a última mensagem e timestamp
-	lastMessage := msg.Body
-	if label := usecases.MediaTypeLabel(mediaType); label != "" && (lastMessage == "" || usecases.OpaqueBodyType(mediaType)) {
-		lastMessage = label
-	}
+	lastMessage, lastKind := domain.LastMessagePreview(mediaType, msg.Body, "")
 	_ = s.ticketRepo.Update(ctx, ticket, map[string]interface{}{
-		"lastMessage": lastMessage,
-		"updatedAt":   time.Now(),
+		"lastMessage":     lastMessage,
+		"lastMessageType": lastKind,
+		"updatedAt":       time.Now(),
 	})
 
 	res := &usecases.ReceiveMessageResult{
@@ -231,10 +229,11 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	// 3.4 Broadcasts em tempo real (SSE)
 	if s.broadcast != nil {
 		room := "chat:" + strconv.Itoa(ticket.ID)
-		msgPayload := map[string]interface{}{"action": "create", "message": message, "ticket": ticket, "contact": contact}
+		ticketOut := withConnectionIdentity(ctx, s.db, ticket)
+		msgPayload := map[string]interface{}{"action": "create", "message": message, "ticket": ticketOut, "contact": contact}
 		s.broadcast.EmitToRoom("/", room, "appMessage", msgPayload)
 		s.broadcast.EmitToTenantRoom(msg.TenantID.String(), "appMessage", msgPayload)
-		s.broadcast.EmitToTenantRoom(msg.TenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": ticket, "contact": contact})
+		s.broadcast.EmitToTenantRoom(msg.TenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": ticketOut, "contact": contact})
 	}
 
 	// 3.5 Integração com FlowBuilder

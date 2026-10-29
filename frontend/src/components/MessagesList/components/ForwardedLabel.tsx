@@ -12,7 +12,7 @@ const ForwardedLabel: React.FC<{ message: Message }> = ({ message }) => {
   if (d.forwarded !== true) return null;
   const frequent = Number(d.forwardScore) > FREQUENT_FORWARD_SCORE;
   return (
-    <div className="mb-0.5 flex items-center gap-1 text-[11px] italic text-[var(--text-muted)]" data-testid="forwarded-label">
+    <div className="mb-0.5 flex items-center gap-1 text-[11px] italic text-[hsl(var(--text-muted))]" data-testid="forwarded-label">
       <Forward className="h-3 w-3" />
       {String(i18n.t(frequent ? "chat.forwardedMany" : "chat.forwarded") ?? "")}
     </div>

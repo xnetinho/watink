@@ -81,7 +81,7 @@ const FlowChat: React.FC<FlowChatProps> = ({ onFlowGenerated }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-surface)]">
+    <div className="flex flex-col h-full bg-[hsl(var(--bg-surface))]">
       {/* Header */}
       <div className="px-4 py-3 bg-primary text-primary-foreground shadow-sm shrink-0">
         <div className="flex items-center gap-2 text-base font-semibold">
@@ -91,7 +91,7 @@ const FlowChat: React.FC<FlowChatProps> = ({ onFlowGenerated }) => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-default)] space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 bg-[hsl(var(--bg-default))] space-y-2">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -101,8 +101,8 @@ const FlowChat: React.FC<FlowChatProps> = ({ onFlowGenerated }) => {
               className={cn(
                 'max-w-[85%] px-3 py-2 rounded-xl text-sm shadow-sm',
                 msg.sender === 'user'
-                  ? 'bg-[var(--status-success-bg)] rounded-br-sm'
-                  : 'bg-[var(--status-info-bg)] rounded-bl-sm',
+                  ? 'bg-[hsl(var(--status-success-bg))] rounded-br-sm'
+                  : 'bg-[hsl(var(--status-info-bg))] rounded-bl-sm',
               )}
             >
               {msg.text}
@@ -118,7 +118,7 @@ const FlowChat: React.FC<FlowChatProps> = ({ onFlowGenerated }) => {
       </div>
 
       {/* Input */}
-      <div className="flex items-center gap-2 p-3 border-t bg-[var(--bg-surface)] shrink-0">
+      <div className="flex items-center gap-2 p-3 border-t bg-[hsl(var(--bg-surface))] shrink-0">
         <Textarea
           className="flex-1 text-sm resize-none min-h-[36px] max-h-[80px]"
           placeholder="Ex: Crie um fluxo para agendar consultas..."

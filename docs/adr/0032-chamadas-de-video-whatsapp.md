@@ -1,6 +1,6 @@
 # ADR 0032 — Chamadas de vídeo do WhatsApp no navegador
 
-**Status:** Proposed (planejado; **nada implementado**, ver `openspec/changes/add-whatsapp-video-calls`)
+**Status:** Accepted. Chamadas de voz e vídeo 1:1 estão **liberadas por padrão**, sem variável de ambiente nem flag (decisão do dono, 28/out/2026: o aplicativo está em desenvolvimento, sem instância em produção). Ver `openspec/changes/add-whatsapp-video-calls`.
 **Data:** 2026-10-06
 
 ## Contexto
@@ -36,6 +36,11 @@ forks `arthost/WaCalls`, `fabriciosprj/WaCalls-Video` e `fabioangeloliongo/WaCal
 | Vídeo/ações de grupo | Experimental; **fora do escopo** |
 
 Nenhum dos projetos exige whatsmeow novo nem o fork `hypermeow` para o vídeo 1:1.
+
+## O que existe hoje
+- Voz e vídeo 1:1 recebidos e iniciados pelo operador, sem flag. A antiga `ENABLE_EXPERIMENTAL_VIDEO_CALLS` foi **removida**: a função `IsVideoEnabled` nunca foi chamada por código de produção, então ela não desligava nada.
+- Segue valendo o que a tabela acima marca como **NOT VALIDATED**: enviar vídeo, upgrade/downgrade no meio da chamada e iniciar já como vídeo ainda dependem de teste com telefone real.
+- Grupo e conexão com proxy continuam sem chamada (o engine registra o motivo e o celular segue tocando).
 
 ## Consequências e riscos
 

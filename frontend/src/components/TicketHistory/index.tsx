@@ -31,11 +31,11 @@ interface TicketHistoryProps {
 const getLogIcon = (type: string) => {
   switch (type) {
     case "transfer":
-      return <ArrowLeftRight className="h-3.5 w-3.5 text-[var(--status-info)]" />;
+      return <ArrowLeftRight className="h-3.5 w-3.5 text-[hsl(var(--status-info))]" />;
     case "status":
-      return <Circle className="h-3.5 w-3.5 fill-[var(--status-success)] text-[var(--status-success)]" />;
+      return <Circle className="h-3.5 w-3.5 fill-[hsl(var(--status-success))] text-[hsl(var(--status-success))]" />;
     case "assign":
-      return <User className="h-3.5 w-3.5 text-[var(--status-warning)]" />;
+      return <User className="h-3.5 w-3.5 text-[hsl(var(--status-warning))]" />;
     default:
       return <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />;
   }

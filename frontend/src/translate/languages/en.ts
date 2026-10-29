@@ -542,6 +542,26 @@ const messages = {
         placeholder: "Queues",
       },
       tickets: {
+        lastMessageKind: {
+          image: "📷 Photo",
+          video: "📹 Video",
+          audio: "🎵 Audio",
+          document: "📎 File",
+          sticker: "Sticker",
+          location: "📍 Location",
+          vcard: "👤 Contact",
+          poll: "📊 Poll",
+          event: "📅 Event",
+          pix: "💠 PIX",
+          view_once: "👁 View once",
+          unsupported: "⚠️ Unsupported message",
+          call: "📞 Call",
+          other: "📎 Message",
+        },
+        noMessages: "No messages",
+        details: {
+          connection: "Connection",
+        },
         toasts: {
           deleted: "The ticket you were on has been deleted.",
         },

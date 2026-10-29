@@ -93,3 +93,21 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
     replyWindowHours: 48,
   },
 ];
+
+/** Canal usado quando o ticket não traz canal ou o canal não está no catálogo. */
+export const CHANNEL_FALLBACK: ChannelDefinition = CHANNELS_CATALOG[0];
+
+/** Definição do canal pela chave; canal desconhecido (ou ainda fora do catálogo) cai no genérico sem quebrar a tela. */
+export const channelDefinition = (kind?: string): ChannelDefinition =>
+  CHANNELS_CATALOG.find((c) => c.kind === kind) ??
+  (kind
+    ? {
+        ...CHANNEL_FALLBACK,
+        kind: kind as ChannelKind,
+        name: kind,
+        colorClass: "text-muted-foreground",
+        bgClass: "bg-muted",
+        borderClass: "border-border",
+        iconName: "Globe",
+      }
+    : CHANNEL_FALLBACK);

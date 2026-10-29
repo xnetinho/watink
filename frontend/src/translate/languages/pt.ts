@@ -664,6 +664,26 @@ const messages = {
         placeholder: "Filas",
       },
       tickets: {
+        lastMessageKind: {
+          image: "📷 Foto",
+          video: "📹 Vídeo",
+          audio: "🎵 Áudio",
+          document: "📎 Arquivo",
+          sticker: "Figurinha",
+          location: "📍 Localização",
+          vcard: "👤 Contato",
+          poll: "📊 Enquete",
+          event: "📅 Evento",
+          pix: "💠 PIX",
+          view_once: "👁 Visualização única",
+          unsupported: "⚠️ Mensagem não suportada",
+          call: "📞 Chamada",
+          other: "📎 Mensagem",
+        },
+        noMessages: "Sem mensagens",
+        details: {
+          connection: "Conexão",
+        },
         toasts: {
           deleted: "O ticket que você estava foi deletado.",
         },

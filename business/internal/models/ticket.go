@@ -10,6 +10,9 @@ type Ticket struct {
 	ID                  int       `gorm:"primaryKey" json:"id"`
 	Status              string    `gorm:"not null;default:'pending'" json:"status"`
 	LastMessage         string    `gorm:"column:lastMessage" json:"lastMessage"`
+	// LastMessageType é o marcador de tipo da última mensagem quando ela não tem texto legível (image, video, poll,
+	// location...). A prévia do ticket é traduzida pela tela; o banco nunca guarda rótulo em um idioma.
+	LastMessageType string `gorm:"column:lastMessageType;size:30" json:"lastMessageType,omitempty"`
 	ContactID           int       `gorm:"column:contactId" json:"contactId"`
 	UserID              *int      `gorm:"column:userId" json:"userId"`
 	WhatsappID          int       `gorm:"column:whatsappId" json:"whatsappId"`
@@ -35,10 +38,21 @@ type Ticket struct {
 	Tags []Tag `gorm:"-" json:"tags,omitempty"`
 
 	// Channel e Capabilities expostos para o frontend agnóstico (Tarefa 7.3 / ADR 0033)
-	Channel      string `gorm:"-" json:"channel,omitempty"`
-	Capabilities any    `gorm:"-" json:"capabilities,omitempty"`
+	Channel string `gorm:"-" json:"channel,omitempty"`
+	// Connection identifica a conexão do ticket (canal + nome), neutra para qualquer canal (domain.TicketConnection).
+	// Preenchida em lote por attachChannelInfo e em ShowTicket; não é coluna.
+	Connection   *TicketConnectionInfo `gorm:"-" json:"connection,omitempty"`
+	Capabilities any                   `gorm:"-" json:"capabilities,omitempty"`
 }
 
 func (Ticket) TableName() string {
 	return "Tickets"
+}
+
+// TicketConnectionInfo espelha domain.TicketConnection no modelo (o pacote models não importa domain).
+type TicketConnectionInfo struct {
+	Kind   string `json:"kind"`
+	ID     int    `json:"id"`
+	Name   string `json:"name"`
+	Source string `json:"source"`
 }

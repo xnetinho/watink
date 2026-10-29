@@ -8,7 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import TagChip from "../TagChip";
 import MarkdownWrapper from "../MarkdownWrapper";
-import { ChannelBadge } from "../ChannelBadge";
+import type { TicketConnection } from "../../types/Ticket";
+import { TicketConnectionBadge } from "../TicketConnectionBadge";
+import { lastMessagePreview } from "../../lib/tickets/lastMessage";
+import { i18n } from "../../translate/i18n";
 import { getBackendUrl } from "../../helpers/urlUtils";
 import { getContactDisplayName } from "../../utils/clientDisplayName";
 
@@ -41,6 +44,7 @@ interface Ticket {
   status: "open" | "closed" | "pending";
   updatedAt: string;
   lastMessage?: string;
+  lastMessageType?: string;
   unreadMessages: number;
   isGroup?: boolean;
   isCommunity?: boolean;
@@ -48,6 +52,7 @@ interface Ticket {
   isNewsletter?: boolean;
   whatsappId?: number;
   channel?: string;
+  connection?: TicketConnection;
   contact: Contact;
   queue?: Queue;
   whatsapp?: WhatsApp;
@@ -61,6 +66,7 @@ interface TicketListItemProps {
 const TicketListItem: React.FC<TicketListItemProps> = ({ ticket }) => {
   const navigate = useNavigate();
   const { ticketId } = useParams<{ ticketId: string }>();
+  const preview = lastMessagePreview(ticket);
 
   const handleSelectTicket = (id: number) => {
     navigate(`/tickets/${id}`);
@@ -151,10 +157,10 @@ const TicketListItem: React.FC<TicketListItemProps> = ({ ticket }) => {
         {/* Linha 2 — prévia + badge não lidas */}
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-[0.75rem] leading-4 text-muted-foreground pointer-events-none select-none">
-            {ticket.lastMessage ? (
-              <MarkdownWrapper>{ticket.lastMessage}</MarkdownWrapper>
+            {preview ? (
+              ticket.lastMessage ? <MarkdownWrapper>{preview}</MarkdownWrapper> : preview
             ) : (
-              "Sem mensagens"
+              String(i18n.t("tickets.noMessages") ?? "")
             )}
           </span>
 
@@ -173,15 +179,15 @@ const TicketListItem: React.FC<TicketListItemProps> = ({ ticket }) => {
         </div>
 
         {/* Linha 3 — badge da conexão + tags */}
-        {(ticket.channel || ticket.whatsapp?.name || (ticket.tags && ticket.tags.length > 0)) && (
+        {(ticket.channel || ticket.connection || ticket.whatsapp?.name || (ticket.tags && ticket.tags.length > 0)) && (
           <div className="mt-0.5 flex flex-wrap items-center gap-1">
-            {ticket.channel && ticket.channel !== "whatsapp" && (
-              <ChannelBadge channel={ticket.channel} size="sm" />
-            )}
-            {ticket.whatsapp?.name && (
-              <span className="self-start rounded px-1.5 py-px text-[0.625rem] font-semibold bg-muted text-muted-foreground">
-                {ticket.whatsapp.name}
-              </span>
+            {(ticket.connection || ticket.channel || ticket.whatsapp?.name) && (
+              <TicketConnectionBadge
+                channel={ticket.channel}
+                // `whatsapp.name` é o campo antigo (a API não o preenche); `connection` é o contrato atual.
+                connection={ticket.connection ?? (ticket.whatsapp?.name ? { kind: "whatsapp", id: 0, name: ticket.whatsapp.name, source: "whatsapp" } : undefined)}
+                size="sm"
+              />
             )}
             {ticket.tags?.map((tag) => (
               <TagChip key={tag.id} tag={tag} size="small" />

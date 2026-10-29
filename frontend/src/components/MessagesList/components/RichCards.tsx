@@ -9,7 +9,7 @@ import { Message } from "../types";
 // i18n.t() deste projeto pode devolver null; os cartões só querem string.
 const tr = (key: string, opts: Record<string, string | number> = {}): string => String(i18n.t(key, opts) ?? "");
 
-const card = "flex max-w-[300px] flex-col gap-1.5 rounded-xl bg-[var(--bg-surface)] px-3 py-2.5 text-sm";
+const card = "flex max-w-[300px] flex-col gap-1.5 rounded-xl bg-[hsl(var(--bg-surface))] px-3 py-2.5 text-sm";
 
 export const getRich = (message: Message): Record<string, unknown> =>
   (parseData(message.dataJson).rich as Record<string, unknown> | undefined) ?? {};
@@ -34,13 +34,13 @@ export const PixCard: React.FC<{ message: Message }> = ({ message }) => {
       <div className="flex items-center gap-2 font-medium text-[hsl(var(--action-primary))]">
         <QrCode className="h-4 w-4" /> {tr("chat.pix.title")}
       </div>
-      {typeof r.name === "string" && r.name && <div className="text-xs text-[var(--text-muted)]">{r.name}</div>}
+      {typeof r.name === "string" && r.name && <div className="text-xs text-[hsl(var(--text-muted))]">{r.name}</div>}
       {typeof r.amount === "number" && r.amount > 0 && (
         <div className="text-base font-semibold">{r.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
       )}
       {key && (
         <div className="break-all text-xs">
-          <span className="text-[var(--text-muted)]">{tr("chat.pix.key")}{typeof r.keyType === "string" ? ` (${r.keyType})` : ""}: </span>
+          <span className="text-[hsl(var(--text-muted))]">{tr("chat.pix.key")}{typeof r.keyType === "string" ? ` (${r.keyType})` : ""}: </span>
           {key}
         </div>
       )}
@@ -81,8 +81,8 @@ export const EventCard: React.FC<{ message: Message }> = ({ message }) => {
         <CalendarDays className="h-4 w-4 shrink-0 text-[hsl(var(--action-primary))]" />
         <span className="break-words">{String(r.name ?? tr("chat.event.fallbackName"))}</span>
       </div>
-      {r.canceled === true && <div className="text-xs font-medium text-[var(--status-error)]">{tr("chat.event.canceled")}</div>}
-      {when && <div className="text-xs text-[var(--text-muted)]">{when}{end ? ` ${tr("chat.event.until")} ${end}` : ""}</div>}
+      {r.canceled === true && <div className="text-xs font-medium text-[hsl(var(--status-error))]">{tr("chat.event.canceled")}</div>}
+      {when && <div className="text-xs text-[hsl(var(--text-muted))]">{when}{end ? ` ${tr("chat.event.until")} ${end}` : ""}</div>}
       {typeof r.location === "string" && r.location && (
         <div className="flex items-center gap-1.5 text-xs"><MapPin className="h-3.5 w-3.5 shrink-0" />{r.location}</div>
       )}
@@ -144,9 +144,9 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
   };
 
   return (
-    <div className="flex w-[330px] max-w-full flex-col gap-2.5 rounded-xl bg-[var(--bg-surface)] px-4 py-3 text-[15px]" data-testid="poll-card">
+    <div className="flex w-[330px] max-w-full flex-col gap-2.5 rounded-xl bg-[hsl(var(--bg-surface))] px-4 py-3 text-[15px]" data-testid="poll-card">
       <div className="text-base font-semibold leading-snug">{String(r.question ?? "")}</div>
-      <div className="text-xs text-[var(--text-muted)]">
+      <div className="text-xs text-[hsl(var(--text-muted))]">
         {isTelegram ? tr(multi ? "chat.poll.telegramMultiple" : "chat.poll.telegramSingle") : multi ? tr("chat.poll.multiple", { limit }) : tr("chat.poll.single")}
       </div>
       {options.map((o, i) => {
@@ -185,7 +185,7 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
           </div>
         );
       })}
-      <div className="text-xs text-[var(--text-muted)]" data-testid="poll-voters">
+      <div className="text-xs text-[hsl(var(--text-muted))]" data-testid="poll-voters">
         {tr("chat.poll.vote", { count: voters })}
       </div>
       {canVote && (
@@ -204,7 +204,7 @@ export const PollCard: React.FC<{ message: Message }> = ({ message }) => {
 
 export const LiveLocationBadge: React.FC<{ message: Message }> = ({ message }) =>
   getRich(message).live === true ? (
-    <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-[var(--status-error)]" data-testid="live-location">
+    <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-[hsl(var(--status-error))]" data-testid="live-location">
       <Radio className="h-3.5 w-3.5" /> {tr("chat.liveLocation")}
     </div>
   ) : null;

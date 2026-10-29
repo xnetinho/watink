@@ -107,6 +107,36 @@ describe("Agnostic Channel and Capabilities UI (Tarefa 7.3)", () => {
     expect(screen.queryByText("telegram")).toBeNull();
   });
 
+  it("TicketListItem identifica o ticket do WhatsApp pela conexão (antes ficava sem identificação)", () => {
+    render(
+      <TicketListItem
+        ticket={{
+          id: 21, status: "open", updatedAt: new Date().toISOString(), unreadMessages: 0, lastMessage: "oi", isGroup: false,
+          createdAt: new Date().toISOString(), contactId: 201, contact: { id: 201, name: "Cliente", number: "5511999990001" },
+          channel: "whatsapp",
+          connection: { kind: "whatsapp", id: 2, name: "Comercial", source: "whatsapp" },
+        } as Ticket}
+      />,
+    );
+    const badge = screen.getByTestId("ticket-connection-badge");
+    expect(badge).toHaveTextContent("Comercial");
+    expect(badge).toHaveAttribute("data-channel", "whatsapp");
+  });
+
+  it("TicketListItem identifica o Telegram pelo mesmo selo, com o nome da conexão", () => {
+    render(
+      <TicketListItem
+        ticket={{
+          id: 22, status: "open", updatedAt: new Date().toISOString(), unreadMessages: 0, lastMessage: "oi", isGroup: false,
+          createdAt: new Date().toISOString(), contactId: 202, contact: { id: 202, name: "Cliente TG", number: "" },
+          channel: "telegram",
+          connection: { kind: "telegram", id: 2, name: "Jarvis", source: "channel" },
+        } as Ticket}
+      />,
+    );
+    expect(screen.getByTestId("ticket-connection-badge")).toHaveTextContent("Jarvis");
+  });
+
   it("MessageInput bloqueia o composer quando replyPolicy.canReply é falso", () => {
     render(
       <MessageInput
