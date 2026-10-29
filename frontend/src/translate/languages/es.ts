@@ -549,6 +549,8 @@ const messages = {
         forwarded: "Reenviado",
         edited: "Editado",
         edits: {
+          youEdited: "Editaste",
+          youEditedMany: "Editaste {{count}} veces",
           editedMany: "Editado {{count}} veces",
           viewHistory: "Ver historial de ediciones",
           title: "Historial de ediciones",

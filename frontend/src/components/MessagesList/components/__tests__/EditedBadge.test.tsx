@@ -99,3 +99,17 @@ describe("posição do selo", () => {
     expect(cls).not.toContain("right-");
   });
 });
+
+describe("quem editou aparece no selo", () => {
+  it("na mensagem NOSSA o selo diz 'Você editou'", () => {
+    const { rerender } = render(<EditedBadge message={msg({ fromMe: true, editCount: 1 })} />);
+    expect(screen.getByTestId("edited-badge").textContent).toBe("Você editou");
+    rerender(<EditedBadge message={msg({ fromMe: true, editCount: 4 })} />);
+    expect(screen.getByTestId("edited-badge").textContent).toBe("Você editou 4 vezes");
+  });
+
+  it("na mensagem do contato continua 'Editada'", () => {
+    render(<EditedBadge message={msg({ fromMe: false, editCount: 1 })} />);
+    expect(screen.getByTestId("edited-badge").textContent).toBe("Editada");
+  });
+});
