@@ -56,6 +56,7 @@ import MessageReactions from "./MessageReactions";
 import MessageInteractive from "./MessageInteractive";
 import MessageMetadata from "./MessageMetadata";
 import ForwardedLabel from "./ForwardedLabel";
+import EditedBadge from "./EditedBadge";
 import LinkPreview from "./LinkPreview";
 import DailyTimestamp from "./DailyTimestamp";
 import SenderName from "./SenderName";
@@ -180,7 +181,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     <div
       className={clsx(
         "overflow-wrap-break-word pt-0.5 pb-1.5 pl-1.5",
-        message.isDeleted ? "italic text-[hsl(var(--text-muted))] pr-20" : "pr-20"
+        message.isDeleted ? "italic text-[hsl(var(--text-muted))] pr-20" : "pr-20",
+        // O selo "Editada" ocupa o rodapé à esquerda e o horário a direita: sem esta largura mínima os dois se sobrepõem
+        // num balão curto ("Oi"). A linha extra empurra o texto para cima do rodapé.
+        Number(message.editCount ?? 0) > 0 && !message.isDeleted && "min-w-[190px] pb-5"
       )}
     >
       <DeletedMessage message={message} />
@@ -196,6 +200,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           {getMessageBody(message)}
         </MarkdownWrapper>
       )}
+      <EditedBadge message={message} />
       <MessageMetadata message={message} isGroup={isGroup} onRetry={message.ack === 5 ? handleRetry : undefined} />
     </div>
   );
