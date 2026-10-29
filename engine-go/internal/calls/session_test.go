@@ -798,6 +798,16 @@ func TestAccepted_MediaNeverConnects_EndsAsMediaTimeout(t *testing.T) {
 	_ = r.s.Ready(context.Background(), callA)
 	_ = r.s.Accept(context.Background(), callA)
 	eventually(t, "accept", func() bool { return r.handle(0).has("accept") })
+	// O fake registra "accept" ANTES de emitir "connecting" (que arma o prazo): esperar só o accept deixava uma janela em
+	// que o relógio disparava sem prazo armado (flaky na CI com -race).
+	eventually(t, "connecting", func() bool {
+		for _, e := range r.evs("call.state") {
+			if e["state"] == "connecting" {
+				return true
+			}
+		}
+		return false
+	})
 
 	if r.clk.fire(mediaConnectTimeout) != 1 {
 		t.Fatal("o prazo de conexão da mídia não foi armado ao atender")
