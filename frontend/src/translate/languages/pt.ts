@@ -622,6 +622,12 @@ const messages = {
         success: "Usuário salvo com sucesso.",
       },
       chat: {
+        audioPlayer: {
+          play: "Reproduzir",
+          pause: "Pausar",
+          seek: "Posição do áudio",
+          speed: "Velocidade",
+        },
         unsupported: {
           title: "Mensagem não suportada",
           hint: "O Watink ainda não sabe exibir este tipo de mensagem ({{kind}}). Veja no celular ou no app do canal.",
@@ -659,6 +665,8 @@ const messages = {
         forwarded: "Encaminhada",
         forwardedMany: "Encaminhada com frequência",
         previews: {
+          voice: "Mensagem de voz",
+          audio: "Áudio",
           unsupported: "⚠️ Mensagem não suportada",
           location: "Localização",
           contact: "Contato",
@@ -1031,6 +1039,14 @@ const messages = {
         },
       },
       messagesInput: {
+        audioKind: {
+          label: "Como enviar o áudio",
+          voice: "Mensagem de voz",
+          voiceHint: "Aparece com microfone e onda, como uma gravação.",
+          file: "Arquivo de áudio",
+          fileHint: "Aparece como anexo de áudio, sem onda.",
+        },
+        recording: { unsupported: "Este navegador não permite gravar áudio." },
         emojiPicker: {
           title: "Emojis",
           search: "Buscar emoji",

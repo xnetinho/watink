@@ -4,12 +4,14 @@ import { Loader2 } from "lucide-react";
 import PaperCard from "../../PaperCard";
 import { i18n } from "../../../translate/i18n";
 import { MediaItem } from "../hooks/useMessageInput";
+import { AudioKindPicker } from "../../AudioKindPicker";
 
 interface MediaPreviewPanelProps {
   medias: MediaItem[];
   loading: boolean;
   onRemoveMedia: (index: number) => void;
   onCaptionChange: (index: number, value: string) => void;
+  onAudioKindChange: (index: number, kind: "voice" | "file") => void;
   onAddMore: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCancelAll: () => void;
   onUpload: () => void;
@@ -20,6 +22,7 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
   loading,
   onRemoveMedia,
   onCaptionChange,
+  onAudioKindChange,
   onAddMore,
   onCancelAll,
   onUpload,
@@ -43,7 +46,7 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
         {medias.map((media, index) => (
           <div
             key={index}
-            className="relative min-w-[150px] h-[180px] border border-[var(--border-divider)] rounded overflow-hidden flex flex-col justify-between items-center bg-[hsl(var(--bg-surface))] mr-2.5"
+            className="relative min-w-[150px] min-h-[180px] border border-[var(--border-divider)] rounded overflow-hidden flex flex-col justify-between items-center bg-[hsl(var(--bg-surface))] mr-2.5"
           >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin text-[hsl(var(--status-success))] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-70" />
@@ -71,6 +74,11 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
                     </span>
                   </div>
                 )}
+                {media.audioKind && (
+                    <div className="w-full px-1.5 pb-1">
+                      <AudioKindPicker value={media.audioKind} onChange={(k) => onAudioKindChange(index, k)} name={`audio-kind-${index}`} className="flex flex-col gap-0.5 text-[10px]" compact />
+                    </div>
+                  )}
                 <textarea
                   className="w-full p-1 text-xs border-none border-t border-[var(--border-divider)] outline-none h-[60px] resize-none bg-[hsl(var(--bg-surface))]"
                   placeholder={i18n.t("messagesInput.placeholderOpen") as string}

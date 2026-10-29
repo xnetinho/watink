@@ -18,11 +18,17 @@ import { isKnownMediaType } from "../utils/messageHelpers";
 
 interface Props {
   message: Message;
+  /** Quem enviou (foto ou iniciais no player de áudio). */
+  sender?: { name?: string; picUrl?: string | null };
 }
+
+/** Mensagem de voz (PTT)? Enviada pelo Watink vem em `voice`; recebida do celular, o engine a marca em `rich.voice`. */
+const isVoice = (data: Record<string, unknown>): boolean =>
+  data.voice === true || (data.rich as { voice?: unknown } | undefined)?.voice === true;
 
 const DOWNLOADABLE_TYPES = ["image", "video", "audio", "document", "sticker"];
 
-const MessageMedia: React.FC<Props> = ({ message }) => {
+const MessageMedia: React.FC<Props> = ({ message, sender }) => {
   // Local override so the transcription appears immediately on click,
   // without waiting for the SSE appMessage round-trip to update the parent's
   // message list state.
@@ -133,7 +139,13 @@ const MessageMedia: React.FC<Props> = ({ message }) => {
     const transcription = localTranscription ?? message.transcription;
     return (
       <div>
-        <Audio url={getBackendUrl(message.mediaUrl) ?? ""} mimetype={mimetype} />
+        <Audio
+          url={getBackendUrl(message.mediaUrl) ?? ""}
+          mimetype={mimetype}
+          senderName={sender?.name}
+          senderPicUrl={sender?.picUrl}
+          voice={isVoice(audioData)}
+        />
         {transcription ? (
           <p className="mt-1 max-w-[300px] whitespace-pre-wrap text-xs italic text-[hsl(var(--text-muted))]">
             {transcription}

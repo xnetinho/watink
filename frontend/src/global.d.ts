@@ -22,9 +22,5 @@ declare module 'react-signature-canvas' {
   }
   export default SignatureCanvas;
 }
-declare module 'mic-recorder-to-mp3' {
-  const MicRecorder: any;
-  export default MicRecorder;
-}
 declare module '*.png';
 declare module '*.mp3';
