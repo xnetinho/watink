@@ -100,4 +100,6 @@ export interface TicketConnection {
   name: string;
   /** Tabela de origem do id ("whatsapp" | "channel"); some quando o WhatsApp migrar para ChannelConnections. */
   source: "whatsapp" | "channel";
+  /** Foto da conexão (hoje só a do WhatsApp): avatar das mensagens enviadas pelo Watink. */
+  profilePicUrl?: string;
 }

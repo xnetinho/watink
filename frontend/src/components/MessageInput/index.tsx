@@ -60,6 +60,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
     handleChangeMedias,
     handleInputPaste,
     handleMediaCaptionChange,
+    handleAudioKindChange,
     handleUploadMedia,
     handleRemoveMedia,
     handleClearMedias,
@@ -113,6 +114,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
         loading={loading}
         onRemoveMedia={handleRemoveMedia}
         onCaptionChange={handleMediaCaptionChange}
+        onAudioKindChange={handleAudioKindChange}
         onAddMore={handleChangeMedias}
         onCancelAll={handleClearMedias}
         onUpload={handleUploadMedia}

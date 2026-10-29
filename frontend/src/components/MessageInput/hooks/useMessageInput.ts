@@ -157,6 +157,7 @@ export const useMessageInput = () => {
     handleInputPaste,
     handleMediaCaptionChange: mediaUpload.handleMediaCaptionChange,
     handleUploadMedia: (e?: React.FormEvent) => mediaUpload.handleUploadMedia(ticketId, e),
+    handleAudioKindChange: mediaUpload.handleAudioKindChange,
     handleRemoveMedia: mediaUpload.handleRemoveMedia,
     handleClearMedias: mediaUpload.clearMedias,
     // mentions

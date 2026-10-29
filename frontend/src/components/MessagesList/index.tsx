@@ -17,9 +17,13 @@ interface MessagesListProps {
   isGroup?: boolean;
   channel?: string;
   contactId?: number | string;
+  /** Quem está do outro lado numa conversa 1:1 (foto/iniciais do áudio recebido). */
+  peer?: { name?: string; picUrl?: string | null };
+  /** A conexão que envia (foto, ou iniciais do nome, nos áudios enviados por nós). */
+  self?: { name?: string; picUrl?: string | null };
 }
 
-const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel, contactId }) => {
+const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel, contactId, peer, self }) => {
   const { appTheme } = useThemeContext();
 
   const {
@@ -91,6 +95,8 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel,
               mentionsMap={mentionsMap}
               colorCache={groupColorCacheRef.current ?? new Map()}
               onOpenOptions={handleOpenMessageOptionsMenu}
+              peer={peer}
+              self={self}
             />
           ))
         )}

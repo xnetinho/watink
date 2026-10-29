@@ -1,6 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 import { X } from "lucide-react";
+import { QuoteContent } from "../../MessagesList/components/QuotedMessage";
 
 interface ReplyPreviewProps {
   message: Record<string, unknown>;
@@ -12,7 +13,7 @@ interface ReplyPreviewProps {
 const ReplyPreview: React.FC<ReplyPreviewProps> = ({ message, loading, ticketStatus, onCancel }) => {
   const fromMe = message.fromMe as boolean;
   const body = message.body as string;
-  const dataJson = message.dataJson as string | object | undefined;
+  const dataJson = message.dataJson as string | Record<string, unknown> | undefined;
   const participant = message.participant as string | undefined;
   const contact = message.contact as { name?: string } | undefined;
 
@@ -53,7 +54,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ message, loading, ticketSta
               {senderName}
             </span>
           )}
-          {body}
+          <QuoteContent quoted={{ body, mediaType: message.mediaType as string | undefined, dataJson }} />
         </div>
       </div>
       <button

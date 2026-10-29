@@ -13,7 +13,7 @@ import {
 } from "../ui/dropdown-menu";
 import { Trash2, Reply, Forward } from "lucide-react";
 import ForwardMessageDialog from "../ForwardMessageDialog";
-import { canForward } from "../../lib/messages/forward";
+import { canForward, voiceOf } from "../../lib/messages/forward";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
@@ -102,6 +102,8 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
           messageId={message.id}
           channel={channel}
           currentContactId={contactId}
+          mediaType={typeof message.mediaType === "string" ? message.mediaType : undefined}
+          sourceIsVoice={voiceOf({ dataJson: message.dataJson })}
         />
       )}
 

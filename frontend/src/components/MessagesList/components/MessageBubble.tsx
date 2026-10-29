@@ -71,6 +71,29 @@ interface MessageBubbleProps {
     e: React.MouseEvent<HTMLButtonElement>,
     message: Message
   ) => void;
+  peer?: { name?: string; picUrl?: string | null };
+  self?: { name?: string; picUrl?: string | null };
+}
+
+/**
+ * Quem aparece no avatar do player de áudio: em grupo, o participante que falou; numa conversa 1:1 recebida, o contato; numa
+ * mensagem enviada por nós, a conexão (a foto do número pareado; sem foto, as iniciais do nome da conexão).
+ */
+export function senderOf(
+  message: Message,
+  isGroup: boolean | undefined,
+  peer?: { name?: string; picUrl?: string | null },
+  self?: { name?: string; picUrl?: string | null },
+): { name?: string; picUrl?: string | null } {
+  if (message.fromMe) return { name: self?.name, picUrl: self?.picUrl ? getBackendUrl(self.picUrl) : null };
+  const data = parseData(message.dataJson);
+  if (isGroup) {
+    return {
+      name: getContactDisplayName(message.contact) || (data.pushName as string) || message.participant?.replace(/\D/g, "") || undefined,
+      picUrl: getBackendUrl((data.senderPicUrl as string) || "") || null,
+    };
+  }
+  return { name: peer?.name, picUrl: peer?.picUrl ? getBackendUrl(peer.picUrl) : null };
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -82,6 +105,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   mentionsMap,
   colorCache,
   onOpenOptions,
+  peer,
+  self,
 }) => {
   const { setReplyingMessage } = useContext(ReplyMessageContext);
 
@@ -223,7 +248,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               />
             )}
             <ForwardedLabel message={message} />
-            {hasMediaBubble(message) && <MessageMedia message={message} />}
+            {hasMediaBubble(message) && <MessageMedia message={message} sender={senderOf(message, isGroup, peer, self)} />}
             {bodyContent}
             <MessageInteractive message={message} />
             <MessageReactions message={message} />
@@ -257,7 +282,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       >
         {actionsButton}
         <ForwardedLabel message={message} />
-            {hasMediaBubble(message) && <MessageMedia message={message} />}
+            {hasMediaBubble(message) && <MessageMedia message={message} sender={senderOf(message, isGroup, peer, self)} />}
         {bodyContent}
         <MessageInteractive message={message} />
         <MessageReactions message={message} />

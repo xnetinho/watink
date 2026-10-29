@@ -13,6 +13,7 @@ import { TicketConnectionBadge } from "./TicketConnectionBadge";
 import { useConnectionOptions } from "../hooks/useConnectionOptions";
 import { connectionKey, type ConnectionOption } from "../lib/connections/connectionRef";
 import { Emojified } from "./Emojified";
+import { AudioKindPicker, type AudioKind } from "./AudioKindPicker";
 import type { Contact } from "../types/Ticket";
 
 // i18n.t() deste projeto pode devolver null; a tela só quer string.
@@ -32,6 +33,10 @@ interface Props {
   channel?: string;
   /** Contato da conversa aberta: não é oferecido como destino. */
   currentContactId?: number | string;
+  /** Tipo da mensagem a encaminhar: o seletor "como enviar o áudio" só aparece para áudio. */
+  mediaType?: string;
+  /** Se o áudio de origem era mensagem de voz (é o padrão da escolha). */
+  sourceIsVoice?: boolean;
 }
 
 // O contato carrega só (origem, id) da conexão; o nome vem da lista de conexões da empresa.
@@ -40,13 +45,15 @@ const connectionOf = (c: Contact, options: ConnectionOption[]) => {
   return o ? { kind: o.kind, id: o.id, name: o.name, source: o.source } : undefined;
 };
 
-const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, channel, currentContactId }) => {
+const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, channel, currentContactId, mediaType, sourceIsVoice }) => {
   const kind = channelDefinition(channel).kind;
   const [search, setSearch] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [mode, setMode] = useState<Mode>("forward");
   const [sending, setSending] = useState(false);
+  const isAudio = mediaType === "audio";
+  const [audioKind, setAudioKind] = useState<AudioKind>(sourceIsVoice ? "voice" : "file");
   const { options: connections } = useConnectionOptions(open);
 
   useEffect(() => {
@@ -54,7 +61,8 @@ const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, chann
     setSelected([]);
     setSearch("");
     setMode("forward");
-  }, [open]);
+    setAudioKind(sourceIsVoice ? "voice" : "file");
+  }, [open, sourceIsVoice]);
 
   useEffect(() => {
     if (!open) return;
@@ -83,7 +91,7 @@ const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, chann
   const send = async () => {
     setSending(true);
     try {
-      const { data } = await api.post<{ results: Result[] }>(`/message/${messageId}/forward`, { contactIds: selected, mode });
+      const { data } = await api.post<{ results: Result[] }>(`/message/${messageId}/forward`, { contactIds: selected, mode, ...(isAudio ? { audioKind } : {}) });
       const failed = data.results.filter((r) => !r.ok);
       if (failed.length === 0) {
         toast.success(tr("messageOptionsMenu.forwardDialog.done", { count: data.results.length }));
@@ -128,6 +136,8 @@ const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, chann
               </label>
             ))}
           </fieldset>
+
+          {isAudio && <AudioKindPicker value={audioKind} onChange={setAudioKind} name="forward-audio-kind" />}
 
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-[hsl(var(--text-muted))]" />

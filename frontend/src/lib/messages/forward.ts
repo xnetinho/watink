@@ -16,3 +16,18 @@ export function canForward(m: Forwardable): boolean {
   if (!FORWARDABLE.has(type)) return false;
   return type === "" || type === "chat" || (typeof m.mediaUrl === "string" && m.mediaUrl !== "");
 }
+
+/**
+ * A mensagem de áudio de origem era uma mensagem de voz (PTT)? Enviada pelo Watink, vem de `voice` no dataJson; recebida do
+ * celular, o engine a marca em `rich.voice`.
+ */
+export function voiceOf(m: { dataJson?: unknown }): boolean {
+  try {
+    const d = typeof m.dataJson === "string" ? JSON.parse(m.dataJson) : m.dataJson;
+    if (!d || typeof d !== "object") return false;
+    const o = d as { voice?: unknown; rich?: { voice?: unknown } | null };
+    return o.voice === true || o.rich?.voice === true;
+  } catch {
+    return false;
+  }
+}

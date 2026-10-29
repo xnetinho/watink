@@ -500,6 +500,12 @@ const messages = {
         success: "User saved successfully.",
       },
       chat: {
+        audioPlayer: {
+          play: "Play",
+          pause: "Pause",
+          seek: "Audio position",
+          speed: "Speed",
+        },
         unsupported: {
           title: "Unsupported message",
           hint: "Watink can't display this message type yet ({{kind}}). Open it on the phone or in the channel app.",
@@ -537,6 +543,8 @@ const messages = {
         forwarded: "Forwarded",
         forwardedMany: "Forwarded many times",
         previews: {
+          voice: "Voice message",
+          audio: "Audio",
           unsupported: "⚠️ Unsupported message",
           location: "Location",
           contact: "Contact",
@@ -862,6 +870,14 @@ const messages = {
         },
       },
       messagesInput: {
+        audioKind: {
+          label: "How to send the audio",
+          voice: "Voice message",
+          voiceHint: "Shows with a microphone and waveform, like a recording.",
+          file: "Audio file",
+          fileHint: "Shows as an audio attachment, without a waveform.",
+        },
+        recording: { unsupported: "This browser can't record audio." },
         emojiPicker: {
           title: "Emojis",
           search: "Search emoji",

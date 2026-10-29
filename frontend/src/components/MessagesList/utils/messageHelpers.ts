@@ -66,6 +66,31 @@ export const getMessageBody = (message: Message | QuotedMsg): string => {
   return message.body ?? "";
 };
 
+export interface QuotePreview {
+  /** Texto da citação: a legenda/corpo, ou o rótulo do tipo quando a mídia não tem texto. */
+  label: string;
+  /** Voz ou arquivo de áudio: o balão mostra o microfone/nota e a duração, como o celular. */
+  audio?: { voice: boolean; seconds?: number };
+  /** Miniatura JPEG em base64 (imagem/vídeo recebidos), para a caixa mostrar a foto. */
+  thumbnail?: string;
+}
+
+/** O que a caixa de citação (no balão e na barra de resposta) mostra para a mensagem citada. */
+export const getQuotePreview = (quoted: Pick<QuotedMsg, "body" | "mediaType" | "dataJson">): QuotePreview => {
+  const data = parseData(quoted.dataJson);
+  const rich = (data.rich ?? {}) as { voice?: boolean; seconds?: number };
+  const type = quoted.mediaType ?? "";
+  const body = getMessageBody(quoted as QuotedMsg);
+  if (type === "audio") {
+    const voice = data.voice === true || rich.voice === true;
+    return { label: body || tr(voice ? "chat.previews.voice" : "chat.previews.audio"), audio: { voice, seconds: rich.seconds } };
+  }
+  const thumbnail = typeof data.thumbnail === "string" && data.thumbnail ? data.thumbnail : undefined;
+  if (body) return { label: body, thumbnail };
+  const kind = tr(`tickets.lastMessageKind.${type}`);
+  return { label: kind && !kind.startsWith("tickets.") ? kind : "", thumbnail };
+};
+
 export const getFileNameFromUrl = (url?: string): string => {
   if (!url) return "";
   try {
