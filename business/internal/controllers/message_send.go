@@ -10,15 +10,11 @@ import (
 	"strings"
 	"time"
 
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
-
-	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // newWAMessageID generates a WhatsApp-compatible outgoing message ID
@@ -172,213 +168,19 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		mediaType = mimeTypeToMediaType(mimeType)
 	}
 
-	messageID := newWAMessageID()
-	to := contactJID(contact)
-
-	// Só cita uma mensagem que existe NESTE ticket e tenant: o id vem do cliente e o engine
-	// o usaria como StanzaID. quotedParticipant é quem escreveu a original (obrigatório em
-	// grupo; em chat 1:1 é o próprio contato, ou nós mesmos se citamos algo que enviamos).
-	var quotedParticipant, quotedBody string
-	quotedExternalID := quotedID // id da citada no canal; difere de quotedID fora do WhatsApp
-	if quotedID != "" {
-		var q models.Message
-		if err := db.Session(&gorm.Session{NewDB: true}).
-			Where(`id = ? AND "ticketId" = ? AND "tenantId" = ?`, quotedID, ticketID, tenantID).First(&q).Error; err != nil {
-			quotedID = ""
-		} else {
-			quotedBody = quotedPreviewText(q)
-			if q.ExternalID != "" {
-				quotedExternalID = q.ExternalID
-			}
-			if !q.FromMe {
-				quotedParticipant = q.Participant
-				// 1:1: quem escreveu a citada é o próprio contato, no endereçamento do chat. O Participant gravado
-				// pode ser o número (PN) enquanto o chat é por LID, e o celular não casa os dois.
-				if quotedParticipant == "" || !contact.IsGroup {
-					quotedParticipant = to
-				}
-			}
-		}
-	}
-
-	// Se o ticket pertencer a uma ChannelConnection agnóstica registrada, despacha pelo canal (Tarefa 4.2 / ADR 0033)
-	if ticket.ChannelConnectionID != nil {
-		var conn models.ChannelConnection
-		if err := db.Session(&gorm.Session{NewDB: true}).
-			Where("id = ? AND \"tenantId\" = ?", *ticket.ChannelConnectionID, tenantID).
-			First(&conn).Error; err == nil {
-			if chAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind)); err == nil {
-				outMsg := domain.OutboundMessage{
-					ConversationKey: ticket.ConversationKey,
-					ExternalID:      to,
-					Body:            body,
-					MediaType:       mediaType,
-					MediaURL:        mediaURL,
-					QuotedMessageID: quotedExternalID,
-				}
-				sendRes, err := chAdapter.Send(c.Request.Context(), &conn, outMsg)
-				if err != nil {
-					utils.RespondWithInternalError(c, err, "SendMessage")
-					return
-				}
-				externalID := sendRes.ExternalMessageID
-				if externalID != "" {
-					messageID = domain.StorageMessageID(domain.ChannelKind(conn.Kind), conn.ID, ticket.ConversationKey, externalID)
-				}
-				msg := models.Message{
-					ID:         messageID,
-					ExternalID: externalID,
-					Body:       body,
-					Ack:        1,
-					MediaType:  mediaType,
-					MediaUrl:   mediaURL,
-					TicketID:   ticket.ID,
-					ContactID:  &contact.ID,
-					FromMe:     true,
-					TenantID:   tenantID,
-				}
-				if quotedID != "" {
-					msg.QuotedMsgID = &quotedID
-				}
-				// Session(NewDB:true): o db carrega filtros acumulados das consultas acima e o GORM os usaria no INSERT.
-				if err := db.Session(&gorm.Session{NewDB: true}).Create(&msg).Error; err != nil {
-					// A mensagem já saiu para o cliente: loga e responde com o que foi enviado, sem fingir que falhou.
-					log.Printf("[SendMessage] mensagem enviada mas não persistida (ticket %d): %v", ticket.ID, err)
-				}
-				c.JSON(http.StatusOK, msg)
-				return
-			}
-		}
-	}
-
-	var whatsapp models.Whatsapp
-	if err := db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
+	res, viaChannel, fail := mc.deliver(c.Request.Context(), db, tenantID, ticket, outboundInput{
+		Body: body, MediaType: mediaType, MediaURL: mediaURL, MimeType: mimeType, QuotedID: quotedID,
+	})
+	if fail != nil {
+		fail.respond(c)
 		return
 	}
-
-	if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
-		// Non-AMQP engines are dispatched via domain.WhatsAppEngine
-		// instead of the raw wbot.<tenant>.<session>.<cmd> command below.
-		if mc.engines == nil {
-			utils.RespondWithInternalError(c, fmt.Errorf("no engine resolver configured"), "SendMessage")
-			return
-		}
-		engine, err := mc.engines.EngineFor(whatsapp)
-		if err != nil {
-			utils.RespondWithInternalError(c, err, "SendMessage")
-			return
-		}
-		// (a API não expõe citação; a resposta sai como mensagem comum.)
-		if mediaURL != "" {
-			_, err = engine.SendMedia(c.Request.Context(), whatsapp, to, messageID, mediaType, mediaURL, mimeType)
-		} else {
-			_, err = engine.SendText(c.Request.Context(), whatsapp, to, messageID, body)
-		}
-		if err != nil {
-			utils.RespondWithInternalError(c, err, "SendMessage")
-			return
-		}
-	} else {
-		commandType := "message.send.text"
-		if mediaURL != "" {
-			commandType = "message.send.media"
-		}
-
-		command := map[string]interface{}{
-			"type": commandType,
-			"payload": map[string]interface{}{
-				"sessionId": ticket.WhatsappID,
-				"messageId": messageID,
-				"to":        to,
-				"ticketId":  ticketID,
-				"body":      body,
-				"mediaType": mediaType,
-				"mediaUrl":  mediaURL,
-				"mimeType":  mimeType,
-			},
-		}
-		if quotedID != "" {
-			cmdPayload := command["payload"].(map[string]interface{})
-			cmdPayload["quotedMsgId"] = quotedID
-			cmdPayload["quotedBody"] = quotedBody
-			if quotedParticipant != "" {
-				cmdPayload["quotedJid"] = quotedParticipant
-			}
-		}
-
-		// The engine dispatches by routing-key segment (wbot.<tenant>.<session>.<cmd>),
-		// so the command type MUST be encoded in the key — not just the body.
-		routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), commandType)
-		if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
-			utils.RespondWithInternalError(c, err, "SendMessage")
-			return
-		}
+	if viaChannel {
+		c.JSON(http.StatusOK, res)
+		return
 	}
-
-	// Persist the outgoing message so it appears in the UI immediately and the
-	// later ack event (event_listener_msg_ack) can find and update it.
-	// Use a clean session for writes — the scoped `db` already carries the tenant
-	// Where clause and a finished SELECT statement, which corrupts the generated
-	// SQL when reused for Create/Updates. NewDB clears accumulated conditions
-	// while keeping the same connection; tenant safety is preserved because the
-	// inserted row and the update filter both set tenantId explicitly.
-	writeDB := db.Session(&gorm.Session{NewDB: true})
-	contactID := ticket.ContactID
-	now := time.Now()
-	outgoing := models.Message{
-		ID:        messageID,
-		Body:      body,
-		Ack:       0,
-		MediaType: mediaType,
-		MediaUrl:  mediaURL,
-		TicketID:  ticketID,
-		FromMe:    true,
-		ContactID: &contactID,
-		TenantID:  tenantID,
-		Reactions: "[]",
-		DataJson:  "{}",
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-	if quotedID != "" {
-		outgoing.QuotedMsgID = &quotedID
-	}
-	if err := writeDB.Create(&outgoing).Error; err != nil {
-		log.Printf("[SendMessage] persist outgoing message failed (ticket %d): %v", ticketID, err)
-	}
-	// O evento SSE abaixo é o que o navegador exibe na hora; só a listagem anexava a citação, então a
-	// resposta aparecia sem ela até recarregar o chat.
-	if quotedID != "" {
-		one := []models.Message{outgoing}
-		attachQuotedMessages(db, tenantID, one)
-		outgoing.QuotedMsg = one[0].QuotedMsg
-	}
-
-	lastMessage, lastKind := domain.LastMessagePreview(mediaType, body, "")
-	writeDB.Model(&models.Ticket{}).
-		Where("id = ? AND \"tenantId\" = ?", ticketID, tenantID).
-		Updates(map[string]interface{}{"lastMessage": lastMessage, "lastMessageType": lastKind, "updatedAt": now})
-
-	// Emit socket events so the frontend updates in real-time without a page refresh.
-	// Pattern mirrors event_listener.go: appMessage to the ticket room + tenant room,
-	// and ticket:update to the tenant room so the sidebar lastMessage refreshes.
-	ticketRoom := "chat:" + strconv.Itoa(ticketID)
-	msgPayload := map[string]interface{}{"action": "create", "message": outgoing}
-	mc.broadcast.EmitToRoom("/", ticketRoom, "appMessage", msgPayload)
-	mc.broadcast.EmitToTenantRoom(tenantID.String(), "appMessage", msgPayload)
-	mc.broadcast.EmitToTenantRoom(tenantID.String(), "ticket", map[string]interface{}{
-		"action": "update",
-		"ticket": map[string]interface{}{
-			"id":              ticketID,
-			"lastMessage":     lastMessage,
-			"lastMessageType": lastKind,
-			"updatedAt":       now,
-		},
-	})
-
-	c.JSON(http.StatusOK, gin.H{"message": "Message sent", "messageId": messageID})
+	mc.announce(db, tenantID, res)
+	c.JSON(http.StatusOK, gin.H{"message": "Message sent", "messageId": res.ID})
 }
 
 // sanitizeMimeType strips newlines and control characters from a user-supplied

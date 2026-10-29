@@ -15,9 +15,10 @@ import MessageBubble from "./components/MessageBubble";
 interface MessagesListProps {
   ticketId: string | number;
   isGroup?: boolean;
+  channel?: string;
 }
 
-const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup }) => {
+const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel }) => {
   const { appTheme } = useThemeContext();
 
   const {
@@ -56,6 +57,8 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup }) => {
         anchorEl={anchorEl}
         menuOpen={messageOptionsMenuOpen}
         handleClose={handleCloseMessageOptionsMenu}
+        channel={channel}
+        ticketId={ticketId}
       />
 
       <HistorySyncModal

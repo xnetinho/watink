@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -75,6 +76,7 @@ type Capabilities struct {
 	Video                bool                  `json:"video"`
 	Auth                 AuthKind              `json:"auth"`
 	HasPhone             bool                  `json:"hasPhone"` // Se o canal garante telefone real do contato
+	Forward              bool                  `json:"forward"`  // Se o canal encaminha mensagem de verdade (selo "Encaminhada")
 }
 
 // InboundSender carrega os dados de quem enviou a mensagem externa.
@@ -120,6 +122,20 @@ type OutboundMessage struct {
 	MediaData       []byte            `json:"-"`
 	QuotedMessageID string            `json:"quotedMessageId,omitempty"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
+	// Forward pede o encaminhamento nativo de uma mensagem já entregue neste mesmo canal; nil é envio comum.
+	Forward *ForwardRef `json:"forward,omitempty"`
+}
+
+// ErrForwardUnsupported: o canal não consegue encaminhar de verdade neste caso (ex.: Telegram entre conexões diferentes).
+var ErrForwardUnsupported = errors.New("forward not supported")
+
+// ForwardRef aponta a mensagem original de um encaminhamento nativo. O canal só consegue encaminhar o que a MESMA conexão
+// enxerga (no Telegram, o bot precisa estar no chat de origem); SameConnection diz se origem e destino são a mesma conexão.
+type ForwardRef struct {
+	FromConversationKey string `json:"fromConversationKey"`
+	ExternalMessageID   string `json:"externalMessageId"`
+	AsNew               bool   `json:"asNew"` // true: copia sem o selo "Encaminhada"
+	SameConnection      bool   `json:"sameConnection"`
 }
 
 // StorageMessageID é o id com que a mensagem é gravada em Messages. O id do canal só é único dentro do seu escopo (no

@@ -50,6 +50,7 @@ func (a *Adapter) Capabilities() domain.Capabilities {
 		Typing:       true,
 		ReadReceipts: false,
 		Reactions:    true,
+		Forward:      true,
 		Auth:         domain.AuthKindToken,
 		HasPhone:     false,
 	}
@@ -151,11 +152,23 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 	}
 
 	var msgID int64
-	if msg.MediaURL != "" {
-		mt := msg.MediaType
-		if mt == "image" || mt == "photo" {
+	if f := msg.Forward; f != nil && !f.AsNew {
+		// Encaminhamento de verdade: o Telegram só encaminha de um chat que o MESMO bot enxerga.
+		if !f.SameConnection || f.ExternalMessageID == "" || f.FromConversationKey == "" {
+			return domain.SendResult{}, domain.ErrForwardUnsupported
+		}
+		msgID, err = client.ForwardMessage(ctx, chatID, f.FromConversationKey, f.ExternalMessageID)
+	} else if msg.MediaURL != "" {
+		switch msg.MediaType {
+		case "image", "photo":
 			msgID, err = client.SendPhoto(ctx, chatID, msg.MediaURL, msg.Body, replyID)
-		} else {
+		case "video":
+			msgID, err = client.SendVideo(ctx, chatID, msg.MediaURL, msg.Body, replyID)
+		case "audio":
+			msgID, err = client.SendAudio(ctx, chatID, msg.MediaURL, msg.Body, replyID)
+		case "sticker":
+			msgID, err = client.SendSticker(ctx, chatID, msg.MediaURL, replyID)
+		default:
 			msgID, err = client.SendDocument(ctx, chatID, msg.MediaURL, msg.Body, replyID)
 		}
 	} else {

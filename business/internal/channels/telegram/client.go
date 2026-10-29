@@ -296,6 +296,58 @@ func (c *Client) SendDocument(ctx context.Context, chatID string, docURL string,
 	return c.sendMedia(ctx, "sendDocument", "document", chatID, docURL, caption, replyToMsgID)
 }
 
+func (c *Client) SendVideo(ctx context.Context, chatID string, url string, caption string, replyToMsgID int) (int64, error) {
+	return c.sendMedia(ctx, "sendVideo", "video", chatID, url, caption, replyToMsgID)
+}
+
+func (c *Client) SendAudio(ctx context.Context, chatID string, url string, caption string, replyToMsgID int) (int64, error) {
+	return c.sendMedia(ctx, "sendAudio", "audio", chatID, url, caption, replyToMsgID)
+}
+
+// SendSticker: o sticker do Telegram não tem legenda.
+func (c *Client) SendSticker(ctx context.Context, chatID string, url string, replyToMsgID int) (int64, error) {
+	return c.sendMedia(ctx, "sendSticker", "sticker", chatID, url, "", replyToMsgID)
+}
+
+// ForwardMessage encaminha de verdade (com o selo "Encaminhada de...") uma mensagem de outro chat do mesmo bot.
+func (c *Client) ForwardMessage(ctx context.Context, chatID, fromChatID, messageID string) (int64, error) {
+	var to, from interface{} = chatID, fromChatID
+	if n, err := strconv.ParseInt(chatID, 10, 64); err == nil {
+		to = n
+	}
+	if n, err := strconv.ParseInt(fromChatID, 10, 64); err == nil {
+		from = n
+	}
+	mid, err := strconv.ParseInt(messageID, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("forwardMessage: message_id invalido")
+	}
+	body, _ := json.Marshal(map[string]interface{}{"chat_id": to, "from_chat_id": from, "message_id": mid})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://api.telegram.org/bot%s/forwardMessage", c.token), bytes.NewBuffer(body))
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("forwardMessage error (status %d): %s", resp.StatusCode, string(bodyBytes))
+	}
+	var res TelegramResponse
+	if json.Unmarshal(bodyBytes, &res) != nil || !res.Ok {
+		return 0, fmt.Errorf("telegram forwardMessage not ok")
+	}
+	var out MessageResult
+	if err := json.Unmarshal(res.Result, &out); err != nil {
+		return 0, err
+	}
+	return out.MessageID, nil
+}
+
 // sendMedia envia por multipart quando a mídia é um arquivo local (/public/media/...): o Telegram não alcança esse
 // caminho relativo e rejeita com "URL host is empty". URL externa segue por JSON, que o Telegram baixa sozinho.
 func (c *Client) sendMedia(ctx context.Context, method, field, chatID, mediaURL, caption string, replyToMsgID int) (int64, error) {
