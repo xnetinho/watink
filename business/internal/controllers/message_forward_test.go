@@ -315,7 +315,7 @@ func TestSendMessage_MidiaGravaOMimetypeParaPoderSerEncaminhada(t *testing.T) {
 
 	var sent models.Message
 	require.NoError(t, e.db.Where(`"fromMe" = true AND "ticketId" = ? AND "mediaType" = 'image'`, tk.ID).First(&sent).Error)
-	assert.JSONEq(t, `{"mimetype":"image/png"}`, sent.DataJson)
+	assert.JSONEq(t, `{"mimetype":"image/png","fileName":"a.png"}`, sent.DataJson, "guarda mimetype e o nome original do arquivo")
 
 	_, fb := e.forward(t, sent.ID, `{"contactIds":[`+ids(dest)+`],"mode":"copy"}`)
 	require.Contains(t, fb, `"ok":true`)

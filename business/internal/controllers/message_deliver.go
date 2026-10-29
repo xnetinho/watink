@@ -33,6 +33,8 @@ type forwardInput struct {
 type outboundInput struct {
 	Body, MediaType, MediaURL, MimeType, QuotedID string
 	DataJSON                                      string
+	Voice                                         bool // áudio enviado como gravação (PTT)
+	FileName                                      string
 	Forward                                       *forwardInput
 }
 
@@ -62,8 +64,18 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 	dataJSON := in.DataJSON
 	if dataJSON == "" {
 		dataJSON = "{}"
+		d := map[string]interface{}{}
 		if mimeType != "" {
-			if b, err := json.Marshal(map[string]string{"mimetype": mimeType}); err == nil {
+			d["mimetype"] = mimeType
+		}
+		if in.Voice {
+			d["voice"] = true // gravação (PTT): o encaminhamento precisa continuar sendo voz
+		}
+		if in.FileName != "" {
+			d["fileName"] = in.FileName // o encaminhamento reenvia com o mesmo nome
+		}
+		if len(d) > 0 {
+			if b, err := json.Marshal(d); err == nil {
 				dataJSON = string(b)
 			}
 		}
@@ -76,6 +88,7 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 	// o usaria como StanzaID. quotedParticipant é quem escreveu a original (obrigatório em
 	// grupo; em chat 1:1 é o próprio contato, ou nós mesmos se citamos algo que enviamos).
 	var quotedParticipant, quotedBody string
+	var quotedMedia map[string]interface{}
 	quotedExternalID := quotedID // id da citada no canal; difere de quotedID fora do WhatsApp
 	if quotedID != "" {
 		var q models.Message
@@ -84,6 +97,7 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 			quotedID = ""
 		} else {
 			quotedBody = quotedPreviewText(q)
+			quotedMedia = quotedMediaOf(q)
 			if q.ExternalID != "" {
 				quotedExternalID = q.ExternalID
 			}
@@ -204,9 +218,19 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 			"mediaUrl":  mediaURL,
 			"mimeType":  mimeType,
 		}
+		if in.FileName != "" {
+			payload["fileName"] = in.FileName
+		}
+		if in.Voice {
+			// O engine converte para OGG/Opus e envia como mensagem de voz; a mensagem segue gravada como "audio".
+			payload["mediaType"] = "voice"
+		}
 		if quotedID != "" {
 			payload["quotedMsgId"] = quotedID
 			payload["quotedBody"] = quotedBody
+			if quotedMedia != nil {
+				payload["quotedMedia"] = quotedMedia
+			}
 			if quotedParticipant != "" {
 				payload["quotedJid"] = quotedParticipant
 			}
@@ -312,4 +336,14 @@ func dataFieldInt(dataJSON, key string) int {
 	}
 	f, _ := d[key].(float64)
 	return int(f)
+}
+
+// dataFieldBool lê um campo booleano do dataJson (voice).
+func dataFieldBool(dataJSON, key string) bool {
+	var d map[string]interface{}
+	if json.Unmarshal([]byte(dataJSON), &d) != nil {
+		return false
+	}
+	b, _ := d[key].(bool)
+	return b
 }

@@ -50,6 +50,9 @@ func (mc *MessageController) ForwardMessage(c *gin.Context) {
 		// ContactIDs: o destino é o CONTATO. A mensagem sai pela conexão do próprio contato (cada contato pertence a uma).
 		ContactIDs []int  `json:"contactIds"`
 		Mode       string `json:"mode"`
+		// AudioKind escolhe como um ÁUDIO sai: "voice" (mensagem de voz, com bolha e onda) ou "file" (arquivo de áudio).
+		// Vazio mantém o tipo da mensagem de origem. Vale nos dois modos (encaminhada ou nova) e ignorado para outras mídias.
+		AudioKind string `json:"audioKind"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil || len(input.ContactIDs) == 0 || len(input.ContactIDs) > maxForwardTargets {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_targets"})
@@ -57,6 +60,10 @@ func (mc *MessageController) ForwardMessage(c *gin.Context) {
 	}
 	if input.Mode != "forward" && input.Mode != "copy" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_mode"})
+		return
+	}
+	if input.AudioKind != "" && input.AudioKind != "voice" && input.AudioKind != "file" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_audio_kind"})
 		return
 	}
 
@@ -86,7 +93,7 @@ func (mc *MessageController) ForwardMessage(c *gin.Context) {
 			continue
 		}
 		seen[cid] = true
-		results = append(results, mc.forwardOne(c, db, tenantID, src, srcKind, srcConn, cid, input.Mode == "copy"))
+		results = append(results, mc.forwardOne(c, db, tenantID, src, srcKind, srcConn, cid, input.Mode == "copy", input.AudioKind))
 	}
 	c.JSON(http.StatusOK, gin.H{"results": results})
 }
@@ -99,7 +106,7 @@ func connectionKey(t *models.Ticket) string {
 	return "w" + strconv.Itoa(t.WhatsappID)
 }
 
-func (mc *MessageController) forwardOne(c *gin.Context, db *gorm.DB, tenantID uuid.UUID, src models.Message, srcKind, srcConn string, contactID int, asNew bool) forwardResult {
+func (mc *MessageController) forwardOne(c *gin.Context, db *gorm.DB, tenantID uuid.UUID, src models.Message, srcKind, srcConn string, contactID int, asNew bool, audioKind string) forwardResult {
 	fail := func(code string) forwardResult { return forwardResult{ContactID: contactID, Code: code} }
 
 	var contact models.Contact
@@ -125,6 +132,20 @@ func (mc *MessageController) forwardOne(c *gin.Context, db *gorm.DB, tenantID uu
 
 	score := dataFieldInt(src.DataJson, "forwardScore")
 	data := map[string]interface{}{"mimetype": dataFieldString(src.DataJson, "mimetype")}
+	fileName := dataFieldString(src.DataJson, "fileName")
+	if fileName != "" {
+		data["fileName"] = fileName
+	}
+	voice := dataFieldBool(src.DataJson, "voice")
+	switch audioKind { // a escolha do operador vence o tipo de origem
+	case "voice":
+		voice = true
+	case "file":
+		voice = false
+	}
+	if voice {
+		data["voice"] = true
+	}
 	if !asNew {
 		data["forwarded"], data["forwardScore"] = true, score+1
 	}
@@ -134,6 +155,8 @@ func (mc *MessageController) forwardOne(c *gin.Context, db *gorm.DB, tenantID uu
 		Body: src.Body, MediaType: src.MediaType, MediaURL: src.MediaUrl,
 		MimeType: dataFieldString(src.DataJson, "mimetype"),
 		DataJSON: string(dj),
+		Voice:    voice && src.MediaType == "audio",
+		FileName: fileName,
 		Forward: &forwardInput{
 			Source: src, SourceChatKey: src.Ticket.ConversationKey, AsNew: asNew,
 			SameConnection: srcConn == connectionKey(&target), SourceForwarded: score,

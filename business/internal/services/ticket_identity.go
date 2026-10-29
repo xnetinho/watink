@@ -56,8 +56,8 @@ func ConnectionOf(db *gorm.DB, ticketID, whatsappID int, channelConnectionID *in
 		return models.TicketConnectionInfo{}, false
 	}
 	var w models.Whatsapp
-	if err := s.Select("id", "name").Where("id = ?", whatsappID).First(&w).Error; err != nil {
+	if err := s.Select("id", "name", "profilePicUrl").Where("id = ?", whatsappID).First(&w).Error; err != nil {
 		return models.TicketConnectionInfo{}, false
 	}
-	return models.TicketConnectionInfo{Kind: string(domain.ChannelKindWhatsApp), ID: w.ID, Name: w.Name, Source: "whatsapp"}, true
+	return models.TicketConnectionInfo{Kind: string(domain.ChannelKindWhatsApp), ID: w.ID, Name: w.Name, Source: "whatsapp", ProfilePicUrl: w.ProfilePicUrl}, true
 }
