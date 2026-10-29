@@ -11,6 +11,8 @@ import TicketActionButtons from "../TicketActionButtons";
 import MessagesList from "../MessagesList";
 import api from "../../services/api";
 import { ReplyMessageProvider } from "../../context/ReplyingMessage/ReplyingMessageContext";
+import { MediaDropProvider } from "../../context/MediaDrop/MediaDropContext";
+import TicketDropZone from "./TicketDropZone";
 import toastError from "../../errors/toastError";
 
 interface Contact {
@@ -138,11 +140,15 @@ const Ticket: React.FC<TicketProps> = ({ onToggleDetails, showDetails }) => {
       </TicketHeader>
 
       <ReplyMessageProvider>
+        <MediaDropProvider>
+        <TicketDropZone canSend={ticket.status === "open" && (!ticket.whatsapp?.status || ticket.whatsapp.status === "CONNECTED")}>
         <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} channel={ticket.channel} contactId={ticket.contact?.id} peer={{ name: ticket.contact?.name, picUrl: ticket.contact?.profilePicUrl }} self={{ name: ticket.connection?.name, picUrl: ticket.connection?.profilePicUrl }} />
         <MessageInput
           ticketStatus={ticket.status}
           whatsappStatus={ticket.whatsapp?.status}
         />
+        </TicketDropZone>
+        </MediaDropProvider>
       </ReplyMessageProvider>
     </div>
   );

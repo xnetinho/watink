@@ -25,6 +25,8 @@ const files = import.meta.glob(
     "../../components/TicketListItem/index.tsx",
     "../../lib/tickets/lastMessage.ts",
     "../../components/ForwardMessageDialog.tsx",
+    "../../components/MessageInput/DropZone.tsx",
+    "../../components/MessageInput/components/MediaPreviewPanel.tsx",
     "../../components/Audio/index.tsx",
     "../../components/AudioKindPicker.tsx",
     "../../lib/audio/waveform.ts",

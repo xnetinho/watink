@@ -886,6 +886,17 @@ const messages = {
         },
       },
       messagesInput: {
+        drop: {
+          title: "Drop the files here",
+          hint: "Images, videos, audio and documents",
+        },
+        preview: {
+          cancel: "Cancel sending",
+          caption: "Add a caption",
+          remove: "Remove",
+          addMore: "Add more files",
+          send: "Send",
+        },
         audioKind: {
           label: "How to send the audio",
           voice: "Voice message",

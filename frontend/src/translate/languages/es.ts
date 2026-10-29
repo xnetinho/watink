@@ -892,6 +892,17 @@ const messages = {
         },
       },
       messagesInput: {
+        drop: {
+          title: "Suelta los archivos aquí",
+          hint: "Imágenes, videos, audios y documentos",
+        },
+        preview: {
+          cancel: "Cancelar envío",
+          caption: "Añade un pie de foto",
+          remove: "Quitar",
+          addMore: "Añadir más archivos",
+          send: "Enviar",
+        },
         audioKind: {
           label: "Cómo enviar el audio",
           voice: "Mensaje de voz",
