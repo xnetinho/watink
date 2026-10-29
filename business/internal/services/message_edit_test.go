@@ -126,7 +126,7 @@ func TestRecordEdit_QuemEditouFicaRegistrado(t *testing.T) {
 	e := newEditEnv(t)
 	e.edit(t, "feita por mim", e.t0.Add(time.Minute), models.EditedByMe)
 	c := e.chain(t)
-	assert.Equal(t, models.EditedByContact, c[0].EditedBy, "a versão 1 é do autor da mensagem (aqui, o contato)")
+	assert.Equal(t, models.EditedByContact, c[0].EditedBy, "a versão 1 é de quem escreveu a mensagem (aqui, o contato)")
 	assert.Equal(t, models.EditedByMe, c[1].EditedBy)
 }
 
