@@ -200,7 +200,7 @@ func TestChannelSessionToModel_PreservesWid(t *testing.T) {
 
 type tenantEventCapture struct{ events []map[string]interface{} }
 
-func (b *tenantEventCapture) EmitToRoom(_, _, _ string, _ interface{}) {}
+func (b *tenantEventCapture) EmitToRoom(_, _, _ string, _ interface{})   {}
 func (b *tenantEventCapture) EmitToNamespace(_, _ string, _ interface{}) {}
 func (b *tenantEventCapture) EmitToTenantRoom(_, event string, p interface{}) {
 	if m, ok := p.(map[string]interface{}); ok {

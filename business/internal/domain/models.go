@@ -49,6 +49,8 @@ type Message struct {
 	Participant         string    `json:"participant"`
 	CreatedAt           time.Time `json:"createdAt"`
 	UpdatedAt           time.Time `json:"updatedAt"`
+	// QuotedMsg é a mensagem citada, anexada só ao anunciar a mensagem em tempo real (não é persistida).
+	QuotedMsg *Message `json:"quotedMsg,omitempty"`
 }
 
 // Contact represents a customer contact

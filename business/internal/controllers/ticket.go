@@ -277,9 +277,9 @@ func resolveTicketConnections(db *gorm.DB, tickets []models.Ticket) map[int]mode
 	}
 	if len(waIDs) > 0 {
 		var was []models.Whatsapp
-		_ = db.Session(&gorm.Session{NewDB: true}).Select("id", "name").Where("id IN ?", connIDList(waIDs)).Find(&was).Error
+		_ = db.Session(&gorm.Session{NewDB: true}).Select("id", "name", "profilePicUrl").Where("id IN ?", connIDList(waIDs)).Find(&was).Error
 		for _, w := range was {
-			byWhatsapp[w.ID] = models.TicketConnectionInfo{Kind: string(domain.ChannelKindWhatsApp), ID: w.ID, Name: w.Name, Source: "whatsapp"}
+			byWhatsapp[w.ID] = models.TicketConnectionInfo{Kind: string(domain.ChannelKindWhatsApp), ID: w.ID, Name: w.Name, Source: "whatsapp", ProfilePicUrl: w.ProfilePicUrl}
 		}
 	}
 	res := map[int]models.TicketConnectionInfo{}

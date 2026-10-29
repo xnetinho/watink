@@ -112,6 +112,10 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 
 	ct := c.ContentType()
 	var body, mediaType, mediaURL, mimeType, quotedID string
+	// voice: o áudio é uma GRAVAÇÃO (bolha de voz com onda), não um arquivo de áudio. Só vale para mediaType=audio.
+	var voice bool
+	// fileName é o nome ORIGINAL do arquivo anexado: o destinatário vê este nome, não o hash com que o arquivo é salvo.
+	var fileName string
 
 	if ct == "application/json" || ct == "" {
 		var input struct {
@@ -148,6 +152,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		// multipart/form-data: arquivo(s) de mídia
 		body = c.PostForm("body")
 		quotedID = c.PostForm("quotedMsgId")
+		voice = c.PostForm("audioKind") == "voice"
 		file, header, err := c.Request.FormFile("medias")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "medias file required for multipart"})
@@ -156,6 +161,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		defer func() { _ = file.Close() }()
 
 		mimeType = sanitizeMimeType(header.Header.Get("Content-Type"))
+		fileName = sanitizeFileName(header.Filename)
 
 		savedURL, err := mediastore.SaveMediaReader(file, mimeType)
 		if err != nil {
@@ -170,6 +176,8 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 
 	res, viaChannel, fail := mc.deliver(c.Request.Context(), db, tenantID, ticket, outboundInput{
 		Body: body, MediaType: mediaType, MediaURL: mediaURL, MimeType: mimeType, QuotedID: quotedID,
+		Voice:    voice && mediaType == "audio",
+		FileName: fileName,
 	})
 	if fail != nil {
 		fail.respond(c)
@@ -210,4 +218,23 @@ func mimeTypeToMediaType(mimeType string) string {
 	default:
 		return "document"
 	}
+}
+
+// sanitizeFileName reduz o nome enviado pelo cliente a um nome simples: sem diretórios, sem caracteres de controle, com
+// tamanho limitado. Ele vira o título que o destinatário vê e é gravado na mensagem.
+func sanitizeFileName(raw string) string {
+	name := strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f || r == '/' || r == '\\' {
+			return -1
+		}
+		return r
+	}, raw)
+	name = strings.TrimSpace(name)
+	if name == "." || name == ".." {
+		return ""
+	}
+	if r := []rune(name); len(r) > 120 {
+		name = string(r[len(r)-120:]) // mantém o fim: é onde fica a extensão
+	}
+	return name
 }

@@ -230,6 +230,7 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	// 3.4 Broadcasts em tempo real (SSE)
 	if s.broadcast != nil {
 		room := "chat:" + strconv.Itoa(ticket.ID)
+		attachQuote(ctx, s.messageRepo, message)
 		ticketOut := withConnectionIdentity(ctx, s.db, ticket)
 		msgPayload := map[string]interface{}{"action": "create", "message": message, "ticket": ticketOut, "contact": contact}
 		s.broadcast.EmitToRoom("/", room, "appMessage", msgPayload)

@@ -7,12 +7,12 @@ import (
 )
 
 type Ticket struct {
-	ID                  int       `gorm:"primaryKey" json:"id"`
-	Status              string    `gorm:"not null;default:'pending'" json:"status"`
-	LastMessage         string    `gorm:"column:lastMessage" json:"lastMessage"`
+	ID          int    `gorm:"primaryKey" json:"id"`
+	Status      string `gorm:"not null;default:'pending'" json:"status"`
+	LastMessage string `gorm:"column:lastMessage" json:"lastMessage"`
 	// LastMessageType é o marcador de tipo da última mensagem quando ela não tem texto legível (image, video, poll,
 	// location...). A prévia do ticket é traduzida pela tela; o banco nunca guarda rótulo em um idioma.
-	LastMessageType string `gorm:"column:lastMessageType;size:30" json:"lastMessageType,omitempty"`
+	LastMessageType     string    `gorm:"column:lastMessageType;size:30" json:"lastMessageType,omitempty"`
 	ContactID           int       `gorm:"column:contactId" json:"contactId"`
 	UserID              *int      `gorm:"column:userId" json:"userId"`
 	WhatsappID          int       `gorm:"column:whatsappId" json:"whatsappId"`
@@ -55,4 +55,6 @@ type TicketConnectionInfo struct {
 	ID     int    `json:"id"`
 	Name   string `json:"name"`
 	Source string `json:"source"`
+	// ProfilePicUrl é a foto da conexão (hoje só o WhatsApp tem: a do número pareado). Vazia, a tela usa as iniciais.
+	ProfilePicUrl string `json:"profilePicUrl,omitempty"`
 }
