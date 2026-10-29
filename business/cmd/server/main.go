@@ -165,6 +165,11 @@ func main() {
 	// fila de eventos PRÓPRIA. A presença vem do mesmo SSEHub do stream de eventos.
 	callService := container.Calls.WithRecording(calls.NewRecording(s3Store, os.TempDir()))
 
+	// Vigia de entrega: mensagem sem recibo do aparelho há 2 min vira falha (ack 5) e o operador pode reenviar. Fica FORA
+	// de startRabbitConsumers (que roda a cada reconexão do broker e criaria um vigia por reconexão); não depende do broker.
+	deliveryWatchdog := services.NewDeliveryWatchdog(database.DB, redisSvc, broadcast)
+	safego.Go("delivery.watchdog", func() { deliveryWatchdog.Start(context.Background()) })
+
 	startRabbitConsumers := func() {
 		services.StartEventListener(rabbitMQ, eventListener)
 		if err := callService.Start(rabbitMQ); err != nil {
