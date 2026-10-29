@@ -255,3 +255,54 @@ func TestContatosPorConexao_ImportEResultadoDaGravacao_ComRLSReal(t *testing.T) 
 	require.NoError(t, admin.QueryRow(`SELECT count(*) FROM "Contacts" WHERE "tenantId" = $1`, tenant).Scan(&n))
 	assert.Equal(t, 2, n)
 }
+
+// A cadeia de edições com o banco migrado de verdade e o papel da aplicação (sem BYPASSRLS): a empresa grava e lê a
+// própria cadeia, e NUNCA enxerga a de outra empresa, nem pelo id da mensagem.
+func TestMessageEdits_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	a, b := uuid.New(), uuid.New()
+	tickets := map[uuid.UUID]int{}
+	for _, tn := range []uuid.UUID{a, b} {
+		_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'T','active',now(),now())`, tn)
+		require.NoError(t, err)
+		require.NoError(t, seedRow(admin, "Whatsapps", tn))
+		require.NoError(t, seedRow(admin, "Contacts", tn))
+		require.NoError(t, seedRow(admin, "Tickets", tn))
+		var tk int
+		require.NoError(t, admin.QueryRow(`SELECT id FROM "Tickets" WHERE "tenantId" = $1`, tn).Scan(&tk))
+		tickets[tn] = tk
+	}
+	_, err := admin.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "tenantId", "createdAt", "updatedAt") VALUES ('EA','Oi',$1,$2,now(),now()), ('EB','Segredo',$3,$4,now(),now())`,
+		tickets[a], a, tickets[b], b)
+	require.NoError(t, err)
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+
+	err = tenantdb.WithTenant(context.Background(), gdb, a, func(ctx context.Context) error {
+		db := gdb.WithContext(ctx)
+		for i, body := range []string{"Olá", "Olá, tudo bem?"} {
+			_, err := services.RecordEdit(ctx, db, services.RecordEditInput{TenantID: a, MessageID: "EA", Body: body, EditedAt: time.Now().Add(time.Duration(i) * time.Minute)})
+			require.NoError(t, err)
+		}
+		chain, err := services.MessageEdits(ctx, db, a, "EA")
+		require.NoError(t, err)
+		assert.Len(t, chain, 3, "a empresa A grava e lê a própria cadeia")
+
+		// empresa A tentando editar e ler a mensagem da B
+		_, err = services.RecordEdit(ctx, db, services.RecordEditInput{TenantID: a, MessageID: "EB", Body: "invadido"})
+		assert.ErrorIs(t, err, services.ErrEditTargetNotFound)
+		other, err := services.MessageEdits(ctx, db, a, "EB")
+		require.NoError(t, err)
+		assert.Empty(t, other)
+		return nil
+	})
+	require.NoError(t, err)
+
+	var n int
+	require.NoError(t, admin.QueryRow(`SELECT count(*) FROM "MessageEdits" WHERE "messageId" = 'EB'`).Scan(&n))
+	assert.Zero(t, n, "a mensagem da empresa B continua sem nenhuma edição")
+	var body string
+	require.NoError(t, admin.QueryRow(`SELECT body FROM "Messages" WHERE id = 'EB'`).Scan(&body))
+	assert.Equal(t, "Segredo", body)
+}
