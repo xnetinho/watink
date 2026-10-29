@@ -475,6 +475,7 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		Timestamp:       time.Unix(msg.Date, 0),
 		RawPayload:      raw,
 		Edited:          update.EditedMessage != nil && update.Message == nil,
+		EditedAt:        editDate(msg, update.EditedMessage != nil && update.Message == nil),
 		Forwarded:       len(msg.ForwardOrigin) > 0 && string(msg.ForwardOrigin) != "null",
 		Rich:            rich,
 	}

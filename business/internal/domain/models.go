@@ -49,6 +49,7 @@ type Message struct {
 	Participant         string    `json:"participant"`
 	CreatedAt           time.Time `json:"createdAt"`
 	UpdatedAt           time.Time `json:"updatedAt"`
+	EditCount           int       `json:"editCount"`
 	// QuotedMsg é a mensagem citada, anexada só ao anunciar a mensagem em tempo real (não é persistida).
 	QuotedMsg *Message `json:"quotedMsg,omitempty"`
 }

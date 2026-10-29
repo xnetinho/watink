@@ -134,6 +134,7 @@ func messageModelToDomain(m *models.Message) *domain.Message {
 		Participant: m.Participant,
 		CreatedAt:   m.CreatedAt,
 		UpdatedAt:   m.UpdatedAt,
+		EditCount:   m.EditCount,
 	}
 }
 
@@ -158,5 +159,6 @@ func messageDomainToModel(d *domain.Message) *models.Message {
 		Participant: d.Participant,
 		CreatedAt:   d.CreatedAt,
 		UpdatedAt:   d.UpdatedAt,
+		EditCount:   d.EditCount,
 	}
 }

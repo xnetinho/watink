@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -81,13 +82,14 @@ func parseUpdate(t *testing.T, kind, msgJSON string) []domainInbound {
 	require.NoError(t, err)
 	res := make([]domainInbound, len(out))
 	for i, o := range out {
-		res[i] = domainInbound{Edited: o.Edited, Forwarded: o.Forwarded, Rich: o.Rich, Body: o.Body, Type: o.MediaType}
+		res[i] = domainInbound{Edited: o.Edited, EditedAt: o.EditedAt, Forwarded: o.Forwarded, Rich: o.Rich, Body: o.Body, Type: o.MediaType}
 	}
 	return res
 }
 
 type domainInbound struct {
 	Edited, Forwarded bool
+	EditedAt          time.Time
 	Rich              map[string]interface{}
 	Body, Type        string
 }
@@ -104,6 +106,19 @@ func TestParseInbound_LocalizacaoAoVivoEEdicao(t *testing.T) {
 	assert.True(t, edit[0].Edited, "edição precisa atualizar a original, não ser descartada")
 	assert.Contains(t, edit[0].Body, "-7.173410")
 	assert.Equal(t, "location", edit[0].Type)
+}
+
+// O instante da edição vem do edit_date do Telegram (ordena a cadeia de versões); só edição o tem.
+func TestParseInbound_EditDateVaiParaOEditedAt(t *testing.T) {
+	edit := parseUpdate(t, "edited_message", `"edit_date":1793116945,"text":"Olá"`)
+	require.Len(t, edit, 1)
+	assert.True(t, edit[0].Edited)
+	assert.Equal(t, int64(1793116945), edit[0].EditedAt.Unix())
+
+	novo := parseUpdate(t, "message", `"text":"Oi"`)
+	require.Len(t, novo, 1)
+	assert.False(t, novo[0].Edited)
+	assert.True(t, novo[0].EditedAt.IsZero(), "mensagem nova não tem instante de edição")
 }
 
 func TestParseInbound_EnqueteEstruturadaEEncaminhada(t *testing.T) {
