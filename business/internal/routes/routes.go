@@ -270,6 +270,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		// existing ":ticketId" under "/messages/:ticketId").
 		protected.POST("/message/:messageId/react", auth.RequirePermission("tickets", "update"), messageController.ReactToMessage)
 		protected.POST("/message/:messageId/forward", auth.RequirePermission("tickets", "update"), messageController.ForwardMessage)
+		protected.POST("/message/:messageId/resend", auth.RequirePermission("tickets", "update"), messageController.ResendMessage)
 		protected.POST("/message/:messageId/vote", auth.RequirePermission("tickets", "update"), messageController.VotePoll)
 		protected.POST("/message/:messageId/transcribe", auth.RequirePermission("tickets", "update"), messageController.TranscribeAudio)
 
