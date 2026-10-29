@@ -11,9 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Trash2, Reply, Forward } from "lucide-react";
+import { Trash2, Reply, Forward, Pencil } from "lucide-react";
 import ForwardMessageDialog from "../ForwardMessageDialog";
 import { canForward, voiceOf } from "../../lib/messages/forward";
+import { canEdit } from "../../lib/messages/edit";
+import EditMessageDialog from "../EditMessageDialog";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
@@ -51,6 +53,7 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
   const { setReplyingMessage } = useContext(ReplyMessageContext);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const handleDeleteMessage = async () => {
     try {
@@ -62,6 +65,11 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
 
   const handleReplyMessage = () => {
     setReplyingMessage(message);
+    handleClose();
+  };
+
+  const handleOpenEdit = () => {
+    setEditOpen(true);
     handleClose();
   };
 
@@ -94,6 +102,15 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
       >
         {i18n.t("messageOptionsMenu.confirmationModal.message")}
       </ConfirmationModal>
+
+      {editOpen && message.id !== undefined && (
+        <EditMessageDialog
+          messageId={message.id}
+          initialBody={typeof message.body === "string" ? message.body : ""}
+          isCaption={typeof message.mediaType === "string" && message.mediaType !== "" && message.mediaType !== "chat"}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
 
       {forwardOpen && message.id !== undefined && (
         <ForwardMessageDialog
@@ -155,6 +172,21 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
             <Reply className="h-4 w-4" />
             {i18n.t("messageOptionsMenu.reply")}
           </DropdownMenuItem>
+          {canEdit(
+            {
+              fromMe: message.fromMe,
+              isDeleted: message.isDeleted === true,
+              ack: typeof message.ack === "number" ? message.ack : undefined,
+              mediaType: typeof message.mediaType === "string" ? message.mediaType : undefined,
+              createdAt: typeof message.createdAt === "string" ? message.createdAt : undefined,
+            },
+            channel
+          ) && (
+            <DropdownMenuItem className="gap-2" onClick={handleOpenEdit}>
+              <Pencil className="h-4 w-4" />
+              {i18n.t("messageOptionsMenu.edit")}
+            </DropdownMenuItem>
+          )}
           {canForward(message) && (
             <DropdownMenuItem className="gap-2" onClick={handleOpenForward}>
               <Forward className="h-4 w-4" />

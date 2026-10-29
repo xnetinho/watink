@@ -62,6 +62,18 @@ type ReactionCommandPayload struct {
 	Reaction     string `json:"reaction"`
 }
 
+// EditCommandPayload edita uma mensagem NOSSA já enviada. TargetMsgID é o id da mensagem original; Body é o texto novo
+// (ou a legenda nova, quando a original é uma mídia). MessageID identifica o comando para os acks.
+type EditCommandPayload struct {
+	SessionID   int    `json:"sessionId"`
+	MessageID   string `json:"messageId"`
+	To          string `json:"to"`
+	TargetMsgID string `json:"targetMsgId"`
+	Body        string `json:"body"`
+	// MediaType da original ("", "image", "video", "document"): define se Body vira texto ou legenda.
+	MediaType string `json:"mediaType,omitempty"`
+}
+
 // PresenceCommandPayload sets the chat-composing indicator ("digitando...")
 // for one chat. State is "composing" (start typing) or "paused" (stop —
 // sent automatically before the real message goes out, or on cancel).

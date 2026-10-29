@@ -175,3 +175,55 @@ func TestEdicaoRecebida_InstanteDoProtocolMessageVemDoAparelho(t *testing.T) {
 		t.Errorf("sem TimestampMS cai no horário da mensagem, veio %v", p["editedAt"])
 	}
 }
+
+// ---- envio de edição ----
+
+func TestEditedContent_TextoEmConversationEMidiaEmLegenda(t *testing.T) {
+	if got := editedContent(EditCommandPayload{Body: "novo"}).GetConversation(); got != "novo" {
+		t.Errorf("texto: Conversation = %q", got)
+	}
+	cases := map[string]func(*waProto.Message) string{
+		"image":    func(m *waProto.Message) string { return m.GetImageMessage().GetCaption() },
+		"video":    func(m *waProto.Message) string { return m.GetVideoMessage().GetCaption() },
+		"document": func(m *waProto.Message) string { return m.GetDocumentMessage().GetCaption() },
+		"IMAGE":    func(m *waProto.Message) string { return m.GetImageMessage().GetCaption() },
+	}
+	for mediaType, caption := range cases {
+		m := editedContent(EditCommandPayload{Body: "legenda nova", MediaType: mediaType})
+		if caption(m) != "legenda nova" {
+			t.Errorf("%s: a edição de mídia troca a LEGENDA, veio %+v", mediaType, m)
+		}
+		if m.GetConversation() != "" {
+			t.Errorf("%s: não pode virar texto simples (o WhatsApp não edita o arquivo)", mediaType)
+		}
+	}
+}
+
+// O comando de edição vira o ProtocolMessage MESSAGE_EDIT do whatsmeow, apontando para a mensagem ORIGINAL.
+func TestSendEdit_MontaOProtocolMessageDaOriginal(t *testing.T) {
+	chat := types.NewJID("5511999990001", types.DefaultUserServer)
+	msg := (&whatsmeow.Client{}).BuildEdit(chat, "ORIGINAL123", editedContent(EditCommandPayload{Body: "texto NOVO"}))
+	pm := msg.GetEditedMessage().GetMessage().GetProtocolMessage()
+	if pm.GetType() != waProto.ProtocolMessage_MESSAGE_EDIT || pm.GetKey().GetID() != "ORIGINAL123" || !pm.GetKey().GetFromMe() {
+		t.Fatalf("protocolMessage = %+v", pm)
+	}
+	if pm.GetEditedMessage().GetConversation() != "texto NOVO" {
+		t.Errorf("texto novo = %q", pm.GetEditedMessage().GetConversation())
+	}
+}
+
+func TestSendEdit_SemClienteOuEntradaInvalidaDaAckDeErro(t *testing.T) {
+	svc, _ := newTestService()
+	var acks []int
+	svc.publishEvent = func(_ string, _ int, ev string, p map[string]interface{}) {
+		if ev == "message.ack" {
+			acks = append(acks, p["ack"].(int))
+		}
+	}
+	if err := svc.SendEdit(9, "t", EditCommandPayload{MessageID: "C1", To: "5511999990001", TargetMsgID: "O", Body: "x"}); err == nil {
+		t.Error("sem sessão conectada deve falhar")
+	}
+	if len(acks) != 1 || acks[0] != 5 {
+		t.Errorf("acks = %v, esperava um ack 5 (erro)", acks)
+	}
+}

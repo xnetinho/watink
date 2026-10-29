@@ -29,6 +29,7 @@ const (
 	CommandMessageTemplate    = "message.send.template"
 	CommandMessageCarousel    = "message.send.carousel"
 	CommandMessageReact       = "message.react"
+	CommandMessageEdit        = "message.edit" // edita o texto (ou a legenda) de uma mensagem já enviada; janela de 20 min
 	CommandMessageMarkRead    = "message.markAsRead"
 	CommandMediaDownload      = "media.download"
 	CommandContactSync        = "contact.sync"

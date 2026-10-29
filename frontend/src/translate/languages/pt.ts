@@ -1098,6 +1098,15 @@ const messages = {
         },
       },
       messageOptionsMenu: {
+        edit: "Editar",
+        editDialog: {
+          title: "Editar mensagem",
+          titleCaption: "Editar legenda",
+          field: "Texto da mensagem",
+          hint: "O WhatsApp só permite editar até 20 minutos depois do envio. O contato verá que a mensagem foi editada.",
+          cancel: "Cancelar",
+          save: "Salvar",
+        },
         reactWith: "Reagir com {{emoji}}",
         forward: "Encaminhar",
         forwardDialog: {

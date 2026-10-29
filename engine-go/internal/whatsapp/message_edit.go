@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"go.mau.fi/whatsmeow"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
+	"google.golang.org/protobuf/proto"
 )
 
 // editedPayload monta o evento message.edited: o id da mensagem ORIGINAL, o texto novo e o instante da edição.
@@ -62,4 +65,47 @@ func (s *WhatsAppService) handleSecretEdit(client *whatsmeow.Client, id int, ten
 		return
 	}
 	s.publishEvent(tenantID, id, "message.edited", editedPayload(id, v, target, pm))
+}
+
+// SendEdit edita uma mensagem NOSSA já enviada. A janela do WhatsApp é whatsmeow.EditWindow (20 min): passado o prazo o
+// servidor recusa, e o business já barra antes de chegar aqui.
+func (s *WhatsAppService) SendEdit(sessionID int, tenantID string, payload EditCommandPayload) error {
+	client, err := s.getConnectedClient(sessionID, tenantID)
+	if err != nil {
+		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
+		return err
+	}
+	chat, err := ensureJID(payload.To)
+	if err != nil {
+		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
+		return fmt.Errorf("invalid JID %q: %w", payload.To, err)
+	}
+	if payload.TargetMsgID == "" || payload.Body == "" {
+		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
+		return fmt.Errorf("edit needs targetMsgId and body")
+	}
+
+	msg := client.BuildEdit(chat, types.MessageID(payload.TargetMsgID), editedContent(payload))
+	// O id do comando NÃO vira o id da mensagem: a edição é um evento sobre a original, que mantém o id dela.
+	if _, err := client.SendMessage(context.Background(), chat, msg); err != nil {
+		s.reportIfRiskSignal(sessionID, tenantID, "message.edit", err)
+		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
+		return err
+	}
+	s.emitAck(sessionID, tenantID, payload.MessageID, 1)
+	return nil
+}
+
+// editedContent é o conteúdo novo da mensagem: texto simples, ou a LEGENDA quando a original é imagem, vídeo ou
+// documento (o WhatsApp não edita o arquivo, só a legenda).
+func editedContent(p EditCommandPayload) *waProto.Message {
+	switch strings.ToLower(p.MediaType) {
+	case "image":
+		return &waProto.Message{ImageMessage: &waProto.ImageMessage{Caption: proto.String(p.Body)}}
+	case "video":
+		return &waProto.Message{VideoMessage: &waProto.VideoMessage{Caption: proto.String(p.Body)}}
+	case "document":
+		return &waProto.Message{DocumentMessage: &waProto.DocumentMessage{Caption: proto.String(p.Body)}}
+	}
+	return &waProto.Message{Conversation: proto.String(p.Body)}
 }
