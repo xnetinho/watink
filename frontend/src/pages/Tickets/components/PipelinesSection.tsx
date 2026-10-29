@@ -18,6 +18,10 @@ import {
 } from "@/components/ui/select";
 import api from "../../../services/api";
 import { useDeals } from "../../../hooks/useDeals";
+import { i18n } from "../../../translate/i18n";
+
+// i18n.t() deste projeto pode devolver null; a tela só quer string.
+const tr = (key: string, opts: Record<string, string | number> = {}): string => String(i18n.t(key, opts) ?? "");
 
 interface Pipeline {
   id: number;
@@ -62,11 +66,11 @@ const PipelinesSection: React.FC<PipelinesSectionProps> = ({ ticketId, contactId
         contactId,
         ticketId,
       });
-      toast.success("Adicionado ao pipeline!");
+      toast.success(tr("tickets.details.pipelines.added"));
       setDialogOpen(false);
       refetch();
     } catch {
-      toast.error("Erro ao salvar deal.");
+      toast.error(tr("tickets.details.pipelines.saveError"));
     } finally {
       setSaving(false);
     }
@@ -77,7 +81,7 @@ const PipelinesSection: React.FC<PipelinesSectionProps> = ({ ticketId, contactId
       await api.put(`/deals/${dealId}`, { status: "deleted" });
       refetch();
     } catch {
-      toast.error("Erro ao remover deal.");
+      toast.error(tr("tickets.details.pipelines.removeError"));
     }
   };
 
@@ -89,21 +93,21 @@ const PipelinesSection: React.FC<PipelinesSectionProps> = ({ ticketId, contactId
         <div className="flex items-center justify-between">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
             <GitBranch className="w-3 h-3" />
-            Pipelines
+            {tr("tickets.details.pipelines.title")}
           </p>
           <Button
             variant="ghost"
             size="icon"
             className="h-5 w-5"
             onClick={openDialog}
-            title="Adicionar ao pipeline"
+            title={tr("tickets.details.pipelines.add")}
           >
             <Plus className="w-3.5 h-3.5" />
           </Button>
         </div>
 
         {deals.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nenhum pipeline vinculado.</p>
+          <p className="text-xs text-muted-foreground">{tr("tickets.details.pipelines.none")}</p>
         ) : (
           deals.map((deal) => (
             <div
@@ -112,10 +116,10 @@ const PipelinesSection: React.FC<PipelinesSectionProps> = ({ ticketId, contactId
             >
               <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="text-xs font-semibold truncate">
-                  {deal.stage?.pipeline?.name ?? "Pipeline"}
+                  {deal.stage?.pipeline?.name ?? tr("tickets.details.pipelines.fallbackPipeline")}
                 </span>
                 <span className="text-xs text-muted-foreground truncate">
-                  {deal.stage?.name ?? "Etapa"}
+                  {deal.stage?.name ?? tr("tickets.details.pipelines.fallbackStage")}
                 </span>
               </div>
               <Button
@@ -123,7 +127,7 @@ const PipelinesSection: React.FC<PipelinesSectionProps> = ({ ticketId, contactId
                 size="icon"
                 className="h-6 w-6 shrink-0 mt-0.5"
                 onClick={() => handleDelete(deal.id)}
-                title="Remover do pipeline"
+                title={tr("tickets.details.pipelines.remove")}
               >
                 <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
               </Button>
@@ -135,17 +139,17 @@ const PipelinesSection: React.FC<PipelinesSectionProps> = ({ ticketId, contactId
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar ao Pipeline</DialogTitle>
+            <DialogTitle>{tr("tickets.details.pipelines.dialogTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Pipeline</label>
+              <label className="text-sm font-medium">{tr("tickets.details.pipelines.pipelineLabel")}</label>
               <Select
                 value={selectedPipeline}
                 onValueChange={(v) => { setSelectedPipeline(v); setSelectedStage(""); }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione um pipeline" />
+                  <SelectValue placeholder={tr("tickets.details.pipelines.selectPipeline")} />
                 </SelectTrigger>
                 <SelectContent>
                   {pipelines.map((p) => (
@@ -156,10 +160,10 @@ const PipelinesSection: React.FC<PipelinesSectionProps> = ({ ticketId, contactId
             </div>
             {selectedPipeline && (
               <div className="space-y-1">
-                <label className="text-sm font-medium">Etapa</label>
+                <label className="text-sm font-medium">{tr("tickets.details.pipelines.stageLabel")}</label>
                 <Select value={selectedStage} onValueChange={setSelectedStage}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione uma etapa" />
+                    <SelectValue placeholder={tr("tickets.details.pipelines.selectStage")} />
                   </SelectTrigger>
                   <SelectContent>
                     {currentStages.map((s) => (
@@ -171,12 +175,12 @@ const PipelinesSection: React.FC<PipelinesSectionProps> = ({ ticketId, contactId
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{tr("tickets.details.pipelines.cancel")}</Button>
             <Button
               onClick={handleSave}
               disabled={!selectedPipeline || !selectedStage || saving}
             >
-              {saving ? "Salvando..." : "Salvar"}
+              {saving ? tr("tickets.details.pipelines.saving") : tr("tickets.details.pipelines.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
