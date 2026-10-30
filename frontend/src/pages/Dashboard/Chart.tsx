@@ -11,6 +11,9 @@ import {
 } from "recharts";
 import { useDashboardStats } from "../../hooks/useDashboardStats";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const HOURS = [
   "08:00","09:00","10:00","11:00","12:00",
   "13:00","14:00","15:00","16:00","17:00","18:00","19:00",
@@ -55,13 +58,13 @@ const Chart: React.FC = () => {
               position="left"
               style={{ textAnchor: "middle", fill: "hsl(var(--foreground))", fontSize: 12 }}
             >
-              Tickets
+              {tr("uiText.dashboard.tickets")}
             </Label>
           </YAxis>
           <Tooltip
             cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }}
             labelFormatter={(label) => `${label}h`}
-            formatter={(value: number) => [value, "Tickets"]}
+            formatter={(value: number) => [value, tr("uiText.common.tickets")]}
             contentStyle={{
               backgroundColor: "hsl(var(--popover))",
               border: "1px solid hsl(var(--border))",

@@ -40,7 +40,7 @@ const NotificationPermissionBanner: React.FC = () => {
       <button
         onClick={() => setDismissed(true)}
         className="text-muted-foreground hover:text-foreground"
-        aria-label="Fechar"
+        aria-label={tr("uiText.common.close")}
       >
         <X size={14} />
       </button>

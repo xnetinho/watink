@@ -316,7 +316,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                         <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:text-foreground">
                           🚫
                         </div>
-                        <span className="mt-1.5 text-[11px] font-medium leading-tight">Nenhum</span>
+                        <span className="mt-1.5 text-[11px] font-medium leading-tight">{tr("uiText.common.none")}</span>
                         {bgMode === "none" && (
                           <Check className="absolute top-1.5 right-1.5 h-3.5 w-3.5 text-primary" />
                         )}

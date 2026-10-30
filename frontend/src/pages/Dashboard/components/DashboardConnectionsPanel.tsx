@@ -9,6 +9,9 @@ import {
 } from "../../../components/ui/card";
 import { StatusChip } from "../../../components/ui/status-chip";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface WhatsAppItem {
   id: number;
   status: string;
@@ -32,7 +35,7 @@ const DashboardConnectionsPanel: React.FC<DashboardConnectionsPanelProps> = ({
             <Smartphone className="h-6 w-6 text-[var(--color-success)]" />
           </div>
           <div>
-            <CardTitle>Conexões</CardTitle>
+            <CardTitle>{tr("uiText.dashboard.connections")}</CardTitle>
             <CardDescription>
               {connectedCount} de {whatsApps.length} ativas
             </CardDescription>
@@ -43,7 +46,7 @@ const DashboardConnectionsPanel: React.FC<DashboardConnectionsPanelProps> = ({
         <div className="flex flex-col divide-y divide-border">
           {whatsApps.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
-              Nenhuma conexão configurada
+              {tr("uiText.dashboard.noConnections")}
             </p>
           ) : (
             whatsApps.map((wa) => {

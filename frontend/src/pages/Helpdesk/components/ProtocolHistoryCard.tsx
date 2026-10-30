@@ -12,6 +12,9 @@ import { ptBR } from "date-fns/locale";
 import PaperCard from "../../../components/PaperCard";
 import type { HistoryItem } from "../protocolTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const ACTION_ICONS: Record<string, React.ReactNode> = {
   created: <Plus className="h-4 w-4" />,
   status_changed: <RefreshCw className="h-4 w-4" />,
@@ -22,20 +25,20 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
 };
 
 const ACTION_LABELS: Record<string, string> = {
-  created: "Criado",
-  status_changed: "Status alterado",
-  priority_changed: "Prioridade alterada",
-  commented: "Comentário",
-  resolved: "Resolvido",
-  closed: "Fechado",
-  attachment: "Anexo",
+  created: "uiText.helpdesk.action.created",
+  status_changed: "uiText.helpdesk.action.status_changed",
+  priority_changed: "uiText.helpdesk.action.priority_changed",
+  commented: "uiText.helpdesk.action.commented",
+  resolved: "uiText.helpdesk.action.resolved",
+  closed: "uiText.helpdesk.action.closed",
+  attachment: "uiText.helpdesk.action.attachment",
 };
 
 const getActionIcon = (action: string): React.ReactNode =>
   ACTION_ICONS[action] ?? <RefreshCw className="h-4 w-4" />;
 
 const getActionLabel = (action: string): string =>
-  ACTION_LABELS[action] ?? action;
+  ACTION_LABELS[action] ? tr(ACTION_LABELS[action]) : action;
 
 interface ProtocolHistoryCardProps {
   history: HistoryItem[];
@@ -43,10 +46,10 @@ interface ProtocolHistoryCardProps {
 
 const ProtocolHistoryCard: React.FC<ProtocolHistoryCardProps> = ({ history }) => (
   <PaperCard>
-    <h2 className="mb-4 text-base font-semibold">Histórico</h2>
+    <h2 className="mb-4 text-base font-semibold">{tr("uiText.helpdesk.history")}</h2>
     {history.length === 0 ? (
       <p className="text-center text-sm text-muted-foreground">
-        Sem histórico registrado.
+        {tr("uiText.helpdesk.noHistory")}
       </p>
     ) : (
       <ul className="flex flex-col gap-3">

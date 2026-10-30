@@ -21,14 +21,14 @@ export interface PublicPlan {
 // entre repos) de watink-saas/console/src/lib/planFeatures.ts, que é onde o
 // operador escolhe as chaves ao editar um plano.
 export const FEATURE_LABEL: Record<string, string> = {
-  pipelines: "Pipeline de vendas (Kanban)",
-  flowbuilder: "Automação de fluxos (FlowBuilder)",
-  knowledge_base: "Base de Conhecimento com IA",
-  helpdesk: "Central de Ajuda (Helpdesk)",
-  quick_answers: "Respostas rápidas",
-  reports: "Relatórios e métricas",
-  crm: "CRM de clientes",
-  multichannel: "Atendimento multicanal (WhatsApp)",
+  pipelines: "uiText.plans.features.pipelines",
+  flowbuilder: "uiText.plans.features.flowbuilder",
+  knowledge_base: "uiText.plans.features.knowledge_base",
+  helpdesk: "uiText.plans.features.helpdesk",
+  quick_answers: "uiText.plans.features.quick_answers",
+  reports: "uiText.plans.features.reports",
+  crm: "uiText.plans.features.crm",
+  multichannel: "uiText.plans.features.multichannel",
 };
 
 export function formatBRL(cents: number): string {

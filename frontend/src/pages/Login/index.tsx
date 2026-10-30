@@ -14,6 +14,8 @@ import { Label } from "../../components/ui/label";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Card, CardContent } from "../../components/ui/card";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const Login = () => {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState({ email: searchParams.get("email") || "", password: "" });
@@ -100,7 +102,7 @@ const Login = () => {
           {i18n.t("login.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Entre com suas credenciais para acessar a plataforma
+          {tr("uiText.login.subtitle")}
         </p>
       </div>
 
@@ -221,10 +223,10 @@ const Login = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent flex flex-col justify-end p-12">
           <div className="max-w-xl space-y-4 animate-in fade-in slide-in-from-left-8 duration-1000">
             <h2 className="text-4xl font-bold text-white drop-shadow-lg">
-              Conecte-se com seus clientes em tempo real.
+              {tr("uiText.login.heroTitle")}
             </h2>
             <p className="text-xl text-white/90 drop-shadow-md">
-              A plataforma multicanal definitiva para gestão de atendimento e automação.
+              {tr("uiText.login.heroSubtitle")}
             </p>
           </div>
         </div>

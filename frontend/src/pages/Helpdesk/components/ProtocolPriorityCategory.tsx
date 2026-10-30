@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/select";
 import { ProtocolFormData } from "../hooks/useProtocolModal";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProtocolPriorityCategoryProps {
   formData: ProtocolFormData;
   helpdeskEnabled: boolean;
@@ -28,23 +31,23 @@ export function ProtocolPriorityCategory({
   return (
     <div className={`grid gap-4 ${helpdeskEnabled ? "grid-cols-2" : "grid-cols-1"}`}>
       <div className="flex flex-col gap-1.5">
-        <Label>Prioridade</Label>
+        <Label>{tr("uiText.common.priority")}</Label>
         <Select value={formData.priority} onValueChange={onSelectChange("priority")}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a prioridade" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="low">Baixa</SelectItem>
-            <SelectItem value="medium">Média</SelectItem>
-            <SelectItem value="high">Alta</SelectItem>
-            <SelectItem value="urgent">Urgente</SelectItem>
+            <SelectItem value="low">{tr("uiText.helpdesk.priority.low")}</SelectItem>
+            <SelectItem value="medium">{tr("uiText.helpdesk.priority.medium")}</SelectItem>
+            <SelectItem value="high">{tr("uiText.helpdesk.priority.high")}</SelectItem>
+            <SelectItem value="urgent">{tr("uiText.helpdesk.priority.urgent")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {helpdeskEnabled && (
         <div className="flex flex-col gap-1.5">
-          <Label>Categoria</Label>
+          <Label>{tr("uiText.common.category")}</Label>
           {categories.length > 0 ? (
             <Select value={formData.category} onValueChange={onSelectChange("category")}>
               <SelectTrigger>
@@ -63,7 +66,7 @@ export function ProtocolPriorityCategory({
               name="category"
               value={formData.category}
               onChange={onInputChange}
-              placeholder="Categoria"
+              placeholder={tr("uiText.common.category")}
             />
           )}
         </div>

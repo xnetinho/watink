@@ -23,9 +23,9 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
 ];
 
 export const WIDGET_LABELS: Record<string, string> = {
-  performance_metrics: "Métricas de Performance (TMR/TME)",
-  tickets_info: "Resumo de Tickets",
-  attendance_chart: "Gráfico de Atendimentos",
+  performance_metrics: "uiText.dashboard.widgets.performance_metrics",
+  tickets_info: "uiText.dashboard.widgets.tickets_info",
+  attendance_chart: "uiText.dashboard.widgets.attendance_chart",
 };
 
 export const formatTime = (minutes: number): string => {

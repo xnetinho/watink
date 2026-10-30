@@ -16,6 +16,9 @@ import DashboardConnectionsPanel from "./components/DashboardConnectionsPanel";
 import DashboardWidgets from "./components/DashboardWidgets";
 import DashboardCustomizeModal from "./components/DashboardCustomizeModal";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const Dashboard: React.FC = () => {
   const {
     user,
@@ -40,7 +43,7 @@ const Dashboard: React.FC = () => {
     <PageContainer>
       <PageHeader
         title="Dashboard"
-        description={`Bem-vindo de volta, ${user?.name}. Aqui está o resumo das suas operações.`}
+        description={tr("uiText.dashboard.welcomeBack", { name: user?.name ?? "" })}
       >
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" onClick={() => setModalOpen(true)}>

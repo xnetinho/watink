@@ -18,9 +18,12 @@ import { Textarea } from "@/components/ui/textarea";
 import CargoPermissionMatrix from "./CargoPermissionMatrix";
 import type { CargoDetail, CargoSavePayload, PermissionsCatalog } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const CargoSchema = Yup.object().shape({
-  name: Yup.string().min(2, "Nome muito curto!").max(120, "Nome muito longo!").required("Nome é obrigatório"),
-  description: Yup.string().max(500, "Descrição muito longa!"),
+  name: Yup.string().min(2, tr("uiText.acessos.nameTooShort")).max(120, tr("uiText.acessos.nameTooLong")).required(tr("uiText.acessos.nameRequired")),
+  description: Yup.string().max(500, tr("uiText.acessos.descTooLong")),
 });
 
 interface CargoPanelProps {
@@ -56,7 +59,7 @@ const CargoPanel: React.FC<CargoPanelProps> = ({
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-6">
         <SheetHeader>
-          <SheetTitle>{editingCargo ? "Editar Cargo" : "Novo Cargo"}</SheetTitle>
+          <SheetTitle>{editingCargo ? tr("uiText.acessos.editCargo") : tr("uiText.acessos.newCargo")}</SheetTitle>
         </SheetHeader>
 
         {loading ? (
@@ -84,7 +87,7 @@ const CargoPanel: React.FC<CargoPanelProps> = ({
             {({ touched, errors, isSubmitting }) => (
               <Form className="mt-4 flex flex-col gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="cargo-name">Nome</Label>
+                  <Label htmlFor="cargo-name">{tr("uiText.common.name")}</Label>
                   <Field
                     as={Input}
                     id="cargo-name"
@@ -98,7 +101,7 @@ const CargoPanel: React.FC<CargoPanelProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="cargo-description">Descrição</Label>
+                  <Label htmlFor="cargo-description">{tr("uiText.acessos.description")}</Label>
                   <Field
                     as={Textarea}
                     id="cargo-description"
@@ -109,7 +112,7 @@ const CargoPanel: React.FC<CargoPanelProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Permissões</Label>
+                  <Label>{tr("uiText.acessos.permissions")}</Label>
                   <CargoPermissionMatrix
                     catalog={catalog}
                     selectedIds={selectedIds}
@@ -119,11 +122,11 @@ const CargoPanel: React.FC<CargoPanelProps> = ({
 
                 <SheetFooter className="mt-2 gap-2">
                   <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                    Cancelar
+                    {tr("uiText.common.cancel")}
                   </Button>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Salvar
+                    {tr("uiText.common.save")}
                   </Button>
                 </SheetFooter>
               </Form>

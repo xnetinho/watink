@@ -5,6 +5,9 @@ import { toast } from "react-toastify";
 import api from "../../../services/api";
 import { ProtocolListItem, HelpdeskFiltersState } from "../helpdeskTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UseHelpdeskReturn {
   protocols: ProtocolListItem[];
   loading: boolean;
@@ -39,7 +42,7 @@ export function useHelpdesk(): UseHelpdeskReturn {
       });
       setProtocols(data.protocols);
     } catch {
-      toast.error("Erro ao carregar protocolos");
+      toast.error(tr("uiText.helpdesk.protocolsError"));
     } finally {
       setLoading(false);
     }

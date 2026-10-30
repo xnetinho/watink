@@ -4,6 +4,9 @@ import { toast } from "react-toastify";
 import api from "../../../services/api";
 import type { Protocol, Attachment, HistoryItem, UpdateFormData } from "../protocolTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface UseProtocolDetailsReturn {
   loading: boolean;
   saving: boolean;
@@ -53,7 +56,7 @@ export function useProtocolDetails(): UseProtocolDetailsReturn {
       const attachmentsRes = await api.get(`/protocols/${protocolId}/attachments`);
       setAttachments(attachmentsRes.data || []);
     } catch {
-      toast.error("Erro ao carregar protocolo");
+      toast.error(tr("uiText.helpdesk.protocolError"));
       navigate("/helpdesk");
     } finally {
       setLoading(false);
@@ -75,10 +78,10 @@ export function useProtocolDetails(): UseProtocolDetailsReturn {
       });
       setAttachments((prev) => [...data, ...prev]);
       setNewFiles([]);
-      toast.success("Arquivos enviados com sucesso!");
+      toast.success(tr("uiText.helpdesk.filesSent"));
       loadProtocol();
     } catch {
-      toast.error("Erro ao enviar arquivos");
+      toast.error(tr("uiText.helpdesk.filesError"));
     } finally {
       setUploadingFiles(false);
     }
@@ -90,7 +93,7 @@ export function useProtocolDetails(): UseProtocolDetailsReturn {
       setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
       toast.success("Anexo removido");
     } catch {
-      toast.error("Erro ao remover anexo");
+      toast.error(tr("uiText.helpdesk.attachmentError"));
     }
   };
 
@@ -109,12 +112,12 @@ export function useProtocolDetails(): UseProtocolDetailsReturn {
       await api.put(`/protocols/${protocolId}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success("Protocolo atualizado com sucesso");
+      toast.success(tr("uiText.helpdesk.protocolUpdated"));
       setFormData((prev) => ({ ...prev, comment: "" }));
       setUpdateFiles([]);
       loadProtocol();
     } catch {
-      toast.error("Erro ao atualizar protocolo");
+      toast.error(tr("uiText.helpdesk.updateError"));
     } finally {
       setSaving(false);
     }
@@ -134,8 +137,8 @@ export function useProtocolDetails(): UseProtocolDetailsReturn {
     const externalUrl = `${window.location.origin}/public/protocols/${protocol.token}`;
     navigator.clipboard
       .writeText(externalUrl)
-      .then(() => toast.success("Link copiado para a área de transferência!"))
-      .catch(() => toast.error("Erro ao copiar link"));
+      .then(() => toast.success(tr("uiText.helpdesk.linkCopied")))
+      .catch(() => toast.error(tr("uiText.helpdesk.linkCopyError")));
   };
 
   return {

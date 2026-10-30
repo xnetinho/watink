@@ -24,6 +24,9 @@ import {
   getPriorityBadgeClass,
 } from "../helpdeskTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProtocolsTableProps {
   protocols: ProtocolListItem[];
   loading: boolean;
@@ -51,11 +54,11 @@ const ProtocolsTable: React.FC<ProtocolsTableProps> = ({
         <TableRow>
           <TableHead>Protocolo</TableHead>
           <TableHead>Assunto</TableHead>
-          <TableHead>Contato</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Prioridade</TableHead>
-          <TableHead>Criado em</TableHead>
-          <TableHead className="text-right">Ações</TableHead>
+          <TableHead>{tr("uiText.common.contact")}</TableHead>
+          <TableHead>{tr("uiText.common.status")}</TableHead>
+          <TableHead>{tr("uiText.common.priority")}</TableHead>
+          <TableHead>{tr("uiText.helpdesk.createdAt")}</TableHead>
+          <TableHead className="text-right">{tr("uiText.common.actions")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -86,7 +89,7 @@ const ProtocolsTable: React.FC<ProtocolsTableProps> = ({
                   variant="secondary"
                   className={cn("font-normal", getStatusBadgeClass(protocol.status))}
                 >
-                  {statusLabels[protocol.status] ?? protocol.status}
+                  {statusLabels[protocol.status] ? tr(statusLabels[protocol.status]) : protocol.status}
                 </Badge>
               </TableCell>
               <TableCell>
@@ -97,7 +100,7 @@ const ProtocolsTable: React.FC<ProtocolsTableProps> = ({
                     getPriorityBadgeClass(protocol.priority)
                   )}
                 >
-                  {priorityLabels[protocol.priority] ?? protocol.priority}
+                  {priorityLabels[protocol.priority] ? tr(priorityLabels[protocol.priority]) : protocol.priority}
                 </Badge>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">

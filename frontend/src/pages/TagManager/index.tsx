@@ -14,6 +14,8 @@ import { useTagManager } from "./hooks/useTagManager";
 import { TagManagerToolbar } from "./components/TagManagerToolbar";
 import { TagTable } from "./components/TagTable";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const TagManager = () => {
   const {
     loading,
@@ -57,7 +59,7 @@ const TagManager = () => {
 
       <PageHeader
         title={i18n.t("tags.title") as string}
-        description="Gerencie as etiquetas para organizar seus atendimentos"
+        description={tr("uiText.tagManager.pageDescription")}
       >
         <TagManagerToolbar
           searchParam={searchParam}

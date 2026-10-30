@@ -5,6 +5,9 @@ import { getBackendUrl } from "../../helpers/urlUtils";
 import { cn } from "@/lib/utils";
 import { getContactDisplayName } from "@/utils/clientDisplayName";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Contact {
   name?: string;
   profilePicUrl?: string;
@@ -77,7 +80,7 @@ const ProtocolCard: React.FC<ProtocolCardProps> = ({
             {protocol.subject}
           </p>
           <p className="text-[0.75rem] text-muted-foreground">
-            {getContactDisplayName(protocol.contact) || "Sem contato"}
+            {getContactDisplayName(protocol.contact) || tr("uiText.helpdesk.noContact")}
           </p>
         </div>
       </div>

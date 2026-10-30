@@ -123,8 +123,8 @@ const TicketsManager: React.FC = () => {
 
           {/* Pills de abas: individuais (Todos/Abertos/Aguardando/Fechados) + Grupos -- todas sempre visíveis e clicáveis */}
           <div className="flex items-center gap-1 flex-wrap">
-            <FilterPill label="Todos"      active={activeTab === "all"}     onClick={() => handleTabChange("all")}     count={activeTab === "all" ? currentCount : undefined} />
-            <FilterPill label="Abertos"    active={activeTab === "open"}    onClick={() => handleTabChange("open")}    count={activeTab === "open" ? currentCount : undefined} />
+            <FilterPill label={tr("uiText.common.all")}      active={activeTab === "all"}     onClick={() => handleTabChange("all")}     count={activeTab === "all" ? currentCount : undefined} />
+            <FilterPill label={tr("uiText.common.opened")}    active={activeTab === "open"}    onClick={() => handleTabChange("open")}    count={activeTab === "open" ? currentCount : undefined} />
             <FilterPill label="Aguardando" active={activeTab === "pending"} onClick={() => handleTabChange("pending")} count={activeTab === "pending" ? currentCount : undefined} />
             <FilterPill label="Fechados"   active={activeTab === "closed"}  onClick={() => handleTabChange("closed")}  count={activeTab === "closed" ? currentCount : undefined} />
             <FilterPill

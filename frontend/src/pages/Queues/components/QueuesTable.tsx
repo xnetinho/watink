@@ -13,6 +13,8 @@ import {
 import { Button } from "../../../components/ui/button";
 import { Queue } from "../queuesTypes";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface QueuesTableProps {
   queues: Queue[];
   loading: boolean;
@@ -56,7 +58,7 @@ export function QueuesTable({ queues, loading, onEdit, onDelete }: QueuesTablePr
               </TableCell>
               <TableCell className="max-w-xs">
                 <p className="truncate text-muted-foreground">
-                  {queue.greetingMessage ?? "Sem saudação"}
+                  {queue.greetingMessage ?? tr("uiText.queues.noGreeting")}
                 </p>
               </TableCell>
               <TableCell className="text-right">

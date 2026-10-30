@@ -11,6 +11,8 @@ import { i18n } from "../../../translate/i18n";
 import { MessageSquare, Users, CheckCircle, Clock } from "lucide-react";
 import React from "react";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface WhatsApp {
   id: number;
   status: string;
@@ -150,7 +152,7 @@ export function useDashboard(): UseDashboardReturn {
       color: "success",
     },
     {
-      title: "TMR (Tempo Médio)",
+      title: tr("uiText.dashboard.avgResponseShort"),
       value: formatTime(avgResponseTime),
       icon: React.createElement(Clock),
       color: "info",

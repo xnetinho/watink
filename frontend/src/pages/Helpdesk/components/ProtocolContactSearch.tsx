@@ -4,6 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Contact } from "../hooks/useProtocolModal";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProtocolContactSearchProps {
   contactSearch: string;
   contactLoading: boolean;
@@ -29,7 +32,7 @@ export function ProtocolContactSearch({
           id="contact-search"
           value={contactSearch}
           onChange={(e) => onSearch(e.target.value)}
-          placeholder="Digite o nome do contato (mín. 3 letras)"
+          placeholder={tr("uiText.helpdesk.contactSearch")}
         />
         {contactLoading && (
           <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />

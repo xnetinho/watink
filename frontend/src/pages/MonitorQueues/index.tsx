@@ -8,6 +8,9 @@ import { PageContainer, PageHeader, PageContent } from "@/components/ui/page-lay
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface QueueInfo {
   name: string;
   vhost: string;
@@ -39,7 +42,7 @@ const MonitorQueues: React.FC = () => {
       setError(null);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
-      setError(err?.response?.data?.error ?? err?.message ?? "Falha ao carregar filas");
+      setError(err?.response?.data?.error ?? err?.message ?? tr("uiText.monitorQueues.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -56,7 +59,7 @@ const MonitorQueues: React.FC = () => {
       <PageContainer>
         <PageContent>
           <p className="text-center text-destructive py-16">
-            Acesso restrito ao superadmin.
+            {tr("uiText.monitorQueues.superadminOnly")}
           </p>
         </PageContent>
       </PageContainer>
@@ -71,7 +74,7 @@ const MonitorQueues: React.FC = () => {
         <Button variant="outline" size="sm" asChild>
           <RouterLink to="/monitor" className="flex items-center gap-2">
             <RotateCcw className="h-4 w-4" />
-            Voltar ao Monitor
+            {tr("uiText.monitorQueues.backToMonitor")}
           </RouterLink>
         </Button>
       </PageHeader>

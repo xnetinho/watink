@@ -13,6 +13,9 @@ import { classifyGroupsApiError, GroupsApiError } from "../Groups/groupTypes";
 import GroupsErrorState from "../Groups/GroupsErrorState";
 import LinkGroupDialog from "./LinkGroupDialog";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const CommunityDetail: React.FC = () => {
     const { jid } = useParams<{ jid: string }>();
     const navigate = useNavigate();
@@ -117,7 +120,7 @@ const CommunityDetail: React.FC = () => {
                 onClose={() => setUnlinkTarget(null)}
                 onConfirm={handleUnlink}
             >
-                Tem certeza que deseja desvincular este grupo da comunidade?
+                {tr("uiText.communities.confirmUnlink")}
             </ConfirmationModal>
         </PageContainer>
     );

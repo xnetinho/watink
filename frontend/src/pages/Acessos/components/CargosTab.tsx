@@ -18,6 +18,9 @@ import { useCargosTab } from "../hooks/useCargosTab";
 import CargoPanel from "./CargoPanel";
 import type { CargoListItem } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const CargosTab: React.FC = () => {
   const {
     cargos,
@@ -41,7 +44,7 @@ const CargosTab: React.FC = () => {
   return (
     <div className="flex flex-col gap-4">
       <ConfirmationModal
-        title={deletingCargo ? `Excluir o cargo ${deletingCargo.name}?` : ""}
+        title={deletingCargo ? tr("uiText.acessos.deleteCargoTitle", { name: deletingCargo.name }) : ""}
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={async () => {
@@ -50,8 +53,7 @@ const CargosTab: React.FC = () => {
           setDeletingCargo(null);
         }}
       >
-        Esta ação não pode ser desfeita. Cargos em uso por usuários ou o único
-        Administrador do tenant não podem ser excluídos.
+        {tr("uiText.acessos.cargoDeleteHint")}
       </ConfirmationModal>
 
       <CargoPanel
@@ -75,7 +77,7 @@ const CargosTab: React.FC = () => {
         </div>
         <Button onClick={openCreate} className="ml-auto gap-2">
           <Plus className="h-4 w-4" />
-          Novo Cargo
+          {tr("uiText.acessos.newCargo")}
         </Button>
       </div>
 
@@ -83,9 +85,9 @@ const CargosTab: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead className="text-right w-[110px]">Ações</TableHead>
+              <TableHead>{tr("uiText.common.name")}</TableHead>
+              <TableHead>{tr("uiText.acessos.description")}</TableHead>
+              <TableHead className="text-right w-[110px]">{tr("uiText.common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -104,7 +106,7 @@ const CargosTab: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <span className="text-muted-foreground">
-                    {cargo.description || "Sem descrição"}
+                    {cargo.description || tr("uiText.acessos.noDescription")}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">

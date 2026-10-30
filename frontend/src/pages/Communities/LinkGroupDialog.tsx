@@ -13,6 +13,9 @@ import ButtonWithSpinner from "@/components/ButtonWithSpinner";
 import { GroupInfo, listGroups, linkCommunityGroup } from "../../services/groupService";
 import { classifyGroupsApiError } from "../Groups/groupTypes";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface LinkGroupDialogProps {
     open: boolean;
     whatsappId: number;
@@ -81,7 +84,7 @@ const LinkGroupDialog: React.FC<LinkGroupDialogProps> = ({
                         [...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 rounded-md" />)
                     ) : groups.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-4 text-center">
-                            Nenhum grupo elegível para vincular.
+                            {tr("uiText.communities.noEligible")}
                         </p>
                     ) : (
                         groups.map((g) => (
@@ -101,7 +104,7 @@ const LinkGroupDialog: React.FC<LinkGroupDialogProps> = ({
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>
-                        Fechar
+                        {tr("uiText.common.close")}
                     </Button>
                 </DialogFooter>
             </DialogContent>
