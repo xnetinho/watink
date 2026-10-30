@@ -6,6 +6,9 @@ import { getBackendUrl } from "../../../helpers/urlUtils";
 import { formatPhone, formatUptime } from "../connectionConfigUtils";
 import type { Stats, WhatsApp } from "../connectionConfigTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface IdentityCardProps {
   whatsapp: WhatsApp;
   isConnected: boolean;
@@ -30,7 +33,7 @@ const IdentityCard: React.FC<IdentityCardProps> = ({ whatsapp, isConnected, stat
       </div>
       <div className="text-center">
         <p className="text-2xl font-semibold tracking-tight">
-          {formatPhone(whatsapp.number) || "Número não disponível"}
+          {formatPhone(whatsapp.number) || tr("uiText.connections.numberUnavailable")}
         </p>
         {isConnected && whatsapp.lastConnectedAt && (
           <p className="mt-1 text-sm text-muted-foreground">
@@ -46,11 +49,11 @@ const IdentityCard: React.FC<IdentityCardProps> = ({ whatsapp, isConnected, stat
         </div>
         <div className="rounded-xl bg-muted/50 p-4 text-center">
           <p className="text-2xl font-bold">{stats ? stats.tickets : "—"}</p>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tickets</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("uiText.common.tickets")}</p>
         </div>
         <div className="rounded-xl bg-muted/50 p-4 text-center">
           <p className="text-2xl font-bold">{stats && stats.latencyMs >= 0 ? `${stats.latencyMs}ms` : "—"}</p>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Latência</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("uiText.connections.latency")}</p>
         </div>
       </div>
     </CardContent>

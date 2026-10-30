@@ -1,3 +1,4 @@
+import { i18n } from "../../translate/i18n";
 export interface StageFormItem {
     name: string;
     colorKey: string;
@@ -47,14 +48,13 @@ export const INITIAL_FORM_DATA: PipelineFormData = {
     description: "",
     type: "kanban",
     stages: [
-        { name: "Novo", colorKey: "blue" },
-        { name: "Em Andamento", colorKey: "yellow" },
-        { name: "Concluído", colorKey: "green" },
+        { name: "Novo", colorKey: "blue" }, // i18n-ignore: etapas iniciais gravadas no pipeline
+        { name: "Em Andamento", colorKey: "yellow" }, // i18n-ignore: etapas iniciais gravadas no pipeline
+        { name: "Concluído", colorKey: "green" }, // i18n-ignore: etapas iniciais gravadas no pipeline
     ],
 };
 
-export const INITIAL_CHAT_MESSAGE: ChatMessage = {
+export const initialChatMessage = (): ChatMessage => ({
     role: "ai",
-    content:
-        "Olá! Eu sou o assistente de IA do Watink.\nDescreva o processo que você deseja gerenciar (ex: Vendas de Imóveis, Suporte Técnico) e eu criarei as etapas ideais para você.",
-};
+    content: String(i18n.t("uiText.pipelines.initialChat") ?? ""),
+});

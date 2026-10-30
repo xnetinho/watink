@@ -10,10 +10,13 @@ import PersonaSectionsEditor from "../PersonaSectionsEditor";
 import { type PersonaSectionValues } from "../personaSections";
 import type { FlowOption, PipelineOption, KnowledgeBaseOption, AiGateway, AssistantMode } from "../assistantCreatorTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const PIPELINE_EVENTS = [
-  { value: "deal_created", label: "Ticket/negócio criado" },
-  { value: "stage_changed", label: "Mudança de estágio" },
-  { value: "idle", label: "Parado há X dias" },
+  { value: "deal_created", label: tr("uiText.assistants.evTicketCreated") },
+  { value: "stage_changed", label: tr("uiText.assistants.evStageChange") },
+  { value: "idle", label: tr("uiText.assistants.evStalled") },
   { value: "closed", label: "Finalizado" },
 ];
 
@@ -83,7 +86,7 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
   return (
     <div className="flex flex-col gap-4 pt-2">
       <div className="flex flex-col gap-1.5">
-        <Label>Ao que este assistente está ligado?</Label>
+        <Label>{tr("uiText.assistants.linkedTo")}</Label>
         <Tabs value={mode} onValueChange={(v) => onModeChange(v as AssistantMode)}>
           <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
@@ -99,7 +102,7 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
           <Label>Flow</Label>
           <Select value={flowId} onValueChange={onFlowIdChange}>
             <SelectTrigger>
-              <SelectValue placeholder="Selecione um flow" />
+              <SelectValue placeholder={tr("uiText.assistants.selectFlow")} />
             </SelectTrigger>
             <SelectContent>
               {flows.map((f) => (
@@ -118,7 +121,7 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
             <Label>Pipeline</Label>
             <Select value={pipelineId} onValueChange={onPipelineIdChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione um pipeline" />
+                <SelectValue placeholder={tr("uiText.assistants.selectPipeline")} />
               </SelectTrigger>
               <SelectContent>
                 {pipelines.map((p) => (
@@ -131,7 +134,7 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label>Eventos que disparam a notificação</Label>
+            <Label>{tr("uiText.assistants.notifyEvents")}</Label>
             {PIPELINE_EVENTS.map((ev) => (
               <label
                 key={ev.value}
@@ -149,7 +152,7 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
 
           {pipelineEvents.includes("idle") && (
             <div className="flex flex-col gap-1.5 max-w-[220px]">
-              <Label>Dias parado até disparar</Label>
+              <Label>{tr("uiText.assistants.daysStalled")}</Label>
               <Input
                 type="number"
                 value={idleThresholdDays}
@@ -161,11 +164,10 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
           <div className="flex items-center justify-between rounded-xl border p-3">
             <div>
               <p className="text-sm font-medium">
-                Responder ativamente após a notificação
+                {tr("uiText.assistants.activeReply")}
               </p>
               <p className="text-xs text-muted-foreground">
-                Se desligado, é só uma notificação — respostas do
-                contato caem para a fila humana
+                {tr("uiText.assistants.activeReplyHint")}
               </p>
             </div>
             <Switch
@@ -184,10 +186,10 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
             <div className="flex flex-col gap-1.5">
-              <Label>Base de conhecimento</Label>
+              <Label>{tr("uiText.assistants.knowledgeBase")}</Label>
               <Select value={knowledgeBaseId} onValueChange={onKnowledgeBaseIdChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Nenhuma" />
+                  <SelectValue placeholder={tr("uiText.assistants.none")} />
                 </SelectTrigger>
                 <SelectContent>
                   {knowledgeBases.map((kb) => (
@@ -199,10 +201,10 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Gateway de IA</Label>
+              <Label>{tr("uiText.assistants.aiGateway")}</Label>
               <Select value={aiGatewayId} onValueChange={onAiGatewayIdChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um gateway" />
+                  <SelectValue placeholder={tr("uiText.assistants.selectGateway")} />
                 </SelectTrigger>
                 <SelectContent>
                   {aiGateways.map((g) => (
@@ -216,7 +218,7 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>Máximo de turnos</Label>
+              <Label>{tr("uiText.assistants.maxTurns")}</Label>
               <Input
                 type="number"
                 value={maxTurns}
@@ -224,7 +226,7 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Quando o RAG não souber responder</Label>
+              <Label>{tr("uiText.assistants.whenUnknown")}</Label>
               <Select
                 value={ragFallbackBehavior}
                 onValueChange={onRagFallbackBehaviorChange}
@@ -233,20 +235,20 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="handoff">Passar para atendente</SelectItem>
-                  <SelectItem value="apologize">Avisar que não sabe</SelectItem>
-                  <SelectItem value="ignore">Não responder</SelectItem>
+                  <SelectItem value="handoff">{tr("uiText.assistants.handoff")}</SelectItem>
+                  <SelectItem value="apologize">{tr("uiText.assistants.sayUnknown")}</SelectItem>
+                  <SelectItem value="ignore">{tr("uiText.assistants.noReply")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           {ragFallbackBehavior === "apologize" && (
             <div className="flex flex-col gap-1.5">
-              <Label>Mensagem quando não souber</Label>
+              <Label>{tr("uiText.assistants.unknownMessage")}</Label>
               <Textarea
                 value={ragFallbackMessage}
                 onChange={(e) => onRagFallbackMessageChange(e.target.value)}
-                placeholder="Desculpe, não tenho essa informação no momento."
+                placeholder={tr("uiText.assistants.unknownDefault")}
                 rows={2}
               />
             </div>

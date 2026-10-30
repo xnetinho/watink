@@ -5,6 +5,9 @@ import {
 } from '@/components/ui/select';
 import { NodeData, Queue, User } from '../../nodeEditorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface TicketFormProps {
   formData: NodeData;
   queues: Queue[];
@@ -15,11 +18,11 @@ interface TicketFormProps {
 const TicketForm: React.FC<TicketFormProps> = ({ formData, queues, users, onChange }) => (
   <div className="space-y-3">
     <div className="space-y-1">
-      <Label className="text-xs">Ação do Ticket</Label>
+      <Label className="text-xs">{tr("uiText.flow.form.ticketAction")}</Label>
       <Select value={formData.ticketAction || 'moveToQueue'} onValueChange={(v) => onChange('ticketAction', v)}>
         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="moveToQueue">Mover para Fila</SelectItem>
+          <SelectItem value="moveToQueue">{tr("uiText.flow.form.moveToQueue")}</SelectItem>
           <SelectItem value="assignUser">Atribuir Atendente</SelectItem>
           <SelectItem value="changeStatus">Alterar Status</SelectItem>
         </SelectContent>
@@ -28,13 +31,13 @@ const TicketForm: React.FC<TicketFormProps> = ({ formData, queues, users, onChan
 
     {formData.ticketAction === 'changeStatus' && (
       <div className="space-y-1">
-        <Label className="text-xs">Novo Status</Label>
+        <Label className="text-xs">{tr("uiText.flow.form.newStatus")}</Label>
         <Select value={formData.newStatus || 'open'} onValueChange={(v) => onChange('newStatus', v)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="open">Aberto</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
-            <SelectItem value="closed">Fechado</SelectItem>
+            <SelectItem value="open">{tr("uiText.flow.form.statusOpen")}</SelectItem>
+            <SelectItem value="pending">{tr("uiText.flow.form.statusPending")}</SelectItem>
+            <SelectItem value="closed">{tr("uiText.flow.form.statusClosed")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -42,7 +45,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ formData, queues, users, onChan
 
     {formData.ticketAction === 'moveToQueue' && (
       <div className="space-y-1">
-        <Label className="text-xs">Fila</Label>
+        <Label className="text-xs">{tr("uiText.flow.form.queue")}</Label>
         <Select value={formData.queueId || ''} onValueChange={(v) => onChange('queueId', v)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -56,7 +59,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ formData, queues, users, onChan
 
     {formData.ticketAction === 'assignUser' && (
       <div className="space-y-1">
-        <Label className="text-xs">Usuário (Atendente)</Label>
+        <Label className="text-xs">{tr("uiText.flow.form.userAgent")}</Label>
         <Select value={formData.userId || ''} onValueChange={(v) => onChange('userId', v)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>

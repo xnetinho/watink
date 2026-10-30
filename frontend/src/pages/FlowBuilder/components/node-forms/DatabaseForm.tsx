@@ -9,7 +9,10 @@ import FilterBuilder from '../FilterBuilder';
 import DataBuilder from '../DataBuilder';
 import { NodeData, TABLE_ALL_FIELDS } from '../../nodeEditorTypes';
 
-const AVAILABLE_TABLES = ['Contacts', 'Tickets', 'Messages', 'Users', 'Queues', 'Whatsapps', 'QuickAnswers', 'Pipelines'];
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
+const AVAILABLE_TABLES = ['Contacts', 'Tickets', 'Messages', 'Users', 'Queues', 'Whatsapps', 'QuickAnswers', 'Pipelines']; // i18n-ignore: nomes de tabela enviados à API (não são texto de tela)
 
 interface DatabaseFormProps {
   formData: NodeData;
@@ -22,7 +25,7 @@ const DatabaseForm: React.FC<DatabaseFormProps> = ({ formData, onChange }) => {
   return (
     <div className="space-y-3">
       <div className="space-y-1">
-        <Label className="text-xs">Operação</Label>
+        <Label className="text-xs">{tr("uiText.flow.form.operation")}</Label>
         <Select value={formData.operation || 'read'} onValueChange={(v) => onChange('operation', v)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -116,7 +119,7 @@ const DatabaseForm: React.FC<DatabaseFormProps> = ({ formData, onChange }) => {
           </div>
 
           <div className="space-y-1 w-[80px]">
-            <Label className="text-xs">Direção</Label>
+            <Label className="text-xs">{tr("uiText.flow.form.direction")}</Label>
             <Select value={formData.orderByDir || 'DESC'} onValueChange={(v) => onChange('orderByDir', v)}>
               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -129,14 +132,14 @@ const DatabaseForm: React.FC<DatabaseFormProps> = ({ formData, onChange }) => {
       )}
 
       <div className="space-y-1">
-        <Label className="text-xs">Variável de saída</Label>
+        <Label className="text-xs">{tr("uiText.flow.form.outputVar")}</Label>
         <Input
           className="h-8 text-xs"
           placeholder="resultado"
           value={formData.outputVariable || ''}
           onChange={(e) => onChange('outputVariable', e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
         />
-        <p className="text-[10px] text-muted-foreground">Nome da variável (apenas letras, números e _)</p>
+        <p className="text-[10px] text-muted-foreground">{tr("uiText.flow.form.varNameHint")}</p>
       </div>
     </div>
   );

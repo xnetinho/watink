@@ -18,6 +18,9 @@ import { ConnectionHealthBadge } from "./ConnectionHealthBadge";
 import { ConnectionRiskBanner } from "./ConnectionRiskBanner";
 import { ConnectionActionButtons } from "./ConnectionActionButtons";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ConnectionCardProps {
   whatsApp: ConnectionSession;
   /** Um start já está em voo para esta conexão (lock de 10s no backend). */
@@ -65,7 +68,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
           <div>
             <CardTitle className="text-lg">{whatsApp.name}</CardTitle>
             <CardDescription className="flex items-center gap-1">
-              {whatsApp.number ? `+${whatsApp.number}` : "Sem número"}
+              {whatsApp.number ? `+${whatsApp.number}` : tr("uiText.connections.noNumber")}
             </CardDescription>
           </div>
         </div>
@@ -78,7 +81,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
       <CardContent className="flex-1 py-4">
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Última atualização:</span>
+            <span className="text-muted-foreground">{tr("uiText.connections.lastUpdate")}</span>
             <span>
               {whatsApp.updatedAt
                 ? format(parseISO(whatsApp.updatedAt), "dd/MM/yy HH:mm")
@@ -86,15 +89,15 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Fila padrão:</span>
-            <span>{whatsApp.queue?.name ?? "Nenhuma"}</span>
+            <span className="text-muted-foreground">{tr("uiText.connections.defaultQueue")}</span>
+            <span>{whatsApp.queue?.name ?? tr("uiText.assistants.none")}</span>
           </div>
           {whatsApp.proxyMode && whatsApp.proxyMode !== "none" && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Proxy:</span>
               <span className="flex items-center gap-1 text-xs">
                 <Network className="h-3 w-3" />
-                {whatsApp.proxyMode === "group" ? "Grupo (rotação)" : "Dedicado"}
+                {whatsApp.proxyMode === "group" ? tr("uiText.connections.groupRotation") : "Dedicado"}
               </span>
             </div>
           )}

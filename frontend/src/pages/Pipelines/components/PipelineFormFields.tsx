@@ -6,6 +6,9 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { PipelineFormData } from "../pipelineCreatorTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PipelineFormFieldsProps {
     data: PipelineFormData;
     onChange: (updated: PipelineFormData) => void;
@@ -14,14 +17,14 @@ interface PipelineFormFieldsProps {
 const TYPE_OPTIONS = [
     {
         value: "kanban" as const,
-        label: "Kanban (Colunas)",
-        description: "Arraste os negócios entre colunas coloridas por estágio.",
+        label: "uiText.pipelines.typeKanbanLabel",
+        description: tr("uiText.pipelines.kanbanDesc"),
         Icon: LayoutGrid,
     },
     {
         value: "funnel" as const,
-        label: "Funil (Lista)",
-        description: "Visão em lista priorizada por etapa do funil.",
+        label: "uiText.pipelines.typeFunnelLabel",
+        description: tr("uiText.pipelines.funnelDesc"),
         Icon: Filter,
     },
 ];
@@ -29,12 +32,12 @@ const TYPE_OPTIONS = [
 const PipelineFormFields: React.FC<PipelineFormFieldsProps> = ({ data, onChange }) => (
     <div className="flex flex-col gap-5">
         <div className="space-y-1.5">
-            <Label htmlFor="pipeline-name">Nome do Pipeline</Label>
+            <Label htmlFor="pipeline-name">{tr("uiText.pipelines.name")}</Label>
             <Input
                 id="pipeline-name"
                 value={data.name}
                 onChange={(e) => onChange({ ...data, name: e.target.value })}
-                placeholder="Ex: Funil de Vendas — Comercial"
+                placeholder={tr("uiText.pipelines.namePlaceholder")}
                 required
             />
         </div>
@@ -49,13 +52,13 @@ const PipelineFormFields: React.FC<PipelineFormFieldsProps> = ({ data, onChange 
                 rows={3}
                 value={data.description}
                 onChange={(e) => onChange({ ...data, description: e.target.value })}
-                placeholder="Acompanhamento de negócios do primeiro contato ao fechamento."
+                placeholder={tr("uiText.pipelines.descPlaceholder")}
                 className="resize-none"
             />
         </div>
 
         <div className="space-y-2">
-            <Label>Tipo de Visualização</Label>
+            <Label>{tr("uiText.pipelines.viewType")}</Label>
             <div className="grid grid-cols-2 gap-3">
                 {TYPE_OPTIONS.map(({ value, label, description, Icon }) => {
                     const selected = data.type === value;
@@ -89,7 +92,7 @@ const PipelineFormFields: React.FC<PipelineFormFieldsProps> = ({ data, onChange 
                                             selected ? "text-primary" : "text-foreground"
                                         )}
                                     >
-                                        {label}
+                                        {tr(label)}
                                     </span>
                                     <span
                                         className={cn(
@@ -105,7 +108,7 @@ const PipelineFormFields: React.FC<PipelineFormFieldsProps> = ({ data, onChange 
                                     </span>
                                 </div>
                                 <p className="mt-1 text-xs text-muted-foreground leading-snug">
-                                    {description}
+                                    {tr(description)}
                                 </p>
                             </div>
                         </button>

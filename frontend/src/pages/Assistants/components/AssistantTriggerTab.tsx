@@ -5,6 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface AssistantTriggerTabProps {
   triggerType: "any" | "keyword";
   onTriggerTypeChange: (t: "any" | "keyword") => void;
@@ -44,20 +47,20 @@ export const AssistantTriggerTab: React.FC<AssistantTriggerTabProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="contains">contém</SelectItem>
+                <SelectItem value="contains">{tr("uiText.assistants.opContains")}</SelectItem>
                 <SelectItem value="equals">igual</SelectItem>
-                <SelectItem value="starts_with">começa com</SelectItem>
-                <SelectItem value="ends_with">termina com</SelectItem>
+                <SelectItem value="starts_with">{tr("uiText.assistants.opStarts")}</SelectItem>
+                <SelectItem value="ends_with">{tr("uiText.assistants.opEnds")}</SelectItem>
                 <SelectItem value="regex">regex</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Valor do gatilho</Label>
+            <Label>{tr("uiText.assistants.triggerValue")}</Label>
             <Input
               value={triggerValue}
               onChange={(e) => onTriggerValueChange(e.target.value)}
-              placeholder="Ex: oi, menu, começar"
+              placeholder={tr("uiText.assistants.triggerPlaceholder")}
             />
           </div>
         </div>

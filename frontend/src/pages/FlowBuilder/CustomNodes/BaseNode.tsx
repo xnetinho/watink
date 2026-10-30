@@ -3,6 +3,10 @@ import { Handle, Position } from '@xyflow/react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
+import { i18n } from '../../../translate/i18n';
+/** Chaves de i18n (uiText.*) viram o texto do idioma ativo; qualquer outro valor passa direto. */
+const resolveText = (v: string): string => (v.startsWith('uiText.') ? String(i18n.t(v) ?? v) : v);
+
 // Color gradient map — mirrors the original makeStyles token set
 const COLOR_MAP: Record<string, string> = {
   colorTrigger: 'bg-gradient-to-b from-[hsl(var(--status-success))] to-[var(--emerald-700)]',
@@ -59,8 +63,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   targetHandles = [{ id: null, position: Position.Left }],
   badge = null,
 }) => {
-  const label = (data?.label as string) || defaultLabel;
-  const displaySublabel = sublabel || (data?.sublabel as string) || '';
+  const label = (data?.label as string) || resolveText(defaultLabel);
+  const displaySublabel = resolveText(sublabel) || (data?.sublabel as string) || '';
   const gradientClass = COLOR_MAP[colorClass] ?? COLOR_MAP.colorDefault;
 
   return (

@@ -3,6 +3,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PERSONA_SECTIONS, PersonaSectionValues } from "./personaSections";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PersonaSectionsEditorProps {
     values: PersonaSectionValues;
     onChange: (key: string, value: string) => void;
@@ -18,10 +21,9 @@ const PersonaSectionsEditor: React.FC<PersonaSectionsEditorProps> = ({ values, o
         <div className="flex flex-col gap-5">
             {values.legacy && (
                 <div className="flex flex-col gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/5 p-3">
-                    <Label>Texto livre (versão anterior)</Label>
+                    <Label>{tr("uiText.assistants.legacyTitle")}</Label>
                     <p className="text-xs text-muted-foreground">
-                        Conteúdo salvo antes deste editor guiado. Continua valendo — edite aqui ou
-                        distribua o conteúdo nas seções abaixo.
+                        {tr("uiText.assistants.legacyHint")}
                     </p>
                     <Textarea
                         value={values.legacy}
@@ -32,13 +34,13 @@ const PersonaSectionsEditor: React.FC<PersonaSectionsEditorProps> = ({ values, o
             )}
             {PERSONA_SECTIONS.map((section) => (
                 <div key={section.key} className="flex flex-col gap-1.5">
-                    <Label>{section.title}</Label>
-                    <p className="text-xs text-muted-foreground">{section.subtitle}</p>
+                    <Label>{tr(section.title)}</Label>
+                    <p className="text-xs text-muted-foreground">{tr(section.subtitle)}</p>
                     <Textarea
                         value={values[section.key]}
                         onChange={(e) => onChange(section.key, e.target.value)}
                         rows={4}
-                        placeholder={section.placeholder}
+                        placeholder={tr(section.placeholder)}
                     />
                 </div>
             ))}

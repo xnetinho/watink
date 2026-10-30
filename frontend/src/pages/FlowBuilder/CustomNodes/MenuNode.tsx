@@ -3,6 +3,7 @@ import { Position } from '@xyflow/react';
 import { List } from 'lucide-react';
 import BaseNode, { HandleConfig } from './BaseNode';
 
+import { i18n } from '../../../translate/i18n';
 interface MenuOption {
   id?: string;
   label?: string;
@@ -45,8 +46,8 @@ const MenuNode: React.FC<MenuNodeProps> = ({ data, isConnectable }) => {
       data={data}
       icon={List}
       colorClass="colorMenu"
-      defaultLabel="Menu"
-      sublabel={optionCount > 0 ? `${optionCount} opções` : ''}
+      defaultLabel="uiText.flow.node.menu"
+      sublabel={optionCount > 0 ? String(i18n.t('uiText.flow.ui.optionsCount', { count: optionCount })) : ''}
       isConnectable={isConnectable}
       sourceHandles={sourceHandles}
       badge={optionCount > 0 ? optionCount : null}

@@ -16,7 +16,7 @@ const FilterNode: React.FC<FilterNodeProps> = ({ data, isConnectable }) => {
       data={data}
       icon={Filter}
       colorClass="colorFilter"
-      defaultLabel="Filtrar"
+      defaultLabel="uiText.flow.node.filter"
       sublabel={inputVar || (filterCount > 0 ? `${filterCount} filtros` : '')}
       isConnectable={isConnectable}
       badge={filterCount > 0 ? filterCount : null}

@@ -21,6 +21,9 @@ import {
     updateRouterOption,
 } from "../../services/assistantService";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Props {
     assistantId: number;
 }
@@ -40,7 +43,7 @@ const AssistantRouterOptions: React.FC<Props> = ({ assistantId }) => {
             setOptions(opts);
             setCandidates(all.filter((a) => a.id !== assistantId));
         } catch {
-            toast.error("Erro ao carregar opções do menu");
+            toast.error(tr("uiText.assistants.menuLoadError"));
         }
     };
 
@@ -51,7 +54,7 @@ const AssistantRouterOptions: React.FC<Props> = ({ assistantId }) => {
 
     const handleAdd = async () => {
         if (!label.trim() || !targetAssistantId) {
-            toast.error("Preencha o rótulo e o assistente de destino");
+            toast.error(tr("uiText.assistants.menuFill"));
             return;
         }
         try {
@@ -66,7 +69,7 @@ const AssistantRouterOptions: React.FC<Props> = ({ assistantId }) => {
         } catch (err) {
             const message =
                 (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-                "Erro ao adicionar opção";
+                tr("uiText.assistants.optionAddError");
             toast.error(message);
         }
     };
@@ -76,7 +79,7 @@ const AssistantRouterOptions: React.FC<Props> = ({ assistantId }) => {
             await deleteRouterOption(assistantId, optionId);
             load();
         } catch {
-            toast.error("Erro ao remover opção");
+            toast.error(tr("uiText.assistants.optionRemoveError"));
         }
     };
 
@@ -89,15 +92,15 @@ const AssistantRouterOptions: React.FC<Props> = ({ assistantId }) => {
             });
             load();
         } catch {
-            toast.error("Erro ao atualizar opção");
+            toast.error(tr("uiText.assistants.optionUpdateError"));
         }
     };
 
     return (
         <div className="flex flex-col gap-3">
-            <Label>Opções do menu</Label>
+            <Label>{tr("uiText.assistants.menuOptions")}</Label>
             {options.length === 0 && (
-                <p className="text-sm text-muted-foreground">Nenhuma opção cadastrada ainda.</p>
+                <p className="text-sm text-muted-foreground">{tr("uiText.assistants.noOptions")}</p>
             )}
             {options.map((option) => (
                 <div key={option.id} className="flex items-center gap-2">
@@ -119,14 +122,14 @@ const AssistantRouterOptions: React.FC<Props> = ({ assistantId }) => {
 
             <div className="flex items-center gap-2 border-t pt-3">
                 <Input
-                    placeholder="Rótulo (ex: Suporte)"
+                    placeholder={tr("uiText.assistants.optionLabel")}
                     value={label}
                     onChange={(e) => setLabel(e.target.value)}
                     className="flex-1"
                 />
                 <Select value={targetAssistantId} onValueChange={setTargetAssistantId}>
                     <SelectTrigger className="w-[220px]">
-                        <SelectValue placeholder="Assistente de destino" />
+                        <SelectValue placeholder={tr("uiText.assistants.targetAssistant")} />
                     </SelectTrigger>
                     <SelectContent>
                         {candidates.map((a) => (
@@ -138,7 +141,7 @@ const AssistantRouterOptions: React.FC<Props> = ({ assistantId }) => {
                 </Select>
                 <Button variant="outline" onClick={handleAdd}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Adicionar
+                    {tr("uiText.common.add")}
                 </Button>
             </div>
         </div>

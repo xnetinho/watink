@@ -4,6 +4,9 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { LogEntry, SimResult } from './SimulatorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const LogIcon: React.FC<{ status: LogEntry['status'] }> = ({ status }) => {
@@ -32,12 +35,12 @@ interface SimulatorLogsSidebarProps {
 const SimulatorLogsSidebar: React.FC<SimulatorLogsSidebarProps> = ({ result }) => (
   <div className="w-[320px] flex flex-col bg-[#fafafa] overflow-hidden shrink-0">
     <div className="px-4 py-3 border-b font-semibold text-sm shrink-0">
-      Logs de Execução
+      {tr("uiText.flow.sim.logs")}
     </div>
 
     <div className="flex-1 overflow-y-auto p-2 space-y-1">
       {(!result?.log || result.log.length === 0) && (
-        <p className="text-xs text-muted-foreground text-center pt-4">Nenhum log ainda</p>
+        <p className="text-xs text-muted-foreground text-center pt-4">{tr("uiText.flow.sim.noLogs")}</p>
       )}
       {result?.log?.map((log, idx) => (
         <div

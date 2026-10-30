@@ -6,6 +6,9 @@ import {
 } from '@/components/ui/select';
 import { NodeData } from '../../nodeEditorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface EndFormProps {
   formData: NodeData;
   onChange: (field: string, value: unknown) => void;
@@ -14,13 +17,13 @@ interface EndFormProps {
 const EndForm: React.FC<EndFormProps> = ({ formData, onChange }) => (
   <div className="space-y-3">
     <div className="space-y-1">
-      <Label className="text-xs">Ação de Finalização</Label>
+      <Label className="text-xs">{tr("uiText.flow.form.endAction")}</Label>
       <Select value={formData.endAction || 'none'} onValueChange={(v) => onChange('endAction', v)}>
         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="none">Apenas Finalizar</SelectItem>
           <SelectItem value="closeTicket">Fechar Ticket</SelectItem>
-          <SelectItem value="transferQueue">Transferir para Fila</SelectItem>
+          <SelectItem value="transferQueue">{tr("uiText.flow.form.transferQueue")}</SelectItem>
           <SelectItem value="sendMessage">Enviar Mensagem Final</SelectItem>
         </SelectContent>
       </Select>

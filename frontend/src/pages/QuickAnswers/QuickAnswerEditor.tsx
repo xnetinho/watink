@@ -42,6 +42,9 @@ import { PollEditor } from "./editors/PollEditor";
 import { CarouselEditor } from "./editors/CarouselEditor";
 import { PixEditor } from "./editors/PixEditor";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ─── main page ────────────────────────────────────────────────────────────────
 
 const QuickAnswerEditor: React.FC = () => {
@@ -136,7 +139,7 @@ const QuickAnswerEditor: React.FC = () => {
       } else {
         await api.post("/quickAnswers", payload);
       }
-      toast.success(isEdit ? "Resposta rápida atualizada!" : "Resposta rápida criada!");
+      toast.success(isEdit ? tr("uiText.quick.updated") : tr("uiText.quick.created"));
       navigate("/quick-answers");
     } catch (err) {
       toastError(err);
@@ -150,17 +153,17 @@ const QuickAnswerEditor: React.FC = () => {
   return (
     <PageContainer>
       <PageHeader
-        title={isEdit ? "Editar resposta rápida" : "Nova resposta rápida"}
-        description={isEdit ? "Atualize o template de mensagem" : "Crie um template para agilizar o atendimento"}
+        title={isEdit ? tr("uiText.quick.edit") : tr("uiText.quick.new")}
+        description={isEdit ? tr("uiText.quick.editHint") : tr("uiText.quick.newHint")}
       >
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => navigate("/quick-answers")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
+            {tr("uiText.common.back")}
           </Button>
           <Button onClick={handleSave} disabled={submitting || loading}>
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEdit ? "Salvar alterações" : "Criar resposta"}
+            {isEdit ? tr("uiText.connections.saveChanges") : "Criar resposta"}
           </Button>
         </div>
       </PageHeader>
@@ -178,12 +181,12 @@ const QuickAnswerEditor: React.FC = () => {
               {/* Identificação */}
               <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                 <CardContent className="p-5 space-y-4">
-                  <SectionTitle>Identificação</SectionTitle>
+                  <SectionTitle>{tr("uiText.quick.identification")}</SectionTitle>
                   <div className="space-y-1.5">
                     <Label htmlFor="qa-shortcut">
-                      Atalho{" "}
+                      {tr("uiText.quick.shortcut")}{" "}
                       <span className="text-muted-foreground font-normal">
-                        — usado com / no chat
+                        {tr("uiText.quick.shortcutHint")}
                       </span>
                     </Label>
                     <div className="relative">
@@ -232,7 +235,7 @@ const QuickAnswerEditor: React.FC = () => {
               {/* Tipo */}
               <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                 <CardContent className="p-5 space-y-4">
-                  <SectionTitle>Tipo de mensagem</SectionTitle>
+                  <SectionTitle>{tr("uiText.quick.messageType")}</SectionTitle>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {TYPE_OPTIONS.map((opt) => (
                       <button
@@ -245,8 +248,8 @@ const QuickAnswerEditor: React.FC = () => {
                             : "border-border hover:border-primary/40 hover:bg-muted/40"
                         }`}
                       >
-                        <p className="text-sm font-semibold leading-tight">{opt.label}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{opt.description}</p>
+                        <p className="text-sm font-semibold leading-tight">{tr(opt.label)}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{tr(opt.description)}</p>
                       </button>
                     ))}
                   </div>
@@ -255,7 +258,7 @@ const QuickAnswerEditor: React.FC = () => {
                       <Badge variant="outline" className="text-xs">
                         {selectedType.label}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{selectedType.description}</span>
+                      <span className="text-xs text-muted-foreground">{tr(selectedType.description)}</span>
                     </div>
                   )}
                 </CardContent>
@@ -264,7 +267,7 @@ const QuickAnswerEditor: React.FC = () => {
               {/* Conteúdo */}
               <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                 <CardContent className="p-5 space-y-4">
-                  <SectionTitle>Conteúdo</SectionTitle>
+                  <SectionTitle>{tr("uiText.quick.content")}</SectionTitle>
                   {type === "text" && (
                     <TextEditor body={textBody} onChange={setTextBody} error={formErrors.body} />
                   )}
@@ -293,7 +296,7 @@ const QuickAnswerEditor: React.FC = () => {
               <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)] border-dashed">
                 <CardContent className="p-4">
                   <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-                    Variáveis disponíveis
+                    {tr("uiText.quick.variables")}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {["{{contact_name}}", "{{ticket_id}}", "{{agent_name}}", "{{company_name}}"].map((v) => (
@@ -306,7 +309,7 @@ const QuickAnswerEditor: React.FC = () => {
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Substituídas automaticamente no envio. No preview aparecem destacadas.
+                    {tr("uiText.quick.variablesHint")}
                   </p>
                 </CardContent>
               </Card>
@@ -314,11 +317,11 @@ const QuickAnswerEditor: React.FC = () => {
               {/* Footer actions */}
               <div className="flex items-center justify-end gap-2 pb-8">
                 <Button variant="outline" onClick={() => navigate("/quick-answers")}>
-                  Cancelar
+                  {tr("uiText.common.cancel")}
                 </Button>
                 <Button onClick={handleSave} disabled={submitting}>
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isEdit ? "Salvar alterações" : "Criar resposta"}
+                  {isEdit ? tr("uiText.connections.saveChanges") : "Criar resposta"}
                 </Button>
               </div>
             </div>

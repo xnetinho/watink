@@ -13,7 +13,7 @@ const StartNode: React.FC<StartNodeProps> = ({ data, isConnectable }) => (
     data={data}
     icon={Play}
     colorClass="colorTrigger"
-    defaultLabel="Início"
+    defaultLabel="uiText.flow.node.start"
     sublabel={(data?.triggerType as string) || ''}
     isConnectable={isConnectable}
     targetHandles={[]}

@@ -43,8 +43,10 @@ import type {
   ConnectionGroup,
 } from "../../../types/domain";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const SessionSchema = Yup.object().shape({
-  name: Yup.string().min(2, "Muito curto!").max(50, "Muito longo!").required("Obrigatório"),
+  name: Yup.string().min(2, "Muito curto!").max(50, "Muito longo!").required(tr("uiText.validation.required")),
 });
 
 interface ChannelSelectorModalProps {
@@ -152,7 +154,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
 
   const handleConnectToken = async () => {
     if (!nameInput.trim() || (!editConnection && !tokenInput.trim())) {
-      notify.warning("Preencha o nome da conexão e o token de acesso.");
+      notify.warning(tr("uiText.connections.fillNameToken"));
       return;
     }
 
@@ -164,7 +166,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
           token: tokenInput.trim(),
           mode: modeInput,
         });
-        notify.success(`Canal ${selectedChannel?.name ?? ""} atualizado com sucesso!`);
+        notify.success(tr("uiText.connections.channelUpdated", { name: selectedChannel?.name ?? "" }));
       } else {
         await api.post("/channels/connections", {
           kind: selectedChannel?.kind,
@@ -172,7 +174,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
           token: tokenInput.trim(),
           mode: modeInput,
         });
-        notify.success(`Canal ${selectedChannel?.name} conectado com sucesso!`);
+        notify.success(tr("uiText.connections.channelConnectedOk", { name: selectedChannel?.name ?? "" }));
       }
       onChannelCreated?.();
       handleClose();
@@ -220,13 +222,13 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
   const getAvailabilityBadge = (av: string) => {
     switch (av) {
       case "available":
-        return <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/20">Disponível</span>;
+        return <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/20">{tr("uiText.connections.available")}</span>;
       case "beta":
         return <span className="text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold px-2 py-0.5 rounded-full border border-amber-500/20">Beta</span>;
       case "requires_approval":
-        return <span className="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-400 font-semibold px-2 py-0.5 rounded-full border border-blue-500/20">Requer Aprovação</span>;
+        return <span className="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-400 font-semibold px-2 py-0.5 rounded-full border border-blue-500/20">{tr("uiText.connections.requiresApproval")}</span>;
       case "coming_soon":
-        return <span className="text-[10px] bg-muted text-muted-foreground font-semibold px-2 py-0.5 rounded-full border">Em breve</span>;
+        return <span className="text-[10px] bg-muted text-muted-foreground font-semibold px-2 py-0.5 rounded-full border">{tr("uiText.connections.comingSoon")}</span>;
       default:
         return null;
     }
@@ -247,13 +249,13 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                 ? editConnection
                   ? `Editar ${selectedChannel.name}`
                   : `Conectar ${selectedChannel.name}`
-                : "Selecione o Canal de Atendimento"}
+                : tr("uiText.connections.selectChannel")}
             </DialogTitle>
           </div>
           <DialogDescription>
             {selectedChannel
               ? String(i18n.t(selectedChannel.description))
-              : "Escolha o canal que deseja integrar para centralizar seus atendimentos no Watink."}
+              : tr("uiText.connections.selectChannelHint")}
           </DialogDescription>
         </DialogHeader>
 
@@ -322,7 +324,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                           checked={values.syncHistory}
                           onCheckedChange={(checked) => setFieldValue("syncHistory", checked)}
                         />
-                        <Label htmlFor="wa-modal-sync" className="text-xs">Sincronizar Histórico</Label>
+                        <Label htmlFor="wa-modal-sync" className="text-xs">{tr("uiText.whatsAppModal.syncHistory")}</Label>
                       </div>
                     </div>
 
@@ -353,13 +355,13 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                         }}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Sem proxy" />
+                          <SelectValue placeholder={tr("uiText.whatsAppModal.noProxy")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Sem proxy (IP do servidor)</SelectItem>
+                          <SelectItem value="none">{tr("uiText.whatsAppModal.noProxyServerIp")}</SelectItem>
                           {proxyGroups.map((g) => (
                             <SelectItem key={`g${g.id}`} value={`group:${g.id}`}>
-                              Grupo: {g.name} ({g.rotationStrategy === "rotate" ? "rotação" : "fixo"})
+                              Grupo: {g.name} ({g.rotationStrategy === "rotate" ? tr("uiText.whatsAppModal.rotate") : "fixo"})
                             </SelectItem>
                           ))}
                           {proxies.map((p) => (
@@ -372,16 +374,16 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                     </div>
 
                     <div className="space-y-1 pt-1">
-                      <Label className="text-xs">Grupo de conexões</Label>
+                      <Label className="text-xs">{tr("uiText.whatsAppModal.connectionGroup")}</Label>
                       <Select
                         value={values.connectionGroupId ? String(values.connectionGroupId) : "none"}
                         onValueChange={(v) => setFieldValue("connectionGroupId", v === "none" ? null : Number(v))}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Sem grupo" />
+                          <SelectValue placeholder={tr("uiText.whatsAppModal.noGroup")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Sem grupo</SelectItem>
+                          <SelectItem value="none">{tr("uiText.whatsAppModal.noGroup")}</SelectItem>
                           {connectionGroups.map((g) => (
                             <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
                           ))}
@@ -399,7 +401,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
 
                     <div className="flex justify-end gap-2 pt-3 border-t border-border/50">
                       <Button variant="ghost" type="button" onClick={() => setSelectedChannel(null)}>
-                        Voltar
+                        {tr("uiText.common.back")}
                       </Button>
                       <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -414,37 +416,37 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
             {selectedChannel.authKind === "token" && selectedChannel.kind !== "whatsapp" && (
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Nome da Conexão</label>
+                  <label className="text-xs font-medium text-foreground">{tr("uiText.connections.connName")}</label>
                   <Input
-                    placeholder="Ex: Bot de Suporte Principal"
+                    placeholder={tr("uiText.connections.connNamePlaceholder")}
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Modo de Operação</label>
+                  <label className="text-xs font-medium text-foreground">{tr("uiText.connections.operationMode")}</label>
                   <Select value={modeInput} onValueChange={(val: "webhook" | "polling") => setModeInput(val)}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Selecione o modo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="webhook">Webhook (Recomendado - Instantâneo)</SelectItem>
-                      <SelectItem value="polling">Polling (Busca Ativa - Sem URL pública)</SelectItem>
+                      <SelectItem value="webhook">{tr("uiText.connections.modeWebhook")}</SelectItem>
+                      <SelectItem value="polling">{tr("uiText.connections.modePolling")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {modeInput === "webhook"
-                      ? "O Telegram enviará as notificações diretamente para a URL pública do Watink."
-                      : "O Watink buscará novas mensagens em loop (ideal se o servidor não tiver IP/domínio público)."}
+                      ? tr("uiText.connections.webhookHint")
+                      : tr("uiText.connections.pollingHint")}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Token do Bot (API Token)</label>
+                  <label className="text-xs font-medium text-foreground">{tr("uiText.connections.botToken")}</label>
                   <Input
                     placeholder={
                       editConnection
-                        ? "Deixe em branco para manter o token atual"
-                        : "Cole o token recebido do @BotFather"
+                        ? tr("uiText.connections.keepToken")
+                        : tr("uiText.connections.pasteToken")
                     }
                     type="password"
                     value={tokenInput}
@@ -452,18 +454,18 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                   />
                   <p className="text-[11px] text-muted-foreground mt-1">
                     {editConnection
-                      ? "Preencha apenas se quiser trocar o token do bot."
-                      : "Crie um bot no Telegram falando com o @BotFather e copie o token gerado."}
+                      ? tr("uiText.connections.changeTokenHint")
+                      : tr("uiText.connections.createBotHint")}
                   </p>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="ghost" onClick={handleClose}>Cancelar</Button>
+                  <Button variant="ghost" onClick={handleClose}>{tr("uiText.common.cancel")}</Button>
                   <Button onClick={handleConnectToken} disabled={isSubmitting}>
                     {isSubmitting
                       ? "Validando..."
                       : editConnection
-                      ? "Salvar alterações"
-                      : "Salvar Conexão"}
+                      ? tr("uiText.connections.saveChanges")
+                      : tr("uiText.connections.saveConnection")}
                   </Button>
                 </div>
               </div>
@@ -474,9 +476,9 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <h5 className="text-xs font-semibold text-foreground">Requisitos de Conexão</h5>
+                    <h5 className="text-xs font-semibold text-foreground">{tr("uiText.connections.requirements")}</h5>
                     <p className="text-xs text-muted-foreground">
-                      Este canal requer autenticação via OAuth oficial da plataforma.
+                      {tr("uiText.connections.oauthRequired")}
                       {selectedChannel.replyWindowHours && (
                         <span> As respostas a mensagens devem respeitar a janela de atendimento de até {selectedChannel.replyWindowHours} horas.</span>
                       )}
@@ -484,7 +486,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                   </div>
                 </div>
                 <div className="pt-2 flex justify-end gap-2">
-                  <Button variant="ghost" onClick={() => setSelectedChannel(null)}>Voltar</Button>
+                  <Button variant="ghost" onClick={() => setSelectedChannel(null)}>{tr("uiText.common.back")}</Button>
                   <Button disabled variant="outline">
                     Em homologação (Fase 5)
                   </Button>
