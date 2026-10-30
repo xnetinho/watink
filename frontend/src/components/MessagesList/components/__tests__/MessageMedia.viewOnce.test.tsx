@@ -2,6 +2,7 @@ import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import MessageMedia from "../MessageMedia";
+import ViewOnceBadge from "../ViewOnceBadge";
 import { hasMediaBubble } from "../MessageBubble";
 import type { Message } from "../../types";
 import "../../../Calls/__tests__/helpers";
@@ -48,5 +49,19 @@ describe("visualização única recuperada", () => {
     expect(hasMediaBubble(m)).toBe(true);
     render(<MessageMedia message={m} />);
     expect(screen.queryByTestId("view-once-notice")).toBeNull();
+  });
+});
+
+describe("selo de visualização única no rodapé", () => {
+  it("aparece só na mídia recuperada", () => {
+    const rec = msg({ mediaType: "image", mediaUrl: "/public/media/a.jpg", dataJson: JSON.stringify({ recoveredViewOnce: true }) });
+    const { unmount } = render(<ViewOnceBadge message={rec} />);
+    expect(screen.getByTestId("view-once-badge")).toHaveTextContent("Visualização única");
+    unmount();
+    for (const m of [msg({ mediaType: "image", dataJson: "{}" }), msg({ mediaType: "image" }), { ...rec, isDeleted: true }]) {
+      const r = render(<ViewOnceBadge message={m as Message} />);
+      expect(r.container.querySelector('[data-testid="view-once-badge"]')).toBeNull();
+      r.unmount();
+    }
   });
 });

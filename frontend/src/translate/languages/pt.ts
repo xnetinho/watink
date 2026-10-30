@@ -637,6 +637,8 @@ const messages = {
         viewOnce: {
           title: "Visualização única",
           hint: "O WhatsApp só entrega esse conteúdo no celular. Responda a mensagem no celular e a mídia aparece aqui.",
+          badge: "Visualização única",
+          badgeHint: "Enviada como visualização única; recuperada ao responder no celular. Fica guardada aqui.",
         },
         pix: {
           title: "Pagar com PIX",

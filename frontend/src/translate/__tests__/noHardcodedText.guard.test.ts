@@ -27,6 +27,7 @@ const files = import.meta.glob(
     "../../components/ForwardMessageDialog.tsx",
     "../../components/EditMessageDialog.tsx",
     "../../components/MessagesList/components/EditedBadge.tsx",
+    "../../components/MessagesList/components/ViewOnceBadge.tsx",
     "../../components/MessagesList/components/MessageEditsDialog.tsx",
     "../../components/MessageInput/DropZone.tsx",
     "../../components/MessageInput/components/MediaPreviewPanel.tsx",
