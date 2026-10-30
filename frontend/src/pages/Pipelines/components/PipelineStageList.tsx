@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils";
 import { STAGE_COLOR_PALETTE, getColorByKey } from "../pipelineCreatorTypes";
 import type { StageFormItem } from "../pipelineCreatorTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PipelineStageListProps {
     stages: StageFormItem[];
     onStageChange: (index: number, value: string) => void;
@@ -47,7 +50,7 @@ function ColorPicker({
 
             {open && (
                 <div className="absolute right-0 top-8 z-20 rounded-xl border bg-popover shadow-lg p-2.5 w-40">
-                    <p className="text-[11px] text-muted-foreground mb-2 font-medium">Cor da etapa</p>
+                    <p className="text-[11px] text-muted-foreground mb-2 font-medium">{tr("uiText.pipelines.stageColor")}</p>
                     <div className="flex flex-wrap gap-2">
                         {STAGE_COLOR_PALETTE.map((c) => (
                             <button
@@ -90,7 +93,7 @@ const PipelineStageList: React.FC<PipelineStageListProps> = ({
                     <span className="text-muted-foreground font-normal">[{stages.length}]</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                    Defina o nome e a cor de cada estágio do funil
+                    {tr("uiText.pipelines.stagesHint")}
                 </p>
             </div>
             <Button
@@ -101,7 +104,7 @@ const PipelineStageList: React.FC<PipelineStageListProps> = ({
                 className="shrink-0 text-xs h-8"
             >
                 <Plus className="h-3.5 w-3.5 mr-1" />
-                Adicionar
+                {tr("uiText.common.add")}
             </Button>
         </div>
 
@@ -123,7 +126,7 @@ const PipelineStageList: React.FC<PipelineStageListProps> = ({
                                 type="button"
                                 onClick={() => onMoveStage(index, "up")}
                                 disabled={index === 0}
-                                aria-label={`Mover "${stage.name}" para cima`}
+                                aria-label={tr("uiText.pipelines.moveUp", { name: stage.name })}
                                 className="h-3.5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:pointer-events-none"
                             >
                                 <ChevronUp className="h-3 w-3" />
@@ -132,7 +135,7 @@ const PipelineStageList: React.FC<PipelineStageListProps> = ({
                                 type="button"
                                 onClick={() => onMoveStage(index, "down")}
                                 disabled={index === stages.length - 1}
-                                aria-label={`Mover "${stage.name}" para baixo`}
+                                aria-label={tr("uiText.pipelines.moveDown", { name: stage.name })}
                                 className="h-3.5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:pointer-events-none"
                             >
                                 <ChevronDown className="h-3 w-3" />
@@ -157,7 +160,7 @@ const PipelineStageList: React.FC<PipelineStageListProps> = ({
                             className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-foreground placeholder:text-muted-foreground min-w-0"
                             value={stage.name}
                             onChange={(e) => onStageChange(index, e.target.value)}
-                            placeholder="Nome da etapa"
+                            placeholder={tr("uiText.pipelines.stageName")}
                         />
 
                         {/* Color picker */}

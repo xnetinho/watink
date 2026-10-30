@@ -18,6 +18,9 @@ import PipelineStageList from "./components/PipelineStageList";
 import PipelinePreview from "./components/PipelinePreview";
 import PipelineAIChat from "./components/PipelineAIChat";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 function SectionHeader({
     icon,
     title,
@@ -79,19 +82,17 @@ const PipelineCreator: React.FC = () => {
             <Dialog open={pendingSave} onOpenChange={setPendingSave}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Confirmar alteração de etapas</DialogTitle>
+                        <DialogTitle>{tr("uiText.pipelines.confirmStages")}</DialogTitle>
                         <DialogDescription>
-                            As seguintes etapas serão removidas:{" "}
-                            <strong>{removedStages.join(", ")}</strong>. Os deals nessas etapas
-                            serão movidos automaticamente para a primeira etapa disponível.
-                            Deseja continuar?
+                            {tr("uiText.pipelines.removedStages")}{" "}
+                            <strong>{removedStages.join(", ")}</strong>. {tr("uiText.pipelines.removedStagesHint")}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setPendingSave(false)}>
-                            Cancelar
+                            {tr("uiText.common.cancel")}
                         </Button>
-                        <Button onClick={handleSave}>Confirmar e Salvar</Button>
+                        <Button onClick={handleSave}>{tr("uiText.pipelines.confirmSave")}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -108,10 +109,10 @@ const PipelineCreator: React.FC = () => {
                         </Button>
                         <div>
                             <h1 className="text-base font-semibold leading-tight">
-                                {pipelineId ? "Editar Pipeline" : "Novo Pipeline"}
+                                {pipelineId ? "Editar Pipeline" : tr("uiText.pipelines.new")}
                             </h1>
                             <p className="text-xs text-muted-foreground">
-                                Configure as etapas do seu funil de vendas e a cor de cada estágio
+                                {tr("uiText.pipelines.newHint")}
                             </p>
                         </div>
                     </div>
@@ -124,8 +125,8 @@ const PipelineCreator: React.FC = () => {
                         <section>
                             <SectionHeader
                                 icon={<Pencil className="h-4 w-4" />}
-                                title="Definições"
-                                subtitle="Identifique o pipeline e como ele será exibido"
+                                title={tr("uiText.pipelines.settings")}
+                                subtitle={tr("uiText.pipelines.settingsHint")}
                             />
                             <PipelineFormFields data={data} onChange={setData} />
                         </section>
@@ -137,7 +138,7 @@ const PipelineCreator: React.FC = () => {
                             <SectionHeader
                                 icon={<Layers className="h-4 w-4" />}
                                 title="Etapas"
-                                subtitle="Defina o nome e a cor de cada estágio do funil"
+                                subtitle={tr("uiText.pipelines.stagesHint")}
                                 iconColor="hsl(var(--status-info))"
                                 iconBg="hsl(var(--status-info-bg))"
                             />
@@ -157,8 +158,8 @@ const PipelineCreator: React.FC = () => {
                         <section>
                             <SectionHeader
                                 icon={<Eye className="h-4 w-4" />}
-                                title="Prévia do funil"
-                                subtitle="Veja como suas etapas aparecerão para a equipe"
+                                title={tr("uiText.pipelines.preview")}
+                                subtitle={tr("uiText.pipelines.previewHint")}
                                 iconColor="hsl(var(--status-success))"
                                 iconBg="hsl(var(--status-success-bg))"
                             />
@@ -173,7 +174,7 @@ const PipelineCreator: React.FC = () => {
                             >
                                 <Lightbulb className="h-3.5 w-3.5 shrink-0" />
                                 <span className="font-medium">
-                                    Atualiza em tempo real conforme você edita as etapas acima
+                                    {tr("uiText.pipelines.previewLive")}
                                 </span>
                             </div>
 
@@ -187,7 +188,7 @@ const PipelineCreator: React.FC = () => {
                                 onClick={() => navigate("/pipelines")}
                                 className="min-w-[100px]"
                             >
-                                Cancelar
+                                {tr("uiText.common.cancel")}
                             </Button>
                             <Button
                                 disabled={loading || !data.name.trim()}
@@ -200,7 +201,7 @@ const PipelineCreator: React.FC = () => {
                                         Salvando...
                                     </>
                                 ) : (
-                                    "Salvar Pipeline"
+                                    tr("uiText.pipelines.save")
                                 )}
                             </Button>
                         </div>

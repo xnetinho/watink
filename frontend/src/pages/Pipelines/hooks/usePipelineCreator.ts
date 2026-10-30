@@ -9,10 +9,13 @@ import {
     type StageFormItem,
     type ChatMessage,
     INITIAL_FORM_DATA,
-    INITIAL_CHAT_MESSAGE,
+    initialChatMessage,
     getDefaultColorKey,
 } from "../pipelineCreatorTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export function usePipelineCreator() {
     const navigate = useNavigate();
     const { pipelineId } = useParams<{ pipelineId: string }>();
@@ -23,7 +26,7 @@ export function usePipelineCreator() {
     const [loading, setLoading] = useState(false);
     const [aiEnabled, setAiEnabled] = useState(false);
     const [pendingSave, setPendingSave] = useState(false);
-    const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_CHAT_MESSAGE]);
+    const [messages, setMessages] = useState<ChatMessage[]>([initialChatMessage()]);
     const [input, setInput] = useState("");
     const [aiLoading, setAiLoading] = useState(false);
 
@@ -68,12 +71,12 @@ export function usePipelineCreator() {
                         ...prev,
                         {
                             role: "ai",
-                            content: `Estou pronto para ajudar a editar o pipeline "${pipeline.name}".`,
+                            content: tr("uiText.pipelines.readyToEdit", { name: pipeline.name }),
                         },
                     ]);
                 }
             } catch {
-                toast.error("Erro ao carregar pipeline para edição");
+                toast.error(tr("uiText.pipelines.loadEditError"));
             }
         };
 
@@ -91,7 +94,7 @@ export function usePipelineCreator() {
 
     const handleSave = async () => {
         if (!data.name) {
-            toast.error("O nome do pipeline é obrigatório");
+            toast.error(tr("uiText.pipelines.nameRequired"));
             return;
         }
         if (pipelineId && removedStages.length > 0 && !pendingSave) {
@@ -107,14 +110,14 @@ export function usePipelineCreator() {
             };
             if (pipelineId) {
                 await api.put(`/pipelines/${pipelineId}`, payload);
-                toast.success("Pipeline atualizado com sucesso!");
+                toast.success(tr("uiText.pipelines.updated"));
             } else {
                 await api.post("/pipelines", payload);
-                toast.success("Pipeline criado com sucesso!");
+                toast.success(tr("uiText.pipelines.created"));
             }
             navigate("/pipelines");
         } catch {
-            toast.error("Erro ao salvar pipeline");
+            toast.error(tr("uiText.pipelines.saveError"));
         }
         setLoading(false);
     };
@@ -133,7 +136,7 @@ export function usePipelineCreator() {
 
     const handleAddStage = () => {
         const newStage: StageFormItem = {
-            name: "Nova Etapa",
+            name: tr("uiText.pipelines.newStage"),
             colorKey: getDefaultColorKey(data.stages.length),
         };
         setData({ ...data, stages: [...data.stages, newStage] });
@@ -184,7 +187,7 @@ export function usePipelineCreator() {
         } catch (err) {
             const axiosErr = err as AxiosError<{ error?: string }>;
             const errorMessage =
-                axiosErr.response?.data?.error ?? axiosErr.message ?? "Erro desconhecido";
+                axiosErr.response?.data?.error ?? axiosErr.message ?? tr("uiText.pipelines.unknownError");
             let helpfulTip = "";
             if (
                 errorMessage.includes("ERR_NO_AI_API_KEY") ||
@@ -192,11 +195,11 @@ export function usePipelineCreator() {
                 axiosErr.response?.status === 400
             ) {
                 helpfulTip =
-                    "\n\nDica: Verifique em Configurações > Inteligência Artificial se a API Key, Modelo e Provedor estão corretos.";
+                    "\n\n" + tr("uiText.pipelines.aiTip");
             }
             setMessages((prev) => [
                 ...prev,
-                { role: "ai", content: `Ocorreu um erro: ${errorMessage}.${helpfulTip}` },
+                { role: "ai", content: tr("uiText.pipelines.errorOccurred", { error: errorMessage, tip: helpfulTip }) },
             ]);
         }
         setAiLoading(false);

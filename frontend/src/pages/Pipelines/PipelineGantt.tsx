@@ -11,6 +11,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getContactDisplayName } from "@/utils/clientDisplayName";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Contact {
     name?: string;
     client?: { socialName?: string | null } | null;
@@ -38,17 +41,17 @@ const PipelineGantt: React.FC<PipelineGanttProps> = ({ deals }) => {
     return (
         <Card className="m-4">
             <CardHeader>
-                <CardTitle>Cronograma de Deals</CardTitle>
+                <CardTitle>{tr("uiText.pipelines.gantt")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead>Deal</TableHead>
-                            <TableHead>Contato</TableHead>
-                            <TableHead>Criado em</TableHead>
-                            <TableHead>Atualizado em</TableHead>
-                            <TableHead>Dias no Pipeline</TableHead>
+                            <TableHead>{tr("uiText.common.contact")}</TableHead>
+                            <TableHead>{tr("uiText.helpdesk.createdAt")}</TableHead>
+                            <TableHead>{tr("uiText.pipelines.updatedAt")}</TableHead>
+                            <TableHead>{tr("uiText.pipelines.daysInPipeline")}</TableHead>
                             <TableHead>Valor</TableHead>
                         </TableRow>
                     </TableHeader>
