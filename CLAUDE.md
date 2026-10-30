@@ -130,6 +130,8 @@ docker compose -f docker-compose.dev.yml logs --tail=100 watink-business
 docker compose -f docker-compose.dev.yml logs --tail=100 watink-frontend
 ```
 
+**Rebuild do `lt` (stack local de teste):** o cache do Docker chega a dezenas de GB e o build falha com `ResourceExhausted` ao copiar `.git-src`. Rode `docker builder prune -af` antes de reconstruir `watink-business` e `watink-engine`.
+
 ### Smoke Test
 ```bash
 SMOKE_BASE_URL=http://localhost:3000 SMOKE_EMAIL=admin@test.com SMOKE_PASS=test1234 node scripts/playwright-smoke.js
@@ -171,6 +173,13 @@ SMOKE_BASE_URL=http://localhost:3000 SMOKE_EMAIL=admin@test.com SMOKE_PASS=test1
 3. **PROIBIDO INVENTAR CONTEXTO** — sempre use `Read` antes de `Edit` em arquivo desconhecido.
 4. **CICLO OBRIGATÓRIO**: Read → Edit → Build.
 5. **QUEBRA DE LOOP** — se `Edit` falhar 2 vezes seguidas ou `go build` repetir erro estrutural: PARE e alerte o desenvolvedor.
+
+### Textos de interface (i18n)
+
+- Nenhum texto visível ao usuário fica fixo no código: use `tr("uiText....")` e as chaves em `frontend/src/translate/languages/{pt,en,es}.ts` (os 3 idiomas, mesmas chaves).
+- Em constantes de módulo guarde a **chave** e traduza no uso; `tr()` fora de função congela o idioma no carregamento.
+- Valor que não é texto de tela (gravado no banco, enviado à API, nome fictício) leva `// i18n-ignore` na linha, com a justificativa.
+- Datas e horas: `dateLocale()` e `localeTag()` (`src/lib/dateLocale.ts`). Os testes `noHardcodedText` e `noModuleLevelTranslation` cobram tudo isso.
 
 ### Modularidade (Anti-God File)
 

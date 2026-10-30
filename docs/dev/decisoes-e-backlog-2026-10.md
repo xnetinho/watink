@@ -17,11 +17,20 @@ Registro do que foi decidido ao fechar a consolidação de canais, para não dep
 
 ## Backlog
 
-1. **Vigia de entrega (confiabilidade).** O engine só trata o erro de retorno de `SendMessage`. `Failed to encrypt` é só WARN do whatsmeow, então uma mensagem aceita pelo servidor mas sem `<receipt>` do aparelho fica parada em ack 2 sem aviso. Proposta: guardar o envio aguardando ack, com prazo; sem recibo, virar ack 5 e avisar o operador; reenvio automático limitado (risco de duplicar). **Falta decidir** prazo e política (só aviso ou reenvio).
-2. **"Aguardando mensagem" no primeiro envio a contato novo.** O log mostra `Failed to encrypt … no signal session`. Causa não provada; testar texto comum a contato novo.
-3. **Migração `Whatsapps` → `ChannelConnections`.** ~90 arquivos de produção; eliminar a dívida do campo `source`, em fatias verticais.
-4. **Voz** (ver `backlog-voz-transcricao-sintese.md`): transcrição, síntese e chamadas automatizadas pelo flowbuilder; exige desacoplar o código de chamadas.
-5. **Menores:** textos fixos que restam no frontend; áudio WAV, vídeo e sticker enviados pelo operador; `ThumbnailDirectPath/SHA256` do PDF só se a prévia falhar; emojis lado a lado com o WhatsApp Web não comparados.
-6. **Edição de mensagens enviadas pelo WhatsApp** (ver `backlog-edicao-mensagens.md`): a API existe no whatsmeow (`BuildEdit`, janela de 20 min); falta contrato, engine, backend e tela. A edição do contato hoje é descartada em silêncio.
-7. **Datas/horas de entrega e leitura (estilo "Dados da mensagem" do WhatsApp Web).** Hoje só `Messages.ack` é guardado; o engine descarta o horário (`v.Timestamp`) e o remetente (`v.Sender`) do recibo. Desenho: tabela `MessageReceipts` (mensagem, participante, estágio entregue/lida/reproduzida, horário), só no modelo GORM (no `lt`, criar à mão com o DDL idêntico); o engine envia horário e participante no `message.ack`; `GET /message/:id/receipts`; item "Dados da mensagem" no menu da mensagem, textos nos 3 idiomas. **Decisões do usuário:** vale para grupos (lista por participante) e conversa individual; mensagens antigas ficam sem data, sem backfill. Limite: sem recibo de leitura (confirmação desligada no aparelho do contato) só aparece "entregue".
-8. **Enviar mídia como visualização única** (painel de arrastar e soltar, como no WhatsApp Web): hoje só existe a recepção (Epic 11). Falta botão de olho por mídia, campo `viewOnce` no envio e `ViewOnce=true` em `buildMediaMessage`. Decidir antes como a mensagem aparece para nós depois de enviada e se vale para áudio. Risco: o aparelho vinculado pode não ter esse comportamento; validar com a conexão 2 antes de entregar.
+Ordem acordada: A, B, E, F (C encerrado, D entregue).
+
+**Entregue / encerrado**
+
+- **Vigia de entrega e reenvio manual** (#115/#116): ack 0 parado >2 min vira falha (ack 5); recibo 1–4 depois do 5 desfaz; `UseRetryMessageStore` ligado.
+- **Edição de mensagens** (#118–#122): receber e enviar, histórico, selo.
+- **Visualização única, recepção** (#124, Epic 11): ao responder no celular principal o Watink baixa a mídia, guarda e mostra como mídia comum com selo.
+- **Textos fixos** (#127–#131): `src/` inteiro sem texto fixo em português; guarda `noHardcodedText` sem exceções (valor que não é texto de tela leva `// i18n-ignore`); guarda `noModuleLevelTranslation` impede `tr()` fora de função.
+- **Menores (antigo item 5):** WAV (conversão para OGG/Opus), vídeo e PDF já saem como o cliente oficial; emojis locais (#105). Só falta sticker pelo painel (junto da B).
+- **"Aguardando mensagem" no primeiro envio (antigo item 2): ENCERRADO por falta de evidência** (30/out/2026). O aviso foi visto no celular do Diomedes antes do vigia e do `UseRetryMessageStore`; não reproduzido (texto a contato novo, sessão local apagada e número fora do WhatsApp foram testados e não geram o sintoma). Reabrir se voltar a ocorrer, anotando o horário para cruzar com o log do engine.
+
+**Fila**
+
+1. **A. Datas/horas de entrega e leitura (estilo "Dados da mensagem" do WhatsApp Web).** Hoje só `Messages.ack` é guardado; o engine descarta o horário (`v.Timestamp`) e o remetente (`v.Sender`) do recibo. Desenho: tabela `MessageReceipts` (mensagem, participante, estágio entregue/lida/reproduzida, horário), só no modelo GORM (no `lt`, criar à mão com o DDL idêntico); o engine envia horário e participante no `message.ack`; `GET /message/:id/receipts`; item "Dados da mensagem" no menu da mensagem, textos nos 3 idiomas. **Decisões do usuário:** vale para grupos (lista por participante) e conversa individual; mensagens antigas ficam sem data, sem backfill. Limite: sem recibo de leitura (confirmação desligada no aparelho do contato) só aparece "entregue".
+2. **B. Enviar mídia como visualização única** (painel de arrastar e soltar, como no WhatsApp Web): hoje só existe a recepção. Falta botão de olho por mídia, campo `viewOnce` no envio e `ViewOnce=true` em `buildMediaMessage`; aproveitar para expor sticker no painel. Decidir antes como a mensagem aparece para nós depois de enviada e se vale para áudio. Risco: o aparelho vinculado pode não ter esse comportamento; validar com a conexão 2 antes de entregar.
+3. **E. Migração `Whatsapps` → `ChannelConnections`.** `models.Whatsapp` em 38 arquivos de produção, `WhatsappID` em 52, tabela `"Whatsapps"` em 21; 63 arquivos de teste e 65 no frontend (`whatsappId`). Fatias verticais, sem coexistência, suíte inteira verde em cada uma. Alto risco de regressão: começa por um desenho das fatias.
+4. **F. Voz** (ver `backlog-voz-transcricao-sintese.md`): transcrição, síntese e chamadas automatizadas pelo flowbuilder; exige estudar os dois repositórios MIT e desacoplar `internal/calls` e `internal/voip`. Primeiro PR: estudo de viabilidade.
