@@ -56,3 +56,39 @@ describe("anexos: tipo do áudio", () => {
     expect(result.current.medias.map((m) => m.file.name)).toEqual(["b.png"]);
   });
 });
+
+describe("anexos: visualização única", () => {
+  it("o olho de cada mídia vai na SUA requisição; sem o olho, nada é enviado", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.png", "image/png"), f("b.png", "image/png"), f("c.mp4", "video/mp4")), "", vi.fn()));
+    act(() => result.current.handleViewOnceChange(0, true));
+    act(() => result.current.handleViewOnceChange(2, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls.map(([, form]) => form.get("viewOnce"))).toEqual(["true", null, "true"]);
+  });
+
+  it("desligar o olho tira o campo", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.png", "image/png")), "", vi.fn()));
+    act(() => result.current.handleViewOnceChange(0, true));
+    act(() => result.current.handleViewOnceChange(0, false));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls[0][1].get("viewOnce")).toBeNull();
+  });
+
+  it("documento nunca leva o campo, mesmo se alguém ligar o olho (não existe visualização única de PDF)", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("c.pdf", "application/pdf")), "", vi.fn()));
+    act(() => result.current.handleViewOnceChange(0, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls[0][1].get("viewOnce")).toBeNull();
+  });
+
+  it("áudio aceita (mensagem de voz ou arquivo)", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.mp3", "audio/mpeg")), "", vi.fn()));
+    act(() => result.current.handleViewOnceChange(0, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls[0][1].get("viewOnce")).toBe("true");
+  });
+});

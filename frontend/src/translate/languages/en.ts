@@ -513,6 +513,8 @@ const messages = {
           hint: "Watink can't display this message type yet ({{kind}}). Open it on the phone or in the channel app.",
         },
         viewOnce: {
+          badgeSent: "View once",
+          badgeSentHint: "The recipient sees this media only once. Here in Watink it stays stored for your records.",
           title: "View once",
           hint: "WhatsApp only delivers this content to the phone. Reply to the message on the phone and the media shows up here.",
           badge: "View once",
@@ -908,6 +910,9 @@ const messages = {
           hint: "Images, videos, audio and documents",
         },
         preview: {
+          viewOnce: "View once",
+          viewOnceHint: "Send to be viewed only once",
+          viewOnceOn: "Will be sent as view once",
           cancel: "Cancel sending",
           caption: "Add a caption",
           remove: "Remove",

@@ -34,9 +34,11 @@ interface MessageInputProps {
   ticketStatus: string;
   whatsappStatus?: string;
   replyPolicy?: ReplyPolicyUI;
+  /** Canal do ticket. Visualização única só existe no WhatsApp; sem canal informado, vale (padrão histórico). */
+  channel?: string;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatus, replyPolicy }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatus, replyPolicy, channel }) => {
   const { appTheme } = useThemeContext();
 
   const {
@@ -65,6 +67,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
     handleDropFiles,
     handleMediaCaptionChange,
     handleAudioKindChange,
+    handleViewOnceChange,
     handleUploadMedia,
     handleRemoveMedia,
     handleClearMedias,
@@ -126,6 +129,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
         onRemoveMedia={handleRemoveMedia}
         onCaptionChange={handleMediaCaptionChange}
         onAudioKindChange={handleAudioKindChange}
+        onViewOnceChange={!channel || channel === "whatsapp" ? handleViewOnceChange : undefined}
         onAddMore={handleChangeMedias}
         onCancelAll={handleClearMedias}
         onUpload={handleUploadMedia}

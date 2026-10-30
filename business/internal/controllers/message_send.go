@@ -114,6 +114,8 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	var body, mediaType, mediaURL, mimeType, quotedID string
 	// voice: o áudio é uma GRAVAÇÃO (bolha de voz com onda), não um arquivo de áudio. Só vale para mediaType=audio.
 	var voice bool
+	// viewOnce: foto, vídeo ou áudio enviado para ser visto uma única vez (olho no painel de envio).
+	var viewOnce bool
 	// fileName é o nome ORIGINAL do arquivo anexado: o destinatário vê este nome, não o hash com que o arquivo é salvo.
 	var fileName string
 
@@ -153,6 +155,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		body = c.PostForm("body")
 		quotedID = c.PostForm("quotedMsgId")
 		voice = c.PostForm("audioKind") == "voice"
+		viewOnce = c.PostForm("viewOnce") == "true"
 		file, header, err := c.Request.FormFile("medias")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "medias file required for multipart"})
@@ -177,6 +180,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	res, viaChannel, fail := mc.deliver(c.Request.Context(), db, tenantID, ticket, outboundInput{
 		Body: body, MediaType: mediaType, MediaURL: mediaURL, MimeType: mimeType, QuotedID: quotedID,
 		Voice:    voice && mediaType == "audio",
+		ViewOnce: viewOnce && canBeViewOnce(mediaType),
 		FileName: fileName,
 	})
 	if fail != nil {
@@ -189,6 +193,16 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	}
 	mc.announce(db, tenantID, res)
 	c.JSON(http.StatusOK, gin.H{"message": "Message sent", "messageId": res.ID})
+}
+
+// canBeViewOnce diz se o tipo aceita visualização única: foto, vídeo e áudio. Documento e figurinha não têm esse modo no
+// WhatsApp; o pedido é ignorado em vez de falhar (o arquivo sai como mídia comum).
+func canBeViewOnce(mediaType string) bool {
+	switch mediaType {
+	case "image", "video", "audio":
+		return true
+	}
+	return false
 }
 
 // sanitizeMimeType strips newlines and control characters from a user-supplied

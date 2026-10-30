@@ -119,3 +119,37 @@ describe("pré-visualização estilo WhatsApp Web", () => {
     expect(p.onAudioKindChange).toHaveBeenCalled();
   });
 });
+
+describe("MediaPreviewPanel — visualização única", () => {
+  it("foto, vídeo e áudio mostram o olho; clicar liga e desliga na mídia selecionada", () => {
+    for (const [name, type] of [["a.png", "image/png"], ["a.mp4", "video/mp4"], ["a.mp3", "audio/mpeg"]]) {
+      const onViewOnceChange = vi.fn();
+      const { unmount } = render(
+        <MediaPreviewPanel medias={[item(name, type)]} loading={false} onRemoveMedia={vi.fn()} onCaptionChange={vi.fn()} onAudioKindChange={vi.fn()} onViewOnceChange={onViewOnceChange} onAddMore={vi.fn()} onCancelAll={vi.fn()} onUpload={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByTestId("media-preview-view-once"));
+      expect(onViewOnceChange).toHaveBeenCalledWith(0, true);
+      unmount();
+    }
+  });
+
+  it("ligado: o botão fica marcado e o clique desliga", () => {
+    const onViewOnceChange = vi.fn();
+    render(
+      <MediaPreviewPanel medias={[item("a.png", "image/png", "", { viewOnce: true })]} loading={false} onRemoveMedia={vi.fn()} onCaptionChange={vi.fn()} onAudioKindChange={vi.fn()} onViewOnceChange={onViewOnceChange} onAddMore={vi.fn()} onCancelAll={vi.fn()} onUpload={vi.fn()} />,
+    );
+    const btn = screen.getByTestId("media-preview-view-once");
+    expect(btn).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(btn);
+    expect(onViewOnceChange).toHaveBeenCalledWith(0, false);
+  });
+
+  it("documento não mostra o olho; sem o canal certo (Telegram) ninguém mostra", () => {
+    setup([item("a.pdf", "application/pdf")], { onViewOnceChange: vi.fn() });
+    expect(screen.queryByTestId("media-preview-view-once")).toBeNull();
+  });
+  it("sem onViewOnceChange (canal sem suporte) o olho não aparece nem em foto", () => {
+    setup([item("a.png", "image/png")]);
+    expect(screen.queryByTestId("media-preview-view-once")).toBeNull();
+  });
+});

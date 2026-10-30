@@ -34,6 +34,7 @@ type outboundInput struct {
 	Body, MediaType, MediaURL, MimeType, QuotedID string
 	DataJSON                                      string
 	Voice                                         bool // áudio enviado como gravação (PTT)
+	ViewOnce                                      bool // foto, vídeo ou áudio enviado como visualização única
 	FileName                                      string
 	Forward                                       *forwardInput
 }
@@ -74,6 +75,9 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 		if in.FileName != "" {
 			d["fileName"] = in.FileName // o encaminhamento reenvia com o mesmo nome
 		}
+		if in.ViewOnce {
+			d["viewOnce"] = true // a tela mostra o selo "Visualização única" também na mensagem que ENVIAMOS
+		}
 		if len(d) > 0 {
 			if b, err := json.Marshal(d); err == nil {
 				dataJSON = string(b)
@@ -110,6 +114,12 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 				}
 			}
 		}
+	}
+
+	// Visualização única só existe no WhatsApp. Pedir em outro canal e mandar como mídia comum enganaria o operador (e o
+	// selo da tela diria o contrário do que saiu): recusa com mensagem clara.
+	if in.ViewOnce && ticket.ChannelConnectionID != nil {
+		return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "view_once_not_supported"}
 	}
 
 	// Se o ticket pertencer a uma ChannelConnection agnóstica registrada, despacha pelo canal (Tarefa 4.2 / ADR 0033)
@@ -220,6 +230,9 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 		}
 		if in.FileName != "" {
 			payload["fileName"] = in.FileName
+		}
+		if in.ViewOnce {
+			payload["viewOnce"] = true
 		}
 		if in.Voice {
 			// O engine converte para OGG/Opus e envia como mensagem de voz; a mensagem segue gravada como "audio".
