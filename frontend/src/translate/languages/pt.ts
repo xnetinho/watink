@@ -667,6 +667,8 @@ const messages = {
         forwarded: "Encaminhada",
         edited: "Editada",
         edits: {
+          youEdited: "Você editou",
+          youEditedMany: "Você editou {{count}} vezes",
           editedMany: "Editada {{count}} vezes",
           viewHistory: "Ver histórico de edições",
           title: "Histórico de edições",

@@ -145,7 +145,18 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
             }}
           />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[140px]">
+        {/*
+          Mensagem NOSSA fica colada na borda direita da tela: com o menu alinhado pelo fim do botão ele estourava para fora e
+          ficava cortado. Nas nossas, o menu abre para a ESQUERDA do botão; nas do contato (à esquerda da tela) segue para a direita.
+        */}
+        <DropdownMenuContent
+          side={message.fromMe ? "left" : "bottom"}
+          align={message.fromMe ? "start" : "end"}
+          collisionPadding={8}
+          className="min-w-[140px]"
+          data-testid="message-options-content"
+          data-side-pref={message.fromMe ? "left" : "right"}
+        >
           <div className="flex items-center justify-between gap-0.5 px-1 py-1">
             {QUICK_REACTIONS.map((emoji) => (
               <button

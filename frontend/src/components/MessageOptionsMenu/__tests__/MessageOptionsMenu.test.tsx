@@ -72,3 +72,22 @@ describe("MessageOptionsMenu — alinhamento do popup", () => {
     document.body.removeChild(anchorEl);
   });
 });
+
+describe("MessageOptionsMenu — lado em que abre", () => {
+  const open = (fromMe: boolean) =>
+    render(<MessageOptionsMenu message={{ id: 7, fromMe }} menuOpen handleClose={() => undefined} anchorEl={null} />);
+
+  it("na mensagem NOSSA (colada na borda direita da tela) o menu abre para a ESQUERDA, para não ser cortado", () => {
+    open(true);
+    const menu = screen.getByTestId("message-options-content");
+    expect(menu.getAttribute("data-side")).toBe("left");
+    expect(menu.getAttribute("data-side-pref")).toBe("left");
+  });
+
+  it("na mensagem do contato (à esquerda da tela) o menu abre para baixo/direita, como sempre", () => {
+    open(false);
+    const menu = screen.getByTestId("message-options-content");
+    expect(menu.getAttribute("data-side")).toBe("bottom");
+    expect(menu.getAttribute("data-side-pref")).toBe("right");
+  });
+});

@@ -10,6 +10,12 @@ const tr = (key: string, opts: Record<string, string | number> = {}): string => 
  * Selo "Editada" do balão, no rodapé à esquerda (o horário fica à direita). Mostra que a mensagem mudou e abre o histórico completo (todas as versões, do original ao
  * texto atual, com data e hora). Some quando a mensagem nunca foi editada.
  */
+// Na mensagem NOSSA o selo diz que fomos nós que editamos; na do contato, que ela foi editada.
+const label = (fromMe: boolean, count: number): string => {
+  if (fromMe) return tr(count > 1 ? "chat.edits.youEditedMany" : "chat.edits.youEdited", { count });
+  return tr(count > 1 ? "chat.edits.editedMany" : "chat.edited", { count });
+};
+
 const EditedBadge: React.FC<{ message: Message }> = ({ message }) => {
   const [open, setOpen] = useState(false);
   const count = Number(message.editCount ?? 0);
@@ -25,7 +31,7 @@ const EditedBadge: React.FC<{ message: Message }> = ({ message }) => {
         data-testid="edited-badge"
       >
         <Pencil className="h-3 w-3" aria-hidden="true" />
-        {tr(count > 1 ? "chat.edits.editedMany" : "chat.edited", { count })}
+        {label(message.fromMe, count)}
       </button>
       {open && <MessageEditsDialog messageId={message.id} onClose={() => setOpen(false)} />}
     </>
