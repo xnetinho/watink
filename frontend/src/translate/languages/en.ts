@@ -953,6 +953,15 @@ const messages = {
         },
       },
       messageOptionsMenu: {
+        edit: "Edit",
+        editDialog: {
+          title: "Edit message",
+          titleCaption: "Edit caption",
+          field: "Message text",
+          hint: "WhatsApp only allows editing up to 20 minutes after sending. The contact will see the message was edited.",
+          cancel: "Cancel",
+          save: "Save",
+        },
         reactWith: "React with {{emoji}}",
         forward: "Forward",
         forwardDialog: {

@@ -84,6 +84,16 @@ func RecordEdit(ctx context.Context, db *gorm.DB, in RecordEditInput) (RecordEdi
 				return nil
 			}
 		}
+		// Eco: o texto é igual ao da versão ATUAL. Acontece quando a edição que enviamos volta pelo barramento (o aparelho
+		// pareado a reenvia) com outro horário. Editar para o mesmo texto não é uma nova versão.
+		if n := len(versions); n > 0 && versions[n-1].Body == in.Body {
+			res.Message, res.Duplicate = &msg, true
+			return nil
+		}
+		if len(versions) == 0 && msg.Body == in.Body {
+			res.Message, res.Duplicate = &msg, true
+			return nil
+		}
 
 		// Primeira edição: o texto que a mensagem tinha até agora é a versão 1.
 		if len(versions) == 0 {
