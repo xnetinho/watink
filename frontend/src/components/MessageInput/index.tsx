@@ -1,5 +1,5 @@
 /* @jsxImportSource react */
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import clsx from "clsx";
 import { Send, Mic, XOctagon, CheckCircle } from "lucide-react";
 import { Loader2 } from "lucide-react";
@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import RecordingTimer from "./RecordingTimer";
 import { i18n } from "../../translate/i18n";
 import { useThemeContext } from "../../context/DarkMode";
+import { useMediaDrop } from "../../context/MediaDrop/MediaDropContext";
 
 import { useMessageInput } from "./hooks/useMessageInput";
 import ReplyPreview from "./components/ReplyPreview";
@@ -59,6 +60,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
     handleAddEmoji,
     handleChangeMedias,
     handleInputPaste,
+    handleDropFiles,
     handleMediaCaptionChange,
     handleAudioKindChange,
     handleUploadMedia,
@@ -70,6 +72,13 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
     handleCancelAudio,
     handleMentionClick,
   } = useMessageInput();
+
+  // A área da conversa (que cobre a lista inteira) entrega aqui os arquivos soltos. O ref mantém a função sempre atual,
+  // sem refazer o registro a cada digitação (o texto digitado vira a legenda do primeiro arquivo).
+  const { register } = useMediaDrop();
+  const dropRef = useRef(handleDropFiles);
+  dropRef.current = handleDropFiles;
+  useEffect(() => register((files) => dropRef.current(files)), [register]);
 
   if (ticketStatus !== "open") {
     return (
