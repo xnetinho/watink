@@ -115,7 +115,7 @@ const NodeEditorSidebar: React.FC<NodeEditorSidebarProps> = ({
       <SheetContent side="right" className="w-[380px] p-0 overflow-hidden flex flex-col">
         <SheetHeader className="px-4 py-3 border-b flex-row items-center justify-between space-y-0">
           <SheetTitle className="text-sm">
-            {NODE_TITLES[node.type] || tr("uiText.flow.editor.configureNode")}
+            {NODE_TITLES[node.type] ? tr(NODE_TITLES[node.type]) : tr("uiText.flow.editor.configureNode")}
           </SheetTitle>
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -127,7 +127,7 @@ const NodeEditorSidebar: React.FC<NodeEditorSidebarProps> = ({
             <Label className="text-xs">{tr("uiText.flow.editor.nodeTitle")}</Label>
             <Input
               className="h-8 text-xs"
-              placeholder={NODE_TITLES[node.type]?.replace('Configurar ', '') || 'Título'}
+              placeholder={NODE_TITLES[node.type] ? tr(NODE_TITLES[node.type]).replace(/^(Configurar|Configure|Configurar) /, '') : tr('uiText.flow.editor.nodeTitle')}
               value={formData.label || ''}
               onChange={(e) => handleChange('label', e.target.value)}
             />

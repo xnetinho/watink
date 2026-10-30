@@ -22,12 +22,12 @@ import { WebchatModalProps } from "./webchatModalTypes";
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const SessionSchema = Yup.object().shape({
   name: Yup.string()
-    .min(2, tr("uiText.validation.tooShort"))
-    .max(50, tr("uiText.validation.tooLong"))
-    .required(tr("uiText.validation.required")),
+    .min(2, () => tr("uiText.validation.tooShort"))
+    .max(50, () => tr("uiText.validation.tooLong"))
+    .required(() => tr("uiText.validation.required")),
   chatConfig: Yup.object().shape({
-    title: Yup.string().required(tr("uiText.validation.required")),
-    subtitle: Yup.string().required(tr("uiText.validation.required")),
+    title: Yup.string().required(() => tr("uiText.validation.required")),
+    subtitle: Yup.string().required(() => tr("uiText.validation.required")),
   }),
 });
 

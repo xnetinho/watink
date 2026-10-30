@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router";
 import { GroupsApiError } from "./groupTypes";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface GroupsErrorStateProps {
     error: GroupsApiError;
 }
@@ -25,10 +28,10 @@ const GroupsErrorState: React.FC<GroupsErrorStateProps> = ({ error }) => {
                 <div>
                     <h3 className="text-lg font-semibold">Plugin bloqueado</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                        A gestão de Grupos e Comunidades exige o plugin "Grupos e Comunidades" ativo.
+                        {tr("uiText.groups.pluginRequired")}
                     </p>
                 </div>
-                <Button onClick={() => navigate("/admin/settings/plugins")}>Ir para Plugins</Button>
+                <Button onClick={() => navigate("/admin/settings/plugins")}>{tr("uiText.groups.goPlugins")}</Button>
             </div>
         );
     }
@@ -40,9 +43,9 @@ const GroupsErrorState: React.FC<GroupsErrorStateProps> = ({ error }) => {
                     <Clock className="h-8 w-8 text-[hsl(var(--status-warning-text))]" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-semibold">Muitas ações em sequência</h3>
+                    <h3 className="text-lg font-semibold">{tr("uiText.groups.tooMany")}</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                        {error.message || "Aguarde um instante antes de tentar de novo — isso protege o número contra banimento por atividade administrativa em massa."}
+                        {error.message || tr("uiText.groups.tooManyHint")}
                     </p>
                 </div>
             </div>
@@ -56,9 +59,9 @@ const GroupsErrorState: React.FC<GroupsErrorStateProps> = ({ error }) => {
                     <PlugZap className="h-8 w-8 text-[hsl(var(--status-default-text))]" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-semibold">Conexão sem suporte a grupos</h3>
+                    <h3 className="text-lg font-semibold">{tr("uiText.groups.noSupport")}</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                        A conexão selecionada não suporta gestão de grupos. Selecione outra conexão.
+                        {tr("uiText.groups.noSupportHint")}
                     </p>
                 </div>
             </div>
@@ -71,7 +74,7 @@ const GroupsErrorState: React.FC<GroupsErrorStateProps> = ({ error }) => {
                 <AlertTriangle className="h-8 w-8 text-[hsl(var(--status-error-text))]" />
             </div>
             <div>
-                <h3 className="text-lg font-semibold">Não foi possível carregar</h3>
+                <h3 className="text-lg font-semibold">{tr("uiText.groups.loadFail")}</h3>
                 <p className="text-sm text-muted-foreground mt-1 max-w-md">{error.message}</p>
             </div>
         </div>

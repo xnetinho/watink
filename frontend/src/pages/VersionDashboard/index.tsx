@@ -9,6 +9,9 @@ import RabbitMQCard from "./components/RabbitMQCard";
 import TenantConsumptionTable from "./components/TenantConsumptionTable";
 import UpdateDialog from "./components/UpdateDialog";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export default function VersionDashboard() {
   const {
     isSuperAdmin,
@@ -30,7 +33,7 @@ export default function VersionDashboard() {
   if (!isSuperAdmin) {
     return (
       <div className="container mt-6">
-        <p className="text-destructive">Acesso restrito ao superadmin.</p>
+        <p className="text-destructive">{tr("uiText.monitorQueues.superadminOnly")}</p>
       </div>
     );
   }

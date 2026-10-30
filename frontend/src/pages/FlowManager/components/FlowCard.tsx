@@ -13,6 +13,9 @@ import { Badge } from "../../../components/ui/badge";
 import { Switch } from "../../../components/ui/switch";
 import { Flow } from "../flowManagerTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FlowCardProps {
   flow: Flow;
   onEdit: (flow: Flow) => void;
@@ -40,7 +43,7 @@ const FlowCard: React.FC<FlowCardProps> = ({
               variant={flow.isActive ? "default" : "outline"}
               className="text-[10px] uppercase"
             >
-              {flow.isActive ? "Ativo" : "Inativo"}
+              {flow.isActive ? tr("uiText.common.active") : tr("uiText.common.inactive")}
             </Badge>
             <Switch
               checked={flow.isActive}

@@ -46,7 +46,7 @@ import type {
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const SessionSchema = Yup.object().shape({
-  name: Yup.string().min(2, "Muito curto!").max(50, "Muito longo!").required(tr("uiText.validation.required")),
+  name: Yup.string().min(2, "Muito curto!").max(50, "Muito longo!").required(() => tr("uiText.validation.required")),
 });
 
 interface ChannelSelectorModalProps {

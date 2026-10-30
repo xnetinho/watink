@@ -19,6 +19,7 @@ import { Label } from "../../../components/ui/label";
 
 import { i18n } from "../../../translate/i18n";
 
+import { localeTag } from "../../../lib/dateLocale";
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SaaSModeStatus {
   paired: boolean;
@@ -142,7 +143,7 @@ const SaaSModeSection: React.FC = () => {
             </Badge>
             {status.lastSyncAt ? (
               <p className="text-sm text-muted-foreground">
-                Última sincronização: {new Date(status.lastSyncAt).toLocaleString("pt-BR")}
+                Última sincronização: {new Date(status.lastSyncAt).toLocaleString(localeTag())}
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">

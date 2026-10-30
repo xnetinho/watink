@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/table";
 import type { Plan } from "../saasTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PlansTabProps {
     plans: Plan[];
     onAdd: () => void;
@@ -23,7 +26,7 @@ export function PlansTab({ plans, onAdd, onEdit, onDelete }: PlansTabProps) {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Configuração de Planos</h3>
+                <h3 className="text-lg font-medium">{tr("uiText.saas.plansConfig")}</h3>
                 <Button onClick={onAdd}>
                     <Plus className="mr-2 h-4 w-4" /> Novo Plano
                 </Button>
@@ -32,11 +35,11 @@ export function PlansTab({ plans, onAdd, onEdit, onDelete }: PlansTabProps) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Nome</TableHead>
+                            <TableHead>{tr("uiText.common.name")}</TableHead>
                             <TableHead>Plugins</TableHead>
-                            <TableHead>Preço</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="w-[120px] text-right">Ações</TableHead>
+                            <TableHead>{tr("uiText.saas.priceShort")}</TableHead>
+                            <TableHead>{tr("uiText.common.status")}</TableHead>
+                            <TableHead className="w-[120px] text-right">{tr("uiText.common.actions")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -53,7 +56,7 @@ export function PlansTab({ plans, onAdd, onEdit, onDelete }: PlansTabProps) {
                                                 : "bg-gray-100 text-gray-800"
                                         }`}
                                     >
-                                        {plan.active ? "Ativo" : "Inativo"}
+                                        {plan.active ? tr("uiText.common.active") : tr("uiText.common.inactive")}
                                     </span>
                                 </TableCell>
                                 <TableCell className="text-right">

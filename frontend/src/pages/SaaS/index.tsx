@@ -11,6 +11,9 @@ import { PlansTab } from "./components/PlansTab";
 import { TenantModal } from "./components/TenantModal";
 import { PlanModal } from "./components/PlanModal";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const SaaSAdmin = () => {
     const {
         tenants,
@@ -36,7 +39,7 @@ const SaaSAdmin = () => {
 
     return (
         <PageContainer>
-            <PageHeader title="Gestão SaaS" description="Gerencie tenants e planos da plataforma" />
+            <PageHeader title={tr("uiText.saas.title")} description={tr("uiText.saas.subtitle")} />
             <PageContent>
                 <Card>
                     <CardContent className="pt-6">

@@ -34,14 +34,17 @@ import {
 } from "../../../services/groupService";
 import { subscribeToSocket } from "../../../services/sse-client";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const timeAgo = (iso: string): string => {
     const diffMs = Date.now() - new Date(iso).getTime();
     const min = Math.floor(diffMs / 60000);
-    if (min < 1) return "agora";
-    if (min < 60) return `${min}min atrás`;
+    if (min < 1) return tr("uiText.groups.now");
+    if (min < 60) return tr("uiText.groups.minAgo", { n: min });
     const h = Math.floor(min / 60);
-    if (h < 24) return `${h}h atrás`;
-    return `${Math.floor(h / 24)}d atrás`;
+    if (h < 24) return tr("uiText.groups.hAgo", { n: h });
+    return tr("uiText.groups.dAgo", { n: Math.floor(h / 24) });
 };
 
 interface TagFormState {
@@ -71,7 +74,7 @@ const MonitoramentoTab: React.FC = () => {
         try {
             setMatches(await listWatchMatches(tagId ?? undefined));
         } catch {
-            toast.error("Erro ao carregar menções.");
+            toast.error(tr("uiText.groups.mentionsError"));
         } finally {
             setMatchesLoading(false);
         }
@@ -83,7 +86,7 @@ const MonitoramentoTab: React.FC = () => {
             const [t] = await Promise.all([listWatchTags(), fetchMatches(activeFilterTagId)]);
             setTags(t);
         } catch {
-            toast.error("Erro ao carregar monitoramento de frases.");
+            toast.error(tr("uiText.groups.monitorError"));
         } finally {
             setLoading(false);
         }
@@ -149,11 +152,11 @@ const MonitoramentoTab: React.FC = () => {
                     notifyGlobally: form.notifyGlobally,
                 });
                 setTags((prev) => [created, ...prev]);
-                toast.success("Frase monitorada com sucesso!");
+                toast.success(tr("uiText.groups.phraseSaved"));
             }
             setFormOpen(false);
         } catch {
-            toast.error(editingTag ? "Erro ao atualizar frase." : "Erro ao criar frase monitorada.");
+            toast.error(editingTag ? tr("uiText.groups.phraseUpdateError") : tr("uiText.groups.phraseCreateError"));
         } finally {
             setSaving(false);
         }
@@ -166,7 +169,7 @@ const MonitoramentoTab: React.FC = () => {
             if (activeFilterTagId === id) handleSelectFilter(null);
             toast.success("Frase removida.");
         } catch {
-            toast.error("Erro ao remover frase.");
+            toast.error(tr("uiText.groups.phraseRemoveError"));
         }
     };
 
@@ -178,7 +181,7 @@ const MonitoramentoTab: React.FC = () => {
                 <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
                 {tags.length === 0 && !loading ? (
                     <span className="text-sm text-muted-foreground">
-                        Nenhuma frase monitorada ainda.
+                        {tr("uiText.groups.noPhrases")}
                     </span>
                 ) : (
                     tags.map((t) => {
@@ -189,7 +192,7 @@ const MonitoramentoTab: React.FC = () => {
                                 variant={isActiveFilter ? "default" : "secondary"}
                                 className="gap-1.5 pr-1 cursor-pointer select-none"
                                 onClick={() => handleSelectFilter(isActiveFilter ? null : t.id)}
-                                title={isActiveFilter ? "Clique para remover o filtro" : "Clique para filtrar por essa frase"}
+                                title={isActiveFilter ? tr("uiText.groups.clearFilter") : tr("uiText.groups.clickFilter")}
                             >
                                 {t.phrase}
                                 <button
@@ -220,13 +223,13 @@ const MonitoramentoTab: React.FC = () => {
                 )}
                 <Button onClick={openCreate} className="ml-auto gap-2">
                     <Plus className="h-4 w-4" />
-                    Nova frase
+                    {tr("uiText.groups.newPhraseShort")}
                 </Button>
             </div>
 
             <div className="flex items-center gap-2 pt-2">
                 <Bell className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold">Menções recentes</h3>
+                <h3 className="text-sm font-semibold">{tr("uiText.groups.recentMentions")}</h3>
                 {activeFilterTag && (
                     <Badge variant="outline" className="gap-1 ml-1">
                         Filtrado: {activeFilterTag.phrase}
@@ -248,10 +251,10 @@ const MonitoramentoTab: React.FC = () => {
                 <div className="flex flex-col items-center justify-center gap-2 text-center px-6 py-16">
                     <MessageSquareText className="h-8 w-8 text-muted-foreground" />
                     <h3 className="text-base font-medium">
-                        {activeFilterTag ? "Nenhuma menção dessa frase ainda" : "Nenhuma menção ainda"}
+                        {activeFilterTag ? tr("uiText.groups.noMentions") : tr("uiText.groups.noMentionYet")}
                     </h3>
                     <p className="text-sm text-muted-foreground max-w-md">
-                        Assim que alguém mencionar uma frase monitorada em um grupo, ela aparece aqui.
+                        {tr("uiText.groups.mentionsHint")}
                     </p>
                 </div>
             ) : (
@@ -283,21 +286,21 @@ const MonitoramentoTab: React.FC = () => {
             <Dialog open={formOpen} onOpenChange={setFormOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingTag ? "Editar frase monitorada" : "Nova frase monitorada"}</DialogTitle>
+                        <DialogTitle>{editingTag ? "Editar frase monitorada" : tr("uiText.groups.newPhrase")}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-2">
                         <div className="space-y-1.5">
                             <Label htmlFor="watch-phrase">Frase</Label>
                             <Input
                                 id="watch-phrase"
-                                placeholder="ex: alguém pode me ajudar"
+                                placeholder={tr("uiText.groups.phrasePlaceholder")}
                                 value={form.phrase}
                                 onChange={(e) => setForm((f) => ({ ...f, phrase: e.target.value }))}
                                 autoFocus
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label>Tipo de busca</Label>
+                            <Label>{tr("uiText.groups.searchType")}</Label>
                             <Select
                                 value={form.matchMode}
                                 onValueChange={(v) => setForm((f) => ({ ...f, matchMode: v as GroupWatchMatchMode }))}
@@ -313,14 +316,14 @@ const MonitoramentoTab: React.FC = () => {
                             <p className="text-xs text-muted-foreground mt-1">
                                 {form.matchMode === "exact"
                                     ? "A mensagem precisa ser exatamente igual à frase."
-                                    : 'Casa em qualquer parte da mensagem (ex.: "ajuda" acha "preciso de ajuda").'}
+                                    : tr("uiText.groups.containsHint")}
                             </p>
                         </div>
                         <div className="flex items-center justify-between">
                             <div>
-                                <Label htmlFor="watch-notify-globally">Notificar em qualquer tela</Label>
+                                <Label htmlFor="watch-notify-globally">{tr("uiText.groups.notifyAnywhere")}</Label>
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                    Mostra um toast assim que essa frase for mencionada, mesmo fora da aba Monitoramento
+                                    {tr("uiText.groups.notifyHint")}
                                 </p>
                             </div>
                             <Switch
@@ -331,7 +334,7 @@ const MonitoramentoTab: React.FC = () => {
                         </div>
                         {editingTag && (
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="watch-active">Ativa</Label>
+                                <Label htmlFor="watch-active">{tr("uiText.campaigns.active")}</Label>
                                 <Switch
                                     id="watch-active"
                                     checked={form.active}
@@ -342,10 +345,10 @@ const MonitoramentoTab: React.FC = () => {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>
-                            Cancelar
+                            {tr("uiText.common.cancel")}
                         </Button>
                         <Button onClick={handleSubmit} disabled={saving || !form.phrase.trim()}>
-                            {saving ? "Salvando..." : "Salvar"}
+                            {saving ? "Salvando..." : tr("uiText.common.save")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

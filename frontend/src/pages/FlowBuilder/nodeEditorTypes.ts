@@ -1,10 +1,7 @@
 import type { Condition } from './components/ConditionBuilder';
 import type { Filter } from './components/FilterBuilder';
 import type { DataField } from './components/DataBuilder';
-import { i18n } from '../../translate/i18n';
 
-
-const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface NodeData {
   label?: string;
   triggerType?: string;
@@ -115,24 +112,24 @@ export interface NodeEditorSidebarProps {
 }
 
 export const NODE_TITLES: Record<string, string> = {
-  start: tr("uiText.flow.editor.title.start"),
-  input: tr("uiText.flow.editor.title.start"),
-  trigger: 'Configurar Gatilho',
-  message: 'Configurar Mensagem',
-  menu: 'Configurar Menu',
-  switch: tr("uiText.flow.editor.title.switch"),
-  pipeline: 'Configurar Pipeline (Kanban)',
-  ticket: 'Configurar Ticket',
-  webhook: 'Configurar Webhook',
-  knowledge: 'Configurar Conhecimento',
-  agent: 'Configurar Agente IA',
-  database: 'Configurar Database',
-  filter: tr("uiText.flow.editor.title.filter"),
-  api: tr("uiText.flow.editor.title.api"),
-  helpdesk: 'Configurar Helpdesk',
-  end: 'Configurar Fim',
-  output: 'Configurar Fim',
-  quickAnswer: i18n.t('flowBuilder.nodes.quickAnswer.title'),
+  start: "uiText.flow.editor.title.start",
+  input: "uiText.flow.editor.title.start",
+  trigger: 'uiText.flow.editor.title.trigger',
+  message: 'uiText.flow.editor.title.message',
+  menu: 'uiText.flow.editor.title.menu',
+  switch: "uiText.flow.editor.title.switch",
+  pipeline: 'uiText.flow.editor.title.pipeline',
+  ticket: 'uiText.flow.editor.title.ticket',
+  webhook: 'uiText.flow.editor.title.webhook',
+  knowledge: 'uiText.flow.editor.title.knowledge',
+  agent: 'uiText.flow.editor.title.agent',
+  database: 'uiText.flow.editor.title.database',
+  filter: "uiText.flow.editor.title.filter",
+  api: "uiText.flow.editor.title.api",
+  helpdesk: 'uiText.flow.editor.title.helpdesk',
+  end: 'uiText.flow.editor.title.end',
+  output: 'uiText.flow.editor.title.end',
+  quickAnswer: 'flowBuilder.nodes.quickAnswer.title',
 };
 
 export const TABLE_ALL_FIELDS: Record<string, string[]> = {

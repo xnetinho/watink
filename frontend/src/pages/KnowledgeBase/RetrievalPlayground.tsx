@@ -14,6 +14,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface QueryHit {
   text: string;
   sourceId: number;
@@ -64,12 +67,10 @@ const RetrievalPlayground: React.FC<RetrievalPlaygroundProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Testar recuperação (RAG)</DialogTitle>
+          <DialogTitle>{tr("uiText.kb.testRag")}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground -mt-1">
-          Faça uma pergunta como um usuário faria. A IA busca os trechos mais
-          parecidos na base — veja o que volta e com que score para avaliar a
-          qualidade da vetorização.
+          {tr("uiText.kb.ragHint")}
         </p>
 
         <div className="flex gap-2">
@@ -79,7 +80,7 @@ const RetrievalPlayground: React.FC<RetrievalPlaygroundProps> = ({
             onKeyDown={(e) => {
               if (e.key === "Enter") runQuery();
             }}
-            placeholder="Ex: Qual o horário de atendimento?"
+            placeholder={tr("uiText.kb.ragPlaceholder")}
             autoFocus
           />
           <Button onClick={runQuery} disabled={loading || !query.trim()}>
@@ -88,14 +89,14 @@ const RetrievalPlayground: React.FC<RetrievalPlaygroundProps> = ({
             ) : (
               <Search className="h-4 w-4" />
             )}
-            Buscar
+            {tr("uiText.common.search")}
           </Button>
         </div>
 
         <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto">
           {hits === null ? null : hits.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              Nenhum trecho relevante encontrado para essa pergunta.
+              {tr("uiText.kb.noRelevant")}
             </p>
           ) : (
             hits.map((hit, i) => (

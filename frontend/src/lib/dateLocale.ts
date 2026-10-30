@@ -9,3 +9,11 @@ export const dateLocale = (): Locale => {
   if (lang.startsWith("es")) return es;
   return ptBR;
 };
+
+/** Tag BCP 47 do idioma ativo ("pt-BR", "en-US", "es-ES"), para Intl e toLocale*String. */
+export const localeTag = (): string => {
+  const lang = (i18n.language || "pt").toLowerCase();
+  if (lang.startsWith("en")) return "en-US";
+  if (lang.startsWith("es")) return "es-ES";
+  return "pt-BR";
+};

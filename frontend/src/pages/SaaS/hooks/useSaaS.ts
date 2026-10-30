@@ -4,6 +4,9 @@ import { toast } from "react-toastify";
 import api from "../../../services/api";
 import type { Tenant, Plan, TenantForm, PlanForm } from "../saasTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const DEFAULT_TENANT_FORM: TenantForm = {
     planName: "Start",
     pluginQuota: 4,
@@ -49,7 +52,7 @@ export function useSaaS() {
             setTenants(tenantsRes.data);
             setPlans(plansRes.data);
         } catch {
-            toast.error("Erro ao carregar dados");
+            toast.error(tr("uiText.saas.loadError"));
         } finally {
             setLoading(false);
         }
@@ -67,7 +70,7 @@ export function useSaaS() {
             });
             setOpenTenantModal(true);
         } catch {
-            toast.error("Erro ao carregar plano do tenant");
+            toast.error(tr("uiText.saas.tenantPlanLoadError"));
         }
     };
 
@@ -75,11 +78,11 @@ export function useSaaS() {
         if (!selectedTenant) return;
         try {
             await api.post(`/saas/tenants/${selectedTenant.id}/plan`, tenantForm);
-            toast.success("Plano do tenant atualizado");
+            toast.success(tr("uiText.saas.tenantPlanUpdated"));
             setOpenTenantModal(false);
             loadData();
         } catch {
-            toast.error("Erro ao salvar plano do tenant");
+            toast.error(tr("uiText.saas.tenantPlanSaveError"));
         }
     };
 
@@ -112,18 +115,18 @@ export function useSaaS() {
             setOpenPlanModal(false);
             loadData();
         } catch {
-            toast.error("Erro ao salvar plano");
+            toast.error(tr("uiText.saas.planSaveError"));
         }
     };
 
     const handleDeletePlan = async (planId: number | string) => {
-        if (!window.confirm("Deseja realmente excluir este plano?")) return;
+        if (!window.confirm(tr("uiText.saas.planDeleteConfirm"))) return;
         try {
             await api.delete(`/saas/plans/${planId}`);
-            toast.success("Plano excluído");
+            toast.success(tr("uiText.saas.planDeleted"));
             loadData();
         } catch {
-            toast.error("Erro ao excluir plano");
+            toast.error(tr("uiText.saas.planDeleteError"));
         }
     };
 

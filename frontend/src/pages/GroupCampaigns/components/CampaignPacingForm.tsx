@@ -10,6 +10,9 @@ import {
     estimateCampaignDuration,
 } from "../campaignHelpers";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface CampaignPacingState {
     intervalSeconds: number;
     jitterSeconds: number;
@@ -45,7 +48,7 @@ const CampaignPacingForm: React.FC<CampaignPacingFormProps> = ({
                     <p className="text-[11px] text-muted-foreground">Mínimo {CAMPAIGN_MIN_INTERVAL_SECONDS}s.</p>
                 </div>
                 <div className="space-y-1.5">
-                    <Label htmlFor="pacing-jitter">Variação (jitter, s)</Label>
+                    <Label htmlFor="pacing-jitter">{tr("uiText.campaigns.jitter")}</Label>
                     <Input
                         id="pacing-jitter"
                         type="number"
@@ -56,7 +59,7 @@ const CampaignPacingForm: React.FC<CampaignPacingFormProps> = ({
                     <p className="text-[11px] text-muted-foreground">Mínimo {CAMPAIGN_MIN_JITTER_SECONDS}s.</p>
                 </div>
                 <div className="space-y-1.5">
-                    <Label htmlFor="pacing-batch">Tamanho do lote</Label>
+                    <Label htmlFor="pacing-batch">{tr("uiText.campaigns.batchSize")}</Label>
                     <Input
                         id="pacing-batch"
                         type="number"
@@ -86,7 +89,7 @@ const CampaignPacingForm: React.FC<CampaignPacingFormProps> = ({
             {pacingAdjusted && (
                 <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-1.5">
                     <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    O servidor ajustou a cadência para o mínimo de segurança contra banimento.
+                    {tr("uiText.campaigns.pacingAdjusted")}
                 </p>
             )}
         </div>

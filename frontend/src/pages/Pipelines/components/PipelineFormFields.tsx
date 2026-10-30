@@ -18,13 +18,13 @@ const TYPE_OPTIONS = [
     {
         value: "kanban" as const,
         label: "uiText.pipelines.typeKanbanLabel",
-        description: tr("uiText.pipelines.kanbanDesc"),
+        description: "uiText.pipelines.kanbanDesc",
         Icon: LayoutGrid,
     },
     {
         value: "funnel" as const,
         label: "uiText.pipelines.typeFunnelLabel",
-        description: tr("uiText.pipelines.funnelDesc"),
+        description: "uiText.pipelines.funnelDesc",
         Icon: Filter,
     },
 ];

@@ -8,12 +8,13 @@ import type { SimResult } from './SimulatorTypes';
 
 import { i18n } from "../../../../translate/i18n";
 
+import { localeTag } from "../../../../lib/dateLocale";
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const formatTime = (ts?: string) => {
   if (!ts) return '';
-  return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date(ts).toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 };
 
 // ─── SimulatorChatArea ────────────────────────────────────────────────────────

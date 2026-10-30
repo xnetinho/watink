@@ -3,6 +3,9 @@ import { Users } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
 import { Contact } from "../contactsTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ContactStatusBadgeProps {
   contact: Contact;
 }
@@ -30,7 +33,7 @@ const ContactStatusBadge: React.FC<ContactStatusBadgeProps> = ({ contact }) => {
   }
   return (
     <Badge variant="outline" className="text-muted-foreground">
-      Pendente
+      {tr("uiText.flow.form.statusPending")}
     </Badge>
   );
 };

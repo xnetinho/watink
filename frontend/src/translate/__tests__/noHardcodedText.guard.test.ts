@@ -1,115 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 // Nenhum texto visível ao usuário pode ficar fixo no código: tudo vem dos arquivos de idioma (translate/languages).
-// A guarda cobre os arquivos de UI criados/alterados nesta frente (cartões do chat, presença, política de presença) e
-// pode crescer: arquivo novo de UI entra na lista.
-const files = import.meta.glob(
-  [
-    "../../components/MessagesList/components/RichCards.tsx",
-    "../../components/MessagesList/components/ForwardedLabel.tsx",
-    "../../components/MessagesList/utils/messageHelpers.ts",
-    "../../components/TicketInfo/index.tsx",
-    "../../lib/presence/format.ts",
-    "../../hooks/useContactPresence.ts",
-    "../../pages/Connections/components/PresencePolicyCard.tsx",
-    "../../pages/Connections/presencePolicy.ts",
-    "../../pages/Connections/hooks/useConnectionActions.ts",
-    "../../components/TicketConnectionBadge.tsx",
-    "../../pages/Tickets/components/DetailsPanel.tsx",
-    "../../pages/Tickets/components/DadosTab.tsx",
-    "../../pages/Tickets/components/PipelinesSection.tsx",
-    "../../pages/Tickets/components/FlowsSection.tsx",
-    "../../pages/Tickets/components/TicketTagsSection.tsx",
-    "../../pages/Tickets/components/HelpdeskSection.tsx",
-    "../../components/TicketHistory/index.tsx",
-    "../../components/TicketListItem/index.tsx",
-    "../../lib/tickets/lastMessage.ts",
-    "../../components/ForwardMessageDialog.tsx",
-    "../../components/EditMessageDialog.tsx",
-    "../../components/MessagesList/components/EditedBadge.tsx",
-    "../../components/MessagesList/components/ViewOnceBadge.tsx",
-    "../../components/MessagesList/components/MessageEditsDialog.tsx",
-    "../../components/MessageInput/DropZone.tsx",
-    "../../components/MessageInput/components/MediaPreviewPanel.tsx",
-    "../../components/Audio/index.tsx",
-    "../../components/AudioKindPicker.tsx",
-    "../../lib/audio/waveform.ts",
-    "../../components/ContactModal/index.tsx",
-    "../../pages/Contacts/components/ContactConnectionCell.tsx",
-    "../../pages/Connections/components/ConnectionActionButtons.tsx",
-    "../../lib/connections/connectionRef.ts",
-    "../../hooks/useConnectionOptions.ts",
-    "../../components/MessageOptionsMenu/index.tsx",
-    "../../lib/messages/forward.ts",
-  ],
-  { query: "?raw", import: "default", eager: true },
-) as Record<string, string>;
-
-// Varredura de src/ inteiro (tsx/ts de UI). Arquivos ainda NÃO migrados ficam em DEBT: a lista só pode encolher; arquivo novo
-// com texto fixo reprova. Ao migrar um arquivo, tire-o de DEBT (o teste "DEBT só tem arquivos que ainda têm texto fixo" cobra).
+// A varredura cobre src/ inteiro (tsx/ts de UI). Valor que NÃO é texto de tela (gravado no banco, enviado à API, nome fictício)
+// leva o marcador "i18n-ignore" na própria linha, com a justificativa.
 const all = import.meta.glob(
   ["../../**/*.{ts,tsx}", "!../../**/*.test.*", "!../../**/__tests__/**", "!../../translate/**", "!../../**/*.d.ts", "!../../setupTests.ts"],
   { query: "?raw", import: "default", eager: true },
 ) as Record<string, string>;
-const DEBT = new Set<string>([
-  "pages/Contacts/components/ContactActionsMenu.tsx",
-  "pages/Contacts/components/ContactStatusBadge.tsx",
-  "pages/FlowManager/components/FlowCard.tsx",
-  "pages/FlowManager/components/FlowFormDialog.tsx",
-  "pages/FlowManager/components/FlowGrid.tsx",
-  "pages/FlowManager/components/FlowToolbar.tsx",
-  "pages/FlowManager/hooks/useFlowManager.ts",
-  "pages/FlowManager/index.tsx",
-  "pages/GroupCampaigns/GroupCampaignEditor.tsx",
-  "pages/GroupCampaigns/GroupCampaignReport.tsx",
-  "pages/GroupCampaigns/campaignHelpers.ts",
-  "pages/GroupCampaigns/components/CampaignGroupPicker.tsx",
-  "pages/GroupCampaigns/components/CampaignPacingForm.tsx",
-  "pages/GroupCampaigns/components/CampaignRiskWarning.tsx",
-  "pages/GroupCampaigns/components/CampaignScheduleForm.tsx",
-  "pages/GroupCampaigns/components/CampaignVariantsEditor.tsx",
-  "pages/Groups/CreateGroupDialog.tsx",
-  "pages/Groups/GroupDetail.tsx",
-  "pages/Groups/GroupInviteCard.tsx",
-  "pages/Groups/GroupParticipantsPanel.tsx",
-  "pages/Groups/GroupSettingsPanel.tsx",
-  "pages/Groups/GroupsErrorState.tsx",
-  "pages/Groups/JoinRequestsPanel.tsx",
-  "pages/Groups/groupTypes.ts",
-  "pages/GroupsWhatsapp/components/CampanhasTab.tsx",
-  "pages/GroupsWhatsapp/components/ComunidadesTab.tsx",
-  "pages/GroupsWhatsapp/components/GruposTab.tsx",
-  "pages/GroupsWhatsapp/components/MonitoramentoTab.tsx",
-  "pages/GroupsWhatsapp/index.tsx",
-  "pages/KnowledgeBase/KnowledgeBaseConfig.tsx",
-  "pages/KnowledgeBase/RetrievalPlayground.tsx",
-  "pages/KnowledgeBase/components/AddSourceDialog.tsx",
-  "pages/KnowledgeBase/components/KBSourceBadges.tsx",
-  "pages/KnowledgeBase/components/KBSourceListItem.tsx",
-  "pages/KnowledgeBase/index.tsx",
-  "pages/MonitorQueues/index.tsx",
-  "pages/Proxies/ConnectionGroupsDialog.tsx",
-  "pages/Proxies/ProxyFormDialog.tsx",
-  "pages/Proxies/ProxyGroupsPanel.tsx",
-  "pages/Proxies/ProxyImportDialog.tsx",
-  "pages/Register/index.tsx",
-  "pages/SaaS/components/PlanModal.tsx",
-  "pages/SaaS/components/PlansTab.tsx",
-  "pages/SaaS/components/TenantModal.tsx",
-  "pages/SaaS/components/TenantsTab.tsx",
-  "pages/SaaS/hooks/useSaaS.ts",
-  "pages/SaaS/index.tsx",
-  "pages/UserProfile/components/ProfileAvatarCard.tsx",
-  "pages/VersionDashboard/components/DashboardHeader.tsx",
-  "pages/VersionDashboard/components/ProcessCard.tsx",
-  "pages/VersionDashboard/components/RabbitMQCard.tsx",
-  "pages/VersionDashboard/components/SystemStatsGrid.tsx",
-  "pages/VersionDashboard/components/TenantConsumptionTable.tsx",
-  "pages/VersionDashboard/components/UpdateDialog.tsx",
-  "pages/VersionDashboard/hooks/useVersionDashboard.ts",
-  "pages/VersionDashboard/index.tsx",
-  "pages/VersionDashboard/utils.ts",
-].map((d) => `../../${d}`));
 
 const ACC = /[ãõáéíóúâêôçÃÕÁÉÍÓÚÂÊÔÇ]/;
 const STOP = /\b(de|do|da|em|para|com|sem|que|não|um|uma|ou|ao|na|no|seu|sua|nova|novo|ainda|este|esta|erro|salvar|cancelar|excluir)\b/i;
@@ -145,26 +42,11 @@ export function hardcodedLines(text: string): string[] {
 
 describe("texto fixo na interface", () => {
   it("há arquivos para checar (senão a guarda passaria vazia)", () => {
-    expect(Object.keys(files).length).toBeGreaterThanOrEqual(19);
     expect(Object.keys(all).length).toBeGreaterThan(200);
   });
 
-  it("os arquivos já migrados (lista explícita) não têm texto fixo", () => {
-    const offenders = Object.entries(files).flatMap(([file, text]) => hardcodedLines(text).map((l) => `${file.replace(/^(\.\.\/)+/, "")}:${l}`));
-    expect(offenders, `texto fixo (use os arquivos de idioma):\n${offenders.join("\n")}`).toEqual([]);
-  });
-
-  it("nenhum arquivo de UI fora de DEBT tem texto fixo em português", () => {
-    const offenders = Object.entries(all)
-      .filter(([file]) => !DEBT.has(file))
-      .flatMap(([file, text]) => hardcodedLines(text).map((l) => `${file.replace(/^(\.\.\/)+/, "")}:${l}`));
-    expect(offenders, `texto fixo (use os arquivos de idioma ou, se for dívida antiga, não adicione arquivo novo a DEBT):\n${offenders.join("\n")}`).toEqual([]);
-  });
-
-  it("DEBT só tem arquivos que ainda têm texto fixo (migrou? tire da lista)", () => {
-    const limpos = [...DEBT].filter((f) => all[f] !== undefined && hardcodedLines(all[f]).length === 0).map((f) => f.replace(/^(\.\.\/)+/, ""));
-    const sumidos = [...DEBT].filter((f) => all[f] === undefined).map((f) => f.replace(/^(\.\.\/)+/, ""));
-    expect(limpos, `já sem texto fixo, tire de DEBT:\n${limpos.join("\n")}`).toEqual([]);
-    expect(sumidos, `não existe mais, tire de DEBT:\n${sumidos.join("\n")}`).toEqual([]);
+  it("nenhum arquivo de UI tem texto fixo em português", () => {
+    const offenders = Object.entries(all).flatMap(([file, text]) => hardcodedLines(text).map((l) => `${file.replace(/^(\.\.\/)+/, "")}:${l}`));
+    expect(offenders, `texto fixo (use os arquivos de idioma; valor que não é texto de tela leva // i18n-ignore na linha):\n${offenders.join("\n")}`).toEqual([]);
   });
 });

@@ -98,13 +98,13 @@ const MonitorQueues: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fila</TableHead>
+                    <TableHead>{tr("uiText.flow.form.queue")}</TableHead>
                     <TableHead>VHost</TableHead>
                     <TableHead className="text-right">Msgs</TableHead>
                     <TableHead className="text-right">Ready</TableHead>
                     <TableHead className="text-right">Unacked</TableHead>
                     <TableHead className="text-right">Consumers</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{tr("uiText.common.status")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
