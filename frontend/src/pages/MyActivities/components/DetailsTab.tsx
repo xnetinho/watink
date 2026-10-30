@@ -2,6 +2,9 @@ import React from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { Activity } from "../activityTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface DetailsTabProps {
   activity: Activity;
 }
@@ -9,7 +12,7 @@ interface DetailsTabProps {
 const DetailsTab: React.FC<DetailsTabProps> = ({ activity }) => (
   <TabsContent value="details" className="space-y-3">
     <div className="rounded-lg border border-border p-4 space-y-3">
-      <h3 className="text-base font-semibold">Detalhes da Atividade</h3>
+      <h3 className="text-base font-semibold">{tr("uiText.activities.details")}</h3>
       {activity.description && (
         <p className="text-sm text-muted-foreground">{activity.description}</p>
       )}

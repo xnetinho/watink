@@ -27,6 +27,9 @@ import {
   AiGateway,
 } from "../../../services/aiGatewayService";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface AISettingsProps {
   getSettingValue: (key: string) => string;
   handleUpdateSetting: (key: string, value: string) => Promise<void>;
@@ -99,10 +102,10 @@ const AISettings: React.FC<AISettingsProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Brain className="h-5 w-5" />
-            Agente de IA e Automação
+            {tr("uiText.settings.ai.title")}
           </CardTitle>
           <CardDescription>
-            Ative as funcionalidades de Inteligência Artificial do sistema
+            {tr("uiText.settings.ai.subtitle")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -111,7 +114,7 @@ const AISettings: React.FC<AISettingsProps> = ({
               <div className="space-y-0.5">
                 <Label>Habilitar IA Global</Label>
                 <p className="text-xs text-muted-foreground">
-                  Bot inteligente ativo no onboarding e fechamento básico
+                  {tr("uiText.settings.ai.onboardingBot")}
                 </p>
               </div>
               <Switch
@@ -126,9 +129,9 @@ const AISettings: React.FC<AISettingsProps> = ({
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>IA no FlowBuilder</Label>
+                <Label>{tr("uiText.settings.ai.flowbuilder")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Editor assistido de fluxos de decisão automatizados
+                  {tr("uiText.settings.ai.flowbuilderHint")}
                 </p>
               </div>
               <Switch
@@ -146,9 +149,9 @@ const AISettings: React.FC<AISettingsProps> = ({
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>IA no Pipeline</Label>
+                <Label>{tr("uiText.settings.ai.pipeline")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Assistente de IA ativo na criação e edição de pipelines
+                  {tr("uiText.settings.ai.pipelineHint")}
                 </p>
               </div>
               <Switch
@@ -166,9 +169,9 @@ const AISettings: React.FC<AISettingsProps> = ({
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Co-Piloto de Respostas no Chat</Label>
+                <Label>{tr("uiText.settings.ai.copilot")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Sugestões de atendimento inteligentes e automáticas em tempo real
+                  {tr("uiText.settings.ai.copilotHint")}
                 </p>
               </div>
               <Switch
@@ -190,22 +193,19 @@ const AISettings: React.FC<AISettingsProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Captions className="h-5 w-5" />
-            Transcrição de Áudio
+            {tr("uiText.settings.ai.transcription")}
           </CardTitle>
           <CardDescription>
-            Habilita o botão "Transcrever áudio" abaixo de mensagens de voz no
-            chat. A transcrição só acontece quando o atendente clica no botão
-            — nada é feito automaticamente. O texto aparece só no Watink e
-            nunca é enviado ao WhatsApp.
+            {tr("uiText.settings.ai.transcriptionHint")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Habilitar Transcrição de Áudio</Label>
+                <Label>{tr("uiText.settings.ai.enableTranscription")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Mostra o botão de transcrição sob demanda nas mensagens de áudio
+                  {tr("uiText.settings.ai.enableTranscriptionHint")}
                 </p>
               </div>
               <Switch
@@ -224,7 +224,7 @@ const AISettings: React.FC<AISettingsProps> = ({
                 <Separator />
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="audio-transcription-gateway">Gateway de IA</Label>
+                    <Label htmlFor="audio-transcription-gateway">{tr("uiText.settings.ai.gateway")}</Label>
                     <Select
                       value={transcriptionGatewayId || undefined}
                       onValueChange={(v) =>
@@ -232,7 +232,7 @@ const AISettings: React.FC<AISettingsProps> = ({
                       }
                     >
                       <SelectTrigger id="audio-transcription-gateway">
-                        <SelectValue placeholder="Selecione um Gateway de IA" />
+                        <SelectValue placeholder={tr("uiText.settings.ai.selectGateway")} />
                       </SelectTrigger>
                       <SelectContent>
                         {aiGateways.map((g) => (
@@ -248,7 +248,7 @@ const AISettings: React.FC<AISettingsProps> = ({
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="audio-transcription-model">Modelo de Transcrição</Label>
+                    <Label htmlFor="audio-transcription-model">{tr("uiText.settings.ai.transcriptionModel")}</Label>
                     <Input
                       id="audio-transcription-model"
                       list="audio-transcription-model-suggestions"
@@ -279,17 +279,16 @@ const AISettings: React.FC<AISettingsProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <MessageSquare className="h-5 w-5" />
-            Gateway de Chat / LLM
+            {tr("uiText.settings.ai.chatGateway")}
           </CardTitle>
           <CardDescription>
-            Provedor, modelo de linguagem e credenciais usados pelo agente,
-            FlowBuilder, Pipeline e Co-Piloto.
+            {tr("uiText.settings.ai.chatGatewayHint")}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="ai-provider">Provedor de Inteligência Artificial</Label>
+              <Label htmlFor="ai-provider">{tr("uiText.settings.ai.provider")}</Label>
               <Select
                 value={provider}
                 onValueChange={(v) => {
@@ -315,7 +314,7 @@ const AISettings: React.FC<AISettingsProps> = ({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="ai-model">Modelo de Linguagem (LLM)</Label>
+              <Label htmlFor="ai-model">{tr("uiText.settings.ai.llmModel")}</Label>
               {isCustomProvider ? (
                 <Input
                   id="ai-model"
@@ -346,7 +345,7 @@ const AISettings: React.FC<AISettingsProps> = ({
 
           {isCustomProvider && (
             <div className="grid gap-2">
-              <Label htmlFor="ai-base-url">URL Base da API</Label>
+              <Label htmlFor="ai-base-url">{tr("uiText.settings.ai.baseUrl")}</Label>
               <Input
                 id="ai-base-url"
                 placeholder="http://localhost:20128/v1"
@@ -359,7 +358,7 @@ const AISettings: React.FC<AISettingsProps> = ({
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="ai-key">Chave da API (Credentials/API Key)</Label>
+            <Label htmlFor="ai-key">{tr("uiText.settings.ai.apiKey")}</Label>
             <Input
               id="ai-key"
               type="password"
@@ -373,11 +372,11 @@ const AISettings: React.FC<AISettingsProps> = ({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="ai-prompt">Prompt de Orientação (Guide Prompt)</Label>
+            <Label htmlFor="ai-prompt">{tr("uiText.settings.ai.guidePrompt")}</Label>
             <Textarea
               id="ai-prompt"
               rows={6}
-              placeholder="Você é um assistente virtual focado em..."
+              placeholder={tr("uiText.settings.ai.guidePlaceholder")}
               defaultValue={getSettingValue("aiGuidePrompt")}
               onBlur={(e) => handleUpdateSetting("aiGuidePrompt", e.target.value)}
             />
@@ -393,14 +392,13 @@ const AISettings: React.FC<AISettingsProps> = ({
             Gateway de Embedding (Base de Conhecimento / RAG)
           </CardTitle>
           <CardDescription>
-            Vetorização das fontes da Base de Conhecimento. Pode reusar o gateway
-            do chat (com um modelo próprio) ou usar um gateway dedicado.
+            {tr("uiText.settings.ai.embeddingHint")}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Gateway dedicado para embedding</Label>
+              <Label>{tr("uiText.settings.ai.embeddingGateway")}</Label>
               <p className="text-xs text-muted-foreground">
                 Desligado: usa o gateway do chat acima. Ligado: endpoint próprio
                 (ex.: Ollama self-hosted em http://ollama:11434/v1).
@@ -416,7 +414,7 @@ const AISettings: React.FC<AISettingsProps> = ({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="ai-embedding-base-url">
-                  URL Base do Gateway de Embedding
+                  {tr("uiText.settings.ai.embeddingUrl")}
                 </Label>
                 <Input
                   id="ai-embedding-base-url"
@@ -435,7 +433,7 @@ const AISettings: React.FC<AISettingsProps> = ({
                 <Input
                   id="ai-embedding-key"
                   type="password"
-                  placeholder="vazio = reusa a chave do chat (Ollama não exige)"
+                  placeholder={tr("uiText.settings.ai.embeddingKeyHint")}
                   defaultValue={getSettingValue("aiEmbeddingApiKey")}
                   onBlur={(e) =>
                     shouldSaveSecret(e.target.value, getSettingValue("aiEmbeddingApiKey")) &&
@@ -447,18 +445,17 @@ const AISettings: React.FC<AISettingsProps> = ({
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="ai-embedding-model">Modelo de Embedding</Label>
+            <Label htmlFor="ai-embedding-model">{tr("uiText.settings.ai.embeddingModel")}</Label>
             <Input
               id="ai-embedding-model"
-              placeholder="Ex: qwen3-embedding:4b ou openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free"
+              placeholder={tr("uiText.settings.ai.embeddingModelPlaceholder")}
               defaultValue={getSettingValue("aiEmbeddingModel")}
               onBlur={(e) =>
                 handleUpdateSetting("aiEmbeddingModel", e.target.value)
               }
             />
             <p className="text-xs text-muted-foreground">
-              A dimensão do índice é fixa por modelo — trocar de modelo exige
-              re-embedar a base inteira (reprocessar as fontes).
+              {tr("uiText.settings.ai.dimensionHint")}
             </p>
           </div>
         </CardContent>

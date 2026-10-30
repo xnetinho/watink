@@ -8,7 +8,7 @@ import {
   Paperclip,
 } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { dateLocale } from "../../../lib/dateLocale";
 import PaperCard from "../../../components/PaperCard";
 import type { HistoryItem } from "../protocolTypes";
 
@@ -75,7 +75,7 @@ const ProtocolHistoryCard: React.FC<ProtocolHistoryCardProps> = ({ history }) =>
                 {item.user?.name || "Sistema"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {format(new Date(item.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                {format(new Date(item.createdAt), "dd/MM/yyyy HH:mm", { locale: dateLocale() })}
               </p>
             </div>
           </li>

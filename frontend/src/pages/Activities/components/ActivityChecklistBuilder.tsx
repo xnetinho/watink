@@ -7,6 +7,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface ChecklistDraftItem {
   label: string;
   inputType: "text" | "number" | "photo";
@@ -20,9 +23,9 @@ interface ActivityChecklistBuilderProps {
 }
 
 const INPUT_TYPE_LABELS: Record<ChecklistDraftItem["inputType"], string> = {
-  text: "Texto",
-  number: "Número",
-  photo: "Foto",
+  text: "uiText.activities.inputType.text",
+  number: "uiText.activities.inputType.number",
+  photo: "uiText.activities.inputType.photo",
 };
 
 // ActivityChecklistBuilder — monta o checklist de execução ANTES de criar a
@@ -54,7 +57,7 @@ const ActivityChecklistBuilder: React.FC<ActivityChecklistBuilderProps> = ({ ite
   return (
     <div className="space-y-2">
       {items.length === 0 && (
-        <p className="text-sm text-muted-foreground">Nenhum item no checklist ainda.</p>
+        <p className="text-sm text-muted-foreground">{tr("uiText.activities.noChecklistYet")}</p>
       )}
       {items.map((item, index) => (
         <div key={index} className="flex items-center gap-2 rounded-md border border-border p-2">
@@ -80,12 +83,12 @@ const ActivityChecklistBuilder: React.FC<ActivityChecklistBuilderProps> = ({ ite
             </SelectTrigger>
             <SelectContent>
               {Object.entries(INPUT_TYPE_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>{label}</SelectItem>
+                <SelectItem key={value} value={value}>{tr(label)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <div className="flex items-center gap-1.5" title="Obrigatório">
+          <div className="flex items-center gap-1.5" title={tr("uiText.activities.required")}>
             <Switch checked={item.isRequired} onCheckedChange={(v) => updateItem(index, { isRequired: v })} />
           </div>
 

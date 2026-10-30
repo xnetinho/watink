@@ -35,6 +35,9 @@ import {
     updateAiGateway,
 } from "../../../services/aiGatewayService";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const emptyForm: AiGatewayInput = {
     name: "",
     provider: "openai",
@@ -61,7 +64,7 @@ const AiGatewaysSection: React.FC = () => {
         try {
             setGateways(await listAiGateways());
         } catch {
-            toast.error("Erro ao carregar gateways de IA");
+            toast.error(tr("uiText.settings.gateways.loadError"));
         } finally {
             setLoading(false);
         }
@@ -100,17 +103,17 @@ const AiGatewaysSection: React.FC = () => {
         try {
             if (editing) {
                 await updateAiGateway(editing.id, form);
-                toast.success("Gateway de IA atualizado!");
+                toast.success(tr("uiText.settings.gateways.updated"));
             } else {
                 await createAiGateway(form);
-                toast.success("Gateway de IA criado!");
+                toast.success(tr("uiText.settings.gateways.created"));
             }
             setFormOpen(false);
             fetchGateways();
         } catch (err) {
             const message =
                 (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-                "Erro ao salvar gateway de IA";
+                tr("uiText.settings.gateways.saveError");
             toast.error(message);
         } finally {
             setSaving(false);
@@ -123,14 +126,14 @@ const AiGatewaysSection: React.FC = () => {
             const result = await testAiGateway(gateway.id);
             setTestResult({ gateway, result });
             if (result.success) {
-                toast.success(`Gateway "${gateway.name}" respondeu em ${result.elapsedMs}ms`);
+                toast.success(tr("uiText.settings.gateways.testOk", { name: gateway.name, ms: result.elapsedMs }));
             } else {
-                toast.error(`Gateway "${gateway.name}" falhou no teste`);
+                toast.error(tr("uiText.settings.gateways.testFail", { name: gateway.name }));
             }
         } catch (err) {
             const message =
                 (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-                "Erro ao testar gateway";
+                tr("uiText.settings.gateways.testError");
             setTestResult({ gateway, result: { success: false, error: message } });
             toast.error(message);
         } finally {
@@ -142,10 +145,10 @@ const AiGatewaysSection: React.FC = () => {
         if (!deleteTarget) return;
         try {
             await deleteAiGateway(deleteTarget.id);
-            toast.success("Gateway de IA removido!");
+            toast.success(tr("uiText.settings.gateways.removed"));
             fetchGateways();
         } catch {
-            toast.error("Erro ao remover gateway de IA");
+            toast.error(tr("uiText.settings.gateways.removeError"));
         } finally {
             setDeleteTarget(null);
         }
@@ -154,13 +157,12 @@ const AiGatewaysSection: React.FC = () => {
     return (
         <div className="space-y-6">
             <ConfirmationModal
-                title="Remover gateway de IA"
+                title={tr("uiText.settings.gateways.removeTitle")}
                 open={!!deleteTarget}
                 onClose={() => setDeleteTarget(null)}
                 onConfirm={handleConfirmDelete}
             >
-                Tem certeza que deseja remover o gateway "{deleteTarget?.name}"? Assistentes que o
-                utilizam deixarão de funcionar até que você aponte para outro gateway.
+                {tr("uiText.settings.gateways.removeConfirm", { name: deleteTarget?.name ?? "" })}
             </ConfirmationModal>
 
             <Card>
@@ -168,10 +170,10 @@ const AiGatewaysSection: React.FC = () => {
                     <div>
                         <CardTitle className="flex items-center gap-2 text-primary">
                             <Sparkles className="h-5 w-5" />
-                            Agentes de IA
+                            {tr("uiText.settings.gateways.agents")}
                         </CardTitle>
                         <CardDescription>
-                            Provedores de IA usados pelos Assistentes (plugin "Assistentes de IA")
+                            Provedores de IA usados pelos Assistentes (plugin tr("uiText.settings.gateways.assistants"))
                         </CardDescription>
                     </div>
                     <Button onClick={openCreate}>
@@ -188,14 +190,14 @@ const AiGatewaysSection: React.FC = () => {
                         <div className="flex flex-col items-center justify-center py-16 text-center gap-3 border rounded-2xl">
                             <KeyRound className="h-8 w-8 text-muted-foreground" />
                             <p className="text-sm text-muted-foreground">
-                                Nenhum gateway de IA cadastrado ainda.
+                                {tr("uiText.settings.gateways.none")}
                             </p>
                         </div>
                     ) : (
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Nome</TableHead>
+                                    <TableHead>{tr("uiText.common.name")}</TableHead>
                                     <TableHead>Provedor</TableHead>
                                     <TableHead>Modelo</TableHead>
                                     <TableHead>Chave</TableHead>
@@ -210,7 +212,7 @@ const AiGatewaysSection: React.FC = () => {
                                         <TableCell>{gw.model}</TableCell>
                                         <TableCell>
                                             <Badge variant={gw.hasApiKey ? "default" : "secondary"}>
-                                                {gw.hasApiKey ? "Configurada" : "Sem chave"}
+                                                {gw.hasApiKey ? "Configurada" : tr("uiText.settings.gateways.noKey")}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="flex gap-1 justify-end">
@@ -245,11 +247,11 @@ const AiGatewaysSection: React.FC = () => {
             <Dialog open={formOpen} onOpenChange={setFormOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editing ? "Editar Gateway de IA" : "Novo Gateway de IA"}</DialogTitle>
+                        <DialogTitle>{editing ? tr("uiText.settings.gateways.edit") : tr("uiText.settings.gateways.new")}</DialogTitle>
                     </DialogHeader>
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5">
-                            <Label>Nome</Label>
+                            <Label>{tr("uiText.common.name")}</Label>
                             <Input
                                 value={form.name}
                                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -284,31 +286,31 @@ const AiGatewaysSection: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-1.5">
-                                <Label>Modelo de transcrição (opcional)</Label>
+                                <Label>{tr("uiText.settings.gateways.transcriptionModel")}</Label>
                                 <Input
                                     value={form.transcriptionModel ?? ""}
                                     onChange={(e) => setForm((f) => ({ ...f, transcriptionModel: e.target.value }))}
                                     placeholder="whisper-1"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Áudio → texto. Necessário para Assistants com "Entende áudio" ligado.
+                                    Áudio → texto. Necessário para Assistants com tr("uiText.settings.gateways.understandsAudio") ligado.
                                 </p>
                             </div>
                             <div className="flex flex-col gap-1.5">
-                                <Label>Modelo de fala (opcional)</Label>
+                                <Label>{tr("uiText.settings.gateways.speechModel")}</Label>
                                 <Input
                                     value={form.speechModel ?? ""}
                                     onChange={(e) => setForm((f) => ({ ...f, speechModel: e.target.value }))}
                                     placeholder="tts-1"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Texto → áudio. Necessário para Assistants com "Responde com áudio" ligado.
+                                    Texto → áudio. Necessário para Assistants com tr("uiText.settings.gateways.repliesAudio") ligado.
                                 </p>
                             </div>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <Label>
-                                API Key {editing && <span className="text-muted-foreground">(deixe em branco para manter a atual)</span>}
+                                API Key {editing && <span className="text-muted-foreground">{tr("uiText.settings.gateways.keepCurrent")}</span>}
                             </Label>
                             <Input
                                 type="password"
@@ -320,10 +322,10 @@ const AiGatewaysSection: React.FC = () => {
                     </div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setFormOpen(false)}>
-                            Cancelar
+                            {tr("uiText.common.cancel")}
                         </Button>
                         <Button onClick={handleSave} disabled={saving}>
-                            {saving ? "Salvando..." : "Salvar"}
+                            {saving ? "Salvando..." : tr("uiText.common.save")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -356,7 +358,7 @@ const AiGatewaysSection: React.FC = () => {
                         </p>
                     )}
                     <DialogFooter>
-                        <Button onClick={() => setTestResult(null)}>Fechar</Button>
+                        <Button onClick={() => setTestResult(null)}>{tr("uiText.common.close")}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

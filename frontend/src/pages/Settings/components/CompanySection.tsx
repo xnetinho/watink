@@ -12,6 +12,9 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Separator } from "../../../components/ui/separator";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface CompanySectionProps {
   getSettingValue: (key: string) => string;
   handleUpdateSetting: (key: string, value: string) => Promise<void>;
@@ -37,17 +40,16 @@ const CompanySection: React.FC<CompanySectionProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Building2 className="h-5 w-5" />
-            Dados da Empresa
+            {tr("uiText.settings.company.title")}
           </CardTitle>
           <CardDescription>
-            Informações legais e de contato usadas em relatórios, recibos e na
-            página pública de acompanhamento do Helpdesk.
+            {tr("uiText.settings.company.hint")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
-              <Label>Razão Social</Label>
+              <Label>{tr("uiText.settings.company.legalName")}</Label>
               <Input placeholder="Ex: Watink Tecnologia LTDA" {...field("companyLegalName")} />
             </div>
             <div className="grid gap-2">
@@ -64,31 +66,31 @@ const CompanySection: React.FC<CompanySectionProps> = ({
           <Separator />
 
           <div className="grid gap-4">
-            <Label className="text-sm font-semibold">Endereço</Label>
+            <Label className="text-sm font-semibold">{tr("uiText.settings.company.address")}</Label>
             <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
               <div className="grid gap-2">
                 <Label>Logradouro</Label>
                 <Input placeholder="Rua, Av..." {...field("companyAddressStreet")} />
               </div>
               <div className="grid gap-2">
-                <Label>Número</Label>
+                <Label>{tr("uiText.clients.number")}</Label>
                 <Input placeholder="Nº" {...field("companyAddressNumber")} />
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Complemento</Label>
+                <Label>{tr("uiText.clients.complement")}</Label>
                 <Input placeholder="Sala, andar..." {...field("companyAddressComplement")} />
               </div>
               <div className="grid gap-2">
-                <Label>Bairro</Label>
-                <Input placeholder="Bairro" {...field("companyAddressNeighborhood")} />
+                <Label>{tr("uiText.clients.neighborhood")}</Label>
+                <Input placeholder={tr("uiText.clients.neighborhood")} {...field("companyAddressNeighborhood")} />
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-[2fr_1fr_1fr]">
               <div className="grid gap-2">
-                <Label>Cidade</Label>
-                <Input placeholder="Cidade" {...field("companyAddressCity")} />
+                <Label>{tr("uiText.clients.city")}</Label>
+                <Input placeholder={tr("uiText.clients.city")} {...field("companyAddressCity")} />
               </div>
               <div className="grid gap-2">
                 <Label>UF</Label>
@@ -105,7 +107,7 @@ const CompanySection: React.FC<CompanySectionProps> = ({
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="grid gap-2">
-              <Label>Telefone</Label>
+              <Label>{tr("uiText.common.phone")}</Label>
               <Input placeholder="(00) 00000-0000" {...field("companyPhone")} />
             </div>
             <div className="grid gap-2">

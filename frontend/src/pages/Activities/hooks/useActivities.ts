@@ -3,6 +3,9 @@ import notify from "@/lib/notify";
 import api from "../../../services/api";
 import { Activity } from "../../MyActivities/activityTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UseActivitiesReturn {
   activities: Activity[];
   loading: boolean;
@@ -84,7 +87,7 @@ export function useActivities(): UseActivitiesReturn {
   const handleConfirmDelete = async () => {
     try {
       await api.delete(`/activities/${activityToDelete?.id}`);
-      notify.success("Atividade excluída com sucesso");
+      notify.success(tr("uiText.activities.deleted"));
       loadActivities();
     } catch (err) {
       notify.error(err);

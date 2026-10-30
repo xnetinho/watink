@@ -19,6 +19,9 @@ import {
   DialogFooter,
 } from "../../../components/ui/dialog";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PersonalizationSectionProps {
   getSettingValue: (key: string) => string;
   handleUpdateSetting: (key: string, value: string) => Promise<void>;
@@ -34,7 +37,7 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
   const loginBackgroundInputRef = useRef<HTMLInputElement>(null);
 
   // Estado local para mudanças não salvas — inclui imagens já comprimidas,
-  // aguardando o clique em "Aplicar" para de fato persistir no backend.
+  // aguardando o clique em tr("uiText.settings.personalization.apply") para de fato persistir no backend.
   const [localChanges, setLocalChanges] = useState<Record<string, string>>({});
   const [previewOpen, setPreviewOpen] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -103,11 +106,11 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
             <Palette className="h-5 w-5" />
             Identidade Visual
           </CardTitle>
-          <CardDescription>Personalize o nome e as imagens do seu sistema</CardDescription>
+          <CardDescription>{tr("uiText.settings.personalization.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-2">
-            <Label>Nome do Sistema (Título)</Label>
+            <Label>{tr("uiText.settings.personalization.systemName")}</Label>
             <Input
               placeholder="Ex: Watink Atendimento"
               value={getDisplayValue("systemTitle") || "Watink"}
@@ -143,7 +146,7 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
             </div>
 
             <div className="space-y-4">
-              <Label>Favicon (Ícone do Navegador)</Label>
+              <Label>{tr("uiText.settings.personalization.favicon")}</Label>
               <div className="border border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-3 bg-muted/10">
                 <ImagePreview value={getDisplayValue("systemFavicon")} alt="systemFavicon" />
                 <input type="file" accept="image/x-icon,image/png,image/jpeg" ref={faviconInputRef} className="hidden" onChange={(e) => handleImageSelected("systemFavicon", e.target.files?.[0])} />
@@ -177,16 +180,16 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
             </div>
 
             <div className="space-y-4">
-              <Label>Paleta de cores</Label>
+              <Label>{tr("uiText.settings.personalization.palette")}</Label>
               <p className="text-sm text-muted-foreground">
-                Identidade visual da empresa. O modo claro/escuro é escolhido por cada usuário no ícone do topo da tela.
+                {tr("uiText.settings.personalization.paletteHint")}
               </p>
               <Select value={["whaticket", "whatsapp"].includes(getDisplayValue("theme")) ? getDisplayValue("theme") : "whaticket"} onValueChange={(v) => handleLocalChange("theme", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Tema principal" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="whaticket">Padrão Whajet / Whaticket</SelectItem>
+                  <SelectItem value="whaticket">{tr("uiText.settings.personalization.themeDefault")}</SelectItem>
                   <SelectItem value="whatsapp">Branding WhatsApp (Green)</SelectItem>
                 </SelectContent>
               </Select>
@@ -199,28 +202,28 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Layout className="h-5 w-5" />
-            Customização da Tela de Login
+            {tr("uiText.settings.personalization.loginCustom")}
           </CardTitle>
-          <CardDescription>Configure o design e a visualização da tela inicial</CardDescription>
+          <CardDescription>{tr("uiText.settings.personalization.loginHint")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
-              <Label>Posição do Formulário</Label>
+              <Label>{tr("uiText.settings.personalization.formPosition")}</Label>
               <Select value={getDisplayValue("login_layout") || "centered"} onValueChange={(v) => handleLocalChange("login_layout", v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Layout da página" />
+                  <SelectValue placeholder={tr("uiText.settings.personalization.pageLayout")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="split_left">Formulário à Esquerda</SelectItem>
-                  <SelectItem value="split_right">Formulário à Direita</SelectItem>
+                  <SelectItem value="split_left">{tr("uiText.settings.personalization.formLeft")}</SelectItem>
+                  <SelectItem value="split_right">{tr("uiText.settings.personalization.formRight")}</SelectItem>
                   <SelectItem value="centered">Centralizado (Background Completo)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Imagem de Fundo (Login)</Label>
+              <Label>{tr("uiText.settings.personalization.loginBackground")}</Label>
               <div className="border border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-3 bg-muted/10">
                 <ImagePreview value={getDisplayValue("login_backgroundImage")} alt="login_backgroundImage" />
                 <input type="file" accept="image/*" ref={loginBackgroundInputRef} className="hidden" onChange={(e) => handleImageSelected("login_backgroundImage", e.target.files?.[0])} />
@@ -244,7 +247,7 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
       {hasChanges && (
         <div className="sticky bottom-4 z-40 flex justify-end gap-2 rounded-2xl border bg-background/95 backdrop-blur px-4 py-3 shadow-[0px_4px_20px_rgba(0,0,0,0.12)]">
           <span className="mr-auto self-center text-sm text-muted-foreground">
-            Você tem alterações não salvas
+            {tr("uiText.settings.personalization.unsaved")}
           </span>
           <Button
             variant="outline"
@@ -271,7 +274,7 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
             className="gap-2"
           >
             <Check className="h-4 w-4" />
-            {applying ? "Aplicando..." : "Aplicar"}
+            {applying ? "Aplicando..." : tr("uiText.settings.personalization.apply")}
           </Button>
         </div>
       )}
@@ -280,16 +283,16 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Preview das Alterações</DialogTitle>
+            <DialogTitle>{tr("uiText.settings.personalization.previewTitle")}</DialogTitle>
             <DialogDescription>
-              Revise as alterações antes de aplicar
+              {tr("uiText.settings.personalization.previewHint")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {localChanges.systemTitle && (
               <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                <Label className="text-xs font-semibold">Nome do Sistema</Label>
+                <Label className="text-xs font-semibold">{tr("uiText.settings.personalization.systemNameShort")}</Label>
                 <p className="text-sm">{localChanges.systemTitle}</p>
               </div>
             )}
@@ -332,23 +335,23 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
 
             {localChanges.theme && (
               <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                <Label className="text-xs font-semibold">Paleta de cores</Label>
+                <Label className="text-xs font-semibold">{tr("uiText.settings.personalization.palette")}</Label>
                 <p className="text-sm">
                   {localChanges.theme === "whatsapp"
                     ? "Branding WhatsApp (Green)"
-                    : "Padrão Whajet / Whaticket"}
+                    : tr("uiText.settings.personalization.themeDefault")}
                 </p>
               </div>
             )}
 
             {localChanges.login_layout && (
               <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                <Label className="text-xs font-semibold">Posição do Formulário de Login</Label>
+                <Label className="text-xs font-semibold">{tr("uiText.settings.personalization.loginFormPosition")}</Label>
                 <p className="text-sm">
                   {localChanges.login_layout === "split_left"
-                    ? "Formulário à Esquerda"
+                    ? tr("uiText.settings.personalization.formLeft")
                     : localChanges.login_layout === "split_right"
-                      ? "Formulário à Direita"
+                      ? tr("uiText.settings.personalization.formRight")
                       : "Centralizado (Background Completo)"}
                 </p>
               </div>
@@ -356,7 +359,7 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
 
             {localChanges.login_backgroundImage !== undefined && (
               <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                <Label className="text-xs font-semibold">Imagem de Fundo (Login)</Label>
+                <Label className="text-xs font-semibold">{tr("uiText.settings.personalization.loginBackground")}</Label>
                 <p className="text-sm text-muted-foreground">
                   {localChanges.login_backgroundImage ? "Alterada" : "Removida"}
                 </p>
@@ -364,7 +367,7 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
             )}
 
             <div className="text-xs text-muted-foreground p-3 border border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
-              ⚠️ Clique em "Aplicar" para confirmar e salvar as alterações permanentemente.
+              ⚠️ Clique em tr("uiText.settings.personalization.apply") para confirmar e salvar as alterações permanentemente.
             </div>
           </div>
 
@@ -373,7 +376,7 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
               variant="outline"
               onClick={() => setPreviewOpen(false)}
             >
-              Voltar
+              {tr("uiText.settings.personalization.back")}
             </Button>
             <Button
               onClick={handleApply}
@@ -381,7 +384,7 @@ const PersonalizationSection: React.FC<PersonalizationSectionProps> = ({
               className="gap-2"
             >
               <Check className="h-4 w-4" />
-              {applying ? "Aplicando..." : "Aplicar Alterações"}
+              {applying ? "Aplicando..." : tr("uiText.settings.personalization.applyChanges")}
             </Button>
           </DialogFooter>
         </DialogContent>

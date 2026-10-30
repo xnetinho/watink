@@ -11,6 +11,9 @@ import ConfirmationModal from "../../components/ConfirmationModal";
 import { ClientsTable } from "./components/ClientsTable";
 import { useClients } from "./hooks/useClients";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const Clients: React.FC = () => {
   const { user } = useContext(AuthContext);
   const {
@@ -47,7 +50,7 @@ const Clients: React.FC = () => {
               <div className="relative hidden md:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nome, documento ou email..."
+                  placeholder={tr("uiText.clients.searchPlaceholder")}
                   value={searchParam}
                   onChange={(e) => setSearchParam(e.target.value)}
                   className="pl-9 h-10 w-64"
@@ -59,7 +62,7 @@ const Clients: React.FC = () => {
                 yes={() => (
                   <Button onClick={() => handleOpenModal()}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Novo Cliente
+                    {tr("uiText.clients.new")}
                   </Button>
                 )}
               />
@@ -85,13 +88,13 @@ const Clients: React.FC = () => {
           />
 
           <ConfirmationModal
-            title="Excluir Cliente"
+            title={tr("uiText.clients.deleteTitle")}
             open={confirmDeleteOpen}
             onClose={() => setConfirmDeleteOpen(false)}
             onConfirm={handleConfirmDelete}
           >
             {clientToDelete
-              ? `Deseja realmente excluir o cliente "${clientToDelete.name}"?`
+              ? tr("uiText.clients.deleteConfirm", { name: clientToDelete.name })
               : ""}
           </ConfirmationModal>
         </PageContainer>
@@ -100,7 +103,7 @@ const Clients: React.FC = () => {
         <PageContainer>
           <PageContent>
             <p className="text-center text-muted-foreground py-16">
-              Você não tem permissão para visualizar esta página.
+              {tr("uiText.clients.noPermission")}
             </p>
           </PageContent>
         </PageContainer>

@@ -7,6 +7,9 @@ import ConfirmationModal from "../../../components/ConfirmationModal";
 import ContactModal from "../../../components/ContactModal";
 import { ClientContact, PendingReassign } from "../clientTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ContactsTabProps {
   clientId: number | null;
   linkedContacts: ClientContact[];
@@ -39,7 +42,7 @@ const ContactsTab: React.FC<ContactsTabProps> = ({
     <TabsContent value="contacts" className="mt-4">
       {!clientId ? (
         <p className="text-sm text-muted-foreground text-center py-8">
-          Salve o cliente antes de vincular contatos.
+          {tr("uiText.clients.saveFirst")}
         </p>
       ) : (
         <>
@@ -47,7 +50,7 @@ const ContactsTab: React.FC<ContactsTabProps> = ({
             <p className="text-sm font-medium text-muted-foreground">Vincular Existente</p>
             <Button variant="outline" size="sm" onClick={() => setNewContactOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" />
-              Adicionar Novo
+              {tr("uiText.clients.addNew")}
             </Button>
           </div>
           <div className="relative mb-4">
@@ -55,7 +58,7 @@ const ContactsTab: React.FC<ContactsTabProps> = ({
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="Buscar contato pelo nome ou número..."
+                placeholder={tr("uiText.clients.searchContact")}
                 value={searchValue}
                 onChange={(e) => {
                   setSearchValue(e.target.value);
@@ -114,17 +117,17 @@ const ContactsTab: React.FC<ContactsTabProps> = ({
       )}
 
       <ConfirmationModal
-        title="Contato já vinculado"
+        title={tr("uiText.clients.contactLinked")}
         open={!!pendingReassign}
         onClose={(confirmed) => { if (!confirmed) onCancelReassign(); }}
         onConfirm={onConfirmReassign}
       >
         {pendingReassign
-          ? `O contato "${pendingReassign.contactName}" já pertence ao cliente "${pendingReassign.currentClientName}". Deseja mover para este cliente?`
+          ? tr("uiText.clients.reassign", { contact: pendingReassign.contactName, client: pendingReassign.currentClientName })
           : ""}
       </ConfirmationModal>
 
-      {/* "Adicionar Novo" cria o Contact via POST /contacts (ContactModal
+      {/* tr("uiText.clients.addNew") cria o Contact via POST /contacts (ContactModal
           reusado) e, ao salvar com sucesso, vincula o id retornado ao
           Client atual — evita duplicar o formulário de Contact aqui. */}
       <ContactModal

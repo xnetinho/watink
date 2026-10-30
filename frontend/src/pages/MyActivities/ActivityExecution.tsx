@@ -20,6 +20,9 @@ import DetailsTab from "./components/DetailsTab";
 import MaterialModal from "./components/MaterialModal";
 import OccurrenceModal from "./components/OccurrenceModal";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const ActivityExecution: React.FC<{
   open: boolean;
   activityId: string;
@@ -63,7 +66,7 @@ const ActivityExecution: React.FC<{
               <TabsList className="mb-4">
                 <TabsTrigger value="checklist">Checklist</TabsTrigger>
                 <TabsTrigger value="materials">Materiais (RDO)</TabsTrigger>
-                <TabsTrigger value="occurrences">Ocorrências</TabsTrigger>
+                <TabsTrigger value="occurrences">{tr("uiText.activities.occurrences")}</TabsTrigger>
                 <TabsTrigger value="details">Detalhes</TabsTrigger>
               </TabsList>
 

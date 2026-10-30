@@ -6,6 +6,9 @@ import {
   Activity, ChecklistItem, Material, Occurrence, NewOccurrence,
 } from "../activityTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface UseActivityExecutionReturn {
   loading: boolean;
   activity: Activity | null;
@@ -140,7 +143,7 @@ export const useActivityExecution = (
       setOccurrences((prev) => [...prev, data]);
       setOccurrenceModalOpen(false);
       setNewOccurrence(DEFAULT_OCCURRENCE);
-      notify.success("Ocorrência registrada");
+      notify.success(tr("uiText.activities.occurrenceRecorded"));
     } catch (err) {
       notify.error(err);
     }
@@ -158,7 +161,7 @@ export const useActivityExecution = (
   const handleFinish = async (signatureDataUrl: string) => {
     try {
       await api.post(`/activities/${activityId}/finalize`, { clientSignature: signatureDataUrl });
-      notify.success("Atividade concluída com sucesso!");
+      notify.success(tr("uiText.activities.completed"));
       setSignatureModalOpen(false);
       onClose();
     } catch (err) {

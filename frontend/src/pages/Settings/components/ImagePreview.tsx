@@ -1,6 +1,9 @@
 import React from "react";
 import { getBackendUrl } from "../../../helpers/urlUtils";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ImagePreviewProps {
   value: string;
   alt?: string;
@@ -10,7 +13,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ value, alt = "preview" }) =
   if (!value) {
     return (
       <div className="h-16 w-32 flex items-center justify-center bg-muted/30 rounded border text-muted-foreground text-xs">
-        Sem imagem
+        {tr("uiText.settings.noImage")}
       </div>
     );
   }

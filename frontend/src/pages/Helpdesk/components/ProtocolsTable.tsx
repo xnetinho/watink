@@ -1,7 +1,7 @@
 import React from "react";
 import { Eye } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { dateLocale } from "../../../lib/dateLocale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -105,7 +105,7 @@ const ProtocolsTable: React.FC<ProtocolsTableProps> = ({
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {format(new Date(protocol.createdAt), "dd/MM/yyyy HH:mm", {
-                  locale: ptBR,
+                  locale: dateLocale(),
                 })}
               </TableCell>
               <TableCell className="text-right">

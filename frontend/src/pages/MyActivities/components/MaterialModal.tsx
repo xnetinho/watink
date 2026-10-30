@@ -12,6 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Material } from "../activityTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface MaterialModalProps {
   open: boolean;
   newMaterial: Omit<Material, "id" | "activityId">;
@@ -30,7 +33,7 @@ const MaterialModal: React.FC<MaterialModalProps> = ({
       </DialogHeader>
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Nome do Material</label>
+          <label className="text-sm font-medium">{tr("uiText.activities.materialName")}</label>
           <Input
             value={newMaterial.materialName}
             onChange={(e) => onChange((prev) => ({ ...prev, materialName: e.target.value }))}
@@ -57,7 +60,7 @@ const MaterialModal: React.FC<MaterialModalProps> = ({
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Observações</label>
+          <label className="text-sm font-medium">{tr("uiText.activities.notes")}</label>
           <Textarea
             value={newMaterial.notes}
             onChange={(e) => onChange((prev) => ({ ...prev, notes: e.target.value }))}
@@ -77,9 +80,9 @@ const MaterialModal: React.FC<MaterialModalProps> = ({
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+        <Button variant="outline" onClick={onCancel}>{tr("uiText.common.cancel")}</Button>
         <Button onClick={onConfirm} disabled={!newMaterial.materialName.trim()}>
-          Adicionar
+          {tr("uiText.common.add")}
         </Button>
       </DialogFooter>
     </DialogContent>

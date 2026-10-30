@@ -10,14 +10,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { Separator } from "../../../components/ui/separator";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const timezones = [
-  { value: "America/Sao_Paulo", label: "Brasília (UTC-3)" },
-  { value: "America/Manaus", label: "Amazonas (UTC-4)" },
-  { value: "America/Noronha", label: "Fernando de Noronha (UTC-2)" },
-  { value: "America/Caracas", label: "Caracas (UTC-4)" },
-  { value: "America/New_York", label: "Nova York (UTC-5)" },
-  { value: "Europe/London", label: "Londres (UTC+0)" },
-  { value: "Europe/Paris", label: "Paris (UTC+1)" },
+  { value: "America/Sao_Paulo", label: "uiText.settings.general.tz.saoPaulo" },
+  { value: "America/Manaus", label: "uiText.settings.general.tz.manaus" },
+  { value: "America/Noronha", label: "uiText.settings.general.tz.noronha" },
+  { value: "America/Caracas", label: "uiText.settings.general.tz.caracas" },
+  { value: "America/New_York", label: "uiText.settings.general.tz.newYork" },
+  { value: "Europe/London", label: "uiText.settings.general.tz.london" },
+  { value: "Europe/Paris", label: "uiText.settings.general.tz.paris" },
   { value: "UTC", label: "Coordinated Universal Time (UTC)" },
 ];
 
@@ -37,15 +40,15 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-primary">
           <SettingsIcon className="h-5 w-5" />
-          Configurações Gerais
+          {tr("uiText.settings.general.title")}
         </CardTitle>
-        <CardDescription>Gerencie o comportamento global da plataforma</CardDescription>
+        <CardDescription>{tr("uiText.settings.general.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label>Assinatura do Usuário</Label>
-            <p className="text-sm text-muted-foreground">Adiciona a assinatura do atendente ao final de cada mensagem</p>
+            <Label>{tr("uiText.settings.general.signature")}</Label>
+            <p className="text-sm text-muted-foreground">{tr("uiText.settings.general.signatureHint")}</p>
           </div>
           <Switch
             checked={getSettingValue("userSignature") === "enabled"}
@@ -57,8 +60,8 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
 
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label>Check-in Obrigatório</Label>
-            <p className="text-sm text-muted-foreground">Exige que o atendente esteja ativo para receber novos tickets</p>
+            <Label>{tr("uiText.settings.general.checkin")}</Label>
+            <p className="text-sm text-muted-foreground">{tr("uiText.settings.general.checkinHint")}</p>
           </div>
           <Switch
             checked={getSettingValue("forceCheckIn") === "enabled"}
@@ -73,9 +76,9 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-primary">
           <Globe2 className="h-5 w-5" />
-          Localização
+          {tr("uiText.settings.general.location")}
         </CardTitle>
-        <CardDescription>Idioma e fuso horário usados em toda a plataforma</CardDescription>
+        <CardDescription>{tr("uiText.settings.general.locationHint")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
@@ -85,14 +88,14 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
                 <SelectValue placeholder="Idioma" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pt">Português (Brasil)</SelectItem>
+                <SelectItem value="pt">{tr("uiText.settings.general.langPt")}</SelectItem>
                 <SelectItem value="en">English</SelectItem>
                 <SelectItem value="es">Español</SelectItem>
               </SelectContent>
             </Select>
           </FormField>
 
-          <FormField htmlFor="system-timezone" label="Fuso Horário (Timezone)">
+          <FormField htmlFor="system-timezone" label={tr("uiText.settings.general.timezone")}>
             <Select
               value={getSettingValue("timezone") || "America/Sao_Paulo"}
               onValueChange={(v) => handleUpdateSetting("timezone", v)}
@@ -102,7 +105,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {timezones.map((tz) => (
-                  <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                  <SelectItem key={tz.value} value={tz.value}>{tr(tz.label)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -115,12 +118,12 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-primary">
           <KeyRound className="h-5 w-5" />
-          Integração
+          {tr("uiText.settings.general.integration")}
         </CardTitle>
-        <CardDescription>Token de API global para automações e integrações externas</CardDescription>
+        <CardDescription>{tr("uiText.settings.general.integrationHint")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <FormField htmlFor="api-token" label="Token de API Global">
+        <FormField htmlFor="api-token" label={tr("uiText.settings.general.apiToken")}>
           <div className="flex gap-2">
             <Input id="api-token" readOnly value={getSettingValue("userApiToken")} className="font-mono bg-muted" />
             <Button variant="outline" size="icon" onClick={() => {
