@@ -306,3 +306,45 @@ func TestMessageEdits_ComRLSReal(t *testing.T) {
 	require.NoError(t, admin.QueryRow(`SELECT body FROM "Messages" WHERE id = 'EB'`).Scan(&body))
 	assert.Equal(t, "Segredo", body)
 }
+
+// Recibos de entrega/leitura com o banco migrado de verdade e o papel da aplicação (sem BYPASSRLS): a empresa grava e lê os
+// próprios recibos e NUNCA enxerga os de outra empresa. Também prova que a tabela nova nasceu com RLS (o catálogo geral
+// cobra isso, mas aqui é o caminho de gravação e leitura de verdade).
+func TestMessageReceipts_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	a, b := uuid.New(), uuid.New()
+	tickets := map[uuid.UUID]int{}
+	for _, tn := range []uuid.UUID{a, b} {
+		_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'T','active',now(),now())`, tn)
+		require.NoError(t, err)
+		require.NoError(t, seedRow(admin, "Whatsapps", tn))
+		require.NoError(t, seedRow(admin, "Contacts", tn))
+		require.NoError(t, seedRow(admin, "Tickets", tn))
+		var tk int
+		require.NoError(t, admin.QueryRow(`SELECT id FROM "Tickets" WHERE "tenantId" = $1`, tn).Scan(&tk))
+		tickets[tn] = tk
+	}
+	_, err := admin.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "tenantId", "fromMe", "createdAt", "updatedAt") VALUES ('RA','Oi',$1,$2,true,now(),now()), ('RB','Segredo',$3,$4,true,now(),now())`,
+		tickets[a], a, tickets[b], b)
+	require.NoError(t, err)
+	_, err = admin.Exec(`INSERT INTO "MessageReceipts" ("tenantId","messageId","senderJid",stage,"at","createdAt") VALUES ($1,'RB','','read',now(),now())`, b)
+	require.NoError(t, err)
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+
+	err = tenantdb.WithTenant(context.Background(), gdb, a, func(ctx context.Context) error {
+		db := gdb.WithContext(ctx)
+		require.NoError(t, db.Create(&models.MessageReceipt{TenantID: a, MessageID: "RA", Stage: models.ReceiptRead, At: time.Now()}).Error)
+		mine, err := services.MessageReceipts(ctx, db, a, "RA")
+		require.NoError(t, err)
+		assert.Len(t, mine, 1, "a empresa A grava e lê o próprio recibo")
+		theirs, err := services.MessageReceipts(ctx, db, a, "RB")
+		require.NoError(t, err)
+		assert.Empty(t, theirs, "e nunca vê o da empresa B")
+		// gravar em nome de outra empresa é barrado pela política
+		assert.Error(t, db.Create(&models.MessageReceipt{TenantID: b, MessageID: "RB", Stage: models.ReceiptDelivered, At: time.Now()}).Error)
+		return nil
+	})
+	require.NoError(t, err)
+}

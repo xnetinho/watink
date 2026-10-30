@@ -546,6 +546,18 @@ const messages = {
         liveLocation: "Live location",
         forwarded: "Forwarded",
         edited: "Edited",
+        receipts: {
+          title: "Message info",
+          delivered: "Delivered",
+          read: "Read",
+          played: "Played",
+          none: "—",
+          empty: "There is no delivery confirmation for this message yet.",
+          loadFailed: "Could not load the message info.",
+          unknown: "Participant",
+          hint: "The times come from WhatsApp. If the contact turned off read receipts, only delivery is shown.",
+          close: "Close",
+        },
         edits: {
           youEdited: "You edited",
           youEditedMany: "You edited {{count}} times",
@@ -958,6 +970,7 @@ const messages = {
         },
       },
       messageOptionsMenu: {
+        receipts: "Message info",
         edit: "Edit",
         editDialog: {
           title: "Edit message",

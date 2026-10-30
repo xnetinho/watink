@@ -668,6 +668,18 @@ const messages = {
         liveLocation: "Localização em tempo real",
         forwarded: "Encaminhada",
         edited: "Editada",
+        receipts: {
+          title: "Dados da mensagem",
+          delivered: "Entregue",
+          read: "Lida",
+          played: "Reproduzida",
+          none: "—",
+          empty: "Ainda não há confirmação de entrega desta mensagem.",
+          loadFailed: "Não foi possível carregar os dados da mensagem.",
+          unknown: "Participante",
+          hint: "Os horários vêm do WhatsApp. Se o contato desligou a confirmação de leitura, só aparece a entrega.",
+          close: "Fechar",
+        },
         edits: {
           youEdited: "Você editou",
           youEditedMany: "Você editou {{count}} vezes",
@@ -1128,6 +1140,7 @@ const messages = {
         },
       },
       messageOptionsMenu: {
+        receipts: "Dados da mensagem",
         edit: "Editar",
         editDialog: {
           title: "Editar mensagem",

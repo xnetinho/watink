@@ -146,6 +146,7 @@ func allModels() []interface{} {
 		&models.Ticket{},
 		&models.Message{},
 		&models.MessageEdit{},
+		&models.MessageReceipt{},
 		&models.Setor{},
 		&models.Cargo{},
 		&models.Permission{},
