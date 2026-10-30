@@ -1,10 +1,7 @@
 import type { Condition } from './components/ConditionBuilder';
 import type { Filter } from './components/FilterBuilder';
 import type { DataField } from './components/DataBuilder';
-import { i18n } from '../../translate/i18n';
 
-
-const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface NodeData {
   label?: string;
   triggerType?: string;

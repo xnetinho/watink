@@ -3,8 +3,6 @@ import { Database } from 'lucide-react';
 import BaseNode from './BaseNode';
 
 import { i18n } from "../../../translate/i18n";
-
-const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface DatabaseNodeProps {
   data: Record<string, unknown>;
   isConnectable?: boolean;
