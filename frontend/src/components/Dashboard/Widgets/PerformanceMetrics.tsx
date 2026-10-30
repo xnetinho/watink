@@ -3,6 +3,9 @@ import { Gauge, Clock } from "lucide-react";
 import { useDashboardStats } from "../../../hooks/useDashboardStats";
 import MetricCard from "../../../components/ui/metric-card";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const PerformanceMetrics: React.FC = () => {
   const { data, isLoading } = useDashboardStats();
 
@@ -24,13 +27,13 @@ const PerformanceMetrics: React.FC = () => {
   return (
     <div className="col-span-12 sm:col-span-6 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
       <MetricCard
-        label="TMR (Tempo Médio de Resposta)"
+        label={tr("uiText.dashboard.avgResponse")}
         value={isLoading ? "—" : formatTime(avgResponse)}
         icon={<Gauge className="h-5 w-5" />}
         color="info"
       />
       <MetricCard
-        label="TME (Tempo Médio de Espera)"
+        label={tr("uiText.dashboard.avgWait")}
         value={isLoading ? "—" : formatTime(avgWait)}
         icon={<Clock className="h-5 w-5" />}
         color="warning"

@@ -18,14 +18,16 @@ import AppearanceTab from "./components/AppearanceTab";
 import IntegrationTab from "./components/IntegrationTab";
 import { WebchatModalProps } from "./webchatModalTypes";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const SessionSchema = Yup.object().shape({
   name: Yup.string()
-    .min(2, "Muito curto!")
-    .max(50, "Muito longo!")
-    .required("Obrigatório"),
+    .min(2, tr("uiText.validation.tooShort"))
+    .max(50, tr("uiText.validation.tooLong"))
+    .required(tr("uiText.validation.required")),
   chatConfig: Yup.object().shape({
-    title: Yup.string().required("Obrigatório"),
-    subtitle: Yup.string().required("Obrigatório"),
+    title: Yup.string().required(tr("uiText.validation.required")),
+    subtitle: Yup.string().required(tr("uiText.validation.required")),
   }),
 });
 
@@ -54,8 +56,8 @@ const WebchatModal: React.FC<WebchatModalProps> = ({ open, onClose, whatsAppId, 
               <Tabs defaultValue="general" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="general">Geral</TabsTrigger>
-                  <TabsTrigger value="appearance">Personalização</TabsTrigger>
-                  <TabsTrigger value="integration">Integração</TabsTrigger>
+                  <TabsTrigger value="appearance">{tr("uiText.webchatModal.appearanceTab")}</TabsTrigger>
+                  <TabsTrigger value="integration">{tr("uiText.webchatModal.integrationTab")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general">

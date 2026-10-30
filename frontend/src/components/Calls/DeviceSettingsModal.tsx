@@ -25,6 +25,9 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface DeviceSettingsModalProps {
   open: boolean;
   currentStream?: MediaStream | null;
@@ -165,7 +168,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
         <DialogHeader className="border-b px-6 py-4">
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
             <SlidersHorizontal className="h-5 w-5 text-primary" />
-            Configurações e Efeitos da Chamada
+            {tr("uiText.calls.settingsTitle")}
           </DialogTitle>
         </DialogHeader>
 
@@ -181,13 +184,13 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
               />
               <div className="absolute top-3 left-3 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-medium text-white flex items-center gap-1.5 shadow">
                 <Camera className="h-3.5 w-3.5" />
-                <span>Você ao vivo</span>
+                <span>{tr("uiText.calls.youLive")}</span>
               </div>
             </div>
 
             <div className="mt-4 rounded-lg bg-card/60 border p-3 text-xs text-muted-foreground flex flex-col gap-1">
-              <span className="font-medium text-foreground">Prévia em tempo real</span>
-              <span>Os efeitos visuais e dispositivos selecionados são exibidos aqui exatamente como o contato os receberá.</span>
+              <span className="font-medium text-foreground">{tr("uiText.calls.livePreview")}</span>
+              <span>{tr("uiText.calls.livePreviewHint")}</span>
             </div>
           </div>
 
@@ -234,7 +237,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                       onChange={(e) => setAudioId(e.target.value)}
                       className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
-                      <option value="">Padrão do Sistema</option>
+                      <option value="">{tr("uiText.common.systemDefault")}</option>
                       {mics.map((m) => (
                         <option key={m.deviceId} value={m.deviceId}>
                           {m.label}
@@ -265,7 +268,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                       onChange={(e) => setAudioOutputId(e.target.value)}
                       className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
-                      <option value="">Padrão do Sistema</option>
+                      <option value="">{tr("uiText.common.systemDefault")}</option>
                       {speakers.map((s) => (
                         <option key={s.deviceId} value={s.deviceId}>
                           {s.label}
@@ -277,14 +280,14 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                   <div>
                     <label className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1">
                       <Camera className="h-3.5 w-3.5 text-primary" />
-                      Câmera
+                      {tr("uiText.calls.camera")}
                     </label>
                     <select
                       value={videoId}
                       onChange={(e) => setVideoId(e.target.value)}
                       className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
-                      <option value="">Padrão do Sistema</option>
+                      <option value="">{tr("uiText.common.systemDefault")}</option>
                       {cameras.map((c) => (
                         <option key={c.deviceId} value={c.deviceId}>
                           {c.label}
@@ -297,7 +300,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                 <div className="space-y-4">
                   <div>
                     <span className="text-xs font-semibold text-foreground mb-2 block">
-                      Planos de Fundo e Desfoque
+                      {tr("uiText.calls.backgrounds")}
                     </span>
                     <div className="grid grid-cols-3 gap-2.5">
                       {/* Sem efeito */}
@@ -371,11 +374,11 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                         >
                           <img
                             src={preset.url}
-                            alt={preset.name}
+                            alt={tr(preset.name)}
                             className="h-10 w-full rounded-lg object-cover"
                           />
                           <span className="mt-1 text-[10px] font-medium truncate w-full px-1">
-                            {preset.name}
+                            {tr(preset.name)}
                           </span>
                           {bgMode === "image" && bgImageUrl === preset.url && (
                             <Check className="absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full bg-primary text-primary-foreground p-0.5 shadow" />
@@ -389,7 +392,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                   <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 p-3">
                     <label className="text-[11px] font-semibold text-foreground flex items-center gap-1.5 mb-1.5 cursor-pointer">
                       <ImageIcon className="h-3.5 w-3.5 text-primary" />
-                      Enviar foto do seu computador
+                      {tr("uiText.calls.uploadPhoto")}
                     </label>
                     <input
                       type="file"
@@ -414,10 +417,10 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
             <div className="flex justify-end gap-2.5 pt-6 border-t border-border mt-4">
               <Button variant="outline" onClick={handleClose}>
-                Cancelar
+                {tr("uiText.common.cancel")}
               </Button>
               <Button onClick={handleSave} className="px-5 shadow-sm">
-                Concluído
+                {tr("uiText.calls.done")}
               </Button>
             </div>
           </div>

@@ -28,12 +28,14 @@ import {
   SelectValue,
 } from "../ui/select";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const TagSchema = Yup.object().shape({
   name: Yup.string()
-    .min(3, "Muito curto!")
-    .max(20, "Muito longo!")
-    .required("Obrigatório"),
-  color: Yup.string().required("Obrigatório"),
+    .min(3, tr("uiText.validation.tooShort"))
+    .max(20, tr("uiText.validation.tooLong"))
+    .required(tr("uiText.validation.required")),
+  color: Yup.string().required(tr("uiText.validation.required")),
 });
 
 interface TagModalProps {
@@ -89,7 +91,7 @@ const TagModal: React.FC<TagModalProps> = ({ open, onClose, tagId }) => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {tagId ? "Editar Etiqueta" : "Nova Etiqueta"}
+            {tagId ? tr("uiText.tagModal.edit") : tr("uiText.tagModal.new")}
           </DialogTitle>
         </DialogHeader>
 
@@ -112,7 +114,7 @@ const TagModal: React.FC<TagModalProps> = ({ open, onClose, tagId }) => {
                   value={values.name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="Nome da etiqueta"
+                  placeholder={tr("uiText.tagModal.namePlaceholder")}
                   className={touched.name && errors.name ? "border-destructive" : ""}
                 />
                 {touched.name && errors.name && (
@@ -127,7 +129,7 @@ const TagModal: React.FC<TagModalProps> = ({ open, onClose, tagId }) => {
                   onValueChange={(val) => setFieldValue("color", val)}
                 >
                   <SelectTrigger id="color">
-                    <SelectValue placeholder="Selecione uma cor" />
+                    <SelectValue placeholder={tr("uiText.tagModal.colorPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {TAG_COLOR_OPTIONS.map((color) => (
@@ -154,7 +156,7 @@ const TagModal: React.FC<TagModalProps> = ({ open, onClose, tagId }) => {
                   variant="outline" 
                   onClick={onClose}
                 >
-                  Cancelar
+                  {tr("uiText.common.cancel")}
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? (

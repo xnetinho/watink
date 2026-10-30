@@ -9,6 +9,8 @@ import {
 } from "../../ui/dropdown-menu";
 import { i18n } from "../../../translate/i18n";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // Seletor próprio, com as imagens do mesmo conjunto que desenha as mensagens (carregado só quando abre).
 const EmojiPicker = lazy(() => import("../../EmojiPicker"));
 
@@ -104,7 +106,7 @@ const InputToolbar: React.FC<InputToolbarProps> = ({
             <button
               type="button"
               className="p-2 rounded-full hover:bg-[var(--border-subtle)] transition-colors"
-              aria-label="Mais opções"
+              aria-label={tr("uiText.common.moreOptions")}
             >
               <MoreVertical className="h-5 w-5" />
             </button>

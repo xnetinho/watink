@@ -3,6 +3,10 @@
  * Limita a dimensão máxima e qualidade JPEG para evitar exceder limites de DB.
  */
 
+import { i18n } from "../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
+
 const MAX_IMAGE_SIZE_CHARS = 60000; // Margem de segurança antes do limite de 65535
 const MAX_DIMENSION = 1024; // Redimensiona para até 1024x1024
 const JPEG_QUALITY = 0.75; // Qualidade JPEG (0-1)
@@ -29,7 +33,7 @@ export const compressImage = (file: File): Promise<string> => {
 
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          reject(new Error("Falha ao obter contexto do canvas"));
+          reject(new Error(tr("uiText.imageCompression.noCanvas")));
           return;
         }
 
@@ -47,7 +51,7 @@ export const compressImage = (file: File): Promise<string> => {
         if (result.length > MAX_IMAGE_SIZE_CHARS) {
           reject(
             new Error(
-              `Imagem ainda muito grande após compressão (${(result.length / 1024).toFixed(1)}KB). Tente uma imagem menor.`
+              tr("uiText.imageCompression.tooLarge", { size: (result.length / 1024).toFixed(1) })
             )
           );
           return;
@@ -57,14 +61,14 @@ export const compressImage = (file: File): Promise<string> => {
       };
 
       img.onerror = () => {
-        reject(new Error("Falha ao carregar imagem"));
+        reject(new Error(tr("uiText.imageCompression.loadFailed")));
       };
 
       img.src = event.target?.result as string;
     };
 
     reader.onerror = () => {
-      reject(new Error("Falha ao ler arquivo"));
+      reject(new Error(tr("uiText.imageCompression.readFailed")));
     };
 
     reader.readAsDataURL(file);

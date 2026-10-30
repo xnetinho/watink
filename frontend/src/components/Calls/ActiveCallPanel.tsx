@@ -10,6 +10,9 @@ import type { ActiveCall } from "@/context/Calls/types";
 import CallQualityPanel from "./CallQualityPanel";
 import { DeviceSettingsModal } from "./DeviceSettingsModal";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 /** Texto do estado atual da chamada. */
 export function phaseLabel(call: ActiveCall, now: number): string {
   switch (call.phase) {
@@ -147,9 +150,9 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
             muted
             playsInline
             className="max-h-40 w-full rounded-xl bg-black object-contain transform -scale-x-100"
-            aria-label="Sua câmera (self-view)"
+            aria-label={tr("uiText.calls.selfView")}
           />
-          <span className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">Você</span>
+          <span className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">{tr("uiText.calls.you")}</span>
         </div>
       )}
       {showVideo && (
@@ -260,7 +263,7 @@ const ActiveCallPanel: React.FC<{ recordingAvailable?: boolean; recordingMode?: 
             variant="secondary"
             size="icon"
             onClick={() => setSettingsOpen(true)}
-            aria-label="Configurações de Dispositivos e Fundo"
+            aria-label={tr("uiText.calls.deviceSettings")}
             data-testid="device-settings-btn"
           >
             <Settings />

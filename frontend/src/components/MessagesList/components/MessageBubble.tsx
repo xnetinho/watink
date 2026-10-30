@@ -63,6 +63,8 @@ import DailyTimestamp from "./DailyTimestamp";
 import SenderName from "./SenderName";
 import DeletedMessage from "./DeletedMessage";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface MessageBubbleProps {
   message: Message;
   index: number;
@@ -172,7 +174,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       disabled={message.isDeleted}
       className="hidden group-hover:flex absolute top-0 right-0 p-0.5 rounded opacity-90 bg-inherit text-[hsl(var(--message-ack-text))] z-10 hover:bg-black/10 transition-colors"
       onClick={(e) => onOpenOptions(e, message)}
-      aria-label="Opções da mensagem"
+      aria-label={tr("uiText.messagesList.messageOptions")}
     >
       <ChevronDown className="h-4 w-4" />
     </button>

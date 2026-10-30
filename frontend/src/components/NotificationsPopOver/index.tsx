@@ -8,6 +8,8 @@ import TicketListItem from "../TicketListItem";
 import { i18n } from "../../translate/i18n";
 import { useNotifications } from "./hooks/useNotifications";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const NotificationsPopOver = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { notifications, clearNotifications, muted, toggleMuted } = useNotifications();
@@ -43,7 +45,7 @@ const NotificationsPopOver = () => {
           <Switch
             checked={muted}
             onCheckedChange={toggleMuted}
-            aria-label="Silenciar notificações (som e card)"
+            aria-label={tr("uiText.notificationsPopOver.mute")}
           />
         </div>
         {count > 0 && (
@@ -58,7 +60,7 @@ const NotificationsPopOver = () => {
               onClick={clearNotifications}
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Limpar
+              {tr("uiText.notificationsPopOver.clear")}
             </Button>
           </div>
         )}

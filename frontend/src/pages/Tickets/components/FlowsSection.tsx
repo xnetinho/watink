@@ -197,7 +197,7 @@ const FlowsSection: React.FC<FlowsSectionProps> = ({ contactId }) => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
+              {tr("uiText.common.cancel")}
             </Button>
             <Button
               onClick={handleStart}

@@ -19,6 +19,9 @@ import type {
   QuickAnswerContentPix,
 } from "@/pages/QuickAnswers/quickAnswersTypes";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface WhatsAppBubblePreviewProps {
   type: QuickAnswerType | undefined;
   content: QuickAnswerContent | undefined;
@@ -143,7 +146,7 @@ function ListBubble({ content }: { content: QuickAnswerContentList }) {
       <div className="border-t border-gray-300 mt-2 pt-1">
         <div className="flex items-center justify-center gap-1 text-blue-500 text-sm py-1 cursor-default select-none">
           <List size={14} />
-          <span>{content.button_text || "Ver opções"}</span>
+          <span>{content.button_text || tr("uiText.common.viewOptions")}</span>
         </div>
       </div>
     </BubbleWrapper>
@@ -232,7 +235,7 @@ function CarouselBubble({ content }: { content: QuickAnswerContentCarousel }) {
                     key={b.id}
                     className="text-center text-blue-500 text-[11px] py-1 border-t border-gray-100 cursor-default select-none"
                   >
-                    {b.label || "Botão"}
+                    {b.label || tr("uiText.whatsAppBubblePreview.button")}
                   </div>
                 ))}
               </div>
@@ -275,7 +278,7 @@ export default function WhatsAppBubblePreview({
       }
       return (
         <div className="text-sm text-gray-400 italic text-center py-4">
-          Preencha os campos para ver o preview
+          {tr("uiText.whatsAppBubblePreview.fillToPreview")}
         </div>
       );
     }
@@ -312,7 +315,7 @@ export default function WhatsAppBubblePreview({
       default:
         return (
           <div className="text-sm text-gray-400 italic text-center py-4">
-            Preencha os campos para ver o preview
+            {tr("uiText.whatsAppBubblePreview.fillToPreview")}
           </div>
         );
     }

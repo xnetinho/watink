@@ -4,6 +4,9 @@ import { toast } from "react-toastify";
 import api from "../../../services/api";
 import { Message } from "../types";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Props {
   message: Message;
   onTranscribed: (text: string) => void;
@@ -33,13 +36,13 @@ const AudioTranscribeButton: React.FC<Props> = ({ message, onTranscribed }) => {
       if (data.success && data.transcription) {
         onTranscribed(data.transcription);
       } else {
-        toast.error(data.error ?? "Não foi possível transcrever o áudio");
+        toast.error(data.error ?? tr("uiText.messagesList.transcribeFailed"));
       }
     } catch (err) {
       const apiError =
         (err as { response?: { data?: { error?: string } } })?.response?.data
           ?.error;
-      toast.error(apiError ?? "Não foi possível transcrever o áudio");
+      toast.error(apiError ?? tr("uiText.messagesList.transcribeFailed"));
     } finally {
       setLoading(false);
     }
@@ -56,7 +59,7 @@ const AudioTranscribeButton: React.FC<Props> = ({ message, onTranscribed }) => {
       ) : (
         <Captions className="h-3.5 w-3.5" />
       )}
-      {loading ? "Transcrevendo…" : "Transcrever áudio"}
+      {loading ? tr("uiText.messagesList.transcribing") : tr("uiText.messagesList.transcribe")}
     </button>
   );
 };

@@ -3,6 +3,9 @@ import clsx from "clsx";
 import { X } from "lucide-react";
 import { QuoteContent } from "../../MessagesList/components/QuotedMessage";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ReplyPreviewProps {
   message: Record<string, unknown>;
   loading: boolean;
@@ -62,7 +65,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ message, loading, ticketSta
         className="p-1 rounded-full hover:bg-[var(--border-subtle)] transition-colors disabled:opacity-50"
         disabled={loading || ticketStatus !== "open"}
         onClick={onCancel}
-        aria-label="Cancelar resposta"
+        aria-label={tr("uiText.messageInput.cancelReply")}
       >
         <X className="h-5 w-5 text-gray-500" />
       </button>
