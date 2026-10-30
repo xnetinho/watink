@@ -8,6 +8,9 @@ import SimulatorChatArea from './components/simulator/SimulatorChatArea';
 import SimulatorLogsSidebar from './components/simulator/SimulatorLogsSidebar';
 import type { FlowSimulatorModalProps } from './components/simulator/SimulatorTypes';
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ─── FlowSimulatorModal (orchestrator) ───────────────────────────────────────
 
 const FlowSimulatorModal: React.FC<FlowSimulatorModalProps> = ({
@@ -38,7 +41,7 @@ const FlowSimulatorModal: React.FC<FlowSimulatorModalProps> = ({
             <h2 className="text-base font-semibold">Simular: {flowName}</h2>
             {result?.flowType && (
               <Badge variant="secondary" className="text-[11px]">
-                {result.flowType === 'chat' ? 'Chat' : 'Automação'}
+                {result.flowType === 'chat' ? 'Chat' : tr("uiText.flow.ui.automation")}
               </Badge>
             )}
           </div>

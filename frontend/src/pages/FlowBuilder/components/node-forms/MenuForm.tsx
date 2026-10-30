@@ -4,16 +4,19 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { NodeData } from '../../nodeEditorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface MenuFormProps {
   formData: NodeData;
   onChange: (field: string, value: unknown) => void;
 }
 
 const MenuForm: React.FC<MenuFormProps> = ({ formData, onChange }) => {
-  const options = formData.options || [{ id: 'opt1', label: 'Opção 1' }];
+  const options = formData.options || [{ id: 'opt1', label: 'Opção 1' }]; // i18n-ignore: valor gravado no fluxo
 
   const addOption = () => {
-    onChange('options', [...options, { id: `opt${Date.now()}`, label: `Opção ${options.length + 1}` }]);
+    onChange('options', [...options, { id: `opt${Date.now()}`, label: `Opção ${options.length + 1}` }]); // i18n-ignore: valor gravado no fluxo
   };
 
   const removeOption = (optId: string) =>
@@ -26,12 +29,12 @@ const MenuForm: React.FC<MenuFormProps> = ({ formData, onChange }) => {
     <div className="space-y-3">
       <Input
         className="h-8 text-xs"
-        placeholder="Escolha uma opção:"
+        placeholder={tr("uiText.flow.form.menuTitle")}
         value={formData.menuTitle || ''}
         onChange={(e) => onChange('menuTitle', e.target.value)}
       />
       <div className="space-y-1">
-        <p className="text-xs font-medium text-muted-foreground">Opções do Menu</p>
+        <p className="text-xs font-medium text-muted-foreground">{tr("uiText.flow.form.menuOptions")}</p>
         {options.map((opt) => (
           <div key={opt.id} className="flex gap-1 items-center bg-muted/50 rounded p-1">
             <Input

@@ -29,6 +29,9 @@ import DatabaseForm from './components/node-forms/DatabaseForm';
 import FilterForm from './components/node-forms/FilterForm';
 import QuickAnswerForm from './components/node-forms/QuickAnswerForm';
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const NodeEditorSidebar: React.FC<NodeEditorSidebarProps> = ({
   open, node, onClose, onSave, onDelete,
 }) => {
@@ -103,7 +106,7 @@ const NodeEditorSidebar: React.FC<NodeEditorSidebarProps> = ({
       case 'output':
         return <EndForm {...props} />;
       default:
-        return <p className="text-xs text-muted-foreground">Tipo de nó desconhecido</p>;
+        return <p className="text-xs text-muted-foreground">{tr("uiText.flow.editor.unknownNode")}</p>;
     }
   };
 
@@ -112,7 +115,7 @@ const NodeEditorSidebar: React.FC<NodeEditorSidebarProps> = ({
       <SheetContent side="right" className="w-[380px] p-0 overflow-hidden flex flex-col">
         <SheetHeader className="px-4 py-3 border-b flex-row items-center justify-between space-y-0">
           <SheetTitle className="text-sm">
-            {NODE_TITLES[node.type] || 'Configurar Nó'}
+            {NODE_TITLES[node.type] || tr("uiText.flow.editor.configureNode")}
           </SheetTitle>
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -121,33 +124,33 @@ const NodeEditorSidebar: React.FC<NodeEditorSidebarProps> = ({
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div className="space-y-1">
-            <Label className="text-xs">Título do Nó</Label>
+            <Label className="text-xs">{tr("uiText.flow.editor.nodeTitle")}</Label>
             <Input
               className="h-8 text-xs"
               placeholder={NODE_TITLES[node.type]?.replace('Configurar ', '') || 'Título'}
               value={formData.label || ''}
               onChange={(e) => handleChange('label', e.target.value)}
             />
-            <p className="text-[10px] text-muted-foreground">Nome exibido abaixo do ícone do nó</p>
+            <p className="text-[10px] text-muted-foreground">{tr("uiText.flow.editor.nodeTitleHint")}</p>
           </div>
 
           {renderForm()}
 
           <div className="space-y-2 pt-2">
             <Button className="w-full" onClick={() => onSave(node.id, formData)}>
-              Salvar Configurações
+              {tr("uiText.flow.editor.saveSettings")}
             </Button>
             <Button
               variant="outline"
               className="w-full text-destructive border-destructive hover:bg-destructive/10 gap-2"
               onClick={() => {
-                if (window.confirm('Tem certeza que deseja excluir este nó?')) {
+                if (window.confirm(tr("uiText.flow.editor.deleteConfirm"))) {
                   onDelete(node.id);
                 }
               }}
             >
               <Trash2 className="h-4 w-4" />
-              Excluir Nó
+              {tr("uiText.flow.editor.deleteNode")}
             </Button>
           </div>
         </div>

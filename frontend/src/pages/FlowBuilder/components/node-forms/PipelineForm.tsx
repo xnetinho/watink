@@ -6,6 +6,9 @@ import {
 } from '@/components/ui/select';
 import { NodeData, Pipeline } from '../../nodeEditorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PipelineFormProps {
   formData: NodeData;
   pipelines: Pipeline[];
@@ -14,10 +17,10 @@ interface PipelineFormProps {
 
 const PipelineForm: React.FC<PipelineFormProps> = ({ formData, pipelines, onChange }) => (
   <div className="space-y-3">
-    <p className="text-xs text-muted-foreground">Integração com Kanban/Pipelines (CRM).</p>
+    <p className="text-xs text-muted-foreground">{tr("uiText.flow.form.pipelineIntro")}</p>
 
     <div className="space-y-1">
-      <Label className="text-xs">Ação Kanban</Label>
+      <Label className="text-xs">{tr("uiText.flow.form.kanbanAction")}</Label>
       <Select value={formData.kanbanAction || 'createDeal'} onValueChange={(v) => onChange('kanbanAction', v)}>
         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -30,21 +33,21 @@ const PipelineForm: React.FC<PipelineFormProps> = ({ formData, pipelines, onChan
     {formData.kanbanAction === 'createDeal' && (
       <>
         <div className="space-y-1">
-          <Label className="text-xs">Título da Oportunidade</Label>
-          <Input className="h-8 text-xs" placeholder="Use variáveis como {{contactName}}" value={formData.dealTitle || ''} onChange={(e) => onChange('dealTitle', e.target.value)} />
+          <Label className="text-xs">{tr("uiText.flow.form.dealTitle")}</Label>
+          <Input className="h-8 text-xs" placeholder={tr("uiText.flow.form.useVars")} value={formData.dealTitle || ''} onChange={(e) => onChange('dealTitle', e.target.value)} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Valor (R$)</Label>
           <Input className="h-8 text-xs" placeholder="150.00" value={formData.dealValue || ''} onChange={(e) => onChange('dealValue', e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Prioridade</Label>
+          <Label className="text-xs">{tr("uiText.common.priority")}</Label>
           <Select value={formData.dealPriority || '1'} onValueChange={(v) => onChange('dealPriority', v)}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">Baixa</SelectItem>
-              <SelectItem value="2">Média</SelectItem>
-              <SelectItem value="3">Alta</SelectItem>
+              <SelectItem value="1">{tr("uiText.common.low")}</SelectItem>
+              <SelectItem value="2">{tr("uiText.common.medium")}</SelectItem>
+              <SelectItem value="3">{tr("uiText.common.high")}</SelectItem>
             </SelectContent>
           </Select>
         </div>

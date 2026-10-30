@@ -8,6 +8,9 @@ import api from '../../../services/api';
 import toastError from '../../../errors/toastError';
 import { stripLegacyDimensions } from '../flowBuilderTypes';
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UseFlowPersistenceOptions {
     flowId: string | undefined;
     nodes: Node[];
@@ -93,7 +96,7 @@ export function useFlowPersistence({
                 active: isActive,
                 whatsappId,
             });
-            if (!silent) toast.success('Fluxo salvo com sucesso');
+            if (!silent) toast.success(tr("uiText.flow.io.saved"));
         } catch (err) {
             if (!silent) toastError(err);
         } finally {
@@ -137,10 +140,10 @@ export function useFlowPersistence({
             (node) => !connectedEdges.find((edge) => edge.source === node.id || edge.target === node.id)
         );
         if (unconnectedNodes.length > 0) {
-            toast.warning(`Atenção: Existem ${unconnectedNodes.length} nós desconectados.`);
+            toast.warning(tr("uiText.flow.io.unconnected", { count: unconnectedNodes.length }));
             return false;
         }
-        toast.success('Fluxo validado! Todas as conexões parecem corretas.');
+        toast.success(tr("uiText.flow.io.validated"));
         return true;
     }, [nodes, edges]);
 

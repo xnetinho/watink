@@ -3,6 +3,9 @@ import { Position } from '@xyflow/react';
 import { Bell } from 'lucide-react';
 import BaseNode from './BaseNode';
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface TriggerNodeProps {
   data: Record<string, unknown>;
   isConnectable?: boolean;
@@ -10,7 +13,7 @@ interface TriggerNodeProps {
 
 const TRIGGER_LABELS: Record<string, string> = {
   time: 'Agendado',
-  message: 'Mensagem',
+  message: tr("uiText.flow.ui.message"),
   webhook: 'Webhook',
   event: 'Evento',
 };
@@ -24,7 +27,7 @@ const TriggerNode: React.FC<TriggerNodeProps> = ({ data, isConnectable }) => {
       data={data}
       icon={Bell}
       colorClass="colorTrigger"
-      defaultLabel="Gatilho"
+      defaultLabel="uiText.flow.node.trigger"
       sublabel={triggerLabel}
       isConnectable={isConnectable}
       targetHandles={[]}

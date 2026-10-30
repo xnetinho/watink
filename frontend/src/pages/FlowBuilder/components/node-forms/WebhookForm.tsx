@@ -8,10 +8,13 @@ import {
 } from '@/components/ui/select';
 import { NodeData } from '../../nodeEditorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const FIELD_GROUPS = [
-  { key: 'contactFields', label: 'Dados do Contato', fields: ['name', 'number', 'email', 'profilePicUrl', 'id'] },
-  { key: 'ticketFields', label: 'Dados do Ticket', fields: ['id', 'status', 'queueId', 'userId', 'lastMessage', 'chatbot'] },
-  { key: 'pipelineFields', label: 'Dados do Pipeline (CRM)', fields: ['dealTitle', 'dealValue', 'pipelineName', 'stageName', 'dealId', 'priority'] },
+  { key: 'contactFields', label: tr("uiText.flow.form.contactData"), fields: ['name', 'number', 'email', 'profilePicUrl', 'id'] },
+  { key: 'ticketFields', label: tr("uiText.flow.form.ticketData"), fields: ['id', 'status', 'queueId', 'userId', 'lastMessage', 'chatbot'] },
+  { key: 'pipelineFields', label: tr("uiText.flow.form.pipelineData"), fields: ['dealTitle', 'dealValue', 'pipelineName', 'stageName', 'dealId', 'priority'] },
 ];
 
 interface WebhookFormProps {
@@ -22,7 +25,7 @@ interface WebhookFormProps {
 const WebhookForm: React.FC<WebhookFormProps> = ({ formData, onChange }) => (
   <div className="space-y-3">
     <div className="space-y-1">
-      <Label className="text-xs">Método</Label>
+      <Label className="text-xs">{tr("uiText.flow.form.method")}</Label>
       <Select value={formData.method || 'POST'} onValueChange={(v) => onChange('method', v)}>
         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -75,11 +78,11 @@ const WebhookForm: React.FC<WebhookFormProps> = ({ formData, onChange }) => (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
         <Checkbox id="includeContext" checked={!!formData.includeContext} onCheckedChange={(v) => onChange('includeContext', v)} />
-        <Label htmlFor="includeContext" className="text-xs cursor-pointer">Incluir Contexto do Fluxo</Label>
+        <Label htmlFor="includeContext" className="text-xs cursor-pointer">{tr("uiText.flow.form.includeContext")}</Label>
       </div>
       <div className="flex items-center gap-2">
         <Checkbox id="fullData" checked={!!formData.fullData} onCheckedChange={(v) => onChange('fullData', v)} />
-        <Label htmlFor="fullData" className="text-xs cursor-pointer">Enviar todos os dados (Contato, Ticket, Pipeline)</Label>
+        <Label htmlFor="fullData" className="text-xs cursor-pointer">{tr("uiText.flow.form.sendAll")}</Label>
       </div>
     </div>
   </div>

@@ -3,13 +3,16 @@ import { Handle, Position } from '@xyflow/react';
 import { GitBranch } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SwitchNodeProps {
   data: Record<string, unknown>;
   isConnectable?: boolean;
 }
 
 const SwitchNode: React.FC<SwitchNodeProps> = ({ data, isConnectable }) => {
-  const label = (data?.label as string) || 'Decisão';
+  const label = (data?.label as string) || tr("uiText.flow.ui.decision");
   const conditionCount = (data?.conditionsA as unknown[])?.length ?? 0;
 
   return (

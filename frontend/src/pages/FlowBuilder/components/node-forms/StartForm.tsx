@@ -6,6 +6,9 @@ import {
 } from '@/components/ui/select';
 import { NodeData } from '../../nodeEditorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface StartFormProps {
   formData: NodeData;
   onChange: (field: string, value: unknown) => void;
@@ -14,12 +17,12 @@ interface StartFormProps {
 const StartForm: React.FC<StartFormProps> = ({ formData, onChange }) => (
   <div className="space-y-3">
     <div className="space-y-1">
-      <Label className="text-xs">Tipo de Gatilho</Label>
+      <Label className="text-xs">{tr("uiText.flow.form.triggerType")}</Label>
       <Select value={formData.triggerType || 'time'} onValueChange={(v) => onChange('triggerType', v)}>
         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="time">Tempo/Agendamento</SelectItem>
-          <SelectItem value="action">Ação do Sistema</SelectItem>
+          <SelectItem value="action">{tr("uiText.flow.form.systemAction")}</SelectItem>
           <SelectItem value="message">Mensagem Recebida</SelectItem>
           <SelectItem value="webhook">Webhook Externo</SelectItem>
         </SelectContent>
@@ -28,14 +31,14 @@ const StartForm: React.FC<StartFormProps> = ({ formData, onChange }) => (
 
     {formData.triggerType === 'action' && (
       <div className="space-y-1">
-        <Label className="text-xs">Tipo de Ação</Label>
+        <Label className="text-xs">{tr("uiText.flow.form.actionType")}</Label>
         <Select value={formData.actionType || 'ticketCreated'} onValueChange={(v) => onChange('actionType', v)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ticketCreated">Ticket Criado</SelectItem>
             <SelectItem value="ticketClosed">Ticket Fechado</SelectItem>
             <SelectItem value="contactCreated">Contato Criado</SelectItem>
-            <SelectItem value="queueChanged">Mudança de Fila</SelectItem>
+            <SelectItem value="queueChanged">{tr("uiText.flow.form.queueChanged")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -43,11 +46,11 @@ const StartForm: React.FC<StartFormProps> = ({ formData, onChange }) => (
 
     {formData.triggerType === 'message' && (
       <div className="space-y-1">
-        <Label className="text-xs">Conexão</Label>
+        <Label className="text-xs">{tr("uiText.flow.form.connection")}</Label>
         <Select value={formData.whatsappId || 'all'} onValueChange={(v) => onChange('whatsappId', v)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as Conexões</SelectItem>
+            <SelectItem value="all">{tr("uiText.flow.form.allConnections")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -55,21 +58,21 @@ const StartForm: React.FC<StartFormProps> = ({ formData, onChange }) => (
 
     {formData.triggerType === 'webhook' && (
       <div className="space-y-2">
-        <p className="text-[10px] text-muted-foreground">URL do Webhook (use este endpoint para disparar o fluxo):</p>
+        <p className="text-[10px] text-muted-foreground">{tr("uiText.flow.form.webhookUrl")}</p>
         <Input
           readOnly
           className="h-8 text-xs"
           value={`${window.location.origin}/api/v1/flows/webhook/${formData.webhookToken || 'SEU_TOKEN_AQUI'}`}
         />
         <div className="space-y-1">
-          <Label className="text-xs">Token do Webhook</Label>
+          <Label className="text-xs">{tr("uiText.flow.form.webhookToken")}</Label>
           <Input
             className="h-8 text-xs"
             placeholder="meu-token-unico"
             value={formData.webhookToken || ''}
             onChange={(e) => onChange('webhookToken', e.target.value)}
           />
-          <p className="text-[10px] text-muted-foreground">Token único para identificar este fluxo</p>
+          <p className="text-[10px] text-muted-foreground">{tr("uiText.flow.form.webhookTokenHint")}</p>
         </div>
       </div>
     )}
