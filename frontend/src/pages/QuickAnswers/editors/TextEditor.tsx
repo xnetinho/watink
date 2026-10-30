@@ -3,6 +3,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FormatToolbar, wrapSelection } from "./FormatToolbar";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const TextEditor = ({
   body,
   onChange,
@@ -16,13 +19,13 @@ export const TextEditor = ({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <Label>Mensagem</Label>
+        <Label>{tr("uiText.quick.message")}</Label>
         <FormatToolbar onApply={(m) => wrapSelection(ref, body, onChange, m)} />
       </div>
       <Textarea
         ref={ref}
         rows={6}
-        placeholder={"Escreva sua mensagem… selecione um trecho e use os botões de formatação.\nVariáveis: {{contact_name}}, {{ticket_id}}"}
+        placeholder={tr("uiText.quick.textPlaceholder")}
         value={body}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={!!error}

@@ -6,6 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { genId } from "../quickAnswersHelpers";
 import type { QuickAnswerContentList } from "../quickAnswersTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const ListEditor = ({
   content,
   onChange,
@@ -17,10 +20,10 @@ export const ListEditor = ({
 }) => (
   <div className="space-y-4">
     <div className="space-y-1.5">
-      <Label>Mensagem</Label>
+      <Label>{tr("uiText.quick.message")}</Label>
       <Textarea
         rows={4}
-        placeholder="Corpo da mensagem"
+        placeholder={tr("uiText.quick.body")}
         value={content.body}
         onChange={(e) => onChange({ ...content, body: e.target.value })}
         className="resize-none"
@@ -30,28 +33,28 @@ export const ListEditor = ({
     </div>
     <div className="grid grid-cols-2 gap-3">
       <div className="space-y-1.5">
-        <Label>Texto do botão lista</Label>
+        <Label>{tr("uiText.quick.listButtonText")}</Label>
         <Input
-          placeholder="Ver opções"
+          placeholder={tr("uiText.common.viewOptions")}
           value={content.button_text}
           onChange={(e) => onChange({ ...content, button_text: e.target.value })}
         />
       </div>
       <div className="space-y-1.5">
-        <Label>Rodapé <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+        <Label>{tr("uiText.quick.footer")} <span className="text-muted-foreground font-normal">(opcional)</span></Label>
         <Input
-          placeholder="Rodapé"
+          placeholder={tr("uiText.quick.footer")}
           value={content.footer ?? ""}
           onChange={(e) => onChange({ ...content, footer: e.target.value })}
         />
       </div>
     </div>
     <div className="space-y-3">
-      <Label>Seções</Label>
+      <Label>{tr("uiText.quick.sections")}</Label>
       {content.sections.map((section, si) => (
         <div key={si} className="rounded-lg border border-border p-3 space-y-2 bg-muted/30">
           <Input
-            placeholder={`Título da seção ${si + 1}`}
+            placeholder={tr("uiText.quick.sectionTitle", { n: si + 1 })}
             value={section.title}
             onChange={(e) => {
               const sections = content.sections.map((s, i) =>
@@ -64,7 +67,7 @@ export const ListEditor = ({
             <div key={row.id} className="flex gap-2 items-start pl-2">
               <div className="flex-1 space-y-1">
                 <Input
-                  placeholder="Título da opção"
+                  placeholder={tr("uiText.quick.optionTitle")}
                   value={row.title}
                   onChange={(e) => {
                     const sections = content.sections.map((s, i) => {
@@ -76,7 +79,7 @@ export const ListEditor = ({
                   }}
                 />
                 <Input
-                  placeholder="Descrição (opcional)"
+                  placeholder={tr("uiText.assistants.descriptionOptional")}
                   value={row.description ?? ""}
                   onChange={(e) => {
                     const sections = content.sections.map((s, i) => {

@@ -5,6 +5,8 @@ import { Input } from "../../../components/ui/input";
 import { cn } from "@/lib/utils";
 import { i18n } from "../../../translate/i18n";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export type ViewMode = "grid" | "table";
 
 interface QuickAnswersToolbarProps {
@@ -44,7 +46,7 @@ export const QuickAnswersToolbar = ({
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
-          title="Visualização em cards"
+          title={tr("uiText.quick.viewCards")}
         >
           <LayoutGrid className="h-3.5 w-3.5" />
         </button>
@@ -56,7 +58,7 @@ export const QuickAnswersToolbar = ({
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
-          title="Visualização em tabela"
+          title={tr("uiText.quick.viewTable")}
         >
           <List className="h-3.5 w-3.5" />
         </button>

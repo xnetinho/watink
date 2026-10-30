@@ -1,6 +1,9 @@
 import React from "react";
 import { Smartphone } from "lucide-react";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export function PhoneMockup({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3">
@@ -35,7 +38,7 @@ export function PhoneMockup({ children }: { children: React.ReactNode }) {
         {/* input bar */}
         <div className="bg-[#f0f0f0] px-2 py-2 flex items-center gap-1 border-t border-gray-200">
           <div className="flex-1 bg-white rounded-full px-3 py-1 text-xs text-gray-400">
-            Mensagem
+            {tr("uiText.quick.message")}
           </div>
           <div className="w-7 h-7 rounded-full bg-[#075E54] flex items-center justify-center">
             <svg className="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 24 24">

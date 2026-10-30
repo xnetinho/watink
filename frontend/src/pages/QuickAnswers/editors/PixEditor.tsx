@@ -11,6 +11,9 @@ import {
 import { PIX_KEY_TYPES } from "../quickAnswersHelpers";
 import type { QuickAnswerContentPix, PixKeyType } from "../quickAnswersTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const PixEditor = ({
   content,
   onChange,
@@ -22,10 +25,10 @@ export const PixEditor = ({
 }) => (
   <div className="space-y-4">
     <div className="space-y-1.5">
-      <Label>Mensagem <span className="text-muted-foreground font-normal">(opcional, acima do botão)</span></Label>
+      <Label>{tr("uiText.quick.message")} <span className="text-muted-foreground font-normal">{tr("uiText.quick.pixBodyHint")}</span></Label>
       <Textarea
         rows={2}
-        placeholder="Ex.: Finalize seu pedido pagando via PIX 👇"
+        placeholder={tr("uiText.quick.pixExample")}
         value={content.body ?? ""}
         onChange={(e) => onChange({ ...content, body: e.target.value })}
         className="resize-none"
@@ -33,7 +36,7 @@ export const PixEditor = ({
     </div>
     <div className="grid grid-cols-2 gap-3">
       <div className="space-y-1.5">
-        <Label>Tipo da chave</Label>
+        <Label>{tr("uiText.quick.keyType")}</Label>
         <Select
           value={content.pixType}
           onValueChange={(v) => onChange({ ...content, pixType: v as PixKeyType })}
@@ -41,13 +44,13 @@ export const PixEditor = ({
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             {PIX_KEY_TYPES.map((t) => (
-              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+              <SelectItem key={t.value} value={t.value}>{tr(t.label)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label>Nome do recebedor <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+        <Label>{tr("uiText.quick.receiverName")} <span className="text-muted-foreground font-normal">(opcional)</span></Label>
         <Input
           placeholder="Loja Exemplo"
           value={content.pixName ?? ""}
@@ -58,7 +61,7 @@ export const PixEditor = ({
     <div className="space-y-1.5">
       <Label>Chave PIX</Label>
       <Input
-        placeholder="CPF/CNPJ, telefone, e-mail ou chave aleatória"
+        placeholder={tr("uiText.quick.pixKeyHint")}
         value={content.pixKey}
         onChange={(e) => onChange({ ...content, pixKey: e.target.value })}
         aria-invalid={!!errors.pixKey}

@@ -15,6 +15,8 @@ import { useQuickAnswers } from "./hooks/useQuickAnswers";
 import { QuickAnswersToolbar, type ViewMode } from "./components/QuickAnswersToolbar";
 import { QuickAnswersTable } from "./components/QuickAnswersTable";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const QuickAnswers = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<ViewMode>("grid");
@@ -55,7 +57,7 @@ const QuickAnswers = () => {
 
       <PageHeader
         title={i18n.t("quickAnswers.title") as string}
-        description="Gerencie suas respostas rápidas para agilizar o atendimento"
+        description={tr("uiText.quick.pageSubtitle")}
       >
         <QuickAnswersToolbar
           searchParam={searchParam}
@@ -74,15 +76,15 @@ const QuickAnswers = () => {
             </div>
             <div>
               <p className="font-semibold text-foreground">
-                Nenhuma resposta rápida criada
+                {tr("uiText.quick.none")}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Crie templates de mensagem para agilizar o atendimento
+                {tr("uiText.quick.emptyHint")}
               </p>
             </div>
             <Button onClick={() => navigate("/quick-answers/new")}>
               <Plus className="mr-2 h-4 w-4" />
-              Criar Resposta Rápida
+              {tr("uiText.quick.create")}
             </Button>
           </div>
         ) : (

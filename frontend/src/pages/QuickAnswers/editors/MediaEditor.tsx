@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/select";
 import type { QuickAnswerContentMedia } from "../quickAnswersTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const MediaEditor = ({
   content,
   onChange,
@@ -21,7 +24,7 @@ export const MediaEditor = ({
 }) => (
   <div className="space-y-4">
     <div className="space-y-1.5">
-      <Label>Tipo de mídia</Label>
+      <Label>{tr("uiText.quick.mediaType")}</Label>
       <Select
         value={content.media_type}
         onValueChange={(v) => onChange({ ...content, media_type: v as QuickAnswerContentMedia["media_type"] })}
@@ -29,9 +32,9 @@ export const MediaEditor = ({
         <SelectTrigger><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="image">Imagem</SelectItem>
-          <SelectItem value="video">Vídeo</SelectItem>
-          <SelectItem value="audio">Áudio</SelectItem>
-          <SelectItem value="document">Documento</SelectItem>
+          <SelectItem value="video">{tr("uiText.flow.form.video")}</SelectItem>
+          <SelectItem value="audio">{tr("uiText.flow.form.audio")}</SelectItem>
+          <SelectItem value="document">{tr("uiText.common.document")}</SelectItem>
         </SelectContent>
       </Select>
     </div>
@@ -49,7 +52,7 @@ export const MediaEditor = ({
       <Label>Legenda <span className="text-muted-foreground font-normal">(opcional)</span></Label>
       <Textarea
         rows={3}
-        placeholder="Descrição do arquivo"
+        placeholder={tr("uiText.quick.fileDescription")}
         value={content.caption ?? ""}
         onChange={(e) => onChange({ ...content, caption: e.target.value })}
         className="resize-none"

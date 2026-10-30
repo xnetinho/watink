@@ -5,6 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { QuickAnswerContentPoll } from "../quickAnswersTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const PollEditor = ({
   content,
   onChange,
@@ -18,7 +21,7 @@ export const PollEditor = ({
     <div className="space-y-1.5">
       <Label>Pergunta</Label>
       <Input
-        placeholder="Qual é a sua pergunta?"
+        placeholder={tr("uiText.quick.pollQuestion")}
         value={content.question}
         onChange={(e) => onChange({ ...content, question: e.target.value })}
         aria-invalid={!!errors.question}
@@ -26,12 +29,12 @@ export const PollEditor = ({
       {errors.question && <p className="text-xs text-destructive">{errors.question}</p>}
     </div>
     <div className="space-y-2">
-      <Label>Opções</Label>
+      <Label>{tr("uiText.quick.options")}</Label>
       {content.options.map((opt, idx) => (
         <div key={idx} className="flex gap-2 items-center">
           <span className="text-xs text-muted-foreground w-5 shrink-0">{idx + 1}.</span>
           <Input
-            placeholder={`Opção ${idx + 1}`}
+            placeholder={tr("uiText.quick.optionN", { n: idx + 1 })}
             value={opt}
             onChange={(e) => {
               const options = content.options.map((o, i) => (i === idx ? e.target.value : o));
@@ -64,7 +67,7 @@ export const PollEditor = ({
     </div>
     <div className="grid grid-cols-2 gap-3 items-end">
       <div className="space-y-1.5">
-        <Label>Máx. seleções</Label>
+        <Label>{tr("uiText.quick.maxSelections")}</Label>
         <Input
           type="number"
           min={1}
