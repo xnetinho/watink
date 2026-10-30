@@ -10,6 +10,9 @@ import {
 
 import { getConnectionHealthLevel, describeRiskCode } from "../connectionRisk";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ConnectionHealthBadgeProps {
   lastRiskCode?: number;
   lastRiskAt?: string | null;
@@ -25,7 +28,7 @@ export const ConnectionHealthBadge: React.FC<ConnectionHealthBadgeProps> = ({
   const level = getConnectionHealthLevel({ code: lastRiskCode, at: lastRiskAt });
   if (level === "ok") return null;
 
-  const label = level === "critical" ? "Risco alto" : "Atenção";
+  const label = level === "critical" ? "Risco alto" : tr("uiText.connections.attention");
   const Icon = level === "critical" ? ShieldAlert : TriangleAlert;
   const className =
     level === "critical"
@@ -54,6 +57,6 @@ export const ConnectionHealthBadge: React.FC<ConnectionHealthBadgeProps> = ({
 export const ConnectionHealthOkBadge: React.FC = () => (
   <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 border-none">
     <ShieldCheck size={12} className="mr-1" />
-    Sem alertas
+    {tr("uiText.connections.noAlerts")}
   </Badge>
 );

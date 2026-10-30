@@ -4,6 +4,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 import { getConnectionHealthLevel, describeRiskCode, ANTI_BAN_THRESHOLDS } from "../connectionRisk";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ConnectionRiskBannerProps {
   lastRiskCode?: number;
   lastRiskAt?: string | null;
@@ -28,7 +31,7 @@ export const ConnectionRiskBanner: React.FC<ConnectionRiskBannerProps> = ({
         <PopoverTrigger asChild>
           <button
             type="button"
-            aria-label="Saiba mais sobre limites seguros de uso"
+            aria-label={tr("uiText.connections.safeLimits")}
             className="shrink-0 opacity-70 hover:opacity-100"
             onClick={(e) => e.stopPropagation()}
           >
@@ -36,15 +39,15 @@ export const ConnectionRiskBanner: React.FC<ConnectionRiskBannerProps> = ({
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-80 text-xs" onClick={(e) => e.stopPropagation()}>
-          <p className="mb-2 font-medium">Limites de referência para reduzir risco de banimento</p>
+          <p className="mb-2 font-medium">{tr("uiText.connections.referenceLimits")}</p>
           <div className="space-y-1.5">
             {ANTI_BAN_THRESHOLDS.map((t) => (
               <div key={t.label} className="flex flex-col">
-                <span className="text-muted-foreground">{t.label}</span>
+                <span className="text-muted-foreground">{tr(t.label)}</span>
                 <span>
-                  <span className="text-green-700">seguro: {t.safe}</span>
+                  <span className="text-green-700">{tr("uiText.connections.risk.safeLabel")} {tr(t.safe)}</span>
                   {" · "}
-                  <span className="text-red-700">risco: {t.danger}</span>
+                  <span className="text-red-700">{tr("uiText.connections.risk.dangerLabel")} {tr(t.danger)}</span>
                 </span>
               </div>
             ))}

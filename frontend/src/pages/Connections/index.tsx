@@ -24,6 +24,8 @@ import { ChannelBadge } from "../../components/ChannelBadge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../../components/ui/card";
 import { Trash2, Pencil } from "lucide-react";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const Connections = () => {
   const [channelSelectorOpen, setChannelSelectorOpen] = React.useState(false);
   const [editingChannel, setEditingChannel] = React.useState<EditableChannelConnection | null>(null);
@@ -105,7 +107,7 @@ const Connections = () => {
 
       <PageHeader
         title={i18n.t("connections.title")}
-        description="Gerencie seus canais de comunicação e conexões WhatsApp"
+        description={tr("uiText.connections.pageSubtitle")}
       >
         <div className="flex gap-2">
           <Button variant="ghost" onClick={handleOpenNewWebchat}>
@@ -114,7 +116,7 @@ const Connections = () => {
           </Button>
           <Button onClick={() => { setEditingChannel(null); setChannelSelectorOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />
-            Nova Conexão
+            {tr("uiText.connections.newConnection")}
           </Button>
         </div>
       </PageHeader>
@@ -126,14 +128,14 @@ const Connections = () => {
               <MessageSquare className="h-7 w-7 text-muted-foreground" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">Nenhuma conexão configurada</p>
+              <p className="font-semibold text-foreground">{tr("uiText.dashboard.noConnections")}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Adicione um WhatsApp para começar a atender seus clientes
+                {tr("uiText.connections.addWhatsapp")}
               </p>
             </div>
             <Button onClick={() => { setEditingChannel(null); setChannelSelectorOpen(true); }}>
               <Plus className="mr-2 h-4 w-4" />
-              Nova Conexão
+              {tr("uiText.connections.newConnection")}
             </Button>
           </div>
         )}
@@ -160,7 +162,7 @@ const Connections = () => {
                       {conn.lastError}
                     </span>
                   ) : (
-                    "Canal de atendimento conectado"
+                    tr("uiText.connections.channelConnected")
                   )}
                 </CardDescription>
               </CardHeader>
@@ -187,7 +189,7 @@ const Connections = () => {
                   }}
                 >
                   <Pencil className="mr-2 h-4 w-4" />
-                  Editar
+                  {tr("uiText.common.edit")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -196,7 +198,7 @@ const Connections = () => {
                   onClick={() => handleDeleteChannelConnection(conn.id)}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir
+                  {tr("uiText.common.delete")}
                 </Button>
               </CardFooter>
             </Card>
