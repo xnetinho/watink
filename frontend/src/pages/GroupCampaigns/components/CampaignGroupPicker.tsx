@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { listGroups, type GroupInfo } from "@/services/groupService";
 import type { CampaignTargetDraft } from "../campaignTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface CampaignGroupPickerProps {
     whatsappId: number | null;
     selected: CampaignTargetDraft[];
@@ -76,7 +79,7 @@ const CampaignGroupPicker: React.FC<CampaignGroupPickerProps> = ({ whatsappId, s
     const clearSelection = () => onChange([]);
 
     if (!whatsappId) {
-        return <p className="text-sm text-muted-foreground">Selecione uma conexão para escolher os grupos.</p>;
+        return <p className="text-sm text-muted-foreground">{tr("uiText.campaigns.selectConnectionForGroups")}</p>;
     }
 
     return (
@@ -92,11 +95,11 @@ const CampaignGroupPicker: React.FC<CampaignGroupPickerProps> = ({ whatsappId, s
                     />
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={selectAllFiltered}>
-                    Selecionar todos os filtrados
+                    {tr("uiText.campaigns.selectFiltered")}
                 </Button>
                 {selected.length > 0 && (
                     <Button type="button" variant="ghost" size="sm" onClick={clearSelection}>
-                        Limpar seleção
+                        {tr("uiText.campaigns.clearSelection")}
                     </Button>
                 )}
                 <Badge variant="secondary">{selected.length} selecionado{selected.length === 1 ? "" : "s"}</Badge>

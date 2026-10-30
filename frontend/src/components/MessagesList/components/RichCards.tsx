@@ -6,6 +6,7 @@ import { i18n } from "../../../translate/i18n";
 import toastError from "../../../errors/toastError";
 import { Message } from "../types";
 
+import { localeTag } from "../../../lib/dateLocale";
 // i18n.t() deste projeto pode devolver null; os cartões só querem string.
 const tr = (key: string, opts: Record<string, string | number> = {}): string => String(i18n.t(key, opts) ?? "");
 
@@ -61,7 +62,7 @@ export const PixCard: React.FC<{ message: Message }> = ({ message }) => {
 const fmtWhen = (secs: unknown): string => {
   const n = Number(secs);
   if (!n) return "";
-  return new Date(n * 1000).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  return new Date(n * 1000).toLocaleString(localeTag(), { dateStyle: "short", timeStyle: "short" });
 };
 
 const LegacyText: React.FC<{ message: Message; testId: string }> = ({ message, testId }) => (
