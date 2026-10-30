@@ -8,7 +8,7 @@ const block = (lang: "pt" | "en" | "es", name: string) => (messages[lang].transl
 
 // Blocos que os cartões do chat, o selo de encaminhada, a presença e a política de presença usam.
 const SUBTREES: Array<[string, string[]]> = [
-  ["chat", ["pix", "event", "poll", "liveLocation", "forwarded", "forwardedMany", "previews", "presence", "unsupported", "viewOnce"]],
+  ["chat", ["pix", "event", "poll", "liveLocation", "forwarded", "forwardedMany", "previews", "presence", "unsupported", "viewOnce", "receipts"]],
   ["connections", ["presencePolicy"]],
   ["uiText", ["kb", "proxies", "versionDashboard", "flowManager", "register", "common", "flow", "plans", "userProfile", "saas", "monitorQueues", "campaigns", "connections", "quick", "activities", "settings", "whatsAppModal", "groups", "assistants", "pipelines", "helpdesk", "validation", "dashboard", "clients", "acessos", "swagger", "billing", "plugins", "webchatModal", "themeToggle", "priority", "imageCompression", "channels", "layout", "calls", "fileUploader", "messageInput", "messagesList", "notificationPermissionBanner", "notificationsPopOver", "queueModal", "tagModal", "ticketHeader", "ticketQuickShortcuts", "ticketsManager", "whatsAppBubblePreview", "ui", "hooks", "errors", "utils", "mainTopBar", "login", "queues", "tagManager", "communities", "initialSetup"]],
 ];
