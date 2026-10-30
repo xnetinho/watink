@@ -32,6 +32,8 @@ export interface Message {
   contact?: Contact;
   reactions?: Reaction[] | string;
   transcription?: string | null;
+  /** Quantas vezes a mensagem foi editada (0/ausente = nunca). As versões vêm de GET /message/:id/edits. */
+  editCount?: number;
   [key: string]: unknown;
 }
 

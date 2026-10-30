@@ -29,6 +29,7 @@ func (e *sendEnv) forwardRouter() *gin.Engine {
 		c.Next()
 	})
 	r.POST("/message/:messageId/forward", mc.ForwardMessage)
+	r.POST("/message/:messageId/resend", mc.ResendMessage)
 	return r
 }
 

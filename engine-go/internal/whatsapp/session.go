@@ -39,6 +39,9 @@ func (s *WhatsAppService) StartClient(id int, tenantID, name string, timestamp i
 
 	clientLog := waLog.Stdout(fmt.Sprintf("Session-%d", id), "DEBUG", true)
 	client := whatsmeow.NewClient(deviceStore, clientLog)
+	// Guarda o que enviamos no banco: o retry receipt (aparelho que não decifrou a mensagem) só é atendido se o
+	// whatsmeow ainda tem o texto. O cache em memória guarda 256 mensagens e some ao reiniciar o engine.
+	client.UseRetryMessageStore = true
 
 	if proxyURL != "" {
 		// Parse local PRIMEIRO: serve ao log redigido E garante que um erro nunca

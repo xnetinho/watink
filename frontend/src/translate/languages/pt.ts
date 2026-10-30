@@ -622,6 +622,8 @@ const messages = {
         success: "Usuário salvo com sucesso.",
       },
       chat: {
+        sendFailedRetry: "Erro ao enviar — clique para tentar novamente",
+        resendFailed: "Não foi possível reenviar a mensagem.",
         audioPlayer: {
           play: "Reproduzir",
           pause: "Pausar",
@@ -634,7 +636,9 @@ const messages = {
         },
         viewOnce: {
           title: "Visualização única",
-          hint: "O WhatsApp só entrega esse conteúdo no celular. Veja nele.",
+          hint: "O WhatsApp só entrega esse conteúdo no celular. Responda a mensagem no celular e a mídia aparece aqui.",
+          badge: "Visualização única",
+          badgeHint: "Enviada como visualização única; recuperada ao responder no celular. Fica guardada aqui.",
         },
         pix: {
           title: "Pagar com PIX",
@@ -663,6 +667,22 @@ const messages = {
         },
         liveLocation: "Localização em tempo real",
         forwarded: "Encaminhada",
+        edited: "Editada",
+        edits: {
+          youEdited: "Você editou",
+          youEditedMany: "Você editou {{count}} vezes",
+          editedMany: "Editada {{count}} vezes",
+          viewHistory: "Ver histórico de edições",
+          title: "Histórico de edições",
+          original: "Original",
+          version: "Edição {{number}}",
+          current: "Atual",
+          byMe: "Editada por você",
+          byContact: "Editada pelo contato",
+          close: "Fechar",
+          empty: "Esta mensagem não tem edições.",
+          loadFailed: "Não foi possível carregar o histórico.",
+        },
         forwardedMany: "Encaminhada com frequência",
         previews: {
           voice: "Mensagem de voz",
@@ -1039,6 +1059,17 @@ const messages = {
         },
       },
       messagesInput: {
+        drop: {
+          title: "Solte os arquivos aqui",
+          hint: "Imagens, vídeos, áudios e documentos",
+        },
+        preview: {
+          cancel: "Cancelar envio",
+          caption: "Adicione uma legenda",
+          remove: "Remover",
+          addMore: "Adicionar mais arquivos",
+          send: "Enviar",
+        },
         audioKind: {
           label: "Como enviar o áudio",
           voice: "Mensagem de voz",
@@ -1096,6 +1127,15 @@ const messages = {
         },
       },
       messageOptionsMenu: {
+        edit: "Editar",
+        editDialog: {
+          title: "Editar mensagem",
+          titleCaption: "Editar legenda",
+          field: "Texto da mensagem",
+          hint: "O WhatsApp só permite editar até 20 minutos depois do envio. O contato verá que a mensagem foi editada.",
+          cancel: "Cancelar",
+          save: "Salvar",
+        },
         reactWith: "Reagir com {{emoji}}",
         forward: "Encaminhar",
         forwardDialog: {

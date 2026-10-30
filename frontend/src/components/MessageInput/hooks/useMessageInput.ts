@@ -74,6 +74,10 @@ export const useMessageInput = () => {
     mediaUpload.handleChangeMedias(e, inputMessage, () => setInputMessage(""));
   };
 
+  const handleDropFiles = (files: File[]) => {
+    mediaUpload.handleDropFiles(files, inputMessage, () => setInputMessage(""));
+  };
+
   const handleInputPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     mediaUpload.handleInputPaste(e, inputMessage, () => setInputMessage(""));
   };
@@ -155,6 +159,7 @@ export const useMessageInput = () => {
     medias: mediaUpload.medias,
     handleChangeMedias,
     handleInputPaste,
+    handleDropFiles,
     handleMediaCaptionChange: mediaUpload.handleMediaCaptionChange,
     handleUploadMedia: (e?: React.FormEvent) => mediaUpload.handleUploadMedia(ticketId, e),
     handleAudioKindChange: mediaUpload.handleAudioKindChange,

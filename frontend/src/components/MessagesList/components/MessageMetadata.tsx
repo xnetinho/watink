@@ -3,6 +3,7 @@ import { parseISO, format } from "date-fns";
 import { Clock, Check, CheckCheck, AlertCircle } from "lucide-react";
 import { isDateValid } from "../utils/messageHelpers";
 import { Message } from "../types";
+import { i18n } from "../../../translate/i18n";
 
 interface AckProps {
   message: Message;
@@ -32,7 +33,7 @@ export const MessageAck: React.FC<AckProps & { onRetry?: () => void }> = ({ mess
   if (message.ack === 5)
     return (
       <span
-        title="Erro ao enviar — clique para tentar novamente"
+        title={i18n.t("chat.sendFailedRetry") as string}
         onClick={onRetry}
         className="inline-flex cursor-pointer hover:opacity-70"
       >

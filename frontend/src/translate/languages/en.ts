@@ -500,6 +500,8 @@ const messages = {
         success: "User saved successfully.",
       },
       chat: {
+        sendFailedRetry: "Send failed — click to try again",
+        resendFailed: "Could not resend the message.",
         audioPlayer: {
           play: "Play",
           pause: "Pause",
@@ -512,7 +514,9 @@ const messages = {
         },
         viewOnce: {
           title: "View once",
-          hint: "WhatsApp only delivers this content to the phone. Open it there.",
+          hint: "WhatsApp only delivers this content to the phone. Reply to the message on the phone and the media shows up here.",
+          badge: "View once",
+          badgeHint: "Sent as view once; recovered when replied to on the phone. Kept stored here.",
         },
         pix: {
           title: "Pay with PIX",
@@ -541,6 +545,22 @@ const messages = {
         },
         liveLocation: "Live location",
         forwarded: "Forwarded",
+        edited: "Edited",
+        edits: {
+          youEdited: "You edited",
+          youEditedMany: "You edited {{count}} times",
+          editedMany: "Edited {{count}} times",
+          viewHistory: "View edit history",
+          title: "Edit history",
+          original: "Original",
+          version: "Edit {{number}}",
+          current: "Current",
+          byMe: "Edited by you",
+          byContact: "Edited by the contact",
+          close: "Close",
+          empty: "This message has no edits.",
+          loadFailed: "Could not load the history.",
+        },
         forwardedMany: "Forwarded many times",
         previews: {
           voice: "Voice message",
@@ -870,6 +890,17 @@ const messages = {
         },
       },
       messagesInput: {
+        drop: {
+          title: "Drop the files here",
+          hint: "Images, videos, audio and documents",
+        },
+        preview: {
+          cancel: "Cancel sending",
+          caption: "Add a caption",
+          remove: "Remove",
+          addMore: "Add more files",
+          send: "Send",
+        },
         audioKind: {
           label: "How to send the audio",
           voice: "Voice message",
@@ -926,6 +957,15 @@ const messages = {
         },
       },
       messageOptionsMenu: {
+        edit: "Edit",
+        editDialog: {
+          title: "Edit message",
+          titleCaption: "Edit caption",
+          field: "Message text",
+          hint: "WhatsApp only allows editing up to 20 minutes after sending. The contact will see the message was edited.",
+          cancel: "Cancel",
+          save: "Save",
+        },
         reactWith: "React with {{emoji}}",
         forward: "Forward",
         forwardDialog: {

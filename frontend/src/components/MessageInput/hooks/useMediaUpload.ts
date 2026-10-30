@@ -17,6 +17,8 @@ export interface UseMediaUploadReturn {
   medias: MediaItem[];
   handleChangeMedias: (e: React.ChangeEvent<HTMLInputElement>, currentInputMessage: string, clearInput: () => void) => void;
   handleInputPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>, currentInputMessage: string, clearInput: () => void) => void;
+  /** Arquivos soltos (arrastar e soltar): entram como os escolhidos pelo clipe. */
+  handleDropFiles: (files: File[], currentInputMessage: string, clearInput: () => void) => void;
   handleMediaCaptionChange: (index: number, value: string) => void;
   handleAudioKindChange: (index: number, kind: "voice" | "file") => void;
   handleUploadMedia: (ticketId: string | undefined, e?: React.FormEvent) => Promise<void>;
@@ -45,6 +47,18 @@ export function useMediaUpload(setLoading: (v: boolean) => void): UseMediaUpload
       clearInput();
     }
     setMedias((prev) => [...prev, ...selectedMedias]);
+  };
+
+  const handleDropFiles = (files: File[], currentInputMessage: string, clearInput: () => void) => {
+    if (!files.length) return;
+    const dropped = files.map((file, index) => ({
+      file,
+      // o texto que já estava digitado vira a legenda do primeiro arquivo, como ao escolher pelo clipe
+      caption: index === 0 && medias.length === 0 && currentInputMessage ? currentInputMessage : "",
+      ...(isAudioFile(file) ? { audioKind: "file" as const } : {}),
+    }));
+    if (medias.length === 0 && currentInputMessage) clearInput();
+    setMedias((prev) => [...prev, ...dropped]);
   };
 
   const handleInputPaste = (
@@ -105,6 +119,7 @@ export function useMediaUpload(setLoading: (v: boolean) => void): UseMediaUpload
     medias,
     handleChangeMedias,
     handleInputPaste,
+    handleDropFiles,
     handleMediaCaptionChange,
     handleAudioKindChange,
     handleUploadMedia,

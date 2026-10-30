@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/application/usecases"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -170,11 +172,30 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 		// Edição (inclusive localização ao vivo, que reenvia a posição a cada ~30s): atualiza a mensagem original e avisa a
 		// tela, em vez de duplicar ou descartar. Se a original não existe, segue como mensagem nova.
 		if orig, err := s.messageRepo.FindByID(ctx, messageID, msg.TenantID); err == nil && orig != nil {
-			upd := map[string]interface{}{"body": msg.Body, "updatedAt": time.Now()}
-			if err := s.messageRepo.Update(ctx, orig, upd); err != nil {
-				return nil, fmt.Errorf("failed to update edited message: %w", err)
+			// Localização ao vivo reenvia a posição a cada ~30 s: é atualização de um cartão, não uma edição de texto, e
+			// cada reenvio na cadeia criaria dezenas de versões inúteis. Só o texto editado entra no histórico.
+			if mediaType == "location" || mediaType == "live_location" {
+				upd := map[string]interface{}{"body": msg.Body, "updatedAt": time.Now()}
+				if err := s.messageRepo.Update(ctx, orig, upd); err != nil {
+					return nil, fmt.Errorf("failed to update edited message: %w", err)
+				}
+				orig.Body = msg.Body
+			} else {
+				res, err := RecordEdit(ctx, s.db, RecordEditInput{
+					TenantID: msg.TenantID, MessageID: orig.ID, Body: msg.Body, EditedAt: msg.EditedAt, EditedBy: models.EditedByContact,
+				})
+				if errors.Is(err, ErrEmptyEdit) {
+					// Legenda removida ou formato que não sabemos ler: manter o texto atual em vez de esvaziar a mensagem.
+					return &usecases.ReceiveMessageResult{Message: orig, Duplicate: true}, nil
+				}
+				if err != nil {
+					return nil, fmt.Errorf("failed to record edit: %w", err)
+				}
+				if res.Duplicate {
+					return &usecases.ReceiveMessageResult{Message: orig, Duplicate: true}, nil
+				}
+				orig.Body, orig.EditCount = res.Message.Body, res.Message.EditCount
 			}
-			orig.Body = msg.Body
 			if s.broadcast != nil {
 				payload := map[string]interface{}{"action": "update", "message": orig}
 				s.broadcast.EmitToRoom("/", "chat:"+strconv.Itoa(orig.TicketID), "appMessage", payload)

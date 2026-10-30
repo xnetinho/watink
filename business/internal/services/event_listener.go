@@ -83,6 +83,7 @@ func eventRoutingKeys() []string {
 		wbot.EventPattern(wbot.EventMessageReceived),
 		wbot.EventPattern(wbot.EventMessageAck),
 		wbot.EventPattern(wbot.EventMessageRevoke),
+		wbot.EventPattern(wbot.EventMessageEdited),
 		wbot.EventPattern(wbot.EventMessageReaction),
 		wbot.EventPattern(wbot.EventMessageMedia),
 		wbot.EventPattern(wbot.EventContactUpdate),
@@ -140,6 +141,8 @@ func StartEventListener(rabbitMQ *RabbitMQService, eventListener *EventListener)
 			return eventListener.handleMessageAck(ctx, env.Payload, tid)
 		case "message.revoke":
 			return eventListener.handleMessageRevoke(ctx, env.Payload, tid)
+		case "message.edited":
+			return eventListener.handleMessageEdited(ctx, env.Payload, tid)
 		case "message.reaction":
 			return eventListener.handleMessageReaction(ctx, env.Payload, tid)
 		case "message.media":
@@ -212,6 +215,11 @@ func (el *EventListener) HandleSessionStatusEvent(ctx context.Context, payload j
 // (mirrors whatsmeow: a poll vote is metadata, not an inbound message).
 func (el *EventListener) HandlePollVoteEvent(ctx context.Context, payload json.RawMessage, tenantID uuid.UUID) error {
 	return el.handlePollVote(ctx, payload, tenantID)
+}
+
+// HandleMediaDownloadedEvent é a porta exportada do resultado de um download de mídia do engine (mesma lógica do consumidor).
+func (el *EventListener) HandleMediaDownloadedEvent(ctx context.Context, payload json.RawMessage, tenantID uuid.UUID) error {
+	return el.handleMediaDownloaded(ctx, payload, tenantID)
 }
 
 // HandleSessionRiskEvent is the exported entry point for non-AMQP transports
