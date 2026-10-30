@@ -163,6 +163,7 @@ export const useMessageInput = () => {
     handleMediaCaptionChange: mediaUpload.handleMediaCaptionChange,
     handleUploadMedia: (e?: React.FormEvent) => mediaUpload.handleUploadMedia(ticketId, e),
     handleAudioKindChange: mediaUpload.handleAudioKindChange,
+    handleViewOnceChange: mediaUpload.handleViewOnceChange,
     handleRemoveMedia: mediaUpload.handleRemoveMedia,
     handleClearMedias: mediaUpload.clearMedias,
     // mentions

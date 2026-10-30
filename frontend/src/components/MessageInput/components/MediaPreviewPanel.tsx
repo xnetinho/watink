@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FileText, Film, Loader2, Music, Plus, Send, X } from "lucide-react";
+import { Eye, FileText, Film, Loader2, Music, Plus, Send, X } from "lucide-react";
 import { i18n } from "../../../translate/i18n";
 import { MediaItem } from "../hooks/useMessageInput";
+import { canBeViewOnce } from "../hooks/useMediaUpload";
 import { AudioKindPicker } from "../../AudioKindPicker";
 import { cn } from "../../../lib/utils";
 
@@ -13,6 +14,8 @@ interface MediaPreviewPanelProps {
   onRemoveMedia: (index: number) => void;
   onCaptionChange: (index: number, value: string) => void;
   onAudioKindChange: (index: number, kind: "voice" | "file") => void;
+  /** Liga/desliga a visualização única da mídia. Ausente = o canal não tem esse modo (o olho não aparece). */
+  onViewOnceChange?: (index: number, on: boolean) => void;
   onAddMore: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCancelAll: () => void;
   onUpload: () => void;
@@ -83,6 +86,7 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
   onRemoveMedia,
   onCaptionChange,
   onAudioKindChange,
+  onViewOnceChange,
   onAddMore,
   onCancelAll,
   onUpload,
@@ -142,6 +146,25 @@ const MediaPreviewPanel: React.FC<MediaPreviewPanelProps> = ({
       )}
 
       <div className="flex items-center gap-2 px-4 pb-2">
+        {onViewOnceChange && canBeViewOnce(current.file) && (
+          <button
+            type="button"
+            onClick={() => onViewOnceChange(index, !current.viewOnce)}
+            disabled={loading}
+            aria-pressed={!!current.viewOnce}
+            aria-label={tr("messagesInput.preview.viewOnce")}
+            title={tr(current.viewOnce ? "messagesInput.preview.viewOnceOn" : "messagesInput.preview.viewOnceHint")}
+            className={cn(
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors disabled:opacity-50",
+              current.viewOnce
+                ? "border-[hsl(var(--action-primary))] bg-[hsl(var(--action-primary))] text-white"
+                : "border-[var(--border-subtle)] bg-[hsl(var(--bg-surface))] text-[hsl(var(--text-muted))] hover:bg-[var(--border-subtle)]"
+            )}
+            data-testid="media-preview-view-once"
+          >
+            <Eye className="h-5 w-5" aria-hidden="true" />
+          </button>
+        )}
         <input
           type="text"
           value={current.caption}

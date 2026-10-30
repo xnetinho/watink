@@ -635,6 +635,8 @@ const messages = {
           hint: "O Watink ainda não sabe exibir este tipo de mensagem ({{kind}}). Veja no celular ou no app do canal.",
         },
         viewOnce: {
+          badgeSent: "Visualização única",
+          badgeSentHint: "O destinatário vê esta mídia uma única vez. Aqui no Watink ela fica guardada para o seu registro.",
           title: "Visualização única",
           hint: "O WhatsApp só entrega esse conteúdo no celular. Responda a mensagem no celular e a mídia aparece aqui.",
           badge: "Visualização única",
@@ -1077,6 +1079,9 @@ const messages = {
           hint: "Imagens, vídeos, áudios e documentos",
         },
         preview: {
+          viewOnce: "Visualização única",
+          viewOnceHint: "Enviar para ser vista uma única vez",
+          viewOnceOn: "Será enviada como visualização única",
           cancel: "Cancelar envio",
           caption: "Adicione uma legenda",
           remove: "Remover",

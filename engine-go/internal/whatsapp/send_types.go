@@ -46,6 +46,8 @@ type MediaCommandPayload struct {
 	Mentions     []string     `json:"mentions,omitempty"`
 	Forwarded    bool         `json:"forwarded,omitempty"`
 	ForwardScore int          `json:"forwardScore,omitempty"`
+	// ViewOnce envia a mídia como visualização única (foto, vídeo ou áudio). Ignorado nos demais tipos.
+	ViewOnce bool `json:"viewOnce,omitempty"`
 }
 
 // ReactionCommandPayload sends (or removes, when Reaction=="") an emoji

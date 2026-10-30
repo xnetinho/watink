@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"encoding/base64"
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"testing"
 
 	"github.com/alltomatos/watinkdev/engine-go/internal/mediameta"
@@ -287,5 +288,54 @@ func TestBuildTextMessage_QuoteLeavesRemoteJidEmpty(t *testing.T) {
 	m := buildMediaMessage(MediaCommandPayload{MediaType: "image", QuotedMsgID: "Q1", QuotedJID: "5511@lid"}, whatsmeow.UploadResponse{}, mediameta.Meta{})
 	if m.GetImageMessage().GetContextInfo().RemoteJID != nil {
 		t.Fatal("citação de mídia também não preenche remoteJid")
+	}
+}
+
+// Visualização única: a mídia (foto, vídeo e áudio) vai no envelope ViewOnceMessageV2 com a marca ViewOnce, SÓ quando pedida;
+// ausente é o que o cliente oficial manda numa mídia comum. Documento e figurinha não têm esse modo e nunca são embrulhados,
+// mesmo se o pedido chegar.
+func TestBuildMediaMessage_ViewOnce(t *testing.T) {
+	inner := func(m *waE2E.Message) *waE2E.Message { return m.GetViewOnceMessageV2().GetMessage() }
+	flagOf := func(m *waE2E.Message) *bool {
+		switch {
+		case m.GetImageMessage() != nil:
+			return m.GetImageMessage().ViewOnce
+		case m.GetVideoMessage() != nil:
+			return m.GetVideoMessage().ViewOnce
+		case m.GetAudioMessage() != nil:
+			return m.GetAudioMessage().ViewOnce
+		}
+		return nil
+	}
+	for _, mt := range []string{"image", "video", "audio"} {
+		on := buildMediaMessage(MediaCommandPayload{MediaType: mt, ViewOnce: true}, whatsmeow.UploadResponse{}, mediameta.Meta{})
+		if on.GetViewOnceMessageV2() == nil {
+			t.Fatalf("%s com viewOnce: faltou o envelope ViewOnceMessageV2", mt)
+		}
+		if v := flagOf(inner(on)); v == nil || !*v {
+			t.Errorf("%s com viewOnce: a mídia dentro do envelope precisa levar ViewOnce=true, veio %v", mt, v)
+		}
+		off := buildMediaMessage(MediaCommandPayload{MediaType: mt}, whatsmeow.UploadResponse{}, mediameta.Meta{})
+		if off.GetViewOnceMessageV2() != nil {
+			t.Errorf("%s comum: não pode vir embrulhada", mt)
+		}
+		if v := flagOf(off); v != nil {
+			t.Errorf("%s comum: ViewOnce = %v, esperava ausente (nil)", mt, *v)
+		}
+	}
+	// voz (mensagem de voz) também aceita, e continua sendo PTT
+	voice := buildMediaMessage(MediaCommandPayload{MediaType: "voice", ViewOnce: true}, whatsmeow.UploadResponse{}, mediameta.Meta{})
+	if a := inner(voice).GetAudioMessage(); a == nil || !a.GetPTT() || a.ViewOnce == nil || !*a.ViewOnce {
+		t.Errorf("voz com viewOnce: %+v", a)
+	}
+	// documento e figurinha: o pedido é ignorado
+	for _, mt := range []string{"document", "sticker"} {
+		m := buildMediaMessage(MediaCommandPayload{MediaType: mt, ViewOnce: true}, whatsmeow.UploadResponse{}, mediameta.Meta{})
+		if m.GetViewOnceMessageV2() != nil {
+			t.Errorf("%s: não tem visualização única e não pode ser embrulhado", mt)
+		}
+		if m.GetDocumentMessage() == nil && m.GetStickerMessage() == nil {
+			t.Fatalf("%s: tipo inesperado", mt)
+		}
 	}
 }

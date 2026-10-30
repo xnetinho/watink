@@ -65,3 +65,20 @@ describe("selo de visualização única no rodapé", () => {
     }
   });
 });
+
+describe("selo na mensagem que NÓS enviamos como visualização única", () => {
+  it("aparece em mensagem nossa com a marca viewOnce no dataJson, com o texto de enviada", () => {
+    const m = msg({ fromMe: true, mediaType: "image", mediaUrl: "/public/media/x.jpg", dataJson: JSON.stringify({ viewOnce: true }) });
+    render(<ViewOnceBadge message={m} />);
+    expect(screen.getByTestId("view-once-badge")).toHaveTextContent("Visualização única");
+  });
+  it("a marca numa mensagem DO CONTATO não vale (só a recuperada mostra o selo)", () => {
+    const m = msg({ fromMe: false, mediaType: "image", dataJson: JSON.stringify({ viewOnce: true }) });
+    const { container } = render(<ViewOnceBadge message={m} />);
+    expect(container.querySelector('[data-testid="view-once-badge"]')).toBeNull();
+  });
+  it("mensagem nossa comum não tem selo", () => {
+    const { container } = render(<ViewOnceBadge message={msg({ fromMe: true, mediaType: "image", dataJson: "{}" })} />);
+    expect(container.querySelector('[data-testid="view-once-badge"]')).toBeNull();
+  });
+});

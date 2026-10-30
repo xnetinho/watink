@@ -13,6 +13,7 @@ import (
 	"github.com/alltomatos/watinkdev/engine-go/internal/mediameta"
 	"go.mau.fi/whatsmeow"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -160,6 +161,14 @@ func normalizeMediaType(mediaType string) whatsmeow.MediaType {
 	}
 }
 
+// viewOnceFlag liga a visualização única só quando pedida: ausente é o que o cliente oficial manda numa mídia comum.
+func viewOnceFlag(p MediaCommandPayload) *bool {
+	if !p.ViewOnce {
+		return nil
+	}
+	return proto.Bool(true)
+}
+
 // optU32 devolve nil para 0: campo ausente no protobuf, como o cliente oficial faz quando não conhece o valor.
 func optU32(v int) *uint32 {
 	if v <= 0 {
@@ -168,7 +177,7 @@ func optU32(v int) *uint32 {
 	return proto.Uint32(uint32(v))
 }
 
-func buildMediaMessage(payload MediaCommandPayload, uploaded whatsmeow.UploadResponse, meta mediameta.Meta) *waProto.Message {
+func buildMediaPayload(payload MediaCommandPayload, uploaded whatsmeow.UploadResponse, meta mediameta.Meta) *waE2E.Message {
 	mimeType := payload.MimeType
 	if mimeType == "" {
 		mimeType = "application/octet-stream"
@@ -194,7 +203,7 @@ func buildMediaMessage(payload MediaCommandPayload, uploaded whatsmeow.UploadRes
 	switch strings.ToLower(payload.MediaType) {
 	case "image":
 		return &waProto.Message{ImageMessage: &waProto.ImageMessage{
-			Caption: proto.String(payload.Body), Mimetype: proto.String(mimeType),
+			ViewOnce: viewOnceFlag(payload), Caption: proto.String(payload.Body), Mimetype: proto.String(mimeType),
 			Height: optU32(meta.Height), Width: optU32(meta.Width), JPEGThumbnail: meta.Thumbnail,
 			MediaKeyTimestamp: proto.Int64(time.Now().Unix()),
 			URL:               proto.String(uploaded.URL), DirectPath: proto.String(uploaded.DirectPath),
@@ -204,7 +213,7 @@ func buildMediaMessage(payload MediaCommandPayload, uploaded whatsmeow.UploadRes
 		}}
 	case "video":
 		return &waProto.Message{VideoMessage: &waProto.VideoMessage{
-			Caption: proto.String(payload.Body), Mimetype: proto.String(mimeType),
+			ViewOnce: viewOnceFlag(payload), Caption: proto.String(payload.Body), Mimetype: proto.String(mimeType),
 			Seconds: optU32(meta.Seconds), Height: optU32(meta.Height), Width: optU32(meta.Width), JPEGThumbnail: meta.Thumbnail,
 			MediaKeyTimestamp: proto.Int64(time.Now().Unix()),
 			URL:               proto.String(uploaded.URL), DirectPath: proto.String(uploaded.DirectPath),
@@ -215,8 +224,8 @@ func buildMediaMessage(payload MediaCommandPayload, uploaded whatsmeow.UploadRes
 	case "audio", "voice":
 		voice := strings.EqualFold(payload.MediaType, "voice")
 		am := &waProto.AudioMessage{
-			Mimetype: proto.String(mimeType),
-			Seconds:  optU32(meta.Seconds), MediaKeyTimestamp: proto.Int64(time.Now().Unix()),
+			ViewOnce: viewOnceFlag(payload), Mimetype: proto.String(mimeType),
+			Seconds: optU32(meta.Seconds), MediaKeyTimestamp: proto.Int64(time.Now().Unix()),
 			// Onda só quando existe (Opus). O cliente oficial NÃO manda onda em MP3 de arquivo (waveform=0B no log).
 			Waveform: meta.Waveform,
 			// PTT sempre EXPLÍCITO: ausente faz o celular desenhar o áudio como mensagem de voz; o cliente oficial manda

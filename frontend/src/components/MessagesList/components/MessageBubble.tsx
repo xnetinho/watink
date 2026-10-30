@@ -27,6 +27,9 @@ import QuotedMessage from "./QuotedMessage";
 // Renders a media bubble when the message has stored media OR is a media type
 // that renders without a URL: location/vcard/carousel (body-driven) and the
 // downloadable types whose blurred placeholder shows before download.
+/** Há selo no rodapé esquerdo do balão (editada ou visualização única)? Quem tem precisa de largura e de uma linha extra. */
+export const hasFooterBadge = (m: Message): boolean => !m.isDeleted && (Number(m.editCount ?? 0) > 0 || hasViewOnceBadge(m));
+
 const MEDIA_BUBBLE_TYPES = [
   "image",
   "video",
@@ -57,7 +60,7 @@ import MessageInteractive from "./MessageInteractive";
 import MessageMetadata from "./MessageMetadata";
 import ForwardedLabel from "./ForwardedLabel";
 import EditedBadge from "./EditedBadge";
-import ViewOnceBadge from "./ViewOnceBadge";
+import ViewOnceBadge, { hasViewOnceBadge } from "./ViewOnceBadge";
 import LinkPreview from "./LinkPreview";
 import DailyTimestamp from "./DailyTimestamp";
 import SenderName from "./SenderName";
@@ -185,9 +188,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       className={clsx(
         "overflow-wrap-break-word pt-0.5 pb-1.5 pl-1.5",
         message.isDeleted ? "italic text-[hsl(var(--text-muted))] pr-20" : "pr-20",
-        // O selo "Editada" ocupa o rodapé à esquerda e o horário a direita: sem esta largura mínima os dois se sobrepõem
-        // num balão curto ("Oi"). A linha extra empurra o texto para cima do rodapé.
-        Number(message.editCount ?? 0) > 0 && !message.isDeleted && "min-w-[190px] pb-5"
+        // Os selos do rodapé ("Editada", "Visualização única") ocupam o canto esquerdo e o horário a direita: sem esta
+        // largura mínima os dois se sobrepõem num balão curto ("Oi"). A linha extra empurra o texto para cima do rodapé.
+        hasFooterBadge(message) && "min-w-[230px] pb-5"
       )}
     >
       <DeletedMessage message={message} />

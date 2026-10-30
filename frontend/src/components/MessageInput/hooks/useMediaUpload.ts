@@ -7,7 +7,13 @@ export interface MediaItem {
   caption: string;
   /** Só para áudio: como sai (mensagem de voz ou arquivo de áudio). Anexo começa como arquivo. */
   audioKind?: "voice" | "file";
+  /** Enviar para ser visto uma única vez (foto, vídeo ou áudio). Vale só no WhatsApp. */
+  viewOnce?: boolean;
 }
+
+/** Foto, vídeo e áudio aceitam visualização única; documento e figurinha não têm esse modo no WhatsApp. */
+export const canBeViewOnce = (f: { type: string; name: string }): boolean =>
+  f.type.startsWith("image/") || f.type.startsWith("video/") || isAudioFile(f);
 
 /** O anexo é um áudio? Pelo mimetype, ou pela extensão quando o navegador não informa. */
 export const isAudioFile = (f: { type: string; name: string }): boolean =>
@@ -21,6 +27,7 @@ export interface UseMediaUploadReturn {
   handleDropFiles: (files: File[], currentInputMessage: string, clearInput: () => void) => void;
   handleMediaCaptionChange: (index: number, value: string) => void;
   handleAudioKindChange: (index: number, kind: "voice" | "file") => void;
+  handleViewOnceChange: (index: number, on: boolean) => void;
   handleUploadMedia: (ticketId: string | undefined, e?: React.FormEvent) => Promise<void>;
   handleRemoveMedia: (index: number) => void;
   clearMedias: () => void;
@@ -84,6 +91,10 @@ export function useMediaUpload(setLoading: (v: boolean) => void): UseMediaUpload
     setMedias((prev) => prev.map((media, i) => (i === index ? { ...media, audioKind: kind } : media)));
   };
 
+  const handleViewOnceChange = (index: number, on: boolean) => {
+    setMedias((prev) => prev.map((media, i) => (i === index ? { ...media, viewOnce: on } : media)));
+  };
+
   const handleUploadMedia = async (ticketId: string | undefined, e?: React.FormEvent) => {
     setLoading(true);
     if (e) e.preventDefault();
@@ -97,6 +108,7 @@ export function useMediaUpload(setLoading: (v: boolean) => void): UseMediaUpload
         form.append("medias", media.file);
         form.append("body", media.caption);
         if (media.audioKind) form.append("audioKind", media.audioKind);
+        if (media.viewOnce && canBeViewOnce(media.file)) form.append("viewOnce", "true");
         await api.post(`/messages/${ticketId}`, form);
         sent.add(media);
       }
@@ -122,6 +134,7 @@ export function useMediaUpload(setLoading: (v: boolean) => void): UseMediaUpload
     handleDropFiles,
     handleMediaCaptionChange,
     handleAudioKindChange,
+    handleViewOnceChange,
     handleUploadMedia,
     handleRemoveMedia,
     clearMedias,
