@@ -18,11 +18,14 @@ import ActivityKpiCards from "./components/ActivityKpiCards";
 import ActivityFilters from "./components/ActivityFilters";
 import ActivityCard from "./components/ActivityCard";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const TABS: { key: ActivityTab; label: string }[] = [
-  { key: "all", label: "Todas" },
-  { key: "overdue", label: "Atrasadas" },
-  { key: "inProgress", label: "Em andamento" },
-  { key: "done", label: "Concluídas" },
+  { key: "all", label: "uiText.activities.tabAll" },
+  { key: "overdue", label: "uiText.activities.kpiOverdue" },
+  { key: "inProgress", label: "uiText.activities.kpiInProgress" },
+  { key: "done", label: "uiText.activities.tabDone" },
 ];
 
 const MyActivities: React.FC = () => {
@@ -70,7 +73,7 @@ const MyActivities: React.FC = () => {
           </div>
         ) : errorKind ? (
           <ErrorState
-            title={errorKind === "forbidden" ? "Você não tem permissão para ver atividades" : undefined}
+            title={errorKind === "forbidden" ? tr("uiText.activities.noPermissionSee") : undefined}
             onRetry={errorKind === "generic" ? refetch : undefined}
           />
         ) : (
@@ -90,7 +93,7 @@ const MyActivities: React.FC = () => {
               <TabsList>
                 {TABS.map(({ key, label }) => (
                   <TabsTrigger key={key} value={key} className="gap-1.5">
-                    {label}
+                    {tr(label)}
                     <Badge variant="secondary">{kpis.tabCounts[key]}</Badge>
                   </TabsTrigger>
                 ))}
@@ -100,7 +103,7 @@ const MyActivities: React.FC = () => {
             {filtered.length === 0 ? (
               <EmptyState
                 icon={<ClipboardList />}
-                title="Nenhuma atividade atribuída no momento."
+                title={tr("uiText.activities.noneAssigned")}
               />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

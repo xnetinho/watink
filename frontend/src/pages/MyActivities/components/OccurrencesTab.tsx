@@ -5,6 +5,9 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Occurrence, OCCURRENCE_TYPE_LABELS } from "../activityTypes";
 import { minutesToTime } from "../activityHelpers";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface OccurrencesTabProps {
   occurrences: Occurrence[];
   onDelete: (id: number) => void;
@@ -14,7 +17,7 @@ interface OccurrencesTabProps {
 const OccurrencesTab: React.FC<OccurrencesTabProps> = ({ occurrences, onDelete, onAdd }) => (
   <TabsContent value="occurrences" className="space-y-3">
     {occurrences.length === 0 ? (
-      <p className="text-center text-muted-foreground py-8">Nenhuma ocorrência registrada.</p>
+      <p className="text-center text-muted-foreground py-8">{tr("uiText.activities.noOccurrence")}</p>
     ) : (
       <div className="space-y-2">
         {occurrences.map((o) => (
@@ -31,7 +34,7 @@ const OccurrencesTab: React.FC<OccurrencesTabProps> = ({ occurrences, onDelete, 
                       : "bg-blue-100 text-blue-700"
                   }`}
                 >
-                  {OCCURRENCE_TYPE_LABELS[o.type]}
+                  {OCCURRENCE_TYPE_LABELS[o.type] ? tr(OCCURRENCE_TYPE_LABELS[o.type]) : o.type}
                 </span>
                 {o.timeImpact != null && (
                   <span className="text-xs text-muted-foreground">
@@ -55,7 +58,7 @@ const OccurrencesTab: React.FC<OccurrencesTabProps> = ({ occurrences, onDelete, 
     <div className="flex justify-end">
       <Button variant="secondary" size="sm" onClick={onAdd}>
         <AlertTriangle className="mr-2 h-4 w-4" />
-        Registrar Ocorrência
+        {tr("uiText.activities.recordOccurrenceTitle")}
       </Button>
     </div>
   </TabsContent>

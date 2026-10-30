@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import { Material } from "../activityTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface MaterialsTabProps {
   materials: Material[];
   onDelete: (id: number) => void;
@@ -23,7 +26,7 @@ const MaterialsTab: React.FC<MaterialsTabProps> = ({ materials, onDelete, onAdd 
               <p className="text-xs text-muted-foreground">
                 {m.quantity} {m.unit}
                 {m.isBillable && (
-                  <span className="ml-2 font-semibold text-green-600">$ Faturável</span>
+                  <span className="ml-2 font-semibold text-green-600">{tr("uiText.activities.billable")}</span>
                 )}
               </p>
               {m.notes && <p className="text-xs text-muted-foreground mt-1">{m.notes}</p>}

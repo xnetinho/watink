@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { dateLocale } from "../../../lib/dateLocale";
 import {
     Plus,
     Search,
@@ -72,7 +72,7 @@ function describeCampaignSchedule(c: GroupCampaign): string {
     if (c.scheduleMode === "immediate") return "Imediato";
     if (c.scheduleMode === "once") {
         if (!c.startAt) return "Data não definida";
-        return `Em ${format(new Date(c.startAt), "dd/MM 'às' HH:mm", { locale: ptBR })}`;
+        return `Em ${format(new Date(c.startAt), "dd/MM 'às' HH:mm", { locale: dateLocale() })}`;
     }
     // recurring
     const time = c.recurrenceTime || "--:--";
@@ -195,7 +195,7 @@ const CampanhasTab: React.FC = () => {
                         </span>
                         {c.nextOccurrenceAt && (
                             <span>
-                                Próxima: {format(new Date(c.nextOccurrenceAt), "dd/MM HH:mm", { locale: ptBR })}
+                                Próxima: {format(new Date(c.nextOccurrenceAt), "dd/MM HH:mm", { locale: dateLocale() })}
                             </span>
                         )}
                     </div>

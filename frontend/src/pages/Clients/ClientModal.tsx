@@ -17,6 +17,9 @@ import BasicDataTab from "./components/BasicDataTab";
 import ContactsTab from "./components/ContactsTab";
 import AddressesTab from "./components/AddressesTab";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ClientModalProps {
   open: boolean;
   onClose: () => void;
@@ -43,14 +46,14 @@ const ClientModal: React.FC<ClientModalProps> = ({ open, onClose, client, initia
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-6">
         <SheetHeader>
-          <SheetTitle>{client ? "Editar Cliente" : "Novo Cliente"}</SheetTitle>
+          <SheetTitle>{client ? tr("uiText.clients.edit") : tr("uiText.clients.new")}</SheetTitle>
         </SheetHeader>
 
         <Separator className="my-4" />
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic">Dados Básicos</TabsTrigger>
+            <TabsTrigger value="basic">{tr("uiText.clients.basicData")}</TabsTrigger>
             <TabsTrigger value="contacts">Contatos ({contactCount})</TabsTrigger>
             <TabsTrigger value="addresses">Endereços ({addressCount})</TabsTrigger>
           </TabsList>
@@ -77,12 +80,12 @@ const ClientModal: React.FC<ClientModalProps> = ({ open, onClose, client, initia
         </Tabs>
 
         <SheetFooter className="mt-6 gap-2">
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="outline" onClick={onClose}>{tr("uiText.common.cancel")}</Button>
           <Button onClick={handleSubmit} disabled={loading}>
             {loading ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
             ) : (
-              "Salvar"
+              tr("uiText.common.save")
             )}
           </Button>
         </SheetFooter>

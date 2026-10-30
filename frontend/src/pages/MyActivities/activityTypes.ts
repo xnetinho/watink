@@ -98,21 +98,21 @@ export interface NewOccurrence {
 }
 
 export const OCCURRENCE_TYPE_LABELS: Record<string, string> = {
-  info: "Informativo",
-  impediment: "Impedimento",
-  delay: "Atraso",
+  info: "uiText.activities.occurrenceType.info",
+  impediment: "uiText.activities.occurrenceType.impediment",
+  delay: "uiText.activities.occurrenceType.delay",
 };
 
 export const ACTIVITY_STATUS_LABELS: Record<ActivityStatus, string> = {
-  pending: "Pendente",
-  in_progress: "Em Progresso",
-  done: "Concluído",
-  cancelled: "Cancelado",
+  pending: "uiText.activities.status.pending",
+  in_progress: "uiText.activities.status.in_progress",
+  done: "uiText.activities.status.done",
+  cancelled: "uiText.activities.status.cancelled",
 };
 
 export const ACTIVITY_PRIORITY_LABELS: Record<ActivityPriority, string> = {
-  low: "Baixa",
-  medium: "Média",
-  high: "Alta",
-  urgent: "Urgente",
+  low: "uiText.activities.priority.low",
+  medium: "uiText.activities.priority.medium",
+  high: "uiText.activities.priority.high",
+  urgent: "uiText.activities.priority.urgent",
 };

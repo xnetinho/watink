@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SignatureModalProps {
   open: boolean;
   onClose: () => void;
@@ -34,7 +37,7 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
 
   const handleConfirm = () => {
     if (!sigPad.current || sigPad.current.isEmpty()) {
-      alert("Por favor, assine antes de confirmar.");
+      alert(tr("uiText.activities.signFirst"));
       return;
     }
     const dataUrl = sigPad.current.getTrimmedCanvas().toDataURL("image/png");
@@ -49,7 +52,7 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
         </DialogHeader>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Por favor, assine no campo abaixo para confirmar a execução.
+            {tr("uiText.activities.signHint")}
           </p>
           <div
             className="relative w-full rounded-md border border-border bg-muted/50"
@@ -68,10 +71,10 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="secondary" size="sm" onClick={handleClear}>
             <Eraser className="mr-2 h-4 w-4" />
-            Limpar
+            {tr("uiText.common.clear")}
           </Button>
           <Button variant="outline" size="sm" onClick={onClose}>
-            Cancelar
+            {tr("uiText.common.cancel")}
           </Button>
           <Button size="sm" onClick={handleConfirm} disabled={isEmpty}>
             Confirmar Assinatura
