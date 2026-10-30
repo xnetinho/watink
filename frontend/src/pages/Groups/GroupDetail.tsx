@@ -16,6 +16,9 @@ import GroupSettingsPanel from "./GroupSettingsPanel";
 import GroupInviteCard from "./GroupInviteCard";
 import JoinRequestsPanel from "./JoinRequestsPanel";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const GroupDetail: React.FC = () => {
     const { jid } = useParams<{ jid: string }>();
     const navigate = useNavigate();
@@ -48,7 +51,7 @@ const GroupDetail: React.FC = () => {
         if (!whatsappId) return;
         try {
             await leaveGroup(whatsappId, decodedJid);
-            toast.success("Você saiu do grupo");
+            toast.success(tr("uiText.groups.left"));
             navigate("/grupos-whatsapp/grupos");
         } catch (err) {
             toast.error(classifyGroupsApiError(err).message);
@@ -67,7 +70,7 @@ const GroupDetail: React.FC = () => {
                 {group && (
                     <Button variant="outline" onClick={() => setConfirmLeave(true)}>
                         <LogOut className="h-4 w-4 mr-2" />
-                        Sair do grupo
+                        {tr("uiText.groups.leave")}
                     </Button>
                 )}
             </PageHeader>
@@ -83,9 +86,9 @@ const GroupDetail: React.FC = () => {
                     <Tabs defaultValue="participants">
                         <TabsList>
                             <TabsTrigger value="participants">Participantes</TabsTrigger>
-                            <TabsTrigger value="settings">Configurações</TabsTrigger>
+                            <TabsTrigger value="settings">{tr("uiText.groups.settings")}</TabsTrigger>
                             <TabsTrigger value="invite">Convite</TabsTrigger>
-                            <TabsTrigger value="requests">Solicitações</TabsTrigger>
+                            <TabsTrigger value="requests">{tr("uiText.groups.requests")}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="participants" className="pt-4">
                             <GroupParticipantsPanel whatsappId={whatsappId} group={group} onChanged={fetchGroup} />
@@ -103,12 +106,12 @@ const GroupDetail: React.FC = () => {
                 )}
             </PageContent>
             <ConfirmationModal
-                title="Sair do grupo"
+                title={tr("uiText.groups.leave")}
                 open={confirmLeave}
                 onClose={() => setConfirmLeave(false)}
                 onConfirm={handleLeave}
             >
-                Tem certeza que deseja sair deste grupo? Você precisará ser adicionado novamente para voltar.
+                {tr("uiText.groups.leaveConfirm")}
             </ConfirmationModal>
         </PageContainer>
     );

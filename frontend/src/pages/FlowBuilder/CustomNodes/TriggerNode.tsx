@@ -12,15 +12,15 @@ interface TriggerNodeProps {
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
-  time: 'Agendado',
-  message: tr("uiText.flow.ui.message"),
-  webhook: 'Webhook',
-  event: 'Evento',
+  time: 'uiText.flow.ui.trgTime',
+  message: "uiText.flow.ui.message",
+  webhook: 'uiText.flow.node.webhook',
+  event: 'uiText.flow.ui.trgEvent',
 };
 
 const TriggerNode: React.FC<TriggerNodeProps> = ({ data, isConnectable }) => {
   const triggerType = (data?.triggerType as string) || 'message';
-  const triggerLabel = TRIGGER_LABELS[triggerType] ?? triggerType;
+  const triggerLabel = TRIGGER_LABELS[triggerType] ? String(i18n.t(TRIGGER_LABELS[triggerType])) : triggerType;
 
   return (
     <BaseNode

@@ -11,16 +11,16 @@ interface DatabaseNodeProps {
 }
 
 const OPERATION_LABELS: Record<string, string> = {
-  read: tr("uiText.flow.ui.opRead"),
-  update: tr("uiText.flow.ui.opUpdate"),
-  create: tr("uiText.common.create"),
-  delete: tr("uiText.common.delete"),
+  read: "uiText.flow.ui.opRead",
+  update: "uiText.flow.ui.opUpdate",
+  create: "uiText.common.create",
+  delete: "uiText.common.delete",
 };
 
 const DatabaseNode: React.FC<DatabaseNodeProps> = ({ data, isConnectable }) => {
   const operation = (data?.operation as string) || 'read';
   const table = (data?.tableName as string) || '';
-  const opLabel = OPERATION_LABELS[operation] ?? operation;
+  const opLabel = OPERATION_LABELS[operation] ? String(i18n.t(OPERATION_LABELS[operation])) : operation;
 
   return (
     <BaseNode

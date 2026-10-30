@@ -12,9 +12,9 @@ import { i18n } from "../../../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const FIELD_GROUPS = [
-  { key: 'contactFields', label: tr("uiText.flow.form.contactData"), fields: ['name', 'number', 'email', 'profilePicUrl', 'id'] },
-  { key: 'ticketFields', label: tr("uiText.flow.form.ticketData"), fields: ['id', 'status', 'queueId', 'userId', 'lastMessage', 'chatbot'] },
-  { key: 'pipelineFields', label: tr("uiText.flow.form.pipelineData"), fields: ['dealTitle', 'dealValue', 'pipelineName', 'stageName', 'dealId', 'priority'] },
+  { key: 'contactFields', label: "uiText.flow.form.contactData", fields: ['name', 'number', 'email', 'profilePicUrl', 'id'] },
+  { key: 'ticketFields', label: "uiText.flow.form.ticketData", fields: ['id', 'status', 'queueId', 'userId', 'lastMessage', 'chatbot'] },
+  { key: 'pipelineFields', label: "uiText.flow.form.pipelineData", fields: ['dealTitle', 'dealValue', 'pipelineName', 'stageName', 'dealId', 'priority'] },
 ];
 
 interface WebhookFormProps {
@@ -53,7 +53,7 @@ const WebhookForm: React.FC<WebhookFormProps> = ({ formData, onChange }) => (
 
     {FIELD_GROUPS.map(({ key, label, fields }) => (
       <div key={key} className="space-y-1">
-        <p className="text-xs font-medium">{label}</p>
+        <p className="text-xs font-medium">{tr(label)}</p>
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           {fields.map((name) => {
             const selected = ((formData[key] as string[]) || []).includes(name);

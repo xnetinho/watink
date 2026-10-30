@@ -32,12 +32,12 @@ import { i18n } from "../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const SEND_STATUS_CHIP: Record<GroupCampaignSendStatus, { status: "success" | "error" | "warning" | "info" | "default"; label: string }> = {
-    pending: { status: "default", label: tr("uiText.flow.form.statusPending") },
-    sending: { status: "info", label: "Enviando" },
-    sent: { status: "success", label: "Enviado" },
-    failed: { status: "error", label: "Falhou" },
-    skipped: { status: "warning", label: "Ignorado" },
-    canceled: { status: "default", label: tr("uiText.campaigns.canceled") },
+    pending: { status: "default", label: "uiText.flow.form.statusPending" },
+    sending: { status: "info", label: "uiText.campaigns.sending" },
+    sent: { status: "success", label: "uiText.campaigns.sent" },
+    failed: { status: "error", label: "uiText.campaigns.failed" },
+    skipped: { status: "warning", label: "uiText.campaigns.skipped" },
+    canceled: { status: "default", label: "uiText.campaigns.canceled" },
 };
 
 interface VariantStat {
@@ -203,7 +203,7 @@ const GroupCampaignReport: React.FC = () => {
                 header: tr("uiText.common.status"),
                 cell: (s) => {
                     const chip = SEND_STATUS_CHIP[s.status];
-                    return <StatusChip status={chip.status} label={chip.label} size="sm" />;
+                    return <StatusChip status={chip.status} label={tr(chip.label)} size="sm" />;
                 },
             },
             {

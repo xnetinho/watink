@@ -29,9 +29,9 @@ import { i18n } from "../../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const UserSchema = Yup.object().shape({
-  name: Yup.string().min(2, tr("uiText.validation.tooShort")).max(255, tr("uiText.validation.tooLong")).required(tr("uiText.acessos.nameRequired")),
-  email: Yup.string().email(tr("uiText.utils.invalidEmail")).required(tr("uiText.acessos.emailRequired")),
-  password: Yup.string().min(5, tr("uiText.validation.tooShort")).max(128, tr("uiText.validation.tooLong")),
+  name: Yup.string().min(2, () => tr("uiText.validation.tooShort")).max(255, () => tr("uiText.validation.tooLong")).required(() => tr("uiText.acessos.nameRequired")),
+  email: Yup.string().email(() => tr("uiText.utils.invalidEmail")).required(() => tr("uiText.acessos.emailRequired")),
+  password: Yup.string().min(5, () => tr("uiText.validation.tooShort")).max(128, () => tr("uiText.validation.tooLong")),
 });
 
 interface UserPanelProps {

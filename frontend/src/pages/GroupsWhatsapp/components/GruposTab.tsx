@@ -22,6 +22,9 @@ import { classifyGroupsApiError, GroupsApiError } from "../../Groups/groupTypes"
 import GroupsErrorState from "../../Groups/GroupsErrorState";
 import CreateGroupDialog from "../../Groups/CreateGroupDialog";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const GruposTab: React.FC = () => {
     const navigate = useNavigate();
     const { whatsapps, whatsappId, setWhatsappId, loadingConnections } = useGroupsConnection();
@@ -92,7 +95,7 @@ const GruposTab: React.FC = () => {
                     onValueChange={(v) => setWhatsappId(Number(v))}
                 >
                     <SelectTrigger className="w-[220px]">
-                        <SelectValue placeholder="Selecione a conexão" />
+                        <SelectValue placeholder={tr("uiText.campaigns.selectConnectionPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                         {whatsapps.map((w) => (
@@ -125,11 +128,11 @@ const GruposTab: React.FC = () => {
                 </div>
             ) : whatsapps.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6 py-16">
-                    <h3 className="text-lg font-semibold">Nenhuma conexão disponível</h3>
+                    <h3 className="text-lg font-semibold">{tr("uiText.groups.noConnection")}</h3>
                     <p className="text-sm text-muted-foreground max-w-md">
-                        Conecte um número de WhatsApp para gerenciar grupos.
+                        {tr("uiText.groups.connectForGroups")}
                     </p>
-                    <Button onClick={() => navigate("/connections")}>Ir para Conexões</Button>
+                    <Button onClick={() => navigate("/connections")}>{tr("uiText.groups.goConnections")}</Button>
                 </div>
             ) : apiError ? (
                 <GroupsErrorState error={apiError} />
@@ -149,19 +152,19 @@ const GruposTab: React.FC = () => {
                     <TabsList>
                         <TabsTrigger value="admin" className="gap-1.5">
                             <ShieldCheck className="h-4 w-4" />
-                            Você é admin
+                            {tr("uiText.groups.youAdmin")}
                             <Badge variant="secondary">{adminGroups.length}</Badge>
                         </TabsTrigger>
                         <TabsTrigger value="member" className="gap-1.5">
                             <Users className="h-4 w-4" />
-                            Você participa
+                            {tr("uiText.groups.youMember")}
                             <Badge variant="secondary">{memberGroups.length}</Badge>
                         </TabsTrigger>
                     </TabsList>
                     <TabsContent value="admin">
                         {adminGroups.length === 0 ? (
                             <p className="text-sm text-muted-foreground px-1 py-8 text-center">
-                                Nenhum grupo em que esta conexão é administradora.
+                                {tr("uiText.groups.noAdminGroups")}
                             </p>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
@@ -172,7 +175,7 @@ const GruposTab: React.FC = () => {
                     <TabsContent value="member">
                         {memberGroups.length === 0 ? (
                             <p className="text-sm text-muted-foreground px-1 py-8 text-center">
-                                Nenhum grupo em que esta conexão é só participante.
+                                {tr("uiText.groups.noMemberGroups")}
                             </p>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
@@ -190,7 +193,7 @@ const GruposTab: React.FC = () => {
                     onClose={() => setCreateOpen(false)}
                     onCreated={() => {
                         setCreateOpen(false);
-                        toast.success("Grupo criado com sucesso!");
+                        toast.success(tr("uiText.groups.created"));
                         fetchGroups();
                     }}
                 />

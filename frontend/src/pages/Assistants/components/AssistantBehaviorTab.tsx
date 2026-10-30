@@ -14,10 +14,10 @@ import { i18n } from "../../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const PIPELINE_EVENTS = [
-  { value: "deal_created", label: tr("uiText.assistants.evTicketCreated") },
-  { value: "stage_changed", label: tr("uiText.assistants.evStageChange") },
-  { value: "idle", label: tr("uiText.assistants.evStalled") },
-  { value: "closed", label: "Finalizado" },
+  { value: "deal_created", label: "uiText.assistants.evTicketCreated" },
+  { value: "stage_changed", label: "uiText.assistants.evStageChange" },
+  { value: "idle", label: "uiText.assistants.evStalled" },
+  { value: "closed", label: "uiText.assistants.evClosed" },
 ];
 
 interface AssistantBehaviorTabProps {
@@ -145,7 +145,7 @@ export const AssistantBehaviorTab: React.FC<AssistantBehaviorTabProps> = ({
                   checked={pipelineEvents.includes(ev.value)}
                   onChange={() => onToggleEvent(ev.value)}
                 />
-                {ev.label}
+                {tr(ev.label)}
               </label>
             ))}
           </div>

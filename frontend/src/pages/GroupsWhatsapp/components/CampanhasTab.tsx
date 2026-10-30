@@ -50,29 +50,32 @@ import {
     type GroupCampaignRun,
 } from "../../../services/groupCampaignService";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface CampaignCardDetails {
     targetsCount: number;
     lastRun: GroupCampaignRun | null;
 }
 
 const WEEKDAY_LABELS: Record<string, string> = {
-    "0": "domingo",
-    "1": "segunda",
-    "2": "terça",
-    "3": "quarta",
-    "4": "quinta",
-    "5": "sexta",
-    "6": "sábado",
+    "0": "uiText.groups.wd0",
+    "1": "uiText.groups.wd1",
+    "2": "uiText.groups.wd2",
+    "3": "uiText.groups.wd3",
+    "4": "uiText.groups.wd4",
+    "5": "uiText.groups.wd5",
+    "6": "uiText.groups.wd6",
 };
 
 /** "Toda segunda e quinta, 09:00" / "Imediato" / "Em 12/08 às 14:00" -- a
  * campanha guarda os campos crus (scheduleMode/recurrenceDays/recurrenceTime
  * etc.), essa função é só a tradução pra texto legível do card. */
 function describeCampaignSchedule(c: GroupCampaign): string {
-    if (c.scheduleMode === "immediate") return "Imediato";
+    if (c.scheduleMode === "immediate") return tr("uiText.groups.immediate");
     if (c.scheduleMode === "once") {
-        if (!c.startAt) return "Data não definida";
-        return `Em ${format(new Date(c.startAt), "dd/MM 'às' HH:mm", { locale: dateLocale() })}`;
+        if (!c.startAt) return tr("uiText.campaigns.noDate");
+        return tr("uiText.groups.at", { date: format(new Date(c.startAt), "dd/MM HH:mm", { locale: dateLocale() }) });
     }
     // recurring
     const time = c.recurrenceTime || "--:--";
@@ -80,24 +83,24 @@ function describeCampaignSchedule(c: GroupCampaign): string {
         const days = (c.recurrenceDays || "")
             .split(",")
             .filter(Boolean)
-            .map((d) => WEEKDAY_LABELS[d.trim()] ?? d.trim());
-        const label = days.length > 0 ? `Toda ${days.join(" e ")}` : "Recorrente semanal";
+            .map((d) => WEEKDAY_LABELS[d.trim()] ? tr(WEEKDAY_LABELS[d.trim()]) : d.trim());
+        const label = days.length > 0 ? tr("uiText.groups.everyDays", { days: days.join(tr("uiText.groups.and")) }) : tr("uiText.groups.weeklyRecurring");
         return `${label}, ${time}`;
     }
     if (c.recurrenceRule === "monthly") {
         const days = (c.recurrenceDays || "").split(",").filter(Boolean).join(", ");
-        return `Todo dia ${days || "?"} do mês, ${time}`;
+        return tr("uiText.groups.monthlyAt", { days: days || "?", time });
     }
-    return "Recorrente";
+    return tr("uiText.groups.recurring");
 }
 
 const STATUS_LABELS: Record<GroupCampaignStatus, string> = {
-    draft: "Rascunho",
-    scheduled: "Agendada",
-    running: "Em execução",
-    paused: "Pausada",
-    completed: "Concluída",
-    canceled: "Cancelada",
+    draft: "uiText.campaigns.draft",
+    scheduled: "uiText.campaigns.scheduled",
+    running: "uiText.campaigns.running",
+    paused: "uiText.campaigns.paused",
+    completed: "uiText.campaigns.done",
+    canceled: "uiText.campaigns.canceledF",
 };
 
 const STATUS_BADGE_VARIANT: Record<GroupCampaignStatus, "default" | "secondary" | "destructive" | "outline"> = {
@@ -169,7 +172,7 @@ const CampanhasTab: React.FC = () => {
     };
 
     const renderCampaignCard = (c: GroupCampaign) => {
-        const connName = whatsapps.find((w) => w.id === c.whatsappId)?.name ?? `Conexão #${c.whatsappId}`;
+        const connName = whatsapps.find((w) => w.id === c.whatsappId)?.name ?? tr("uiText.groups.connectionN", { id: c.whatsappId });
         return (
             <Card
                 key={c.id}
@@ -184,7 +187,7 @@ const CampanhasTab: React.FC = () => {
                             <p className="font-medium truncate">{c.name}</p>
                             <p className="text-xs text-muted-foreground truncate">{connName}</p>
                         </div>
-                        <Badge variant={STATUS_BADGE_VARIANT[c.status]}>{STATUS_LABELS[c.status]}</Badge>
+                        <Badge variant={STATUS_BADGE_VARIANT[c.status]}>{tr(STATUS_LABELS[c.status])}</Badge>
                     </div>
 
                     <p className="text-sm text-muted-foreground">{describeCampaignSchedule(c)}</p>
@@ -230,7 +233,7 @@ const CampanhasTab: React.FC = () => {
                                 onClick={() => navigate(`/group-campaigns/${c.id}/report`)}
                             >
                                 <BarChart3 className="h-3.5 w-3.5" />
-                                Relatório
+                                {tr("uiText.campaigns.report")}
                             </Button>
                             <Button
                                 variant="outline"
@@ -239,7 +242,7 @@ const CampanhasTab: React.FC = () => {
                                 onClick={() => navigate(`/group-campaigns/${c.id}`)}
                             >
                                 <Pencil className="h-3.5 w-3.5" />
-                                Editar
+                                {tr("uiText.common.edit")}
                             </Button>
                         </div>
 
@@ -278,7 +281,7 @@ const CampanhasTab: React.FC = () => {
                                         }
                                     >
                                         <Ban className="h-4 w-4 mr-2" />
-                                        Cancelar
+                                        {tr("uiText.common.cancel")}
                                     </DropdownMenuItem>
                                 )}
                             </DropdownMenuContent>
@@ -297,7 +300,7 @@ const CampanhasTab: React.FC = () => {
                     onValueChange={(v) => setWhatsappId(Number(v))}
                 >
                     <SelectTrigger className="w-[220px]">
-                        <SelectValue placeholder="Selecione a conexão" />
+                        <SelectValue placeholder={tr("uiText.campaigns.selectConnectionPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                         {whatsapps.map((w) => (
@@ -334,20 +337,20 @@ const CampanhasTab: React.FC = () => {
                 </div>
             ) : whatsapps.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6 py-16">
-                    <h3 className="text-lg font-semibold">Nenhuma conexão disponível</h3>
+                    <h3 className="text-lg font-semibold">{tr("uiText.groups.noConnection")}</h3>
                     <p className="text-sm text-muted-foreground max-w-md">
-                        Conecte um número de WhatsApp para criar campanhas em grupos.
+                        {tr("uiText.groups.connectForCampaigns")}
                     </p>
-                    <Button onClick={() => navigate("/connections")}>Ir para Conexões</Button>
+                    <Button onClick={() => navigate("/connections")}>{tr("uiText.groups.goConnections")}</Button>
                 </div>
             ) : apiError ? (
                 <GroupsErrorState error={apiError} />
             ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 h-full text-center px-6 py-16">
                     <Megaphone className="h-8 w-8 text-muted-foreground" />
-                    <h3 className="text-base font-medium">Nenhuma campanha ainda</h3>
+                    <h3 className="text-base font-medium">{tr("uiText.groups.noCampaign")}</h3>
                     <p className="text-sm text-muted-foreground max-w-md">
-                        Crie uma campanha para postar uma mensagem programada em vários grupos de uma vez.
+                        {tr("uiText.groups.noCampaignHint")}
                     </p>
                 </div>
             ) : (

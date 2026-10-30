@@ -22,8 +22,8 @@ import { i18n } from "../../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const CargoSchema = Yup.object().shape({
-  name: Yup.string().min(2, tr("uiText.acessos.nameTooShort")).max(120, tr("uiText.acessos.nameTooLong")).required(tr("uiText.acessos.nameRequired")),
-  description: Yup.string().max(500, tr("uiText.acessos.descTooLong")),
+  name: Yup.string().min(2, () => tr("uiText.acessos.nameTooShort")).max(120, () => tr("uiText.acessos.nameTooLong")).required(() => tr("uiText.acessos.nameRequired")),
+  description: Yup.string().max(500, () => tr("uiText.acessos.descTooLong")),
 });
 
 interface CargoPanelProps {

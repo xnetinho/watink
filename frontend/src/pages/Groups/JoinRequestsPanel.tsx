@@ -8,6 +8,9 @@ import { Avatar } from "@/components/ui/avatar";
 import { JoinRequestEntry, listJoinRequests, resolveJoinRequests } from "../../services/groupService";
 import { classifyGroupsApiError } from "./groupTypes";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface JoinRequestsPanelProps {
     whatsappId: number;
     groupJid: string;
@@ -37,7 +40,7 @@ const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ whatsappId, group
         setProcessingJid(jid);
         try {
             await resolveJoinRequests(whatsappId, groupJid, action, [jid]);
-            toast.success(action === "approve" ? "Solicitação aprovada" : "Solicitação rejeitada");
+            toast.success(action === "approve" ? tr("uiText.groups.requestApproved") : tr("uiText.groups.requestRejected"));
             fetchRequests();
         } catch (err) {
             toast.error(classifyGroupsApiError(err).message);
@@ -59,7 +62,7 @@ const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ whatsappId, group
     if (requests.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-                <p className="text-sm text-muted-foreground">Nenhuma solicitação pendente</p>
+                <p className="text-sm text-muted-foreground">{tr("uiText.groups.noPending")}</p>
             </div>
         );
     }

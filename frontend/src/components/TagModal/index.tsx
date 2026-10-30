@@ -32,10 +32,10 @@ import {
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const TagSchema = Yup.object().shape({
   name: Yup.string()
-    .min(3, tr("uiText.validation.tooShort"))
-    .max(20, tr("uiText.validation.tooLong"))
-    .required(tr("uiText.validation.required")),
-  color: Yup.string().required(tr("uiText.validation.required")),
+    .min(3, () => tr("uiText.validation.tooShort"))
+    .max(20, () => tr("uiText.validation.tooLong"))
+    .required(() => tr("uiText.validation.required")),
+  color: Yup.string().required(() => tr("uiText.validation.required")),
 });
 
 interface TagModalProps {
