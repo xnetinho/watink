@@ -7,6 +7,8 @@ import { i18n } from "../../../translate/i18n";
 import toastError from "../../../errors/toastError";
 import { subscribeToSocket } from "../../../services/sse-client";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface Setting {
   key: string;
   value: string;
@@ -115,7 +117,7 @@ export const useSettings = (): UseSettingsReturn => {
       if (key === "theme") {
         applyDbTheme(value);
       }
-      toast.success("Configuração atualizada!");
+      toast.success(tr("uiText.settings.updated"));
     } catch (err) {
       toastError(err);
     }
@@ -138,7 +140,7 @@ export const useSettings = (): UseSettingsReturn => {
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     if (helpdeskCategories.includes(newCategory.trim())) {
-      toast.warning("Categoria já existe");
+      toast.warning(tr("uiText.settings.categoryExists"));
       return;
     }
     const nextCategories = [...helpdeskCategories, newCategory.trim()];

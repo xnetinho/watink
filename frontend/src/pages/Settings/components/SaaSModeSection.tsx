@@ -17,6 +17,9 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SaaSModeStatus {
   paired: boolean;
   pairedAt?: string | null;
@@ -46,13 +49,13 @@ interface PairForm {
 const EMPTY_FORM: RegisterForm = { name: "", email: "", whatsapp: "", document: "", password: "" };
 const EMPTY_PAIR_FORM: PairForm = { baseUrl: "", instanceId: "", internalToken: "" };
 
-// SaaSModeSection é o botão + página de registro do "Modo SaaS" em
+// SaaSModeSection é o botão + página de registro do tr("uiText.settings.saas.title") em
 // Configurações (issue #632): grava o pareamento com o Watink SaaS
 // hospedado via /system/saas-mode/register (superadmin-only), depois de uma
 // pré-checagem de saída HTTPS que orienta o usuário ANTES de preencher o
 // formulário, não depois — requisito explícito do dono do produto para o
 // caso de core atrás de firewall corporativo. Mesmo formato visual de
-// StorageSection (Card + Badge "Conectado"/"Não configurado").
+// StorageSection (Card + Badge "Conectado"/tr("uiText.settings.saas.notConfigured")).
 const SaaSModeSection: React.FC = () => {
   const [status, setStatus] = useState<SaaSModeStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +96,7 @@ const SaaSModeSection: React.FC = () => {
     api
       .post("/system/saas-mode/register", form)
       .then(() => {
-        toast.success("Instância registrada no Watink SaaS com sucesso.");
+        toast.success(tr("uiText.settings.saas.registered"));
         setForm(EMPTY_FORM);
         loadStatus();
       })
@@ -107,7 +110,7 @@ const SaaSModeSection: React.FC = () => {
     api
       .post("/system/saas-mode/pair", pairForm)
       .then(() => {
-        toast.success("Instância pareada com o Watink SaaS com sucesso.");
+        toast.success(tr("uiText.settings.saas.paired"));
         setPairForm(EMPTY_PAIR_FORM);
         loadStatus();
       })
@@ -120,14 +123,10 @@ const SaaSModeSection: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-primary">
           <Cloud className="h-5 w-5" />
-          Modo SaaS
+          {tr("uiText.settings.saas.title")}
         </CardTitle>
         <CardDescription>
-          Registra esta instância no Watink SaaS hospedado — controle de
-          planos, faturamento e provisionamento passam a ser geridos de lá,
-          sem você precisar rodar seu próprio Watink SaaS. A conexão é
-          sempre iniciada por esta instância (nunca o contrário), então
-          nenhuma porta de entrada precisa ser aberta.
+          {tr("uiText.settings.saas.intro")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -147,14 +146,14 @@ const SaaSModeSection: React.FC = () => {
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Pareado — aguardando a primeira sincronização.
+                {tr("uiText.settings.saas.awaitingSync")}
               </p>
             )}
           </div>
         ) : (
           <div className="flex flex-col gap-6">
             <Badge className="w-fit border-transparent bg-[hsl(var(--status-warning-bg))] text-[hsl(var(--status-warning-text))]">
-              Não configurado
+              {tr("uiText.settings.saas.notConfigured")}
             </Badge>
 
             <div className="flex flex-col gap-2">
@@ -169,7 +168,7 @@ const SaaSModeSection: React.FC = () => {
                 {checkingConnectivity ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
-                Testar conectividade de saída
+                {tr("uiText.settings.saas.testOutbound")}
               </Button>
               {precheck && precheck.reachable && (
                 <p className="flex items-center gap-2 text-sm text-[hsl(var(--status-success-text))]">
@@ -200,14 +199,14 @@ const SaaSModeSection: React.FC = () => {
                 variant={mode === "pair" ? "default" : "ghost"}
                 onClick={() => setMode("pair")}
               >
-                Parear instância existente
+                {tr("uiText.settings.saas.pairExisting")}
               </Button>
             </div>
 
             {mode === "register" ? (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="saas-mode-name">Nome</Label>
+                  <Label htmlFor="saas-mode-name">{tr("uiText.common.name")}</Label>
                   <Input
                     id="saas-mode-name"
                     value={form.name}
@@ -254,19 +253,16 @@ const SaaSModeSection: React.FC = () => {
                 </div>
                 <Button type="submit" disabled={submitting} className="w-fit">
                   {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Registrar no Watink SaaS
+                  {tr("uiText.settings.saas.register")}
                 </Button>
               </form>
             ) : (
               <form onSubmit={handlePairSubmit} className="flex flex-col gap-4 max-w-md">
                 <p className="text-sm text-muted-foreground">
-                  Use quando você já tem uma conta no Watink SaaS e quer conectar esta
-                  instância (ex.: on-premise atrás de NAT/firewall, sem URL pública) a
-                  ela. Gere o pareamento no Console em Instâncias → "Parear nova
-                  instância" e cole os dados abaixo.
+                  {tr("uiText.settings.saas.pairHint")}
                 </p>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="saas-mode-pair-baseurl">Base URL do seu Watink SaaS</Label>
+                  <Label htmlFor="saas-mode-pair-baseurl">{tr("uiText.settings.saas.baseUrl")}</Label>
                   <Input
                     id="saas-mode-pair-baseurl"
                     type="url"
@@ -297,7 +293,7 @@ const SaaSModeSection: React.FC = () => {
                 </div>
                 <Button type="submit" disabled={pairing} className="w-fit">
                   {pairing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Parear instância
+                  {tr("uiText.settings.saas.pair")}
                 </Button>
               </form>
             )}

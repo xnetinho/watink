@@ -13,6 +13,9 @@ import {
 } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface StorageStatus {
   configured: boolean;
   driver?: string;
@@ -55,7 +58,7 @@ const StorageSection: React.FC = () => {
           </div>
         ) : !status?.configured ? (
           <Badge className="border-transparent bg-[hsl(var(--status-warning-bg))] text-[hsl(var(--status-warning-text))]">
-            Não configurado
+            {tr("uiText.settings.saas.notConfigured")}
           </Badge>
         ) : (
           <div className="flex flex-col gap-4">
@@ -69,10 +72,10 @@ const StorageSection: React.FC = () => {
               </dd>
               <dt className="text-muted-foreground">Bucket</dt>
               <dd className="text-foreground font-mono">{status.bucket}</dd>
-              <dt className="text-muted-foreground">Região</dt>
+              <dt className="text-muted-foreground">{tr("uiText.settings.storage.region")}</dt>
               <dd className="text-foreground font-mono">{status.region}</dd>
               <dt className="text-muted-foreground">SSL</dt>
-              <dd className="text-foreground">{status.useSSL ? "Sim" : "Não"}</dd>
+              <dd className="text-foreground">{status.useSSL ? tr("uiText.settings.storage.yes") : tr("uiText.settings.storage.no")}</dd>
             </dl>
           </div>
         )}

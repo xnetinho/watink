@@ -38,11 +38,14 @@ import ProxyImportDialog from "../../Proxies/ProxyImportDialog";
 import ProxyGroupsPanel from "../../Proxies/ProxyGroupsPanel";
 import ConnectionGroupsDialog from "../../Proxies/ConnectionGroupsDialog";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const STATUS_BADGE: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  active: { label: "Ativo", variant: "default" },
-  isolated: { label: "Isolado", variant: "destructive" },
-  banned: { label: "Banido", variant: "destructive" },
-  disabled: { label: "Desativado", variant: "secondary" },
+  active: { label: "uiText.settings.proxy.statusActive", variant: "default" },
+  isolated: { label: "uiText.settings.proxy.statusIsolated", variant: "destructive" },
+  banned: { label: "uiText.settings.proxy.statusBanned", variant: "destructive" },
+  disabled: { label: "uiText.settings.proxy.statusDisabled", variant: "secondary" },
 };
 
 const ProxySection: React.FC = () => {
@@ -119,9 +122,9 @@ const ProxySection: React.FC = () => {
     try {
       const { data } = await api.post<{ tested: number; ok: number; failed: number }>("/proxies/test-all");
       if (data.tested === 0) {
-        toast.info("Nenhum proxy para testar.");
+        toast.info(tr("uiText.settings.proxy.noneToTest"));
       } else {
-        toast.success(`Teste concluído: ${data.ok}/${data.tested} OK · ${data.failed} invalidados`);
+        toast.success(tr("uiText.settings.proxy.testDone", { ok: data.ok, tested: data.tested, failed: data.failed }));
       }
       fetchProxies();
     } catch (err) {
@@ -132,8 +135,8 @@ const ProxySection: React.FC = () => {
   };
 
   const handleDeleteAll = async () => {
-    if (proxies.length === 0) { toast.info("Nenhum proxy para remover."); return; }
-    if (!window.confirm(`Remover TODOS os ${proxies.length} proxies? As conexões vinculadas serão desvinculadas.`)) return;
+    if (proxies.length === 0) { toast.info(tr("uiText.settings.proxy.noneToRemove")); return; }
+    if (!window.confirm(tr("uiText.settings.proxy.removeAllConfirm", { count: proxies.length }))) return;
     setDeletingAll(true);
     try {
       const { data } = await api.delete<{ deleted: number }>("/proxies");
@@ -175,8 +178,7 @@ const ProxySection: React.FC = () => {
         proxyIds: filtered.map((p) => p.id),
         proxyGroupId: assignGroupId === "none" ? null : Number(assignGroupId),
       });
-      const dest = assignGroupId === "none" ? "removidos do grupo" : `atribuídos ao grupo`;
-      toast.success(`${data.assigned} proxies ${dest}.`);
+      toast.success(tr(assignGroupId === "none" ? "uiText.settings.proxy.removedFromGroup" : "uiText.settings.proxy.assignedToGroup", { count: data.assigned }));
       setAssignOpen(false);
       fetchProxies();
       fetchGroups();
@@ -195,7 +197,7 @@ const ProxySection: React.FC = () => {
         const loc = [data.city, data.country].filter(Boolean).join(", ");
         toast.success(`Proxy OK — IP ${data.ip}${loc ? ` · ${loc}` : ""} (${data.latencyMs}ms)`);
       } else {
-        toast.error(`Proxy falhou: ${data.error || "sem resposta"}`);
+        toast.error(tr("uiText.settings.proxy.failed", { error: data.error || tr("uiText.settings.proxy.noResponse") }));
       }
       fetchProxies();
     } catch (err) {
@@ -247,12 +249,12 @@ const ProxySection: React.FC = () => {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por host, rótulo, cidade, usuário…"
+                placeholder={tr("uiText.settings.proxy.searchPlaceholder")}
                 className="pl-8"
               />
             </div>
             <div className="w-full sm:w-48 space-y-1">
-              <Label className="text-xs text-muted-foreground">Cidade</Label>
+              <Label className="text-xs text-muted-foreground">{tr("uiText.clients.city")}</Label>
               <Select value={cityFilter} onValueChange={setCityFilter}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -262,14 +264,14 @@ const ProxySection: React.FC = () => {
               </Select>
             </div>
             <div className="w-full sm:w-40 space-y-1">
-              <Label className="text-xs text-muted-foreground">Status</Label>
+              <Label className="text-xs text-muted-foreground">{tr("uiText.common.status")}</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="isolated">Isolado</SelectItem>
-                  <SelectItem value="disabled">Desativado</SelectItem>
+                  <SelectItem value="all">{tr("uiText.common.allMasc")}</SelectItem>
+                  <SelectItem value="active">{tr("uiText.settings.proxy.statusActive")}</SelectItem>
+                  <SelectItem value="isolated">{tr("uiText.settings.proxy.statusIsolated")}</SelectItem>
+                  <SelectItem value="disabled">{tr("uiText.settings.proxy.statusDisabled")}</SelectItem>
                   <SelectItem value="banned">Banido</SelectItem>
                 </SelectContent>
               </Select>
@@ -278,15 +280,15 @@ const ProxySection: React.FC = () => {
               variant="outline"
               disabled={filtered.length === 0}
               onClick={() => { setAssignGroupId("none"); setAssignOpen(true); }}
-              title="Atribuir os proxies filtrados a um grupo"
+              title={tr("uiText.settings.proxy.assignFiltered")}
             >
-              <FolderPlus className="mr-2 h-4 w-4" /> Atribuir ao grupo
+              <FolderPlus className="mr-2 h-4 w-4" /> {tr("uiText.settings.proxy.assignToGroup")}
             </Button>
           </div>
 
           <p className="text-xs text-muted-foreground">
             Mostrando <strong>{filtered.length}</strong> de <strong>{proxies.length}</strong> proxies
-            {filterActive && cityFilter !== "all" ? ` em ${cityFilter}` : ""}.
+            {filterActive && cityFilter !== "all" ? tr("uiText.settings.proxy.inCity", { city: cityFilter }) : ""}.
           </p>
 
           {loading ? (
@@ -295,11 +297,11 @@ const ProxySection: React.FC = () => {
             </div>
           ) : proxies.length === 0 ? (
             <div className="text-center text-sm text-muted-foreground py-16">
-              Nenhum proxy cadastrado. Importe sua lista ou crie um manualmente.
+              {tr("uiText.settings.proxy.none")}
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center text-sm text-muted-foreground py-16">
-              Nenhum proxy corresponde ao filtro.
+              {tr("uiText.settings.proxy.noMatch")}
             </div>
           ) : (
         <div className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.08)] bg-card overflow-hidden">
@@ -307,13 +309,13 @@ const ProxySection: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12 text-muted-foreground">#</TableHead>
-                <TableHead>Rótulo</TableHead>
+                <TableHead>{tr("uiText.settings.proxy.label")}</TableHead>
                 <TableHead>Endpoint</TableHead>
-                <TableHead>Localização</TableHead>
+                <TableHead>{tr("uiText.settings.proxy.location")}</TableHead>
                 <TableHead>Grupo</TableHead>
-                <TableHead>Usuário</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead>{tr("uiText.settings.proxy.user")}</TableHead>
+                <TableHead>{tr("uiText.common.status")}</TableHead>
+                <TableHead className="text-right">{tr("uiText.common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -336,19 +338,19 @@ const ProxySection: React.FC = () => {
                     <TableCell className="text-sm text-muted-foreground">{p.username || "—"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <Badge variant={badge.variant}>{badge.label}</Badge>
+                        <Badge variant={badge.variant}>{STATUS_BADGE[p.status] ? tr(badge.label) : badge.label}</Badge>
                         <span
                           className={`inline-block h-2 w-2 rounded-full ${p.healthy ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
-                          title={p.healthy ? "Último teste: OK" : "Não testado / sem resposta"}
+                          title={p.healthy ? tr("uiText.settings.proxy.lastTestOk") : tr("uiText.settings.proxy.notTested")}
                         />
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Testar conexão" disabled={testingId === p.id} onClick={() => handleTest(p)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title={tr("uiText.settings.proxy.testConnection")} disabled={testingId === p.id} onClick={() => handleTest(p)}>
                           {testingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wifi className="h-3.5 w-3.5" />}
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => openEdit(p)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title={tr("uiText.common.edit")} onClick={() => openEdit(p)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button
@@ -360,7 +362,7 @@ const ProxySection: React.FC = () => {
                         >
                           {isIsolated ? <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> : <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />}
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Remover" onClick={() => handleDelete(p)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title={tr("uiText.common.remove")} onClick={() => handleDelete(p)}>
                           <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
                         </Button>
                       </div>
@@ -384,7 +386,7 @@ const ProxySection: React.FC = () => {
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Atribuir ao grupo</DialogTitle>
+            <DialogTitle>{tr("uiText.settings.proxy.assignToGroup")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
@@ -396,17 +398,17 @@ const ProxySection: React.FC = () => {
               <Select value={assignGroupId} onValueChange={setAssignGroupId}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sem grupo (remover)</SelectItem>
+                  <SelectItem value="none">{tr("uiText.settings.proxy.noGroupRemove")}</SelectItem>
                   {groups.map((g) => (<SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>))}
                 </SelectContent>
               </Select>
               {groups.length === 0 && (
-                <p className="text-xs text-muted-foreground">Crie um grupo primeiro no painel “Grupos de Proxy”.</p>
+                <p className="text-xs text-muted-foreground">{tr("uiText.settings.proxy.createGroupFirst")}</p>
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setAssignOpen(false)}>{tr("uiText.common.cancel")}</Button>
             <Button onClick={handleAssignGroup} disabled={assigning || filtered.length === 0}>
               {assigning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Atribuir

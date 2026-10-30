@@ -28,6 +28,9 @@ import AiGatewaysSection from "./components/AiGatewaysSection";
 import CallsSection from "./components/CallsSection";
 import SettingsSideNav from "./components/SettingsSideNav";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -54,7 +57,7 @@ const Settings: React.FC = () => {
 
   return (
     <PageContainer>
-      <PageHeader title="Configurações do Sistema">
+      <PageHeader title={tr("uiText.settings.pageTitle")}>
         <div className="flex gap-2">
           <Can
             user={user}

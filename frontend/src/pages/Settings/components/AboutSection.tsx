@@ -13,6 +13,9 @@ import {
 } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UpdateStatus {
   status: "up_to_date" | "behind" | "unknown";
   commitsBehind: number;
@@ -40,17 +43,17 @@ const formatCommitDate = (iso: string) => {
 
 const UpdateStatusBadge: React.FC<{ status?: UpdateStatus }> = ({ status }) => {
   if (!status || status.status === "unknown") {
-    return <Badge variant="secondary">Status de atualização desconhecido</Badge>;
+    return <Badge variant="secondary">{tr("uiText.settings.about.unknown")}</Badge>;
   }
   if (status.status === "up_to_date") {
-    return <Badge variant="default">Atualizado</Badge>;
+    return <Badge variant="default">{tr("uiText.settings.about.upToDate")}</Badge>;
   }
   const count = status.commitsBehind;
   return (
     <Badge variant="destructive">
       {count > 0
-        ? `${count} ${count === 1 ? "novo commit disponível" : "novos commits disponíveis"}`
-        : "Novos commits disponíveis"}
+        ? tr(count === 1 ? "uiText.settings.about.oneCommit" : "uiText.settings.about.manyCommits", { count })
+        : tr("uiText.settings.about.newCommits")}
     </Badge>
   );
 };
@@ -79,7 +82,7 @@ const AboutSection: React.FC = () => {
           Sobre
         </CardTitle>
         <CardDescription>
-          Versão do sistema e build.
+          {tr("uiText.settings.about.subtitle")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -90,24 +93,24 @@ const AboutSection: React.FC = () => {
           </div>
         ) : error || !info ? (
           <p className="text-sm text-muted-foreground">
-            Não foi possível carregar as informações do sistema.
+            {tr("uiText.settings.about.loadError")}
           </p>
         ) : (
           <div className="flex flex-col gap-4">
             <dl className="grid grid-cols-[110px_1fr] gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Versão</dt>
+              <dt className="text-muted-foreground">{tr("uiText.settings.about.version")}</dt>
               <dd className="text-foreground font-mono">{info.version}</dd>
               <dt className="text-muted-foreground">Commit</dt>
               <dd className="text-foreground font-mono">
                 {info.commit} ({info.branch})
               </dd>
-              <dt className="text-muted-foreground">Data do commit</dt>
+              <dt className="text-muted-foreground">{tr("uiText.settings.about.commitDate")}</dt>
               <dd className="text-foreground font-mono">{formatCommitDate(info.commitDate)}</dd>
-              <dt className="text-muted-foreground">Atualização</dt>
+              <dt className="text-muted-foreground">{tr("uiText.settings.about.update")}</dt>
               <dd>
                 <UpdateStatusBadge status={info.updateStatus} />
               </dd>
-              <dt className="text-muted-foreground">Banco de dados</dt>
+              <dt className="text-muted-foreground">{tr("uiText.settings.about.database")}</dt>
               <dd className="text-foreground font-mono">
                 {info.database.engine} {info.database.version}
               </dd>

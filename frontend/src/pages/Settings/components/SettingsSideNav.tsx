@@ -4,6 +4,9 @@ import { SettingsIcon, Palette, Headphones, Brain, Library, HardDrive, Network, 
 import { Button } from "../../../components/ui/button";
 import { t } from "@/lib/calls/t";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SettingsSideNavProps {
   activeSection: string;
   activePlugins: string[];
@@ -31,19 +34,19 @@ const SettingsSideNav: React.FC<SettingsSideNavProps> = ({ activeSection, active
 
   return (
     <aside className="w-full md:w-64 space-y-2 border p-3 rounded-lg bg-card">
-      {item("general", SettingsIcon, "Geral")}
-      {item("company", Building2, "Empresa")}
-      {item("personalization", Palette, "Personalização")}
-      {item("helpdesk", Headphones, "Helpdesk Atendimento", activePlugins.includes("helpdesk"))}
-      {item("activities", ClipboardList, "Atividades")}
+      {item("general", SettingsIcon, tr("uiText.settings.nav.general"))}
+      {item("company", Building2, tr("uiText.settings.nav.company"))}
+      {item("personalization", Palette, tr("uiText.settings.nav.personalization"))}
+      {item("helpdesk", Headphones, tr("uiText.settings.nav.helpdesk"), activePlugins.includes("helpdesk"))}
+      {item("activities", ClipboardList, tr("uiText.settings.nav.activities"))}
       {item("calls", Phone, t("calls.settings.title"), !!canManageCalls)}
-      {item("ai", Brain, "Agente de IA")}
-      {item("ai-gateways", Sparkles, "Agentes de IA (Assistentes)", activePlugins.includes("assistant"))}
-      {item("address", MapPin, "Endereço (CEP)")}
+      {item("ai", Brain, tr("uiText.settings.nav.ai"))}
+      {item("ai-gateways", Sparkles, tr("uiText.settings.nav.aiGateways"), activePlugins.includes("assistant"))}
+      {item("address", MapPin, tr("uiText.settings.nav.address"))}
       {item("proxy", Network, "Proxy")}
-      {item("storage", HardDrive, "Armazenamento", !!isSuperAdmin)}
-      {item("saas-mode", Cloud, "Modo SaaS", !!isSuperAdmin)}
-      {item("about", Info, "Sobre")}
+      {item("storage", HardDrive, tr("uiText.settings.nav.storage"), !!isSuperAdmin)}
+      {item("saas-mode", Cloud, tr("uiText.settings.nav.saas"), !!isSuperAdmin)}
+      {item("about", Info, tr("uiText.settings.nav.about"))}
 
       <Button
         variant="ghost"
@@ -51,7 +54,7 @@ const SettingsSideNav: React.FC<SettingsSideNavProps> = ({ activeSection, active
         onClick={() => navigate("/knowledge-bases")}
       >
         <Library className="mr-2 h-4 w-4" />
-        Base de Conhecimento
+        {tr("uiText.settings.nav.knowledge")}
       </Button>
     </aside>
   );
