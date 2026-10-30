@@ -12,6 +12,9 @@ import api from "../../../services/api";
 import { parseData } from "../utils/messageHelpers";
 import { Message } from "../types";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Props {
   message: Message;
 }
@@ -33,15 +36,15 @@ const typeIcon = (t?: string) => {
 const typeLabel = (t?: string): string => {
   switch (t) {
     case "image":
-      return "Imagem";
+      return tr("uiText.messagesList.kindImage");
     case "sticker":
-      return "Sticker";
+      return tr("uiText.messagesList.kindSticker");
     case "video":
-      return "Vídeo";
+      return tr("uiText.messagesList.kindVideo");
     case "audio":
-      return "Áudio";
+      return tr("uiText.messagesList.kindAudio");
     default:
-      return "Arquivo";
+      return tr("uiText.messagesList.kindFile");
   }
 };
 
@@ -109,7 +112,7 @@ const OnDemandMediaPreview: React.FC<Props> = ({ message }) => {
             {busy
               ? "Baixando…"
               : failed
-                ? "Tentar de novo"
+                ? tr("uiText.messagesList.retry")
                 : `Baixar ${label.toLowerCase()}`}
           </button>
         </div>
@@ -140,8 +143,8 @@ const OnDemandMediaPreview: React.FC<Props> = ({ message }) => {
           {busy
             ? "Baixando…"
             : failed
-              ? "Falhou — tentar de novo"
-              : "Toque para baixar"}
+              ? tr("uiText.messagesList.failedRetry")
+              : tr("uiText.messagesList.tapToDownload")}
         </span>
       </span>
     </button>

@@ -4,6 +4,9 @@ import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface ErrorStateProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Mensagem principal, ex: "Não foi possível carregar os dados" */
   title?: string;
@@ -14,7 +17,7 @@ export interface ErrorStateProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const ErrorState = React.forwardRef<HTMLDivElement, ErrorStateProps>(
-  ({ className, title = "Não foi possível carregar os dados", description, onRetry, ...props }, ref) => (
+  ({ className, title = String(i18n.t("uiText.ui.loadError")), description, onRetry, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
@@ -32,7 +35,7 @@ const ErrorState = React.forwardRef<HTMLDivElement, ErrorStateProps>(
       )}
       {onRetry && (
         <Button variant="outline" size="sm" className="mt-2" onClick={onRetry}>
-          Tentar novamente
+          {tr("uiText.ui.retry")}
         </Button>
       )}
     </div>

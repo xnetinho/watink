@@ -3,6 +3,9 @@ import { CornerUpLeft, ExternalLink, Phone, Copy, List as ListIcon, QrCode } fro
 import { parseData } from "../utils/messageHelpers";
 import { Message } from "../types";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface InteractiveButton {
   label?: string;
   id?: string;
@@ -104,7 +107,7 @@ const MessageInteractive: React.FC<{ message: Message }> = ({ message }) => {
         <div className="rounded-xl overflow-hidden bg-[hsl(var(--action-primary)/0.06)]">
           <div className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[hsl(var(--action-primary))]">
             <ListIcon className="h-4 w-4 shrink-0" />
-            <span>{meta.buttonText || "Ver opções"}</span>
+            <span>{meta.buttonText || tr("uiText.common.viewOptions")}</span>
           </div>
           {meta.sections && meta.sections.length > 0 && (
             <div className="px-3 pb-2 flex flex-col gap-2">
@@ -184,7 +187,7 @@ const MessageInteractive: React.FC<{ message: Message }> = ({ message }) => {
           <QrCode className="h-5 w-5 shrink-0 text-[hsl(var(--action-primary))]" />
           <div className="min-w-0">
             <div className="text-sm font-medium text-[hsl(var(--action-primary))]">
-              Pagar com PIX
+              {tr("uiText.messagesList.payWithPix")}
             </div>
             {meta.pixName && (
               <div className="text-[11px] text-[hsl(var(--text-muted))] truncate">{meta.pixName}</div>

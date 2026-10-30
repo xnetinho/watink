@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import TicketHeaderSkeleton from "../TicketHeaderSkeleton";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface TicketHeaderProps {
   loading?: boolean;
   children?: React.ReactNode;
@@ -35,7 +38,7 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({ loading, children }) => {
         variant="ghost"
         size="icon"
         onClick={handleBack}
-        aria-label="Voltar para tickets"
+        aria-label={tr("uiText.ticketHeader.backToTickets")}
         className="shrink-0"
       >
         <ArrowLeft className="h-4 w-4" />

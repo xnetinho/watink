@@ -16,6 +16,8 @@ import InputToolbar from "./components/InputToolbar";
 import QuickAnswersList from "./components/QuickAnswersList";
 import MentionsList from "./components/MentionsList";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface ReplyPolicyUI {
   canReply?: boolean;
   reason?: string;
@@ -96,7 +98,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
         <div className="w-full text-center bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg p-3 flex flex-col items-center">
           <span className="font-bold text-xs uppercase tracking-wider">Resposta Bloqueada pelo Canal</span>
           <span className="text-xs mt-1">
-            {replyPolicy.message || "A janela de resposta deste canal está fechada para novas mensagens."}
+            {replyPolicy.message || tr("uiText.messageInput.replyWindowClosed")}
           </span>
         </div>
       </div>
@@ -107,9 +109,9 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
     return (
       <div className="w-full shrink-0 border-t border-[var(--border-divider)] bg-[hsl(var(--bg-surface-alt))] px-4 py-3">
         <div className="w-full text-center bg-[hsl(var(--status-error-bg))] text-[hsl(var(--status-error-text))] rounded-lg p-3 flex flex-col items-center">
-          <span className="font-bold text-sm">CONEXÃO INTERROMPIDA</span>
+          <span className="font-bold text-sm">{tr("uiText.messageInput.connectionDown")}</span>
           <span className="text-xs mt-1">
-            Não é possível enviar mensagens. Por favor, vá em "Conexões" e reconecte o canal.
+            {tr("uiText.messageInput.connectionDownHint")}
           </span>
         </div>
       </div>
@@ -220,7 +222,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
               className="p-2 rounded-full hover:bg-[var(--border-subtle)] transition-colors disabled:opacity-50"
               disabled={loading}
               onClick={handleCancelAudio}
-              aria-label="Cancelar gravação"
+              aria-label={tr("uiText.messageInput.cancelRecording")}
             >
               <XOctagon className="h-5 w-5 text-red-500" />
             </button>
@@ -234,7 +236,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
               className="p-2 rounded-full hover:bg-[var(--border-subtle)] transition-colors disabled:opacity-50"
               onClick={handleUploadAudio}
               disabled={loading}
-              aria-label="Enviar áudio gravado"
+              aria-label={tr("uiText.messageInput.sendRecording")}
             >
               <CheckCircle className="h-5 w-5 text-green-500" />
             </button>
@@ -245,7 +247,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
             className="p-2 rounded-full hover:bg-[var(--border-subtle)] transition-colors disabled:opacity-50"
             disabled={loading || ticketStatus !== "open"}
             onClick={handleStartRecording}
-            aria-label="Gravar áudio"
+            aria-label={tr("uiText.messageInput.record")}
           >
             <Mic className="h-6 w-6 text-gray-500" />
           </button>

@@ -5,6 +5,9 @@ import { FormField } from "@/components/ui/form-field";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface SlaConfigValue {
   low: number;
   medium: number;
@@ -25,10 +28,10 @@ export interface SlaConfigCardProps {
 }
 
 const PRIORITY_LABELS: Record<keyof SlaConfigValue, string> = {
-  low: "Baixa",
-  medium: "Média",
-  high: "Alta",
-  urgent: "Urgente",
+  low: "uiText.priority.low",
+  medium: "uiText.priority.medium",
+  high: "uiText.priority.high",
+  urgent: "uiText.priority.urgent",
 };
 
 /**
@@ -49,10 +52,10 @@ export function SlaConfigCard({ icon, title, description, value, onChange, child
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h3 className="text-sm font-semibold mb-4">Tempos de Resolução do SLA (em minutos)</h3>
+          <h3 className="text-sm font-semibold mb-4">{tr("uiText.ui.slaTitle")}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {(Object.keys(PRIORITY_LABELS) as Array<keyof SlaConfigValue>).map((priority) => (
-              <FormField key={priority} htmlFor={`sla-${priority}`} label={PRIORITY_LABELS[priority]}>
+              <FormField key={priority} htmlFor={`sla-${priority}`} label={tr(PRIORITY_LABELS[priority])}>
                 <Input
                   id={`sla-${priority}`}
                   type="number"

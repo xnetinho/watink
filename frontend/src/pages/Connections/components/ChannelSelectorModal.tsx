@@ -252,7 +252,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
           </div>
           <DialogDescription>
             {selectedChannel
-              ? selectedChannel.description
+              ? String(i18n.t(selectedChannel.description))
               : "Escolha o canal que deseja integrar para centralizar seus atendimentos no Watink."}
           </DialogDescription>
         </DialogHeader>
@@ -273,7 +273,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
                 </div>
                 <div>
                   <h4 className="font-semibold text-sm text-foreground">{c.name}</h4>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{c.description}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{String(i18n.t(c.description))}</p>
                 </div>
               </div>
             ))}

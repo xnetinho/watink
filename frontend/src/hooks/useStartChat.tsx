@@ -15,6 +15,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { i18n } from "../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ConnectionOption {
   id: number;
   name: string;
@@ -69,7 +72,7 @@ export function useStartChat(onStarted?: () => void) {
     <Dialog open={pendingContactId !== null} onOpenChange={(open) => !open && setPendingContactId(null)}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Iniciar conversa por qual conexão?</DialogTitle>
+          <DialogTitle>{tr("uiText.hooks.startChat")}</DialogTitle>
         </DialogHeader>
         <RadioGroup value={selected} onValueChange={setSelected} className="py-2">
           {options.map((o) => (
@@ -84,7 +87,7 @@ export function useStartChat(onStarted?: () => void) {
         </RadioGroup>
         <DialogFooter>
           <Button variant="outline" onClick={() => setPendingContactId(null)} disabled={loading}>
-            Cancelar
+            {tr("uiText.common.cancel")}
           </Button>
           <Button
             onClick={() => pendingContactId !== null && start(pendingContactId, Number(selected))}

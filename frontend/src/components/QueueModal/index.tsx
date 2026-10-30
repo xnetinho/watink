@@ -33,6 +33,8 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import { Queue } from "../../types/domain";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const QueueSchema = Yup.object().shape({
   name: Yup.string().min(2, "Too Short!").max(50, "Too Long!").required("Required"),
   color: Yup.string().min(3, "Too Short!").max(9, "Too Long!").required("Required"),
@@ -44,20 +46,20 @@ const QueueSchema = Yup.object().shape({
 const STRATEGY_OPTIONS = [
   {
     value: "ROUND_ROBIN",
-    label: "Round Robin (Rotatividade)",
-    description: "Distribui tickets igualmente entre os atendentes da fila em ordem sequencial",
+    label: "queueModal.strategies.roundRobin.label",
+    description: "queueModal.strategies.roundRobin.description",
     icon: <RefreshCw className="h-5 w-5 text-blue-500" />
   },
   {
     value: "RANDOM",
-    label: "Aleatório Equilibrado",
-    description: "Sorteia atendentes, priorizando quem atendeu menos recentemente",
+    label: "queueModal.strategies.random.label",
+    description: "queueModal.strategies.random.description",
     icon: <Users className="h-5 w-5 text-green-500" />
   },
   {
     value: "LEAST_TICKETS",
-    label: "Menor Volume Atual",
-    description: "Envia o ticket para o atendente com menos tickets em andamento",
+    label: "queueModal.strategies.leastTickets.label",
+    description: "queueModal.strategies.leastTickets.description",
     icon: <Briefcase className="h-5 w-5 text-orange-500" />
   }
 ];
@@ -99,7 +101,7 @@ const QueueModal = ({ open, onClose, queueId }: QueueModalProps) => {
       } else {
         await api.post("/queue", values);
       }
-      toast.success("Fila salva com sucesso!");
+      toast.success(tr("uiText.queueModal.saved"));
       handleClose();
     } catch (err) {
       toastError(err);
@@ -126,7 +128,7 @@ const QueueModal = ({ open, onClose, queueId }: QueueModalProps) => {
             <Form className="space-y-6">
               {/* Informações Básicas */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">Informações Básicas</h3>
+                <h3 className="text-lg font-semibold border-b pb-2">{tr("uiText.queueModal.basics")}</h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="sm:col-span-2 space-y-1">
@@ -159,13 +161,13 @@ const QueueModal = ({ open, onClose, queueId }: QueueModalProps) => {
 
               {/* Roteamento e Distribuição */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">Roteamento e Distribuição</h3>
+                <h3 className="text-lg font-semibold border-b pb-2">{tr("uiText.queueModal.routing")}</h3>
 
                 <div className="space-y-2 p-4 bg-muted/30 rounded-lg border">
-                  <Label>Estratégia de Distribuição</Label>
+                  <Label>{tr("uiText.queueModal.strategy")}</Label>
                   <Select value={values.distributionStrategy} onValueChange={(val) => setFieldValue("distributionStrategy", val)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione a estratégia" />
+                      <SelectValue placeholder={tr("uiText.queueModal.strategyPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {STRATEGY_OPTIONS.map((opt) => (
@@ -173,8 +175,8 @@ const QueueModal = ({ open, onClose, queueId }: QueueModalProps) => {
                           <div className="flex items-center gap-2">
                             {opt.icon}
                             <div>
-                              <div className="font-medium">{opt.label}</div>
-                              <div className="text-xs text-muted-foreground">{opt.description}</div>
+                              <div className="font-medium">{tr(`uiText.${opt.label}`)}</div>
+                              <div className="text-xs text-muted-foreground">{tr(`uiText.${opt.description}`)}</div>
                             </div>
                           </div>
                         </SelectItem>
@@ -198,12 +200,12 @@ const QueueModal = ({ open, onClose, queueId }: QueueModalProps) => {
                           <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-[300px]">
-                          Quando ativo, o sistema verifica se o contato tem um agente dono da carteira atribuído. Se este agente estiver online, o ticket vai direto para ele.
+                          {tr("uiText.queueModal.walletHint")}
                         </TooltipContent>
                       </Tooltip>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Tickets são direcionados preferencialmente ao dono da carteira do contato, ignorando a estratégia acima se o agente estiver disponível.
+                      {tr("uiText.queueModal.walletHint2")}
                     </p>
                   </div>
                 </div>

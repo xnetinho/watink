@@ -11,6 +11,9 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Props {
   open: boolean;
   fromDate: string;
@@ -31,10 +34,10 @@ const HistorySyncModal: React.FC<Props> = ({
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="max-w-xs">
       <DialogHeader>
-        <DialogTitle>Buscar Histórico de Mensagens</DialogTitle>
+        <DialogTitle>{tr("uiText.messagesList.historyTitle")}</DialogTitle>
       </DialogHeader>
       <div className="py-2 space-y-2">
-        <Label htmlFor="history-date">Data de início</Label>
+        <Label htmlFor="history-date">{tr("uiText.messagesList.historyStart")}</Label>
         <Input
           id="history-date"
           type="date"
@@ -42,18 +45,18 @@ const HistorySyncModal: React.FC<Props> = ({
           onChange={(e) => onFromDateChange(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
-          Selecione a data a partir da qual deseja buscar as mensagens
+          {tr("uiText.messagesList.historyHint")}
         </p>
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          Cancelar
+          {tr("uiText.common.cancel")}
         </Button>
         <Button onClick={onSync} disabled={loading || !fromDate}>
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : null}
-          Buscar
+          {tr("uiText.messagesList.fetch")}
         </Button>
       </DialogFooter>
     </DialogContent>

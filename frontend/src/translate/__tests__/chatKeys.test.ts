@@ -10,6 +10,7 @@ const block = (lang: "pt" | "en" | "es", name: string) => (messages[lang].transl
 const SUBTREES: Array<[string, string[]]> = [
   ["chat", ["pix", "event", "poll", "liveLocation", "forwarded", "forwardedMany", "previews", "presence", "unsupported", "viewOnce"]],
   ["connections", ["presencePolicy"]],
+  ["uiText", ["whatsAppModal", "validation", "webchatModal", "themeToggle", "priority", "imageCompression", "channels", "layout", "calls", "common", "dashboard", "fileUploader", "messageInput", "messagesList", "notificationPermissionBanner", "notificationsPopOver", "queueModal", "tagModal", "ticketHeader", "ticketQuickShortcuts", "ticketsManager", "whatsAppBubblePreview", "ui", "hooks", "errors", "utils", "mainTopBar"]],
 ];
 const pick = (t: Tree, keys: string[]): Tree => Object.fromEntries(keys.filter((k) => k in t).map((k) => [k, t[k]]));
 

@@ -54,6 +54,7 @@ vi.mock("../../../translate/i18n", () => ({
     t: (key: string) => {
       const map: Record<string, string> = {
         "transferTicketModal.title": "Transferir Ticket",
+        "transferTicketModal.searchUser": "Buscar usuário...",
         "transferTicketModal.fieldLabel": "Atendente",
         "transferTicketModal.fieldQueueLabel": "Fila",
         "transferTicketModal.fieldQueuePlaceholder": "Selecione uma fila",
