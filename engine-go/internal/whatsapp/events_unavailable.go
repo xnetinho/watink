@@ -19,6 +19,9 @@ import (
 // As demais indisponíveis e as falhas comuns de decifragem NÃO viram aviso: o whatsmeow pede o reenvio e a
 // mensagem chega depois, normalmente; avisar duplicaria o chat.
 func (s *WhatsAppService) handleUndecryptable(_ *whatsmeow.Client, id int, tenantID string, v *events.UndecryptableMessage) {
+	if viewOnceInspectEnabled() {
+		logViewOnceInspect("unavailable", inspectViewOnceUnavailable(v))
+	}
 	if !v.IsUnavailable || v.UnavailableType != events.UnavailableTypeViewOnce {
 		return
 	}

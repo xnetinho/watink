@@ -518,7 +518,7 @@ const messages = {
         },
         viewOnce: {
           title: "Ver una vez",
-          hint: "WhatsApp solo entrega este contenido en el teléfono. Ábralo allí.",
+          hint: "WhatsApp solo entrega este contenido en el teléfono. Responda el mensaje en el teléfono y el contenido aparece aquí.",
         },
         pix: {
           title: "Pagar con PIX",

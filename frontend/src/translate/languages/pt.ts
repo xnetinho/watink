@@ -636,7 +636,7 @@ const messages = {
         },
         viewOnce: {
           title: "Visualização única",
-          hint: "O WhatsApp só entrega esse conteúdo no celular. Veja nele.",
+          hint: "O WhatsApp só entrega esse conteúdo no celular. Responda a mensagem no celular e a mídia aparece aqui.",
         },
         pix: {
           title: "Pagar com PIX",

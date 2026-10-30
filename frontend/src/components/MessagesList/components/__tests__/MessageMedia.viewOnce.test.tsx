@@ -25,6 +25,7 @@ describe("MessageMedia — visualização única", () => {
     const box = screen.getByTestId("view-once-notice");
     expect(box).toHaveTextContent("Visualização única");
     expect(box).toHaveTextContent(/celular/i);
+    expect(box).toHaveTextContent(/responda/i);
   });
 
   it("NÃO oferece download nem miniatura desfocada", () => {
@@ -36,5 +37,16 @@ describe("MessageMedia — visualização única", () => {
   it("uma imagem comum continua sem o aviso", () => {
     render(<MessageMedia message={msg({ mediaType: "image", mediaUrl: "/x.jpg" })} />);
     expect(screen.queryByTestId("view-once-notice")).not.toBeInTheDocument();
+  });
+});
+
+// Depois que o operador responde no celular, o servidor troca o aviso pela foto recuperada: o chat passa a desenhá-la como
+// mídia comum (sem aviso, sem botão especial, com o arquivo guardado).
+describe("visualização única recuperada", () => {
+  it("vira imagem comum: o aviso some e a foto aparece", () => {
+    const m = msg({ mediaType: "image", mediaUrl: "/public/media/abc.jpg", dataJson: JSON.stringify({ recoveredViewOnce: true, mediaStatus: "downloaded", mimetype: "image/jpeg" }) });
+    expect(hasMediaBubble(m)).toBe(true);
+    render(<MessageMedia message={m} />);
+    expect(screen.queryByTestId("view-once-notice")).toBeNull();
   });
 });
