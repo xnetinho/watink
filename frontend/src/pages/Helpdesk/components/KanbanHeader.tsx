@@ -8,6 +8,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface KanbanHeaderProps {
   tvMode: boolean;
   onRefresh: () => Promise<void>;
@@ -45,7 +48,7 @@ const KanbanHeader: React.FC<KanbanHeaderProps> = ({
               <RefreshCw className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Atualizar</TooltipContent>
+          <TooltipContent>{tr("uiText.common.refresh")}</TooltipContent>
         </Tooltip>
 
         {!tvMode && (

@@ -31,7 +31,7 @@ export function ProtocolPriorityCategory({
   return (
     <div className={`grid gap-4 ${helpdeskEnabled ? "grid-cols-2" : "grid-cols-1"}`}>
       <div className="flex flex-col gap-1.5">
-        <Label>Prioridade</Label>
+        <Label>{tr("uiText.common.priority")}</Label>
         <Select value={formData.priority} onValueChange={onSelectChange("priority")}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a prioridade" />
@@ -47,7 +47,7 @@ export function ProtocolPriorityCategory({
 
       {helpdeskEnabled && (
         <div className="flex flex-col gap-1.5">
-          <Label>Categoria</Label>
+          <Label>{tr("uiText.common.category")}</Label>
           {categories.length > 0 ? (
             <Select value={formData.category} onValueChange={onSelectChange("category")}>
               <SelectTrigger>
@@ -66,7 +66,7 @@ export function ProtocolPriorityCategory({
               name="category"
               value={formData.category}
               onChange={onInputChange}
-              placeholder="Categoria"
+              placeholder={tr("uiText.common.category")}
             />
           )}
         </div>

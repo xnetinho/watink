@@ -23,11 +23,11 @@ const ProtocolInfoCard: React.FC<ProtocolInfoCardProps> = ({ protocol }) => (
         <dd className="mt-0.5 whitespace-pre-wrap text-sm">{protocol.description}</dd>
       </div>
       <div>
-        <dt className="text-xs font-medium text-muted-foreground">Categoria</dt>
+        <dt className="text-xs font-medium text-muted-foreground">{tr("uiText.common.category")}</dt>
         <dd className="mt-0.5 text-sm">{protocol.category || "-"}</dd>
       </div>
       <div>
-        <dt className="text-xs font-medium text-muted-foreground">Contato</dt>
+        <dt className="text-xs font-medium text-muted-foreground">{tr("uiText.common.contact")}</dt>
         <dd className="mt-0.5 text-sm">
           {protocol.contact ? getContactDisplayName(protocol.contact) : "-"}
         </dd>

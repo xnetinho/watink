@@ -110,7 +110,7 @@ const SetoresTab: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
+              <TableHead>{tr("uiText.common.name")}</TableHead>
               <TableHead className="text-center">Membros</TableHead>
               <TableHead className="text-center">Gestores</TableHead>
               <TableHead className="text-right w-[110px]">{tr("uiText.common.actions")}</TableHead>

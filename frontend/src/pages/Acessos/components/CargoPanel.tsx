@@ -87,7 +87,7 @@ const CargoPanel: React.FC<CargoPanelProps> = ({
             {({ touched, errors, isSubmitting }) => (
               <Form className="mt-4 flex flex-col gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="cargo-name">Nome</Label>
+                  <Label htmlFor="cargo-name">{tr("uiText.common.name")}</Label>
                   <Field
                     as={Input}
                     id="cargo-name"

@@ -112,9 +112,9 @@ const UsuariosTab: React.FC = () => {
           <TableHeader>
             <TableRow>
               <TableHead className="w-14 text-center">Avatar</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Cargo</TableHead>
+              <TableHead>{tr("uiText.common.name")}</TableHead>
+              <TableHead>{tr("uiText.common.email")}</TableHead>
+              <TableHead>{tr("uiText.common.role")}</TableHead>
               <TableHead className="text-center">Alcance</TableHead>
               <TableHead className="text-right w-[110px]">{tr("uiText.common.actions")}</TableHead>
             </TableRow>

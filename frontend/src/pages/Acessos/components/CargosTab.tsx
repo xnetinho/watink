@@ -85,7 +85,7 @@ const CargosTab: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
+              <TableHead>{tr("uiText.common.name")}</TableHead>
               <TableHead>{tr("uiText.acessos.description")}</TableHead>
               <TableHead className="text-right w-[110px]">{tr("uiText.common.actions")}</TableHead>
             </TableRow>

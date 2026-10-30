@@ -90,12 +90,19 @@ const DEBT = new Set<string>([
   "pages/Connections/components/SessionDetailsCard.tsx",
   "pages/Connections/connectionRisk.ts",
   "pages/Connections/index.tsx",
+  "pages/Contacts/components/ContactActionsMenu.tsx",
+  "pages/Contacts/components/ContactStatusBadge.tsx",
   "pages/FlowBuilder/CustomNodes/APINode.tsx",
+  "pages/FlowBuilder/CustomNodes/DatabaseNode.tsx",
+  "pages/FlowBuilder/CustomNodes/FilterNode.tsx",
   "pages/FlowBuilder/CustomNodes/KnowledgeNode.tsx",
   "pages/FlowBuilder/CustomNodes/MenuNode.tsx",
+  "pages/FlowBuilder/CustomNodes/MessageNode.tsx",
   "pages/FlowBuilder/CustomNodes/PipelineNode.tsx",
   "pages/FlowBuilder/CustomNodes/StartNode.tsx",
   "pages/FlowBuilder/CustomNodes/SwitchNode.tsx",
+  "pages/FlowBuilder/CustomNodes/TicketNode.tsx",
+  "pages/FlowBuilder/CustomNodes/TriggerNode.tsx",
   "pages/FlowBuilder/FlowChat.tsx",
   "pages/FlowBuilder/FlowSimulatorModal.tsx",
   "pages/FlowBuilder/NodeEditorSidebar.tsx",
@@ -131,6 +138,7 @@ const DEBT = new Set<string>([
   "pages/FlowBuilder/hooks/useFlowSimulator.ts",
   "pages/FlowBuilder/index.tsx",
   "pages/FlowBuilder/nodeEditorTypes.ts",
+  "pages/FlowManager/components/FlowCard.tsx",
   "pages/FlowManager/components/FlowFormDialog.tsx",
   "pages/FlowManager/components/FlowGrid.tsx",
   "pages/FlowManager/components/FlowToolbar.tsx",
@@ -163,6 +171,7 @@ const DEBT = new Set<string>([
   "pages/KnowledgeBase/components/KBSourceBadges.tsx",
   "pages/KnowledgeBase/components/KBSourceListItem.tsx",
   "pages/KnowledgeBase/index.tsx",
+  "pages/MonitorQueues/index.tsx",
   "pages/MyActivities/ActivityExecution.tsx",
   "pages/MyActivities/SignatureModal.tsx",
   "pages/MyActivities/activityTypes.ts",
@@ -207,6 +216,7 @@ const DEBT = new Set<string>([
   "pages/QuickAnswers/editors/TextEditor.tsx",
   "pages/QuickAnswers/index.tsx",
   "pages/QuickAnswers/quickAnswersHelpers.ts",
+  "pages/QuickAnswers/quickAnswersTypes.ts",
   "pages/Register/index.tsx",
   "pages/SaaS/components/PlanModal.tsx",
   "pages/SaaS/components/PlansTab.tsx",
@@ -230,6 +240,7 @@ const DEBT = new Set<string>([
   "pages/Settings/components/StorageSection.tsx",
   "pages/Settings/hooks/useSettings.ts",
   "pages/Settings/index.tsx",
+  "pages/UserProfile/components/ProfileAvatarCard.tsx",
   "pages/VersionDashboard/components/DashboardHeader.tsx",
   "pages/VersionDashboard/components/ProcessCard.tsx",
   "pages/VersionDashboard/components/RabbitMQCard.tsx",
@@ -243,7 +254,7 @@ const DEBT = new Set<string>([
 
 const ACC = /[ãõáéíóúâêôçÃÕÁÉÍÓÚÂÊÔÇ]/;
 const STOP = /\b(de|do|da|em|para|com|sem|que|não|um|uma|ou|ao|na|no|seu|sua|nova|novo|ainda|este|esta|erro|salvar|cancelar|excluir)\b/i;
-const SINGLE = new Set("salvar cancelar excluir editar nome buscar fechar voltar adicionar remover criar ativo inativo baixa alta média urgente normal sim não tipo ações todos todas nenhum nenhuma selecione digite carregando enviar aplicar limpar filtrar mais menos título descrição usuário usuários status prioridade ativar desativar confirmar continuar próximo anterior pesquisar atualizar copiar abrir upload sucesso aviso opcional obrigatório padrão geral avançado conexão conexões fila filas etiqueta etiquetas contato contatos mensagem mensagens ticket tickets atendente atendentes subtítulo prévia personalização integração botão contato descrição ocorrências início decisão automação automático você configurações vídeo áudio média botões mídia itálico monoespaçado obrigatório tenant usuários contatos abertos whatsapps rotação fixo".split(" "));
+const SINGLE = new Set("salvar cancelar excluir editar nome buscar fechar voltar adicionar remover criar ativo inativo baixa alta média urgente normal sim não tipo ações todos todas nenhum nenhuma selecione digite carregando enviar aplicar limpar filtrar mais menos título descrição usuário usuários status prioridade ativar desativar confirmar continuar próximo anterior pesquisar atualizar copiar abrir upload sucesso aviso opcional obrigatório padrão geral avançado conexão conexões fila filas etiqueta etiquetas contato contatos mensagem mensagens ticket tickets atendente atendentes subtítulo prévia personalização integração botão contato descrição ocorrências início decisão automação automático você configurações vídeo áudio média botões mídia itálico monoespaçado obrigatório tenant usuários contatos abertos whatsapps rotação fixo cidade bairro endereço endereços número complemento documento empresa cargo pendente aberto fechado cancelado rascunho atualizado ativa inativa hoje ontem categoria telefone email".split(" "));
 const isPT = (x: string): boolean => ACC.test(x) || (x.includes(" ") && STOP.test(x)) || SINGLE.has(x.toLowerCase());
 const SKIP_LIT = /^(https?:|hsl\(|var\(|\/|\.|#|[a-z]+-[a-z0-9-]+|[a-zA-Z.]+\.[a-zA-Z.]+$)/;
 const SKIP_ID = /^[\w.:${}/-]+$/;
@@ -263,7 +274,7 @@ export function hardcodedLines(text: string): string[] {
     let hit: string | null = null;
     for (const m of line.matchAll(/"([^"\n]+)"|'([^'\n]+)'|`([^`\n]+)`|>([^<>{}\n]+)</g)) {
       const lit = (m[1] ?? m[2] ?? m[3] ?? m[4] ?? "").trim();
-      if (lit.length < 3 || SKIP_LIT.test(lit) || SKIP_ID.test(lit)) continue;
+      if (lit.length < 3 || SKIP_LIT.test(lit) || (SKIP_ID.test(lit) && !(/^[A-ZÀ-Ú]/.test(lit) && SINGLE.has(lit.toLowerCase())))) continue;
       if (isPT(lit)) { hit = lit; break; }
     }
     const t2 = line.trim();

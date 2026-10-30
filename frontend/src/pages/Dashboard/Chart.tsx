@@ -64,7 +64,7 @@ const Chart: React.FC = () => {
           <Tooltip
             cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }}
             labelFormatter={(label) => `${label}h`}
-            formatter={(value: number) => [value, "Tickets"]}
+            formatter={(value: number) => [value, tr("uiText.common.tickets")]}
             contentStyle={{
               backgroundColor: "hsl(var(--popover))",
               border: "1px solid hsl(var(--border))",

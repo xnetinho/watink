@@ -40,7 +40,7 @@ const UserDataSection: React.FC<UserDataSectionProps> = ({
 
       <div className="space-y-1.5">
         <Label htmlFor="email" className={cn(touched.email && errors.email && "text-destructive")}>
-          Email
+          {tr("uiText.common.email")}
         </Label>
         <Field name="email">
           {({ field }: FieldProps) => (

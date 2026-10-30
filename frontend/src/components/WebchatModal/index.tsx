@@ -55,7 +55,7 @@ const WebchatModal: React.FC<WebchatModalProps> = ({ open, onClose, whatsAppId, 
             <Form className="space-y-4">
               <Tabs defaultValue="general" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="general">Geral</TabsTrigger>
+                  <TabsTrigger value="general">{tr("uiText.common.general")}</TabsTrigger>
                   <TabsTrigger value="appearance">{tr("uiText.webchatModal.appearanceTab")}</TabsTrigger>
                   <TabsTrigger value="integration">{tr("uiText.webchatModal.integrationTab")}</TabsTrigger>
                 </TabsList>

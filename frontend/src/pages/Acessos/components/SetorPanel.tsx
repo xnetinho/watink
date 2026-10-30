@@ -78,7 +78,7 @@ const SetorPanel: React.FC<SetorPanelProps> = ({
         ) : (
           <div className="mt-4 flex flex-col gap-5">
             <div className="space-y-1.5">
-              <Label htmlFor="setor-name">Nome</Label>
+              <Label htmlFor="setor-name">{tr("uiText.common.name")}</Label>
               <div className="flex gap-2">
                 <Input
                   id="setor-name"
@@ -88,7 +88,7 @@ const SetorPanel: React.FC<SetorPanelProps> = ({
                 />
                 <Button type="button" onClick={handleSaveName} disabled={saving || !name.trim()}>
                   {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isNew ? "Criar" : "Salvar"}
+                  {isNew ? tr("uiText.common.create") : tr("uiText.common.save")}
                 </Button>
               </div>
             </div>

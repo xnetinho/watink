@@ -37,10 +37,10 @@ const ProtocolUpdateCard: React.FC<ProtocolUpdateCardProps> = ({
   onSubmit,
 }) => (
   <PaperCard>
-    <h2 className="mb-4 text-base font-semibold">Atualizar</h2>
+    <h2 className="mb-4 text-base font-semibold">{tr("uiText.common.refresh")}</h2>
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div className="flex flex-col gap-1.5">
-        <Label>Status</Label>
+        <Label>{tr("uiText.common.status")}</Label>
         <Select value={formData.status} onValueChange={onSelectChange("status")}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione o status" />
@@ -55,7 +55,7 @@ const ProtocolUpdateCard: React.FC<ProtocolUpdateCardProps> = ({
         </Select>
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label>Prioridade</Label>
+        <Label>{tr("uiText.common.priority")}</Label>
         <Select value={formData.priority} onValueChange={onSelectChange("priority")}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a prioridade" />

@@ -40,7 +40,7 @@ const HelpdeskFilters: React.FC<HelpdeskFiltersProps> = ({
 
       <Select value={filters.statusFilter} onValueChange={onStatusChange}>
         <SelectTrigger>
-          <SelectValue placeholder="Status" />
+          <SelectValue placeholder={tr("uiText.common.status")} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{tr("uiText.helpdesk.allStatuses")}</SelectItem>
@@ -54,7 +54,7 @@ const HelpdeskFilters: React.FC<HelpdeskFiltersProps> = ({
 
       <Select value={filters.priorityFilter} onValueChange={onPriorityChange}>
         <SelectTrigger>
-          <SelectValue placeholder="Prioridade" />
+          <SelectValue placeholder={tr("uiText.common.priority")} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todas as prioridades</SelectItem>

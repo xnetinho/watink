@@ -54,9 +54,9 @@ const ProtocolsTable: React.FC<ProtocolsTableProps> = ({
         <TableRow>
           <TableHead>Protocolo</TableHead>
           <TableHead>Assunto</TableHead>
-          <TableHead>Contato</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Prioridade</TableHead>
+          <TableHead>{tr("uiText.common.contact")}</TableHead>
+          <TableHead>{tr("uiText.common.status")}</TableHead>
+          <TableHead>{tr("uiText.common.priority")}</TableHead>
           <TableHead>{tr("uiText.helpdesk.createdAt")}</TableHead>
           <TableHead className="text-right">{tr("uiText.common.actions")}</TableHead>
         </TableRow>
