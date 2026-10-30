@@ -5,6 +5,9 @@ import api from "../../../services/api";
 import toastError from "../../../errors/toastError";
 import type { SetorDetail, SetorListItem } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UseSetoresTabReturn {
   setores: SetorListItem[];
   loading: boolean;
@@ -98,11 +101,11 @@ export function useSetoresTab(): UseSetoresTabReturn {
     try {
       if (id) {
         await api.put(`/setores/${id}`, { name });
-        toast.success("Setor atualizado com sucesso");
+        toast.success(tr("uiText.acessos.setorUpdated"));
         await reloadEditingSetor();
       } else {
         await api.post("/setores", { name });
-        toast.success("Setor criado com sucesso");
+        toast.success(tr("uiText.acessos.setorCreated"));
         closePanel();
       }
       await fetchSetores();
@@ -116,7 +119,7 @@ export function useSetoresTab(): UseSetoresTabReturn {
   const deleteSetor = async (setor: SetorListItem) => {
     try {
       await api.delete(`/setores/${setor.id}`);
-      toast.success("Setor removido com sucesso");
+      toast.success(tr("uiText.acessos.setorRemoved"));
       await fetchSetores();
     } catch (err) {
       // 409 (setor com membros) chega aqui com a mensagem real do backend.
@@ -127,7 +130,7 @@ export function useSetoresTab(): UseSetoresTabReturn {
   const addMember = async (setorId: number, userId: number, ehGestor: boolean) => {
     try {
       await api.post(`/setores/${setorId}/members`, { userId, ehGestor });
-      toast.success("Membro adicionado ao setor");
+      toast.success(tr("uiText.acessos.memberAdded"));
       await reloadEditingSetor();
       await fetchSetores();
     } catch (err) {
@@ -148,7 +151,7 @@ export function useSetoresTab(): UseSetoresTabReturn {
   const removeMember = async (setorId: number, userId: number) => {
     try {
       await api.delete(`/setores/${setorId}/members/${userId}`);
-      toast.success("Membro removido do setor");
+      toast.success(tr("uiText.acessos.memberRemoved"));
       await reloadEditingSetor();
       await fetchSetores();
     } catch (err) {
@@ -159,7 +162,7 @@ export function useSetoresTab(): UseSetoresTabReturn {
   const setQueues = async (setorId: number, queueIds: number[]) => {
     try {
       await api.put(`/setores/${setorId}/queues`, { queueIds });
-      toast.success("Filas do setor atualizadas");
+      toast.success(tr("uiText.acessos.queuesUpdated"));
       await reloadEditingSetor();
     } catch (err) {
       toastError(err);

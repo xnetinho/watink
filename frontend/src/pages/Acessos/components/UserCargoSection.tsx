@@ -9,6 +9,9 @@ import {
 import { Label } from "@/components/ui/label";
 import type { CargoListItem } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UserCargoSectionProps {
   cargos: CargoListItem[];
   cargoId: number | null;
@@ -24,7 +27,7 @@ const UserCargoSection: React.FC<UserCargoSectionProps> = ({ cargos, cargoId, on
         onValueChange={(v) => onChange(v === "none" ? null : Number(v))}
       >
         <SelectTrigger>
-          <SelectValue placeholder="Selecione um cargo" />
+          <SelectValue placeholder={tr("uiText.acessos.selectCargo")} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="none">

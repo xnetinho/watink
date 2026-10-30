@@ -19,6 +19,9 @@ import { useSetoresTab } from "../hooks/useSetoresTab";
 import SetorPanel from "./SetorPanel";
 import type { SetorListItem } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const SetoresTab: React.FC = () => {
   const {
     setores,
@@ -62,7 +65,7 @@ const SetoresTab: React.FC = () => {
   return (
     <div className="flex flex-col gap-4">
       <ConfirmationModal
-        title={deletingSetor ? `Excluir o setor ${deletingSetor.name}?` : ""}
+        title={deletingSetor ? tr("uiText.acessos.deleteSetorTitle", { name: deletingSetor.name }) : ""}
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={async () => {
@@ -71,8 +74,7 @@ const SetoresTab: React.FC = () => {
           setDeletingSetor(null);
         }}
       >
-        Setores com membros vinculados não podem ser excluídos — realoque os
-        usuários primeiro.
+        {tr("uiText.acessos.setorDeleteHint")}
       </ConfirmationModal>
 
       <SetorPanel
@@ -100,7 +102,7 @@ const SetoresTab: React.FC = () => {
         </div>
         <Button onClick={() => openCreate()} className="ml-auto gap-2">
           <Plus className="h-4 w-4" />
-          Novo Setor
+          {tr("uiText.acessos.newSetor")}
         </Button>
       </div>
 
@@ -111,7 +113,7 @@ const SetoresTab: React.FC = () => {
               <TableHead>Nome</TableHead>
               <TableHead className="text-center">Membros</TableHead>
               <TableHead className="text-center">Gestores</TableHead>
-              <TableHead className="text-right w-[110px]">Ações</TableHead>
+              <TableHead className="text-right w-[110px]">{tr("uiText.common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UserDataSectionProps {
   isNew: boolean;
   touched: Partial<Record<"name" | "email" | "password", boolean>>;
@@ -25,7 +28,7 @@ const UserDataSection: React.FC<UserDataSectionProps> = ({
     <div className="space-y-3">
       <div className="space-y-1.5">
         <Label htmlFor="name" className={cn(touched.name && errors.name && "text-destructive")}>
-          Nome
+          {tr("uiText.acessos.name")}
         </Label>
         <Field name="name">
           {({ field }: FieldProps) => (
@@ -49,7 +52,7 @@ const UserDataSection: React.FC<UserDataSectionProps> = ({
 
       <div className="space-y-1.5">
         <Label htmlFor="password" className={cn(touched.password && errors.password && "text-destructive")}>
-          {isNew ? "Senha" : "Nova senha (deixe em branco para manter)"}
+          {isNew ? tr("uiText.acessos.password") : tr("uiText.acessos.newPasswordKeep")}
         </Label>
         <div className="relative">
           <Field name="password">

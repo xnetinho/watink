@@ -25,10 +25,13 @@ import type {
   UserSetorVinculo,
 } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const UserSchema = Yup.object().shape({
-  name: Yup.string().min(2, "Muito curto!").max(255, "Muito longo!").required("Nome é obrigatório"),
-  email: Yup.string().email("Email inválido").required("Email é obrigatório"),
-  password: Yup.string().min(5, "Muito curto!").max(128, "Muito longo!"),
+  name: Yup.string().min(2, tr("uiText.validation.tooShort")).max(255, tr("uiText.validation.tooLong")).required(tr("uiText.acessos.nameRequired")),
+  email: Yup.string().email(tr("uiText.utils.invalidEmail")).required(tr("uiText.acessos.emailRequired")),
+  password: Yup.string().min(5, tr("uiText.validation.tooShort")).max(128, tr("uiText.validation.tooLong")),
 });
 
 interface UserPanelProps {
@@ -84,7 +87,7 @@ const UserPanel: React.FC<UserPanelProps> = ({
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-6">
         <SheetHeader>
-          <SheetTitle>{isNew ? "Novo Usuário" : "Editar Usuário"}</SheetTitle>
+          <SheetTitle>{isNew ? tr("uiText.acessos.newUser") : tr("uiText.acessos.editUser")}</SheetTitle>
         </SheetHeader>
 
         {loading ? (
@@ -98,7 +101,7 @@ const UserPanel: React.FC<UserPanelProps> = ({
             validationSchema={UserSchema}
             onSubmit={async (values, actions) => {
               if (isNew && !values.password) {
-                actions.setFieldError("password", "Senha é obrigatória para novos usuários");
+                actions.setFieldError("password", tr("uiText.acessos.passwordRequired"));
                 actions.setSubmitting(false);
                 return;
               }
@@ -138,11 +141,11 @@ const UserPanel: React.FC<UserPanelProps> = ({
 
                 <SheetFooter className="mt-2 gap-2">
                   <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                    Cancelar
+                    {tr("uiText.common.cancel")}
                   </Button>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Salvar
+                    {tr("uiText.common.save")}
                   </Button>
                 </SheetFooter>
               </Form>
