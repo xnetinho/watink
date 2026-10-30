@@ -7,6 +7,9 @@ import {
     setAssistantGroupActive,
 } from "../../services/assistantService";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface AssistantGroupsPanelProps {
     assistantId: number;
 }
@@ -24,7 +27,7 @@ const AssistantGroupsPanel: React.FC<AssistantGroupsPanelProps> = ({ assistantId
         setLoading(true);
         listAssistantGroups(assistantId)
             .then(setGroups)
-            .catch(() => toast.error("Erro ao carregar grupos da conexão"))
+            .catch(() => toast.error(tr("uiText.assistants.groupsLoadError")))
             .finally(() => setLoading(false));
     }, [assistantId]);
 
@@ -37,7 +40,7 @@ const AssistantGroupsPanel: React.FC<AssistantGroupsPanelProps> = ({ assistantId
                 prev.map((g) => (g.contactId === group.contactId ? { ...g, active: nextActive } : g))
             );
         } catch {
-            toast.error("Erro ao atualizar o grupo");
+            toast.error(tr("uiText.assistants.groupUpdateError"));
         } finally {
             setTogglingId(null);
         }
@@ -83,16 +86,15 @@ const AssistantGroupsPanel: React.FC<AssistantGroupsPanelProps> = ({ assistantId
     if (groups.length === 0) {
         return (
             <p className="text-sm text-muted-foreground text-center py-12">
-                Nenhum grupo conhecido nesta conexão ainda — grupos aparecem aqui depois que
-                mandarem a primeira mensagem.
+                {tr("uiText.assistants.noGroups")}
             </p>
         );
     }
 
     return (
         <div className="flex flex-col sm:flex-row gap-4">
-            {renderColumn("Inativo", inactive, "Nenhum grupo inativo")}
-            {renderColumn("Ativo", active, "Nenhum grupo ativo ainda")}
+            {renderColumn(tr("uiText.common.inactive"), inactive, tr("uiText.assistants.noInactiveGroups"))}
+            {renderColumn(tr("uiText.common.active"), active, tr("uiText.assistants.noActiveGroups"))}
         </div>
     );
 };

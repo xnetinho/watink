@@ -29,6 +29,9 @@ import { AssistantTriggerTab } from "./components/AssistantTriggerTab";
 import { AssistantBasicInfoCard } from "./components/AssistantBasicInfoCard";
 import type { WhatsappOption, FlowOption, PipelineOption, KnowledgeBaseOption } from "./assistantCreatorTypes";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const emptyPersonaSections = (): PersonaSectionValues => parsePersonaSections("");
 
 const AssistantCreator: React.FC = () => {
@@ -106,7 +109,7 @@ const AssistantCreator: React.FC = () => {
                 setKnowledgeBases(kb.data);
                 setAiGateways(gw);
             } catch {
-                toast.error("Erro ao carregar dependências");
+                toast.error(tr("uiText.assistants.loadDeps"));
             }
         };
 
@@ -182,7 +185,7 @@ const AssistantCreator: React.FC = () => {
                     setRespondsAfterProactive(Boolean(cfg.respondsAfterProactive));
                 }
             } catch {
-                toast.error("Erro ao carregar assistente");
+                toast.error(tr("uiText.assistants.loadOne"));
             }
         };
 
@@ -237,7 +240,7 @@ const AssistantCreator: React.FC = () => {
 
     const handleSave = async () => {
         if (!name.trim()) {
-            toast.warning("Nome é obrigatório");
+            toast.warning(tr("uiText.assistants.nameRequired"));
             return;
         }
 
@@ -280,7 +283,7 @@ const AssistantCreator: React.FC = () => {
         } catch (err) {
             const message =
                 (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-                "Erro ao salvar assistente";
+                tr("uiText.assistants.saveError");
             toast.error(message);
         } finally {
             setSaving(false);
@@ -303,7 +306,7 @@ const AssistantCreator: React.FC = () => {
         } catch (err) {
             const message =
                 (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-                "Erro ao testar assistente";
+                tr("uiText.assistants.testError");
             setTestResult({ mode, success: false, error: message });
         } finally {
             setTesting(false);
@@ -315,8 +318,8 @@ const AssistantCreator: React.FC = () => {
     return (
         <PageContainer>
             <PageHeader
-                title={isEditing ? "Editar Assistente" : "Novo Assistente"}
-                description="Configure a conexão, o comportamento e o gatilho do assistente"
+                title={isEditing ? "Editar Assistente" : tr("uiText.assistants.new")}
+                description={tr("uiText.assistants.newHint")}
             >
                 <div className="flex gap-2">
                     {isEditing && (
@@ -327,7 +330,7 @@ const AssistantCreator: React.FC = () => {
                     )}
                     <Button onClick={handleSave} disabled={saving}>
                         <Save className="mr-2 h-4 w-4" />
-                        {saving ? "Salvando..." : "Salvar"}
+                        {saving ? "Salvando..." : tr("uiText.common.save")}
                     </Button>
                 </div>
             </PageHeader>
@@ -354,7 +357,7 @@ const AssistantCreator: React.FC = () => {
                                 <TabsList className="grid grid-cols-4 w-full">
                                     <TabsTrigger value="comportamento">Comportamento</TabsTrigger>
                                     <TabsTrigger value="gatilho">Gatilho</TabsTrigger>
-                                    <TabsTrigger value="avancado">Avançado</TabsTrigger>
+                                    <TabsTrigger value="avancado">{tr("uiText.assistants.advanced")}</TabsTrigger>
                                     <TabsTrigger value="grupos">Grupos</TabsTrigger>
                                 </TabsList>
 
@@ -396,7 +399,7 @@ const AssistantCreator: React.FC = () => {
                                                 <AssistantRouterOptions assistantId={Number(assistantId)} />
                                             ) : (
                                                 <p className="text-sm text-muted-foreground">
-                                                    Salve o assistente primeiro para configurar as opções do menu.
+                                                    {tr("uiText.assistants.saveFirstMenu")}
                                                 </p>
                                             )}
                                         </div>
@@ -442,7 +445,7 @@ const AssistantCreator: React.FC = () => {
 
                                 <TabsContent value="grupos" className="flex flex-col gap-4 pt-2">
                                     <div className="flex flex-col gap-1.5">
-                                        <Label>Modo de operação em grupos</Label>
+                                        <Label>{tr("uiText.assistants.groupMode")}</Label>
                                         <Select
                                             value={groupsMode}
                                             onValueChange={(v) => setGroupsMode(v as "legacy" | "selective")}
@@ -463,7 +466,7 @@ const AssistantCreator: React.FC = () => {
 
                                     {groupsMode === "selective" && !isEditing && (
                                         <p className="text-sm text-muted-foreground">
-                                            Salve o assistente primeiro para selecionar quais grupos ele atenderá.
+                                            {tr("uiText.assistants.saveFirstGroups")}
                                         </p>
                                     )}
 

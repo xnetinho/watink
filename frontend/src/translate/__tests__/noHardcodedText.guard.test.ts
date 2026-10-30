@@ -52,17 +52,6 @@ const all = import.meta.glob(
   { query: "?raw", import: "default", eager: true },
 ) as Record<string, string>;
 const DEBT = new Set<string>([
-  "pages/Assistants/AssistantCreator.tsx",
-  "pages/Assistants/AssistantGroupsPanel.tsx",
-  "pages/Assistants/AssistantRouterOptions.tsx",
-  "pages/Assistants/PersonaSectionsEditor.tsx",
-  "pages/Assistants/components/AssistantAdvancedTab.tsx",
-  "pages/Assistants/components/AssistantBasicInfoCard.tsx",
-  "pages/Assistants/components/AssistantBehaviorTab.tsx",
-  "pages/Assistants/components/AssistantTestDialog.tsx",
-  "pages/Assistants/components/AssistantTriggerTab.tsx",
-  "pages/Assistants/index.tsx",
-  "pages/Assistants/personaSections.ts",
   "pages/Connections/components/ChannelSelectorModal.tsx",
   "pages/Connections/components/ConnectionActionGrid.tsx",
   "pages/Connections/components/ConnectionCard.tsx",
