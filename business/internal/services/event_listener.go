@@ -217,6 +217,11 @@ func (el *EventListener) HandlePollVoteEvent(ctx context.Context, payload json.R
 	return el.handlePollVote(ctx, payload, tenantID)
 }
 
+// HandleMediaDownloadedEvent é a porta exportada do resultado de um download de mídia do engine (mesma lógica do consumidor).
+func (el *EventListener) HandleMediaDownloadedEvent(ctx context.Context, payload json.RawMessage, tenantID uuid.UUID) error {
+	return el.handleMediaDownloaded(ctx, payload, tenantID)
+}
+
 // HandleSessionRiskEvent is the exported entry point for non-AMQP transports
 // to apply a ban/throttle risk signal (401/403/429/463) through the same
 // logic as the engine-go AMQP consumer (handleSessionRisk):

@@ -56,7 +56,7 @@
   `add-channel-instagram`, `add-channel-olx`, `add-channel-tiktok`. **Aprovações externas devem começar já** (Instagram App
   Review + Business Verification; TikTok DSPR; OLX registro de aplicação), porque definem o prazo. | 📋 Planejada
 
-- [ ] **Epic 11**: Visualização de mídia de mensagem de visualização única, sob ação explícita do operador. Hoje o WhatsApp
+- [x] **Epic 11**: Visualização de mídia de mensagem de visualização única, sob ação explícita do operador. Hoje o WhatsApp
   entrega aos aparelhos vinculados só um marcador indisponível; o CRM registra o aviso, mas não recebe a mídia (ver
   `engine-go/internal/whatsapp/events_unavailable.go`). Investigar primeiro o caminho assistido pelo celular principal:
   antes de abrir a mídia, o operador responde/cita a mensagem nesse aparelho; se a mensagem sincronizada trouxer metadados
@@ -67,7 +67,7 @@
   somente após ação explícita, respeitando as regras de retenção e acesso à mídia. Não configurar identidade Android/Business
   na sessão vinculada nesta fase: isso exige novo pareamento, altera a identidade de plataforma e traz risco de compatibilidade
   e de política sem resolver a incerteza do fluxo principal. Validar em aparelho e conta de teste, sem mídia real de clientes;
-  confirmar sincronização, campos disponíveis e download completo antes de desenhar API/UI. | 📋 Planejada — validar viabilidade
+  confirmar sincronização, campos disponíveis e download completo antes de desenhar API/UI. | ✅ Recepção entregue: ao responder no celular principal, o Watink baixa a mídia (hashes e tamanho conferidos), guarda e mostra como mídia comum com selo "Visualização única". **Fora deste Epic (próxima fase, a desenhar):** enviar mídia como visualização única pelo painel de arrastar e soltar; exige teste real, pois o aparelho vinculado pode não ter esse comportamento.
 
 - [ ] **Epic 12**: Pareamento de WhatsApp por código (pairing code) via whatsmeow, sem leitura de QR Code. O backend já
   aceita `usePairingCode`/`phoneNumber` em `POST /whatsappsession/:id` e existe `PairingCodeModal`

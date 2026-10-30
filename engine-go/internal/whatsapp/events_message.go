@@ -21,6 +21,17 @@ func (s *WhatsAppService) handleMessageEvent(client *whatsmeow.Client, id int, t
 		return
 	}
 
+	if viewOnceInspectEnabled() {
+		logViewOnceInspect("msg", inspectViewOnceMessage(v))
+		logViewOnceInspect("ctx", inspectViewOnceContext(v.Message))
+	}
+
+	// O celular principal citou uma visualização única: a citação traz a mídia completa. Baixa e entrega ao business sobre o
+	// aviso, como mídia comum. Em goroutine: o download demora e o laço de eventos é sequencial para a sessão inteira.
+	if media, target, kind := quotedViewOnceMedia(v.Message); media != nil {
+		go s.recoverViewOnce(context.Background(), client, tenantID, id, media, target, kind)
+	}
+
 	if mediaInspectEnabled() {
 		if d := inspectMedia(v.Message); d != "" {
 			log.Printf("[media.inspect] %s de=%s: %s", v.Info.ID, v.Info.Sender.String(), d)

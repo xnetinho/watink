@@ -514,7 +514,9 @@ const messages = {
         },
         viewOnce: {
           title: "View once",
-          hint: "WhatsApp only delivers this content to the phone. Open it there.",
+          hint: "WhatsApp only delivers this content to the phone. Reply to the message on the phone and the media shows up here.",
+          badge: "View once",
+          badgeHint: "Sent as view once; recovered when replied to on the phone. Kept stored here.",
         },
         pix: {
           title: "Pay with PIX",

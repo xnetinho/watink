@@ -57,6 +57,7 @@ import MessageInteractive from "./MessageInteractive";
 import MessageMetadata from "./MessageMetadata";
 import ForwardedLabel from "./ForwardedLabel";
 import EditedBadge from "./EditedBadge";
+import ViewOnceBadge from "./ViewOnceBadge";
 import LinkPreview from "./LinkPreview";
 import DailyTimestamp from "./DailyTimestamp";
 import SenderName from "./SenderName";
@@ -201,6 +202,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         </MarkdownWrapper>
       )}
       <EditedBadge message={message} />
+      <ViewOnceBadge message={message} />
       <MessageMetadata message={message} isGroup={isGroup} onRetry={message.ack === 5 ? handleRetry : undefined} />
     </div>
   );
