@@ -4,6 +4,9 @@ import { Card } from "../../../components/ui/card";
 import { Flow } from "../flowManagerTypes";
 import FlowCard from "./FlowCard";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FlowGridProps {
   loading: boolean;
   filteredFlows: Flow[];
@@ -39,7 +42,7 @@ const FlowGrid: React.FC<FlowGridProps> = ({
           <Plus size={24} />
         </div>
         <span className="mt-3 font-medium text-muted-foreground">
-          Criar Automação
+          {tr("uiText.flowManager.create")}
         </span>
       </Card>
 

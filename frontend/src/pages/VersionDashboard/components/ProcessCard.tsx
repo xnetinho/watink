@@ -2,6 +2,9 @@ import React from "react";
 import { SystemStats } from "../types";
 import { formatBytes } from "../utils";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProcessCardProps {
   stats: SystemStats | null;
 }
@@ -9,18 +12,18 @@ interface ProcessCardProps {
 const ProcessCard: React.FC<ProcessCardProps> = ({ stats }) => {
   const items = [
     {
-      label: "Uso de CPU (Proc)",
+      label: tr("uiText.versionDashboard.cpuProc"),
       value: `${stats?.process?.cpuUsage?.toFixed(2)}%`,
     },
     {
-      label: "Memória (Heap)",
+      label: tr("uiText.versionDashboard.heap"),
       value: formatBytes(stats?.process?.memoryUsed || 0),
     },
     {
       label: "Goroutines",
       value: String(stats?.process?.numGoroutine ?? "-"),
     },
-    { label: "Threads do SO", value: "-" },
+    { label: tr("uiText.versionDashboard.threads"), value: "-" },
   ];
 
   return (

@@ -19,6 +19,9 @@ import {
 } from "../../../components/ui/select";
 import { Flow, Whatsapp } from "../flowManagerTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FlowFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -51,15 +54,15 @@ const FlowFormDialog: React.FC<FlowFormDialogProps> = ({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {selectedFlow ? "Editar Fluxo" : "Novo Fluxo de Automação"}
+            {selectedFlow ? "Editar Fluxo" : tr("uiText.flowManager.new")}
           </DialogTitle>
           <DialogDescription>
-            Dê um nome claro para identificar sua automação posteriormente.
+            {tr("uiText.flowManager.newHint")}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="name">Nome do Fluxo</Label>
+            <Label htmlFor="name">{tr("uiText.flowManager.name")}</Label>
             <Input
               id="name"
               value={newFlowName}
@@ -68,10 +71,10 @@ const FlowFormDialog: React.FC<FlowFormDialogProps> = ({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="whatsapp">Vincular Conexão</Label>
+            <Label htmlFor="whatsapp">{tr("uiText.flowManager.link")}</Label>
             <Select value={selectedWhatsapp} onValueChange={onWhatsappChange}>
               <SelectTrigger id="whatsapp">
-                <SelectValue placeholder="Nenhuma conexão" />
+                <SelectValue placeholder={tr("uiText.flowManager.noConnection")} />
               </SelectTrigger>
               <SelectContent>
                 {whatsapps.map((whatsapp) => {
@@ -82,7 +85,7 @@ const FlowFormDialog: React.FC<FlowFormDialogProps> = ({
                       value={String(whatsapp.id)}
                       disabled={used && whatsapp.id !== selectedFlow?.whatsappId}
                     >
-                      {whatsapp.name} {used ? "(Em uso)" : ""}
+                      {whatsapp.name} {used ? tr("uiText.flowManager.inUse") : ""}
                     </SelectItem>
                   );
                 })}
@@ -92,9 +95,9 @@ const FlowFormDialog: React.FC<FlowFormDialogProps> = ({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancelar
+            {tr("uiText.common.cancel")}
           </Button>
-          <Button onClick={onSave}>Salvar</Button>
+          <Button onClick={onSave}>{tr("uiText.common.save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -3,6 +3,9 @@ import { Camera } from "lucide-react";
 import { Avatar } from "../../../components/ui/avatar";
 import { Card } from "../../../components/ui/card";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProfileAvatarCardProps {
   profileImage: string | undefined;
   userName: string | undefined;
@@ -43,7 +46,7 @@ export function ProfileAvatarCard({
       <div className="mt-4">
         <h3 className="text-xl font-bold">{userName}</h3>
         <p className="text-sm text-muted-foreground">
-          {userProfile === "admin" ? "Administrador" : "Atendente"}
+          {userProfile === "admin" ? "Administrador" : tr("uiText.userProfile.agent")}
         </p>
       </div>
     </Card>

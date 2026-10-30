@@ -17,6 +17,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export type SourceStatus = "pending" | "processing" | "ready" | "error";
 
 export interface KBSource {
@@ -59,7 +62,7 @@ export function StatusBadge({ source }: { source: KBSource }): React.ReactElemen
         return (
           <Badge className="gap-1 border-transparent bg-[hsl(var(--status-warning-bg))] text-[hsl(var(--status-warning-text))]">
             <AlertTriangle className="h-3.5 w-3.5" />
-            Sem conteúdo
+            {tr("uiText.kb.noContent")}
           </Badge>
         );
       }
@@ -84,11 +87,11 @@ export function StatusBadge({ source }: { source: KBSource }): React.ReactElemen
             <TooltipTrigger asChild>
               <Badge className="gap-1 border-transparent bg-[hsl(var(--status-error-bg))] text-[hsl(var(--status-error-text))] cursor-help">
                 <AlertCircle className="h-3.5 w-3.5" />
-                Erro
+                {tr("uiText.campaigns.error")}
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
-              {source.lastError || "Falha ao processar a fonte"}
+              {source.lastError || tr("uiText.kb.processFail")}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

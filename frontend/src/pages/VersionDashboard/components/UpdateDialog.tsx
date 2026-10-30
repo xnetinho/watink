@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReleaseMeta } from "../types";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UpdateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,7 +38,7 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Rocket className="h-5 w-5 text-muted-foreground" />
-          Verificar Atualização
+          {tr("uiText.versionDashboard.check")}
         </DialogTitle>
       </DialogHeader>
       <div className="space-y-2 text-sm">
@@ -47,7 +50,7 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
 
         {releaseMeta?.breaking && (
           <div className="mt-2 space-y-1">
-            <Badge variant="destructive">Release com quebra de compatibilidade</Badge>
+            <Badge variant="destructive">{tr("uiText.versionDashboard.breaking")}</Badge>
             {releaseMeta?.minCompatibleFrom && (
               <p className="text-xs text-destructive">
                 Compatível apenas a partir de v{releaseMeta.minCompatibleFrom}.
@@ -63,7 +66,7 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
 
         {changelog.length > 0 ? (
           <>
-            <p className="pt-2">Changelog desta versão:</p>
+            <p className="pt-2">{tr("uiText.versionDashboard.changelog")}</p>
             <ul className="list-disc pl-5 space-y-1">
               {changelog.map((item, idx) => (
                 <li key={`${idx}-${item}`}>{item}</li>
@@ -72,7 +75,7 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
           </>
         ) : (
           <p className="text-muted-foreground">
-            Changelog não informado para esta versão.
+            {tr("uiText.versionDashboard.noChangelog")}
           </p>
         )}
 
@@ -83,14 +86,13 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({
 
         {blockedByCompatibility && (
           <p className="text-destructive">
-            Atualização bloqueada por compatibilidade. Atualize para uma versão
-            intermediária compatível ou execute a migração indicada antes de prosseguir.
+            {tr("uiText.versionDashboard.blocked")}
           </p>
         )}
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          Fechar
+          {tr("uiText.common.close")}
         </Button>
       </DialogFooter>
     </DialogContent>

@@ -4,6 +4,9 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { ViewMode } from "../flowManagerTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FlowToolbarProps {
   searchParam: string;
   onSearchChange: (value: string) => void;
@@ -52,7 +55,7 @@ const FlowToolbar: React.FC<FlowToolbarProps> = ({
 
       <Button onClick={onCreateNew}>
         <Plus className="mr-2 h-4 w-4" />
-        Novo Fluxo
+        {tr("uiText.flowManager.newShort")}
       </Button>
     </div>
   );
