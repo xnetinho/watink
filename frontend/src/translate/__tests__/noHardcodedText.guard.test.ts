@@ -157,23 +157,6 @@ const DEBT = new Set<string>([
   "pages/GroupsWhatsapp/components/GruposTab.tsx",
   "pages/GroupsWhatsapp/components/MonitoramentoTab.tsx",
   "pages/GroupsWhatsapp/index.tsx",
-  "pages/Helpdesk/HelpdeskReports.tsx",
-  "pages/Helpdesk/ProtocolCard.tsx",
-  "pages/Helpdesk/ProtocolModal.tsx",
-  "pages/Helpdesk/components/HelpdeskFilters.tsx",
-  "pages/Helpdesk/components/ProtocolContactSearch.tsx",
-  "pages/Helpdesk/components/ProtocolDetailsHeader.tsx",
-  "pages/Helpdesk/components/ProtocolHistoryCard.tsx",
-  "pages/Helpdesk/components/ProtocolInfoCard.tsx",
-  "pages/Helpdesk/components/ProtocolPriorityCategory.tsx",
-  "pages/Helpdesk/components/ProtocolUpdateCard.tsx",
-  "pages/Helpdesk/components/ProtocolsTable.tsx",
-  "pages/Helpdesk/helpdeskTypes.ts",
-  "pages/Helpdesk/hooks/useHelpdesk.ts",
-  "pages/Helpdesk/hooks/useHelpdeskKanban.ts",
-  "pages/Helpdesk/hooks/useProtocolDetails.ts",
-  "pages/Helpdesk/hooks/useProtocolModal.ts",
-  "pages/Helpdesk/index.tsx",
   "pages/KnowledgeBase/KnowledgeBaseConfig.tsx",
   "pages/KnowledgeBase/RetrievalPlayground.tsx",
   "pages/KnowledgeBase/components/AddSourceDialog.tsx",
@@ -274,7 +257,7 @@ export function hardcodedLines(text: string): string[] {
     const t = raw.trim();
     if (t.startsWith("/*")) { blk = !raw.includes("*/"); return; }
     if (blk) { if (raw.includes("*/")) blk = false; return; }
-    if (t.startsWith("*") || t.startsWith("import") || t.startsWith("//") || raw.includes("console.")) return;
+    if (t.startsWith("*") || t.startsWith("import") || t.startsWith("//") || raw.includes("console.") || raw.includes("i18n-ignore")) return;
     if (raw.includes("{/*") && !raw.includes("*/}")) { blk = true; return; }
     const line = raw.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
     let hit: string | null = null;

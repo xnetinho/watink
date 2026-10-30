@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/select";
 import { ProtocolFormData } from "../hooks/useProtocolModal";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProtocolPriorityCategoryProps {
   formData: ProtocolFormData;
   helpdeskEnabled: boolean;
@@ -34,10 +37,10 @@ export function ProtocolPriorityCategory({
             <SelectValue placeholder="Selecione a prioridade" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="low">Baixa</SelectItem>
-            <SelectItem value="medium">Média</SelectItem>
-            <SelectItem value="high">Alta</SelectItem>
-            <SelectItem value="urgent">Urgente</SelectItem>
+            <SelectItem value="low">{tr("uiText.helpdesk.priority.low")}</SelectItem>
+            <SelectItem value="medium">{tr("uiText.helpdesk.priority.medium")}</SelectItem>
+            <SelectItem value="high">{tr("uiText.helpdesk.priority.high")}</SelectItem>
+            <SelectItem value="urgent">{tr("uiText.helpdesk.priority.urgent")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

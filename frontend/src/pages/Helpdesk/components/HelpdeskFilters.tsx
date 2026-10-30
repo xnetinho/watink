@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/select";
 import { HelpdeskFiltersState } from "../helpdeskTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface HelpdeskFiltersProps {
   filters: HelpdeskFiltersState;
   onSearchChange: (value: string) => void;
@@ -28,7 +31,7 @@ const HelpdeskFilters: React.FC<HelpdeskFiltersProps> = ({
       <div className="relative">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por número ou assunto..."
+          placeholder={tr("uiText.helpdesk.searchPlaceholder")}
           className="pl-9"
           value={filters.searchParam}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -40,12 +43,12 @@ const HelpdeskFilters: React.FC<HelpdeskFiltersProps> = ({
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todos os status</SelectItem>
-          <SelectItem value="open">Aberto</SelectItem>
-          <SelectItem value="in_progress">Em Andamento</SelectItem>
-          <SelectItem value="pending">Pendente</SelectItem>
-          <SelectItem value="resolved">Resolvido</SelectItem>
-          <SelectItem value="closed">Fechado</SelectItem>
+          <SelectItem value="all">{tr("uiText.helpdesk.allStatuses")}</SelectItem>
+          <SelectItem value="open">{tr("uiText.helpdesk.status.open")}</SelectItem>
+          <SelectItem value="in_progress">{tr("uiText.helpdesk.status.in_progress")}</SelectItem>
+          <SelectItem value="pending">{tr("uiText.helpdesk.status.pending")}</SelectItem>
+          <SelectItem value="resolved">{tr("uiText.helpdesk.status.resolved")}</SelectItem>
+          <SelectItem value="closed">{tr("uiText.helpdesk.status.closed")}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -55,10 +58,10 @@ const HelpdeskFilters: React.FC<HelpdeskFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todas as prioridades</SelectItem>
-          <SelectItem value="low">Baixa</SelectItem>
-          <SelectItem value="medium">Média</SelectItem>
-          <SelectItem value="high">Alta</SelectItem>
-          <SelectItem value="urgent">Urgente</SelectItem>
+          <SelectItem value="low">{tr("uiText.helpdesk.priority.low")}</SelectItem>
+          <SelectItem value="medium">{tr("uiText.helpdesk.priority.medium")}</SelectItem>
+          <SelectItem value="high">{tr("uiText.helpdesk.priority.high")}</SelectItem>
+          <SelectItem value="urgent">{tr("uiText.helpdesk.priority.urgent")}</SelectItem>
         </SelectContent>
       </Select>
     </div>

@@ -4,6 +4,9 @@ import { toast } from "react-toastify";
 import api from "../../../services/api";
 import { subscribeToSocket } from "../../../services/sse-client";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface KanbanProtocol {
   id: number;
   protocolNumber: string;
@@ -54,7 +57,7 @@ export function useHelpdeskKanban({
       const { data } = await api.get("/protocols/kanban");
       setColumns(data.columns);
     } catch {
-      toast.error("Erro ao carregar Kanban");
+      toast.error(tr("uiText.helpdesk.kanbanError"));
     } finally {
       setLoading(false);
     }

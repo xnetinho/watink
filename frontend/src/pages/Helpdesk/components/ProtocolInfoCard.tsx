@@ -3,6 +3,9 @@ import PaperCard from "../../../components/PaperCard";
 import type { Protocol } from "../protocolTypes";
 import { getContactDisplayName } from "@/utils/clientDisplayName";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProtocolInfoCardProps {
   protocol: Protocol;
 }
@@ -16,7 +19,7 @@ const ProtocolInfoCard: React.FC<ProtocolInfoCardProps> = ({ protocol }) => (
         <dd className="mt-0.5 text-sm">{protocol.subject}</dd>
       </div>
       <div>
-        <dt className="text-xs font-medium text-muted-foreground">Descrição</dt>
+        <dt className="text-xs font-medium text-muted-foreground">{tr("uiText.helpdesk.description")}</dt>
         <dd className="mt-0.5 whitespace-pre-wrap text-sm">{protocol.description}</dd>
       </div>
       <div>

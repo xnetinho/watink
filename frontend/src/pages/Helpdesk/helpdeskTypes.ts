@@ -15,18 +15,18 @@ export interface HelpdeskFiltersState {
 }
 
 export const statusLabels: Record<string, string> = {
-  open: "Aberto",
-  in_progress: "Em Andamento",
-  pending: "Pendente",
-  resolved: "Resolvido",
-  closed: "Fechado",
+  open: "uiText.helpdesk.status.open",
+  in_progress: "uiText.helpdesk.status.in_progress",
+  pending: "uiText.helpdesk.status.pending",
+  resolved: "uiText.helpdesk.status.resolved",
+  closed: "uiText.helpdesk.status.closed",
 };
 
 export const priorityLabels: Record<string, string> = {
-  low: "Baixa",
-  medium: "Média",
-  high: "Alta",
-  urgent: "Urgente",
+  low: "uiText.helpdesk.priority.low",
+  medium: "uiText.helpdesk.priority.medium",
+  high: "uiText.helpdesk.priority.high",
+  urgent: "uiText.helpdesk.priority.urgent",
 };
 
 export const getStatusBadgeClass = (status: string): string => {

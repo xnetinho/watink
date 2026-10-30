@@ -14,6 +14,9 @@ import PaperCard from "../../../components/PaperCard";
 import FileUploader from "../../../components/FileUploader";
 import type { UpdateFormData } from "../protocolTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProtocolUpdateCardProps {
   formData: UpdateFormData;
   updateFiles: File[];
@@ -43,11 +46,11 @@ const ProtocolUpdateCard: React.FC<ProtocolUpdateCardProps> = ({
             <SelectValue placeholder="Selecione o status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="open">Aberto</SelectItem>
-            <SelectItem value="in_progress">Em Andamento</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
-            <SelectItem value="resolved">Resolvido</SelectItem>
-            <SelectItem value="closed">Fechado</SelectItem>
+            <SelectItem value="open">{tr("uiText.helpdesk.status.open")}</SelectItem>
+            <SelectItem value="in_progress">{tr("uiText.helpdesk.status.in_progress")}</SelectItem>
+            <SelectItem value="pending">{tr("uiText.helpdesk.status.pending")}</SelectItem>
+            <SelectItem value="resolved">{tr("uiText.helpdesk.status.resolved")}</SelectItem>
+            <SelectItem value="closed">{tr("uiText.helpdesk.status.closed")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -58,22 +61,22 @@ const ProtocolUpdateCard: React.FC<ProtocolUpdateCardProps> = ({
             <SelectValue placeholder="Selecione a prioridade" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="low">Baixa</SelectItem>
-            <SelectItem value="medium">Média</SelectItem>
-            <SelectItem value="high">Alta</SelectItem>
-            <SelectItem value="urgent">Urgente</SelectItem>
+            <SelectItem value="low">{tr("uiText.helpdesk.priority.low")}</SelectItem>
+            <SelectItem value="medium">{tr("uiText.helpdesk.priority.medium")}</SelectItem>
+            <SelectItem value="high">{tr("uiText.helpdesk.priority.high")}</SelectItem>
+            <SelectItem value="urgent">{tr("uiText.helpdesk.priority.urgent")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="col-span-full flex flex-col gap-1.5">
-        <Label htmlFor="update-comment">Adicionar Comentário</Label>
+        <Label htmlFor="update-comment">{tr("uiText.helpdesk.addComment")}</Label>
         <Textarea
           id="update-comment"
           name="comment"
           value={formData.comment}
           onChange={onChange}
           rows={3}
-          placeholder="Descreva a ação realizada ou adicione uma nota..."
+          placeholder={tr("uiText.helpdesk.commentPlaceholder")}
         />
       </div>
       <div className="col-span-full flex flex-col gap-1.5">
