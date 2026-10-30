@@ -11,6 +11,9 @@ import { Button } from "../../../components/ui/button";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { WIDGET_LABELS, type WidgetConfig } from "../dashboardTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface DashboardCustomizeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,7 +35,7 @@ const DashboardCustomizeModal: React.FC<DashboardCustomizeModalProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
-          <DialogTitle>Configurações do Dashboard</DialogTitle>
+          <DialogTitle>{tr("uiText.dashboard.customizeTitle")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           {sortedWidgets.map((widget, index) => (
@@ -45,7 +48,7 @@ const DashboardCustomizeModal: React.FC<DashboardCustomizeModalProps> = ({
                   checked={widget.visible}
                   onCheckedChange={() => onToggle(widget.id)}
                 />
-                {WIDGET_LABELS[widget.id] || widget.id}
+                {WIDGET_LABELS[widget.id] ? tr(WIDGET_LABELS[widget.id]) : widget.id}
               </label>
               <div className="flex gap-1">
                 <Button
@@ -70,7 +73,7 @@ const DashboardCustomizeModal: React.FC<DashboardCustomizeModalProps> = ({
         </div>
         <DialogFooter>
           <Button className="w-full" onClick={onSave}>
-            Salvar Preferências
+            {tr("uiText.dashboard.savePreferences")}
           </Button>
         </DialogFooter>
       </DialogContent>

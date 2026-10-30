@@ -10,6 +10,9 @@ import TicketsInfo from "../../../components/Dashboard/Widgets/TicketsInfo";
 import PerformanceMetrics from "../../../components/Dashboard/Widgets/PerformanceMetrics";
 import type { WidgetConfig } from "../dashboardTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface DashboardWidgetsProps {
   sortedWidgets: WidgetConfig[];
   userQueueIds: number[];
@@ -31,7 +34,7 @@ const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
                 <CardHeader>
                   <CardTitle>Performance por Equipe</CardTitle>
                   <CardDescription>
-                    Métricas individuais de atendentes
+                    {tr("uiText.dashboard.teamMetrics")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -43,9 +46,9 @@ const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
             return (
               <Card key={widget.id}>
                 <CardHeader>
-                  <CardTitle>Resumo de Tickets</CardTitle>
+                  <CardTitle>{tr("uiText.dashboard.ticketSummary")}</CardTitle>
                   <CardDescription>
-                    Distribuição de estados e filas
+                    {tr("uiText.dashboard.ticketSummaryHint")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

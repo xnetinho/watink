@@ -12,6 +12,8 @@ import { useUserProfile } from "./hooks/useUserProfile";
 import { ProfileAvatarCard } from "./components/ProfileAvatarCard";
 import { ProfileFormCard } from "./components/ProfileFormCard";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const UserProfile = () => {
   const {
     user,
@@ -30,7 +32,7 @@ const UserProfile = () => {
     <PageContainer>
       <PageHeader
         title={i18n.t("userProfile.title")}
-        description="Gerencie suas informações pessoais e credenciais de acesso"
+        description={tr("uiText.userProfile.pageDescription")}
       />
 
       <PageContent className="max-w-3xl pb-20">

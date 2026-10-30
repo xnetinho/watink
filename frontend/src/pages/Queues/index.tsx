@@ -10,6 +10,8 @@ import { Button } from "../../components/ui/button";
 import { useQueues } from "./hooks/useQueues";
 import { QueuesTable } from "./components/QueuesTable";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const Queues = () => {
   const {
     queues,
@@ -48,7 +50,7 @@ const Queues = () => {
 
       <PageHeader
         title={i18n.t("queues.title") as string}
-        description="Configure as filas de atendimento e fluxos de triagem automática"
+        description={tr("uiText.queues.pageDescription")}
       >
         <Button onClick={handleOpenQueueModal}>
           <Plus className="mr-2 h-4 w-4" />

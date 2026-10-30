@@ -6,6 +6,9 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import api from "../../services/api";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SetupData {
   companyName: string;
   firstName: string;
@@ -42,7 +45,7 @@ const InitialSetup: React.FC = () => {
       !setupData.email ||
       !setupData.password
     ) {
-      toast.error("Por favor, preencha todos os campos obrigatórios.");
+      toast.error(tr("uiText.initialSetup.fillRequired"));
       return;
     }
     if (setupData.password.length < 8) {
@@ -57,12 +60,12 @@ const InitialSetup: React.FC = () => {
         ...setupData,
         email: setupData.email.trim().toLowerCase(),
       });
-      toast.success("Sistema inicializado com sucesso!");
+      toast.success(tr("uiText.initialSetup.done"));
       navigate("/login");
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error || "Erro ao inicializar sistema.";
+          ?.error || tr("uiText.initialSetup.failed");
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -99,12 +102,12 @@ const InitialSetup: React.FC = () => {
             className="mb-6 text-xl font-semibold"
             style={{ color: "var(--text-primary)" }}
           >
-            Configuração Inicial
+            {tr("uiText.initialSetup.title")}
           </h1>
 
           <form className="w-full space-y-4" noValidate onSubmit={handleSubmit}>
             <div className="space-y-1">
-              <Label htmlFor="companyName">Nome Fantasia da Empresa *</Label>
+              <Label htmlFor="companyName">{tr("uiText.initialSetup.companyName")}</Label>
               <Input
                 id="companyName"
                 name="companyName"
