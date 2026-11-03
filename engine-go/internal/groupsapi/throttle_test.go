@@ -39,13 +39,13 @@ func TestWithThrottle_RejectsOverBudgetWithoutCallingBackend(t *testing.T) {
 	h := newTestServerWithThrottle(backend, th)
 
 	// First write is allowed.
-	rec1 := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/leave", testToken, map[string]interface{}{"tenantId": "t1"})
+	rec1 := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/leave", map[string]interface{}{"tenantId": "t1"})
 	if rec1.Code != http.StatusOK {
 		t.Fatalf("expected first call to succeed, got %d: %s", rec1.Code, rec1.Body.String())
 	}
 
 	// Second write on the same session is throttled.
-	rec2 := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/leave", testToken, map[string]interface{}{"tenantId": "t1"})
+	rec2 := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/leave", map[string]interface{}{"tenantId": "t1"})
 	if rec2.Code != http.StatusTooManyRequests {
 		t.Fatalf("expected 429, got %d: %s", rec2.Code, rec2.Body.String())
 	}
@@ -58,10 +58,10 @@ func TestWithThrottle_ReadRoutesAreNeverThrottled(t *testing.T) {
 	h := newTestServerWithThrottle(backend, th)
 
 	// Exhaust the write budget for session 1 first.
-	_ = doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/leave", testToken, map[string]interface{}{"tenantId": "t1"})
+	_ = doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/leave", map[string]interface{}{"tenantId": "t1"})
 
 	// A read on the SAME session must still succeed — reads never throttle.
-	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups", testToken)
+	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected read to succeed even after write budget exhausted, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -72,7 +72,7 @@ func TestWithThrottle_InvalidSessionIDRejectedBeforeThrottleCheck(t *testing.T) 
 	th := newThrottle()
 	h := newTestServerWithThrottle(backend, th)
 
-	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/not-a-number/groups/x@g.us/leave", testToken, map[string]interface{}{"tenantId": "t1"})
+	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/not-a-number/groups/x@g.us/leave", map[string]interface{}{"tenantId": "t1"})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", rec.Code)
 	}

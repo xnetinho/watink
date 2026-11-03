@@ -22,9 +22,9 @@ externa — é detalhe de implementação de `enginego.Provider`, não API do Wa
 ## Transporte
 
 - Porta: env `GROUPS_API_PORT`, default `8084`.
-- Auth: header `X-Internal-Token`, valor = env `GROUPS_API_TOKEN`. **Fail-closed**: se
-  `GROUPS_API_TOKEN` não estiver setado no ambiente, o servidor **não sobe** (mesma postura de
-  `cryptobox`/`PROXY_ENC_KEY` no `business`) — nunca abre a porta sem auth.
+- Auth: **nenhuma**. A defesa é a rede, como no RabbitMQ e no áudio das chamadas (ADR 0031): a porta só é
+  `expose`d (nunca `ports:`) e só os outros contêineres do compose a alcançam. (Já houve `X-Internal-Token`/
+  `GROUPS_API_TOKEN`; removido em 03/nov/2026.)
 - Sessão identificada por `sessionID` (int, o `Whatsapp.ID` do core) no path.
 
 ## Envelope
@@ -40,8 +40,7 @@ o engine-go e o provider `enginego` no business:
 { "ok": false, "error": { "code": "NOT_FOUND", "message": "grupo não encontrado" } }
 ```
 
-Códigos de erro usados aqui: `INVALID_INPUT` (400) · `NOT_FOUND` (404) · `AUTH_FAILED` (401, token interno
-ausente/errado) · `NOT_ADMIN` (403, ação exige admin no grupo) · `RATE_LIMITED` (429) ·
+Códigos de erro usados aqui: `INVALID_INPUT` (400) · `NOT_FOUND` (404) · `NOT_ADMIN` (403, ação exige admin no grupo) · `RATE_LIMITED` (429) ·
 `PROVIDER_ERROR` (502, erro do whatsmeow não classificado) · `SESSION_NOT_CONNECTED` (409).
 
 ## DTO canônico do Watink

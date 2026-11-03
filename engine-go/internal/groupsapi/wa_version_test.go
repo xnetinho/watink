@@ -29,20 +29,17 @@ func (f *fakeVersions) RefreshWAVersion(_ context.Context, force bool) bool {
 	return f.changed
 }
 
-func call(t *testing.T, b Backend, method, path, token string) *httptest.ResponseRecorder {
+func call(t *testing.T, b Backend, method, path string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, path, nil)
-	if token != "" {
-		req.Header.Set("X-Internal-Token", token)
-	}
 	rec := httptest.NewRecorder()
-	authMiddleware(testToken, newMux(b, newThrottle())).ServeHTTP(rec, req)
+	newMux(b, newThrottle()).ServeHTTP(rec, req)
 	return rec
 }
 
 func TestWAVersionStatus(t *testing.T) {
 	f := &fakeVersions{status: waversion.Status{Mode: "manual", Manual: "2.3000.5", Embedded: "2.3000.1", Effective: "2.3000.5"}}
-	rec := call(t, f, http.MethodGet, "/wa-version", testToken)
+	rec := call(t, f, http.MethodGet, "/wa-version")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body)
 	}
@@ -57,7 +54,7 @@ func TestWAVersionStatus(t *testing.T) {
 
 func TestWAVersionRefreshForcaEDevolveStatus(t *testing.T) {
 	f := &fakeVersions{changed: true, status: waversion.Status{Effective: "2.3000.9"}}
-	rec := call(t, f, http.MethodPost, "/wa-version/refresh", testToken)
+	rec := call(t, f, http.MethodPost, "/wa-version/refresh")
 	if rec.Code != http.StatusOK || !f.forced {
 		t.Fatalf("status %d forced=%v", rec.Code, f.forced)
 	}
@@ -73,16 +70,8 @@ func TestWAVersionRefreshForcaEDevolveStatus(t *testing.T) {
 }
 
 func TestWAVersionErroDoBackend(t *testing.T) {
-	rec := call(t, &fakeVersions{err: errors.New("fora")}, http.MethodGet, "/wa-version", testToken)
+	rec := call(t, &fakeVersions{err: errors.New("fora")}, http.MethodGet, "/wa-version")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("esperava 503, veio %d", rec.Code)
-	}
-}
-
-func TestWAVersionExigeToken(t *testing.T) {
-	for _, tok := range []string{"", "errado"} {
-		if rec := call(t, &fakeVersions{}, http.MethodGet, "/wa-version", tok); rec.Code != http.StatusUnauthorized {
-			t.Fatalf("token %q: esperava 401, veio %d", tok, rec.Code)
-		}
 	}
 }
