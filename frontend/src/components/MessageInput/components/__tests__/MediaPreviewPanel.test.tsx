@@ -153,3 +153,27 @@ describe("MediaPreviewPanel — visualização única", () => {
     expect(screen.queryByTestId("media-preview-view-once")).toBeNull();
   });
 });
+
+describe("MediaPreviewPanel — figurinha", () => {
+  it(".webp mostra o botão; clicar liga e desliga na mídia selecionada", () => {
+    const onStickerChange = vi.fn();
+    setup([item("a.webp", "image/webp")], { onStickerChange });
+    const btn = screen.getByTestId("media-preview-sticker");
+    expect(btn).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(btn);
+    expect(onStickerChange).toHaveBeenCalledWith(0, true);
+  });
+
+  it("ligada: o botão fica marcado e a legenda é bloqueada (figurinha não tem legenda)", () => {
+    setup([item("a.webp", "image/webp", "", { sticker: true })], { onStickerChange: vi.fn() });
+    expect(screen.getByTestId("media-preview-sticker")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("media-preview-caption")).toBeDisabled();
+  });
+
+  it("foto comum e documento não mostram o botão; sem o canal certo ninguém mostra", () => {
+    setup([item("a.png", "image/png")], { onStickerChange: vi.fn() });
+    expect(screen.queryByTestId("media-preview-sticker")).toBeNull();
+    setup([item("a.webp", "image/webp")]);
+    expect(screen.queryByTestId("media-preview-sticker")).toBeNull();
+  });
+});

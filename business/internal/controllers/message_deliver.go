@@ -35,6 +35,7 @@ type outboundInput struct {
 	DataJSON                                      string
 	Voice                                         bool // áudio enviado como gravação (PTT)
 	ViewOnce                                      bool // foto, vídeo ou áudio enviado como visualização única
+	Sticker                                       bool // figurinha pedida no painel (o encaminhamento de figurinha não passa por aqui)
 	FileName                                      string
 	Forward                                       *forwardInput
 }
@@ -120,6 +121,11 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 	// selo da tela diria o contrário do que saiu): recusa com mensagem clara.
 	if in.ViewOnce && ticket.ChannelConnectionID != nil {
 		return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "view_once_not_supported"}
+	}
+
+	// Figurinha pelo painel idem: nos outros canais ela é outro mecanismo (conjunto de figurinhas) e não seria entregue como tal.
+	if in.Sticker && ticket.ChannelConnectionID != nil {
+		return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "sticker_not_supported"}
 	}
 
 	// Se o ticket pertencer a uma ChannelConnection agnóstica registrada, despacha pelo canal (Tarefa 4.2 / ADR 0033)

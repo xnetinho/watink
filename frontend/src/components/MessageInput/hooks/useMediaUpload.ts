@@ -9,7 +9,12 @@ export interface MediaItem {
   audioKind?: "voice" | "file";
   /** Enviar para ser visto uma única vez (foto, vídeo ou áudio). Vale só no WhatsApp. */
   viewOnce?: boolean;
+  /** Enviar o .webp como figurinha (sem isto vai como foto). Vale só no WhatsApp e sem legenda. */
+  sticker?: boolean;
 }
+
+/** Só um .webp pode virar figurinha: é o formato que o WhatsApp aceita nelas. */
+export const canBeSticker = (f: { type: string; name: string }): boolean => f.type === "image/webp" || /\.webp$/i.test(f.name);
 
 /** Foto, vídeo e áudio aceitam visualização única; documento e figurinha não têm esse modo no WhatsApp. */
 export const canBeViewOnce = (f: { type: string; name: string }): boolean =>
@@ -28,6 +33,7 @@ export interface UseMediaUploadReturn {
   handleMediaCaptionChange: (index: number, value: string) => void;
   handleAudioKindChange: (index: number, kind: "voice" | "file") => void;
   handleViewOnceChange: (index: number, on: boolean) => void;
+  handleStickerChange: (index: number, on: boolean) => void;
   handleUploadMedia: (ticketId: string | undefined, e?: React.FormEvent) => Promise<void>;
   handleRemoveMedia: (index: number) => void;
   clearMedias: () => void;
@@ -92,7 +98,12 @@ export function useMediaUpload(setLoading: (v: boolean) => void): UseMediaUpload
   };
 
   const handleViewOnceChange = (index: number, on: boolean) => {
-    setMedias((prev) => prev.map((media, i) => (i === index ? { ...media, viewOnce: on } : media)));
+    setMedias((prev) => prev.map((media, i) => (i === index ? { ...media, viewOnce: on, ...(on ? { sticker: false } : {}) } : media)));
+  };
+
+  // Figurinha e visualização única não combinam (figurinha não tem esse modo): ligar uma desliga a outra.
+  const handleStickerChange = (index: number, on: boolean) => {
+    setMedias((prev) => prev.map((media, i) => (i === index ? { ...media, sticker: on, ...(on ? { viewOnce: false, caption: "" } : {}) } : media)));
   };
 
   const handleUploadMedia = async (ticketId: string | undefined, e?: React.FormEvent) => {
@@ -109,6 +120,7 @@ export function useMediaUpload(setLoading: (v: boolean) => void): UseMediaUpload
         form.append("body", media.caption);
         if (media.audioKind) form.append("audioKind", media.audioKind);
         if (media.viewOnce && canBeViewOnce(media.file)) form.append("viewOnce", "true");
+        if (media.sticker && canBeSticker(media.file)) form.append("sticker", "true");
         await api.post(`/messages/${ticketId}`, form);
         sent.add(media);
       }
@@ -135,6 +147,7 @@ export function useMediaUpload(setLoading: (v: boolean) => void): UseMediaUpload
     handleMediaCaptionChange,
     handleAudioKindChange,
     handleViewOnceChange,
+    handleStickerChange,
     handleUploadMedia,
     handleRemoveMedia,
     clearMedias,

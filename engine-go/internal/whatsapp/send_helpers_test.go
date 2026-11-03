@@ -339,3 +339,14 @@ func TestBuildMediaMessage_ViewOnce(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildMediaMessage_FigurinhaLevaDimensoesETipo(t *testing.T) {
+	meta := mediameta.Meta{Width: 512, Height: 512}
+	st := buildMediaMessage(MediaCommandPayload{MediaType: "sticker", MimeType: "image/webp"}, whatsmeow.UploadResponse{}, meta).GetStickerMessage()
+	if st == nil || st.GetMimetype() != "image/webp" || st.GetWidth() != 512 || st.GetHeight() != 512 || st.GetMediaKeyTimestamp() == 0 {
+		t.Fatalf("figurinha sem metadados: %+v", st)
+	}
+	if buildMediaMessage(MediaCommandPayload{MediaType: "sticker"}, whatsmeow.UploadResponse{}, mediameta.Meta{}).GetStickerMessage().Width != nil {
+		t.Fatal("sem ffmpeg a largura deve ficar ausente (nunca 0)")
+	}
+}

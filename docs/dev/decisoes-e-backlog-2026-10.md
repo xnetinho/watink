@@ -35,7 +35,11 @@ Ordem acordada: A, B, E, F (C encerrado, D entregue).
 - **Edição de mensagens** (#118–#122): receber e enviar, histórico, selo.
 - **Visualização única, recepção** (#124, Epic 11): ao responder no celular principal o Watink baixa a mídia, guarda e mostra como mídia comum com selo.
 - **Textos fixos** (#127–#131): `src/` inteiro sem texto fixo em português; guarda `noHardcodedText` sem exceções (valor que não é texto de tela leva `// i18n-ignore`); guarda `noModuleLevelTranslation` impede `tr()` fora de função.
-- **Menores (antigo item 5):** WAV (conversão para OGG/Opus), vídeo e PDF já saem como o cliente oficial; emojis locais (#105). Só falta sticker pelo painel (junto da B).
+- **Menores (antigo item 5):** WAV (conversão para OGG/Opus), vídeo e PDF já saem como o cliente oficial; emojis locais (#105). Sticker pelo painel entregue (botão "Figurinha" só em .webp, só WhatsApp, sem legenda; nos outros canais 422 `sticker_not_supported`).
+- **Enviar mídia como visualização única** (B, #134/#139): validado no celular do Diomedes (3/nov/2026). O reenvio pela exclamação mantém a marca (#139).
+- **Versão do cliente WhatsApp** (#136–#138) e **remoção do `GROUPS_API_TOKEN`** (#140): ver a seção própria acima.
+
+**Limitação conhecida (não corrigida, decisão do usuário em 3/nov/2026):** com as DUAS pontas sendo conexões do mesmo tenant (empresa conversando com ela mesma, como no teste 1→2), a mensagem recebida pela segunda conexão não é gravada: o ID da mensagem do WhatsApp é o mesmo nas duas pontas e `Messages` tem chave primária só no ID, então a gravação vira "duplicata". Em produção o destinatário é um cliente externo, sem colisão. O Telegram já resolveu o caso equivalente com `ExternalID` + conexão.
 - **"Aguardando mensagem" no primeiro envio (antigo item 2): ENCERRADO por falta de evidência** (30/out/2026). O aviso foi visto no celular do Diomedes antes do vigia e do `UseRetryMessageStore`; não reproduzido (texto a contato novo, sessão local apagada e número fora do WhatsApp foram testados e não geram o sintoma). Reabrir se voltar a ocorrer, anotando o horário para cruzar com o log do engine.
 
 **Fila**
