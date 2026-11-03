@@ -1,10 +1,10 @@
 module github.com/alltomatos/watinkdev/business
 
-go 1.25.0
+go 1.26.0
 
 require (
-	github.com/alltomatos/watinkdev/contracts/wbot v0.0.0
 	codeberg.org/readeck/go-readability/v2 v2.1.2
+	github.com/alltomatos/watinkdev/contracts/wbot v0.0.0
 	github.com/coder/websocket v1.8.15
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
