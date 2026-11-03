@@ -1077,7 +1077,14 @@ const messages = {
           all: "Todo o histórico disponível",
         },
       },
+      stickerPicker: {
+        loading: "Carregando figurinhas...",
+        empty: "Nenhuma figurinha salva. Abra o menu de uma figurinha numa conversa e escolha Salvar figurinha.",
+        send: "Enviar figurinha",
+        remove: "Remover da biblioteca",
+      },
       messagesInput: {
+        stickers: "Figurinhas",
         drop: {
           title: "Solte os arquivos aqui",
           hint: "Imagens, vídeos, áudios e documentos",
@@ -1152,6 +1159,9 @@ const messages = {
         },
       },
       messageOptionsMenu: {
+        saveSticker: "Salvar figurinha",
+        stickerSaved: "Figurinha salva na biblioteca.",
+        stickerUnavailable: "Essa figurinha não está mais disponível para salvar.",
         receipts: "Dados da mensagem",
         edit: "Editar",
         editDialog: {

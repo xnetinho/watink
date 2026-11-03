@@ -15,6 +15,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // newWAMessageID generates a WhatsApp-compatible outgoing message ID
@@ -126,6 +127,9 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			Body      string `json:"body"`
 			MediaType string `json:"mediaType"`
 			MediaUrl  string `json:"mediaUrl"`
+			// StickerID manda uma figurinha da biblioteca da empresa. É o id da biblioteca, nunca uma URL: o arquivo é o que
+			// a empresa guardou, e nenhum caminho de disco vem do cliente.
+			StickerID int `json:"stickerId"`
 			QuotedMsg *struct {
 				ID string `json:"id"`
 			} `json:"quotedMsg"`
@@ -151,6 +155,16 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		mediaURL = input.MediaUrl
 		if input.QuotedMsg != nil {
 			quotedID = input.QuotedMsg.ID
+		}
+		if input.StickerID != 0 {
+			var item models.StickerLibraryItem
+			if err := db.Session(&gorm.Session{NewDB: true}).Where(`id = ? AND "tenantId" = ?`, input.StickerID, tenantID).First(&item).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Sticker not found"})
+				return
+			}
+			// Figurinha não tem legenda; o arquivo já é o WebP final, o engine só o valida.
+			mediaType, mediaURL, mimeType, body = "sticker", item.MediaUrl, "image/webp", ""
+			sticker = true
 		}
 	} else {
 		// multipart/form-data: arquivo(s) de mídia

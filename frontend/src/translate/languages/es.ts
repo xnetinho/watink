@@ -914,7 +914,14 @@ const messages = {
           all: "Todo el historial disponible",
         },
       },
+      stickerPicker: {
+        loading: "Cargando stickers...",
+        empty: "No hay stickers guardados. Abre el menú de un sticker en una conversación y elige Guardar sticker.",
+        send: "Enviar sticker",
+        remove: "Quitar de la biblioteca",
+      },
       messagesInput: {
+        stickers: "Stickers",
         drop: {
           title: "Suelta los archivos aquí",
           hint: "Imágenes, videos, audios y documentos",
@@ -990,6 +997,9 @@ const messages = {
         },
       },
       messageOptionsMenu: {
+        saveSticker: "Guardar sticker",
+        stickerSaved: "Sticker guardado en la biblioteca.",
+        stickerUnavailable: "Este sticker ya no está disponible para guardar.",
         receipts: "Datos del mensaje",
         edit: "Editar",
         editDialog: {

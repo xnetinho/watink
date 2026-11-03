@@ -1,5 +1,6 @@
 /* @jsxImportSource react */
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router";
 import clsx from "clsx";
 import { Send, Mic, XOctagon, CheckCircle } from "lucide-react";
 import { Loader2 } from "lucide-react";
@@ -40,6 +41,8 @@ interface MessageInputProps {
 
 const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatus, replyPolicy, channel }) => {
   const { appTheme } = useThemeContext();
+  const { ticketId } = useParams<{ ticketId: string }>();
+  const [showStickers, setShowStickers] = useState(false);
 
   const {
     medias,
@@ -164,6 +167,11 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
           onMediaChange={handleChangeMedias}
           onSignChange={setSignMessage}
           onMenuOpenChange={setAnchorElMenu}
+          stickers={
+            !channel || channel === "whatsapp"
+              ? { open: showStickers, ticketId, onToggle: () => setShowStickers(!showStickers), onClose: () => setShowStickers(false) }
+              : undefined
+          }
         />
 
         {/* Input area */}
