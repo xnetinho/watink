@@ -102,18 +102,19 @@ describe("anexos: figurinha", () => {
     expect(post.mock.calls.map(([, form]) => form.get("sticker"))).toEqual(["true", null]);
   });
 
-  it("só .webp vira figurinha: foto comum e documento nunca levam o campo", async () => {
+  it("imagem, GIF e vídeo viram figurinha; documento e áudio nunca levam o campo", async () => {
     const { result } = renderHook(() => useMediaUpload(vi.fn()));
-    act(() => result.current.handleChangeMedias(files(f("a.png", "image/png"), f("b.pdf", "application/pdf")), "", vi.fn()));
-    act(() => result.current.handleStickerChange(0, true));
-    act(() => result.current.handleStickerChange(1, true));
+    act(() => result.current.handleChangeMedias(files(f("a.png", "image/png"), f("b.gif", "image/gif"), f("c.mp4", "video/mp4"), f("d.pdf", "application/pdf"), f("e.mp3", "audio/mpeg")), "", vi.fn()));
+    for (let i = 0; i < 5; i++) act(() => result.current.handleStickerChange(i, true));
     await act(async () => result.current.handleUploadMedia("9"));
-    expect(post.mock.calls.map(([, form]) => form.get("sticker"))).toEqual([null, null]);
+    expect(post.mock.calls.map(([, form]) => form.get("sticker"))).toEqual(["true", "true", "true", null, null]);
   });
 
-  it("reconhece o .webp pela extensão quando o navegador não informa o tipo", () => {
+  it("reconhece pela extensão quando o navegador não informa o tipo", () => {
     expect(canBeSticker({ type: "", name: "Figura.WEBP" })).toBe(true);
-    expect(canBeSticker({ type: "image/png", name: "a.png" })).toBe(false);
+    expect(canBeSticker({ type: "", name: "a.gif" })).toBe(true);
+    expect(canBeSticker({ type: "application/pdf", name: "a.pdf" })).toBe(false);
+    expect(canBeSticker({ type: "audio/mpeg", name: "a.mp3" })).toBe(false);
   });
 
   it("figurinha e visualização única se excluem, e a figurinha limpa a legenda", () => {

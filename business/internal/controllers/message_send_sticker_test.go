@@ -64,12 +64,26 @@ func TestSendMessage_Sticker(t *testing.T) {
 		assert.Equal(t, "foto", m.Body)
 	})
 
-	t.Run("o pedido em arquivo que não é webp é ignorado: sai como a mídia que é", func(t *testing.T) {
-		pub.calls = nil
-		rec := sendMultipart(t, r, ticket.ID, "image/jpeg", "h.jpg", []byte("\xff\xd8\xff\xe0FOTO"), map[string]string{"sticker": "true"})
-		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-		payload, _ := last()
-		assert.Equal(t, "image", payload["mediaType"])
+	t.Run("PNG, JPG, GIF e vídeo com o pedido também viram figurinha (o engine converte)", func(t *testing.T) {
+		for _, c := range []struct{ mime, name string }{{"image/png", "a.png"}, {"image/jpeg", "a.jpg"}, {"image/gif", "a.gif"}, {"video/mp4", "a.mp4"}} {
+			pub.calls = nil
+			rec := sendMultipart(t, r, ticket.ID, c.mime, c.name, []byte("\xff\xd8\xff\xe0DADOS"), map[string]string{"sticker": "true", "body": "x"})
+			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+			payload, m := last()
+			assert.Equal(t, "sticker", payload["mediaType"], c.mime)
+			assert.Equal(t, "sticker", m.MediaType, c.mime)
+			assert.Empty(t, m.Body, c.mime)
+		}
+	})
+
+	t.Run("o pedido em documento ou áudio é ignorado: sai como o que é", func(t *testing.T) {
+		for _, c := range []struct{ mime, name, want string }{{"application/pdf", "a.pdf", "document"}, {"audio/mpeg", "a.mp3", "audio"}} {
+			pub.calls = nil
+			rec := sendMultipart(t, r, ticket.ID, c.mime, c.name, []byte("%PDF-1.4"), map[string]string{"sticker": "true"})
+			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+			payload, _ := last()
+			assert.Equal(t, c.want, payload["mediaType"], c.mime)
+		}
 	})
 
 	t.Run("sticker diferente de true não liga nada", func(t *testing.T) {

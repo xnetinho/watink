@@ -116,7 +116,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	var voice bool
 	// viewOnce: foto, vídeo ou áudio enviado para ser visto uma única vez (olho no painel de envio).
 	var viewOnce bool
-	// sticker: o operador pediu figurinha no painel (só vale para .webp, e só no WhatsApp).
+	// sticker: o operador pediu figurinha no painel (imagem, GIF ou vídeo; o engine converte para WebP 512x512; só no WhatsApp).
 	var sticker bool
 	// fileName é o nome ORIGINAL do arquivo anexado: o destinatário vê este nome, não o hash com que o arquivo é salvo.
 	var fileName string
@@ -179,7 +179,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		mediaURL = savedURL
 		mediaType = mimeTypeToMediaType(mimeType)
 		// Um .webp sem o pedido continua sendo foto. Figurinha não tem legenda: o texto digitado não sai e não fica gravado.
-		if sticker = sticker && mimeType == "image/webp"; sticker {
+		if sticker = sticker && canBeSticker(mimeType); sticker {
 			mediaType, body = "sticker", ""
 		}
 	}
@@ -201,6 +201,12 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	}
 	mc.announce(db, tenantID, res)
 	c.JSON(http.StatusOK, gin.H{"message": "Message sent", "messageId": res.ID})
+}
+
+// canBeSticker diz se o arquivo pode virar figurinha: imagem (inclui GIF e WebP) ou vídeo curto. O engine converte para WebP
+// 512x512 e recusa o que não converter.
+func canBeSticker(mimeType string) bool {
+	return strings.HasPrefix(mimeType, "image/") || strings.HasPrefix(mimeType, "video/")
 }
 
 // canBeViewOnce diz se o tipo aceita visualização única: foto, vídeo e áudio. Documento e figurinha não têm esse modo no

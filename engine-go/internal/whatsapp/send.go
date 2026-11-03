@@ -2,8 +2,10 @@ package whatsapp
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/alltomatos/watinkdev/engine-go/internal/mediameta"
@@ -60,6 +62,10 @@ func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload Medi
 	// miniatura o celular do destinatário mostra a mídia "vazia" até baixá-la). Melhor esforço: falha aqui não barra o envio.
 	var meta mediameta.Meta
 	data, payload, meta = enrichMedia(context.Background(), data, payload)
+	if payload.StickerError != "" {
+		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
+		return fmt.Errorf("figurinha: %s", payload.StickerError)
+	}
 	log.Printf("[media] %s tipo=%s bytes=%d mime=%q miniatura=%dB %dx%d duração=%ds páginas=%d onda=%d barras ffmpeg=%v poppler=%v",
 		payload.MessageID, payload.MediaType, len(data), payload.MimeType, len(meta.Thumbnail), max(meta.Width, meta.ThumbW), max(meta.Height, meta.ThumbH), meta.Seconds, meta.Pages, len(meta.Waveform), mediameta.Available(), mediameta.AvailablePDF())
 
@@ -79,7 +85,26 @@ func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload Medi
 		return err
 	}
 	s.emitAck(sessionID, tenantID, payload.MessageID, 1)
+	// A figurinha que o destinatário recebeu é o WebP convertido, não o arquivo que o operador escolheu: devolve-o ao
+	// business para a conversa e a biblioteca guardarem o mesmo que foi enviado.
+	if strings.EqualFold(payload.MediaType, "sticker") {
+		s.publishStickerSent(tenantID, sessionID, payload.MessageID, data, meta.Animated)
+	}
 	return nil
+}
+
+// publishStickerSent devolve a figurinha final (WebP 512x512) à conversa. É o mesmo evento message.media da mídia baixada, com
+// replaced=true: o business troca o arquivo da mensagem em vez de preencher uma mídia pendente.
+func (s *WhatsAppService) publishStickerSent(tenantID string, sessionID int, messageID string, webp []byte, animated bool) {
+	s.publishEvent(tenantID, sessionID, "message.media", map[string]interface{}{
+		"sessionId": fmt.Sprintf("%d", sessionID),
+		"messageId": messageID,
+		"mediaData": base64.StdEncoding.EncodeToString(webp),
+		"mimetype":  "image/webp",
+		"replaced":  true,
+		"animated":  animated,
+		"error":     "",
+	})
 }
 
 // SendPresence sets the chat-composing indicator ("digitando...") for one

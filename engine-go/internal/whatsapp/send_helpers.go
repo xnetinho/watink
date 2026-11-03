@@ -162,6 +162,14 @@ func normalizeMediaType(mediaType string) whatsmeow.MediaType {
 }
 
 // viewOnceFlag liga a visualização única só quando pedida: ausente é o que o cliente oficial manda numa mídia comum.
+// animatedFlag marca a figurinha como animada só quando é; ausente é o que o cliente oficial manda numa estática.
+func animatedFlag(m mediameta.Meta) *bool {
+	if !m.Animated {
+		return nil
+	}
+	return proto.Bool(true)
+}
+
 func viewOnceFlag(p MediaCommandPayload) *bool {
 	if !p.ViewOnce {
 		return nil
@@ -241,7 +249,8 @@ func buildMediaPayload(payload MediaCommandPayload, uploaded whatsmeow.UploadRes
 		return &waProto.Message{StickerMessage: &waProto.StickerMessage{
 			Mimetype: proto.String(mimeType),
 			Height:   optU32(meta.Height), Width: optU32(meta.Width), MediaKeyTimestamp: proto.Int64(time.Now().Unix()),
-			URL:      proto.String(uploaded.URL), DirectPath: proto.String(uploaded.DirectPath),
+			IsAnimated: animatedFlag(meta),
+			URL:        proto.String(uploaded.URL), DirectPath: proto.String(uploaded.DirectPath),
 			MediaKey: uploaded.MediaKey, FileEncSHA256: uploaded.FileEncSHA256,
 			FileSHA256: uploaded.FileSHA256, FileLength: proto.Uint64(uploaded.FileLength),
 			ContextInfo: ctx,

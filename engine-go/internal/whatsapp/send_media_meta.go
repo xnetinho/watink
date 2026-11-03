@@ -35,7 +35,25 @@ func enrichMedia(ctx context.Context, data []byte, payload MediaCommandPayload) 
 		return data, payload, mediameta.Meta{}
 	}
 	switch strings.ToLower(payload.MediaType) {
-	case "image", "sticker":
+	case "sticker":
+		// Figurinha precisa ser WebP 512x512 dentro do limite de tamanho. Imagem, GIF e vídeo curto são convertidos aqui;
+		// se a conversão falhar a mídia NÃO segue como figurinha torta: o erro sobe e o envio falha com aviso.
+		st, err := mediameta.ToSticker(ctx, data, ext)
+		if err != nil {
+			log.Printf("[media] figurinha %s: conversão falhou: %v", payload.MessageID, err)
+			payload.StickerError = err.Error()
+			return data, payload, mediameta.Meta{}
+		}
+		payload.MimeType = "image/webp"
+		meta := mediameta.Image(ctx, st.Data, "webp")
+		// O ffmpeg não lê WebP animado (largura/altura/miniatura vêm vazias), mas o cliente oficial manda as medidas: lê do
+		// cabeçalho do próprio WebP, que sempre as tem.
+		if info, ok := mediameta.ParseWebP(st.Data); ok {
+			meta.Width, meta.Height = info.Width, info.Height
+		}
+		meta.Animated = st.Animated
+		return st.Data, payload, meta
+	case "image":
 		return data, payload, mediameta.Image(ctx, data, ext)
 	case "video":
 		return data, payload, mediameta.Video(ctx, data, ext)
