@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	waProto "go.mau.fi/whatsmeow/binary/proto"
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -167,5 +168,16 @@ func TestExtractMessageContent_AudioPTTRecebidoMarcaVoz(t *testing.T) {
 	ausente := extractMessageContent(&waProto.Message{AudioMessage: &waProto.AudioMessage{Mimetype: proto.String("audio/mpeg")}})
 	if _, isVoice := ausente.rich["voice"]; isVoice {
 		t.Fatalf("ptt ausente não é voz: %+v", ausente.rich)
+	}
+}
+
+func TestExtractMessageContent_GIFRecebidoMarcaGif(t *testing.T) {
+	gif := extractMessageContent(&waE2E.Message{VideoMessage: &waE2E.VideoMessage{Mimetype: proto.String("video/mp4"), GifPlayback: proto.Bool(true)}})
+	if gif.msgType != "video" || gif.rich["gif"] != true {
+		t.Fatalf("GIF recebido deve marcar gif: %+v", gif)
+	}
+	comum := extractMessageContent(&waE2E.Message{VideoMessage: &waE2E.VideoMessage{Mimetype: proto.String("video/mp4")}})
+	if _, isGif := comum.rich["gif"]; isGif || comum.msgType != "video" {
+		t.Fatalf("vídeo comum não é GIF: %+v", comum.rich)
 	}
 }

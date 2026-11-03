@@ -58,7 +58,12 @@ func extractMessageContent(msg *waProto.Message) mediaContent {
 		return mediaContent{fileLength: img.GetFileLength(), body: img.GetCaption(), msgType: "image", mimeType: img.GetMimetype(), thumbnail: encodeThumb(img.GetJPEGThumbnail()), protoB64: marshalMedia(img)}
 	}
 	if video := msg.GetVideoMessage(); video != nil {
-		return mediaContent{fileLength: video.GetFileLength(), body: video.GetCaption(), msgType: "video", mimeType: video.GetMimetype(), thumbnail: encodeThumb(video.GetJPEGThumbnail()), protoB64: marshalMedia(video)}
+		c := mediaContent{fileLength: video.GetFileLength(), body: video.GetCaption(), msgType: "video", mimeType: video.GetMimetype(), thumbnail: encodeThumb(video.GetJPEGThumbnail()), protoB64: marshalMedia(video)}
+		if video.GetGifPlayback() {
+			// GIF recebido: o chat o toca em loop e sem som, como o WhatsApp.
+			c.rich = map[string]interface{}{"gif": true}
+		}
+		return c
 	}
 	if ptv := msg.GetPtvMessage(); ptv != nil {
 		return mediaContent{fileLength: ptv.GetFileLength(), msgType: "video", mimeType: ptv.GetMimetype(), thumbnail: encodeThumb(ptv.GetJPEGThumbnail()), protoB64: marshalMedia(ptv), rich: map[string]interface{}{"round": true}}

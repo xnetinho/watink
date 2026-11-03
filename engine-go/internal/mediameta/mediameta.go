@@ -40,6 +40,8 @@ type Meta struct {
 	Thumbnail      []byte // JPEG
 	Waveform       []byte // 64 amostras 0..100
 	Animated       bool   // figurinha com movimento (isAnimated do StickerMessage)
+	GIF            bool   // vídeo que veio de um GIF (gifPlayback do VideoMessage)
+	GIFTrimmed     bool   // o GIF era mais longo que GIFMaxSeconds e foi cortado
 }
 
 // AvailablePDF diz se o poppler (pdfinfo/pdftoppm) existe. Sem ele, PDF segue sem miniatura e sem nº de páginas.

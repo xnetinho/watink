@@ -48,8 +48,8 @@ type MediaCommandPayload struct {
 	ForwardScore int          `json:"forwardScore,omitempty"`
 	// ViewOnce envia a mídia como visualização única (foto, vídeo ou áudio). Ignorado nos demais tipos.
 	ViewOnce bool `json:"viewOnce,omitempty"`
-	// StickerError é preenchido pelo próprio engine (nunca vem do comando) quando a figurinha não pôde ser convertida.
-	StickerError string `json:"-"`
+	// ConvertError é preenchido pelo próprio engine (nunca vem do comando) quando a mídia não pôde ser convertida (figurinha ou GIF).
+	ConvertError string `json:"-"`
 }
 
 // ReactionCommandPayload sends (or removes, when Reaction=="") an emoji

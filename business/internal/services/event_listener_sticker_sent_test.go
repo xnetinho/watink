@@ -92,3 +92,47 @@ func TestHandleMediaDownloaded_ReplacedSemMensagemNaoQuebra(t *testing.T) {
 	e := stickerSentEnv(t)
 	require.NoError(t, e.send("NAO_EXISTE", nil))
 }
+
+// O GIF enviado vira vídeo: a mensagem passa a "video" com a marca gif (e gifTrimmed quando foi cortado).
+func TestHandleMediaDownloaded_GIFEnviadoViraVideoComMarcaGif(t *testing.T) {
+	e := stickerSentEnv(t)
+	require.NoError(t, e.db.Create(&models.Message{ID: "GIF1", MediaType: "image", MediaUrl: "/public/media/orig.gif", FromMe: true,
+		TicketID: e.tk.ID, TenantID: e.tenant, DataJson: `{"fileName":"a.gif","mimetype":"image/gif"}`}).Error)
+
+	require.NoError(t, e.send("GIF1", map[string]interface{}{"gif": true, "trimmed": true, "mimetype": "video/mp4", "mediaType": "video"}))
+
+	m := e.get("GIF1")
+	assert.Equal(t, "video", m.MediaType, "o GIF passa a ser um vídeo")
+	assert.Contains(t, m.MediaUrl, ".mp4")
+	var d map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(m.DataJson), &d))
+	assert.Equal(t, true, d["gif"])
+	assert.Equal(t, true, d["gifTrimmed"])
+	assert.Equal(t, "video/mp4", d["mimetype"])
+	assert.Equal(t, "a.gif", d["fileName"])
+}
+
+func TestHandleMediaDownloaded_GIFSemCorteNaoMarcaGifTrimmed(t *testing.T) {
+	e := stickerSentEnv(t)
+	require.NoError(t, e.db.Create(&models.Message{ID: "GIF2", MediaType: "image", MediaUrl: "/public/media/o.gif", FromMe: true, TicketID: e.tk.ID, TenantID: e.tenant, DataJson: `{}`}).Error)
+	require.NoError(t, e.send("GIF2", map[string]interface{}{"gif": true, "mimetype": "video/mp4"}))
+	var d map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(e.get("GIF2").DataJson), &d))
+	assert.Equal(t, true, d["gif"])
+	assert.NotContains(t, d, "gifTrimmed")
+}
+
+// gif=true só troca imagem/vídeo nossos; nunca figurinha, documento ou mensagem recebida.
+func TestHandleMediaDownloaded_GIFNaoTrocaOQueNaoEImagemNossa(t *testing.T) {
+	e := stickerSentEnv(t)
+	require.NoError(t, e.db.Create(&models.Message{ID: "DOC1", MediaType: "document", MediaUrl: "/public/media/d.pdf", FromMe: true, TicketID: e.tk.ID, TenantID: e.tenant, DataJson: `{}`}).Error)
+	require.NoError(t, e.db.Create(&models.Message{ID: "RECEB1", MediaType: "image", MediaUrl: "/public/media/r.jpg", FromMe: false, TicketID: e.tk.ID, TenantID: e.tenant, DataJson: `{}`}).Error)
+	require.NoError(t, e.db.Create(&models.Message{ID: "STK9", MediaType: "sticker", MediaUrl: "/public/media/s.webp", FromMe: true, TicketID: e.tk.ID, TenantID: e.tenant, DataJson: `{}`}).Error)
+
+	for _, id := range []string{"DOC1", "RECEB1", "STK9"} {
+		require.NoError(t, e.send(id, map[string]interface{}{"gif": true, "mimetype": "video/mp4"}))
+	}
+	assert.Equal(t, "/public/media/d.pdf", e.get("DOC1").MediaUrl)
+	assert.Equal(t, "/public/media/r.jpg", e.get("RECEB1").MediaUrl)
+	assert.Equal(t, "/public/media/s.webp", e.get("STK9").MediaUrl)
+}

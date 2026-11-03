@@ -62,9 +62,9 @@ func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload Medi
 	// miniatura o celular do destinatário mostra a mídia "vazia" até baixá-la). Melhor esforço: falha aqui não barra o envio.
 	var meta mediameta.Meta
 	data, payload, meta = enrichMedia(context.Background(), data, payload)
-	if payload.StickerError != "" {
+	if payload.ConvertError != "" {
 		s.emitAck(sessionID, tenantID, payload.MessageID, 5)
-		return fmt.Errorf("figurinha: %s", payload.StickerError)
+		return fmt.Errorf("conversão de mídia: %s", payload.ConvertError)
 	}
 	log.Printf("[media] %s tipo=%s bytes=%d mime=%q miniatura=%dB %dx%d duração=%ds páginas=%d onda=%d barras ffmpeg=%v poppler=%v",
 		payload.MessageID, payload.MediaType, len(data), payload.MimeType, len(meta.Thumbnail), max(meta.Width, meta.ThumbW), max(meta.Height, meta.ThumbH), meta.Seconds, meta.Pages, len(meta.Waveform), mediameta.Available(), mediameta.AvailablePDF())
@@ -90,6 +90,10 @@ func (s *WhatsAppService) SendMedia(sessionID int, tenantID string, payload Medi
 	if strings.EqualFold(payload.MediaType, "sticker") {
 		s.publishStickerSent(tenantID, sessionID, payload.MessageID, data, meta.Animated)
 	}
+	// Idem para o GIF: o que o destinatário recebeu é o MP4, e a conversa precisa tocar o mesmo.
+	if meta.GIF {
+		s.publishGIFSent(tenantID, sessionID, payload.MessageID, data, meta.GIFTrimmed)
+	}
 	return nil
 }
 
@@ -103,6 +107,22 @@ func (s *WhatsAppService) publishStickerSent(tenantID string, sessionID int, mes
 		"mimetype":  "image/webp",
 		"replaced":  true,
 		"animated":  animated,
+		"error":     "",
+	})
+}
+
+// publishGIFSent devolve o MP4 final do GIF à conversa (message.media com replaced), igual à figurinha. trimmed diz que o GIF
+// era longo e foi cortado, para a tela avisar o operador.
+func (s *WhatsAppService) publishGIFSent(tenantID string, sessionID int, messageID string, mp4 []byte, trimmed bool) {
+	s.publishEvent(tenantID, sessionID, "message.media", map[string]interface{}{
+		"sessionId": fmt.Sprintf("%d", sessionID),
+		"messageId": messageID,
+		"mediaData": base64.StdEncoding.EncodeToString(mp4),
+		"mimetype":  "video/mp4",
+		"mediaType": "video",
+		"replaced":  true,
+		"gif":       true,
+		"trimmed":   trimmed,
 		"error":     "",
 	})
 }

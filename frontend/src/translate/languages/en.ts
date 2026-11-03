@@ -512,6 +512,10 @@ const messages = {
           title: "Unsupported message",
           hint: "Watink can't display this message type yet ({{kind}}). Open it on the phone or in the channel app.",
         },
+        gifTrimmed: {
+          badge: "GIF trimmed to 15 s",
+          hint: "The GIF was longer than 15 seconds and was trimmed: the recipient saw only the beginning.",
+        },
         viewOnce: {
           badgeSent: "View once",
           badgeSentHint: "The recipient sees this media only once. Here in Watink it stays stored for your records.",

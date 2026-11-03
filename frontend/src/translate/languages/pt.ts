@@ -634,6 +634,10 @@ const messages = {
           title: "Mensagem não suportada",
           hint: "O Watink ainda não sabe exibir este tipo de mensagem ({{kind}}). Veja no celular ou no app do canal.",
         },
+        gifTrimmed: {
+          badge: "GIF cortado em 15 s",
+          hint: "O GIF era mais longo que 15 segundos e foi cortado: o destinatário viu só o começo.",
+        },
         viewOnce: {
           badgeSent: "Visualização única",
           badgeSentHint: "O destinatário vê esta mídia uma única vez. Aqui no Watink ela fica guardada para o seu registro.",
