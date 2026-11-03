@@ -50,7 +50,7 @@ func (ctrl *StickerLibraryController) List(c *gin.Context) {
 // @Tags         stickers
 // @Accept       json
 // @Produce      json
-// @Success      200  {object}  models.StickerLibraryItem
+// @Success      200  {object}  savedSticker
 // @Security     BearerAuth
 // @Router       /stickers [post]
 func (ctrl *StickerLibraryController) Save(c *gin.Context) {
@@ -91,17 +91,26 @@ func (ctrl *StickerLibraryController) Save(c *gin.Context) {
 		item.SavedBy = &uid
 	}
 	writeDB := db.Session(&gorm.Session{NewDB: true})
-	// A figurinha pode já existir (mesmo conteúdo): não duplica, e a resposta é a que está guardada.
-	if err := writeDB.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenantId"}, {Name: "hash"}}, DoNothing: true}).Create(&item).Error; err != nil {
-		utils.RespondWithInternalError(c, err, "SaveSticker")
+	// A figurinha pode já existir (mesmo conteúdo): não duplica, e a resposta é a que está guardada. RowsAffected diz se esta
+	// chamada foi quem inseriu; se ninguém inseriu, ela já estava na biblioteca e a tela avisa isso.
+	res := writeDB.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenantId"}, {Name: "hash"}}, DoNothing: true}).Create(&item)
+	if res.Error != nil {
+		utils.RespondWithInternalError(c, res.Error, "SaveSticker")
 		return
 	}
+	alreadySaved := res.RowsAffected == 0
 	var saved models.StickerLibraryItem
 	if err := writeDB.Where(`"tenantId" = ? AND hash = ?`, tenantID, item.Hash).First(&saved).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "SaveSticker.Reload")
 		return
 	}
-	c.JSON(http.StatusOK, saved)
+	c.JSON(http.StatusOK, savedSticker{StickerLibraryItem: saved, AlreadySaved: alreadySaved})
+}
+
+// savedSticker é a resposta de "salvar": o item da biblioteca (mesmo JSON do modelo) mais se ele já estava lá.
+type savedSticker struct {
+	models.StickerLibraryItem
+	AlreadySaved bool `json:"alreadySaved"`
 }
 
 // Delete tira a figurinha da biblioteca da empresa. O arquivo continua no armazenamento (outras mensagens podem apontar para ele).

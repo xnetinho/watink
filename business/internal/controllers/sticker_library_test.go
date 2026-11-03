@@ -107,7 +107,7 @@ func TestStickerLibrary_MesmoConteudoNaoDuplicaMesmoEmMensagensDiferentes(t *tes
 	e.msg(t, "M2", "sticker", e.file(t, "dois.webp", "MESMO-CONTEUDO"), `{}`)
 	r := e.router(e.tenant)
 
-	var first, second models.StickerLibraryItem
+	var first, second savedSticker
 	rec := stickerCall(t, r, http.MethodPost, "/stickers", `{"messageId":"M1"}`)
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &first))
@@ -115,6 +115,8 @@ func TestStickerLibrary_MesmoConteudoNaoDuplicaMesmoEmMensagensDiferentes(t *tes
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &second))
 
+	assert.False(t, first.AlreadySaved, "a primeira vez guarda de verdade")
+	assert.True(t, second.AlreadySaved, "a segunda já estava na biblioteca: a tela precisa saber")
 	assert.Equal(t, first.ID, second.ID, "salvar de novo devolve a que já existe")
 	var n int64
 	require.NoError(t, e.db.Model(&models.StickerLibraryItem{}).Where(`"tenantId" = ?`, e.tenant).Count(&n).Error)
@@ -216,4 +218,44 @@ func TestStickerLibrary_ListaMaisRecentePrimeiroERemove(t *testing.T) {
 
 	_, statErr := os.Stat(filepath.Join("public", "media", "b.webp"))
 	assert.NoError(t, statErr, "o arquivo continua no armazenamento: outras mensagens podem apontar para ele")
+}
+
+// Quem salva uma figurinha que OUTRA empresa também tem guarda a sua: alreadySaved é por empresa, não global.
+func TestStickerLibrary_AlreadySavedEhPorEmpresa(t *testing.T) {
+	e := newStickerEnv(t)
+	e.msg(t, "M1", "sticker", e.file(t, "a.webp", "IGUAL"), `{}`)
+	var mine savedSticker
+	rec := stickerCall(t, e.router(e.tenant), http.MethodPost, "/stickers", `{"messageId":"M1"}`)
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &mine))
+	assert.False(t, mine.AlreadySaved)
+
+	other := uuid.New()
+	require.NoError(t, e.db.Create(&models.Tenant{ID: other, Name: "Outra"}).Error)
+	wa := models.Whatsapp{Name: "W2", TenantID: other, Status: "CONNECTED"}
+	require.NoError(t, e.db.Create(&wa).Error)
+	ct := models.Contact{Name: "C2", Number: "5511999990002", TenantID: other}
+	require.NoError(t, e.db.Create(&ct).Error)
+	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: other, Status: "open"}
+	require.NoError(t, e.db.Create(&tk).Error)
+	require.NoError(t, e.db.Create(&models.Message{ID: "M9", MediaType: "sticker", MediaUrl: "/public/media/a.webp", TicketID: tk.ID, TenantID: other, DataJson: `{}`}).Error)
+
+	var theirs savedSticker
+	rec = stickerCall(t, e.router(other), http.MethodPost, "/stickers", `{"messageId":"M9"}`)
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &theirs))
+	assert.False(t, theirs.AlreadySaved, "para a outra empresa é a primeira vez")
+	assert.NotEqual(t, mine.ID, theirs.ID)
+}
+
+// O JSON de salvar mantém todos os campos do modelo (quem já consome a resposta não quebra) e acrescenta alreadySaved.
+func TestStickerLibrary_RespostaDeSalvarMantemOsCamposDoModelo(t *testing.T) {
+	e := newStickerEnv(t)
+	e.msg(t, "M1", "sticker", e.file(t, "a.webp", "A"), `{"animated":true}`)
+	rec := stickerCall(t, e.router(e.tenant), http.MethodPost, "/stickers", `{"messageId":"M1"}`)
+	var raw map[string]interface{}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &raw))
+	for _, k := range []string{"id", "tenantId", "hash", "mediaUrl", "width", "height", "animated", "savedBy", "createdAt", "alreadySaved"} {
+		assert.Contains(t, raw, k)
+	}
+	assert.Equal(t, true, raw["animated"])
+	assert.Equal(t, false, raw["alreadySaved"])
 }

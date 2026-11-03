@@ -1161,6 +1161,7 @@ const messages = {
       messageOptionsMenu: {
         saveSticker: "Salvar figurinha",
         stickerSaved: "Figurinha salva na biblioteca.",
+        stickerAlreadySaved: "Essa figurinha já está na biblioteca.",
         stickerUnavailable: "Essa figurinha não está mais disponível para salvar.",
         receipts: "Dados da mensagem",
         edit: "Editar",

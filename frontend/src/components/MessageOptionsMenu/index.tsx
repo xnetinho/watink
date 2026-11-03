@@ -86,8 +86,10 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
   const handleSaveSticker = async () => {
     handleClose();
     try {
-      await api.post("/stickers", { messageId: message.id });
-      toast.success(String(i18n.t("messageOptionsMenu.stickerSaved") ?? ""));
+      const { data } = await api.post<{ alreadySaved?: boolean }>("/stickers", { messageId: message.id });
+      // A figurinha já estava na biblioteca da empresa (salva por outro atendente, ou por este antes): não foi gravada de novo.
+      if (data?.alreadySaved) toast.info(String(i18n.t("messageOptionsMenu.stickerAlreadySaved") ?? ""));
+      else toast.success(String(i18n.t("messageOptionsMenu.stickerSaved") ?? ""));
     } catch (err) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       // 422: a figurinha não tem arquivo guardado (mídia ainda não baixada, ou já removida): avisa em vez de um erro genérico.

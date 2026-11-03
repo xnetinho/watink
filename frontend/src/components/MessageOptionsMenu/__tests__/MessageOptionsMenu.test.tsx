@@ -13,7 +13,8 @@ vi.mock("../../../services/api", () => ({
 vi.mock("../../../errors/toastError", () => ({ default: vi.fn() }));
 const toastSuccess = vi.fn();
 const toastWarning = vi.fn();
-vi.mock("react-toastify", () => ({ toast: { success: (m: string) => toastSuccess(m), warning: (m: string) => toastWarning(m), error: vi.fn() } }));
+const toastInfo = vi.fn();
+vi.mock("react-toastify", () => ({ toast: { success: (m: string) => toastSuccess(m), warning: (m: string) => toastWarning(m), info: (m: string) => toastInfo(m), error: vi.fn() } }));
 
 describe("MessageOptionsMenu — reações rápidas", () => {
   beforeEach(() => {
@@ -134,6 +135,7 @@ describe("MessageOptionsMenu — Salvar figurinha", () => {
     mockApiPost.mockReset();
     toastSuccess.mockReset();
     toastWarning.mockReset();
+    toastInfo.mockReset();
   });
 
   it("figurinha recebida ou enviada oferece Salvar e manda o ID DA MENSAGEM (nunca a URL)", async () => {
@@ -142,6 +144,26 @@ describe("MessageOptionsMenu — Salvar figurinha", () => {
     fireEvent.click(screen.getByTestId("message-save-sticker-item"));
     await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/stickers", { messageId: "S1" }));
     await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+  });
+
+  it("figurinha que JÁ estava na biblioteca avisa isso, em vez de dizer que salvou", async () => {
+    mockApiPost.mockResolvedValue({ data: { id: 3, alreadySaved: true } });
+    open(sticker);
+    fireEvent.click(screen.getByTestId("message-save-sticker-item"));
+    await waitFor(() => expect(toastInfo).toHaveBeenCalledWith("Essa figurinha já está na biblioteca."));
+    expect(toastSuccess).not.toHaveBeenCalled();
+  });
+
+  it("figurinha nova diz que foi salva (alreadySaved ausente ou falso)", async () => {
+    for (const data of [{ id: 1 }, { id: 1, alreadySaved: false }]) {
+      toastSuccess.mockReset();
+      mockApiPost.mockResolvedValue({ data });
+      const { unmount } = open(sticker);
+      fireEvent.click(screen.getByTestId("message-save-sticker-item"));
+      await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("Figurinha salva na biblioteca."));
+      expect(toastInfo).not.toHaveBeenCalled();
+      unmount();
+    }
   });
 
   it("enviada por nós também pode ser salva", () => {

@@ -991,6 +991,7 @@ const messages = {
       messageOptionsMenu: {
         saveSticker: "Save sticker",
         stickerSaved: "Sticker saved to the library.",
+        stickerAlreadySaved: "This sticker is already in the library.",
         stickerUnavailable: "This sticker is no longer available to save.",
         receipts: "Message info",
         edit: "Edit",
