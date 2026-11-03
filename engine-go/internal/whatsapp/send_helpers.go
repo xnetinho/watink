@@ -162,6 +162,14 @@ func normalizeMediaType(mediaType string) whatsmeow.MediaType {
 }
 
 // viewOnceFlag liga a visualização única só quando pedida: ausente é o que o cliente oficial manda numa mídia comum.
+// gifFlag liga gifPlayback só no vídeo que veio de um GIF: o celular o toca em loop, sem som e sem controles.
+func gifFlag(m mediameta.Meta) *bool {
+	if !m.GIF {
+		return nil
+	}
+	return proto.Bool(true)
+}
+
 // animatedFlag marca a figurinha como animada só quando é; ausente é o que o cliente oficial manda numa estática.
 func animatedFlag(m mediameta.Meta) *bool {
 	if !m.Animated {
@@ -222,7 +230,8 @@ func buildMediaPayload(payload MediaCommandPayload, uploaded whatsmeow.UploadRes
 	case "video":
 		return &waProto.Message{VideoMessage: &waProto.VideoMessage{
 			ViewOnce: viewOnceFlag(payload), Caption: proto.String(payload.Body), Mimetype: proto.String(mimeType),
-			Seconds: optU32(meta.Seconds), Height: optU32(meta.Height), Width: optU32(meta.Width), JPEGThumbnail: meta.Thumbnail,
+			GifPlayback: gifFlag(meta),
+			Seconds:     optU32(meta.Seconds), Height: optU32(meta.Height), Width: optU32(meta.Width), JPEGThumbnail: meta.Thumbnail,
 			MediaKeyTimestamp: proto.Int64(time.Now().Unix()),
 			URL:               proto.String(uploaded.URL), DirectPath: proto.String(uploaded.DirectPath),
 			MediaKey: uploaded.MediaKey, FileEncSHA256: uploaded.FileEncSHA256,

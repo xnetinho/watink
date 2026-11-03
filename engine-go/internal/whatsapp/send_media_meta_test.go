@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/alltomatos/watinkdev/engine-go/internal/mediameta"
+	"go.mau.fi/whatsmeow"
 )
 
 func TestExtOf_PrefereNomeDepoisUrlDepoisMimetype(t *testing.T) {
@@ -105,8 +106,8 @@ func TestEnrichMedia_FigurinhaPNGViraWebP512(t *testing.T) {
 	}
 	out, p, meta := enrichMedia(context.Background(), png, MediaCommandPayload{MediaType: "sticker", MimeType: "image/png", FileName: "a.png"})
 	info, ok := mediameta.ParseWebP(out)
-	if !ok || info.Width != 512 || info.Height != 512 || p.MimeType != "image/webp" || p.StickerError != "" {
-		t.Fatalf("PNG não virou figurinha: ok=%v %+v mime=%q err=%q", ok, info, p.MimeType, p.StickerError)
+	if !ok || info.Width != 512 || info.Height != 512 || p.MimeType != "image/webp" || p.ConvertError != "" {
+		t.Fatalf("PNG não virou figurinha: ok=%v %+v mime=%q err=%q", ok, info, p.MimeType, p.ConvertError)
 	}
 	if meta.Animated || meta.Width != 512 || meta.Height != 512 {
 		t.Fatalf("meta = %+v", meta)
@@ -137,7 +138,7 @@ func TestEnrichMedia_FigurinhaQueNaoConverteFalhaEmVezDeSairTorta(t *testing.T) 
 	}
 	lixo := bytes.Repeat([]byte{1, 2, 3}, 200)
 	_, p, _ := enrichMedia(context.Background(), lixo, MediaCommandPayload{MediaType: "sticker", MimeType: "image/webp", FileName: "a.webp"})
-	if p.StickerError == "" {
+	if p.ConvertError == "" {
 		t.Fatal("figurinha que não converte tem de falhar com aviso, não sair como está")
 	}
 }
@@ -154,6 +155,64 @@ func TestPublishStickerSent_DevolveOWebPFinalComReplaced(t *testing.T) {
 	}
 	p := c.payload
 	if p["messageId"] != "MSG1" || p["mimetype"] != "image/webp" || p["replaced"] != true || p["animated"] != true || p["mediaData"] != "V0VCUERBVEE=" {
+		t.Fatalf("payload errado: %+v", p)
+	}
+}
+
+func TestEnrichMedia_GIFComumViraVideoMP4ComGifPlayback(t *testing.T) {
+	if !mediameta.Available() {
+		t.Skip("ffmpeg não instalado")
+	}
+	gif, err := exec.Command("ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=200x200:r=12:d=2", "-f", "gif", "-").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, p, meta := enrichMedia(context.Background(), gif, MediaCommandPayload{MediaType: "image", MimeType: "image/gif", FileName: "a.gif"})
+	if p.MediaType != "video" || p.MimeType != "video/mp4" || p.ConvertError != "" {
+		t.Fatalf("GIF não virou vídeo: tipo=%q mime=%q err=%q", p.MediaType, p.MimeType, p.ConvertError)
+	}
+	if len(out) < 12 || string(out[4:8]) != "ftyp" || !meta.GIF || meta.Width != 200 || meta.Seconds != 2 {
+		t.Fatalf("saída/meta errados: %d bytes, meta=%+v", len(out), meta)
+	}
+	msg := buildMediaMessage(p, whatsmeow.UploadResponse{}, meta)
+	if v := msg.GetVideoMessage(); v == nil || v.GifPlayback == nil || !*v.GifPlayback || v.GetMimetype() != "video/mp4" {
+		t.Fatalf("o VideoMessage do GIF precisa de gifPlayback: %+v", v)
+	}
+}
+
+func TestEnrichMedia_FotoComumNaoViraVideo(t *testing.T) {
+	if !mediameta.Available() {
+		t.Skip("ffmpeg não instalado")
+	}
+	png, err := exec.Command("ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=c=green:s=64x64", "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, p, meta := enrichMedia(context.Background(), png, MediaCommandPayload{MediaType: "image", MimeType: "image/png", FileName: "a.png"})
+	if p.MediaType != "image" || meta.GIF {
+		t.Fatalf("imagem comum não pode virar vídeo: tipo=%q gif=%v", p.MediaType, meta.GIF)
+	}
+}
+
+func TestEnrichMedia_GIFQueNaoConverteFalhaEmVezDeSerDescartadoPeloCelular(t *testing.T) {
+	if !mediameta.Available() {
+		t.Skip("ffmpeg não instalado")
+	}
+	quebrado := append([]byte("GIF89a"), bytes.Repeat([]byte{7}, 100)...)
+	_, p, _ := enrichMedia(context.Background(), quebrado, MediaCommandPayload{MediaType: "image", MimeType: "image/gif", FileName: "a.gif"})
+	if p.ConvertError == "" {
+		t.Fatal("GIF que não converte tem de falhar com aviso, não ser enviado como image/gif (o celular o descarta)")
+	}
+}
+
+func TestPublishGIFSent_DevolveOMP4FinalComReplacedETrimmed(t *testing.T) {
+	s, calls := newTestService()
+	s.publishGIFSent("t1", 7, "MSG1", []byte("MP4DATA"), true)
+	if len(*calls) != 1 {
+		t.Fatalf("esperava 1 evento, veio %d", len(*calls))
+	}
+	p := (*calls)[0].payload
+	if (*calls)[0].eventType != "message.media" || p["mimetype"] != "video/mp4" || p["mediaType"] != "video" || p["replaced"] != true || p["gif"] != true || p["trimmed"] != true || p["messageId"] != "MSG1" {
 		t.Fatalf("payload errado: %+v", p)
 	}
 }

@@ -28,7 +28,8 @@ import QuotedMessage from "./QuotedMessage";
 // that renders without a URL: location/vcard/carousel (body-driven) and the
 // downloadable types whose blurred placeholder shows before download.
 /** Há selo no rodapé esquerdo do balão (editada ou visualização única)? Quem tem precisa de largura e de uma linha extra. */
-export const hasFooterBadge = (m: Message): boolean => !m.isDeleted && (Number(m.editCount ?? 0) > 0 || hasViewOnceBadge(m));
+export const hasFooterBadge = (m: Message): boolean =>
+  !m.isDeleted && (Number(m.editCount ?? 0) > 0 || hasViewOnceBadge(m) || hasGifTrimmedBadge(m));
 
 const MEDIA_BUBBLE_TYPES = [
   "image",
@@ -61,6 +62,7 @@ import MessageMetadata from "./MessageMetadata";
 import ForwardedLabel from "./ForwardedLabel";
 import EditedBadge from "./EditedBadge";
 import ViewOnceBadge, { hasViewOnceBadge } from "./ViewOnceBadge";
+import GifTrimmedBadge, { hasGifTrimmedBadge } from "./GifTrimmedBadge";
 import LinkPreview from "./LinkPreview";
 import DailyTimestamp from "./DailyTimestamp";
 import SenderName from "./SenderName";
@@ -208,6 +210,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       )}
       <EditedBadge message={message} />
       <ViewOnceBadge message={message} />
+      <GifTrimmedBadge message={message} />
       <MessageMetadata message={message} isGroup={isGroup} onRetry={message.ack === 5 ? handleRetry : undefined} />
     </div>
   );

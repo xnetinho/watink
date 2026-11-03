@@ -31,6 +31,9 @@ func (el *EventListener) handleMediaDownloaded(ctx context.Context, payload json
 		// que o operador escolheu pelo que o destinatário recebeu.
 		Replaced bool `json:"replaced"`
 		Animated bool `json:"animated"`
+		// Gif e Trimmed vêm quando a mídia enviada era um GIF, já convertido em MP4; Trimmed diz que o GIF foi cortado.
+		Gif     bool `json:"gif"`
+		Trimmed bool `json:"trimmed"`
 	}
 	if err := json.Unmarshal(payload, &p); err != nil {
 		return err
@@ -59,7 +62,7 @@ func (el *EventListener) handleMediaDownloaded(ctx context.Context, payload json
 		return nil
 	}
 	if p.Replaced {
-		return el.replaceSentMedia(ctx, msg, p.MediaData, p.Mimetype, p.Animated)
+		return el.replaceSentMedia(ctx, msg, p.MediaData, p.Mimetype, p.Animated, p.Gif, p.Trimmed)
 	}
 
 	data := map[string]interface{}{}
@@ -141,15 +144,25 @@ func (el *EventListener) refreshTicketPreviewAfterRecovery(ctx context.Context, 
 	el.bcast().EmitToTenantRoom(tenantID.String(), "ticket", map[string]interface{}{"action": "update", "ticket": ticket})
 }
 
-// replaceSentMedia troca o arquivo de uma figurinha ENVIADA pelo WebP final que o destinatário recebeu. O arquivo antigo
-// (o PNG, GIF ou vídeo que o operador escolheu) fica no disco, como toda mídia; só a mensagem passa a apontar para o novo.
-func (el *EventListener) replaceSentMedia(ctx context.Context, msg *domain.Message, mediaData, mimeType string, animated bool) error {
-	if !msg.FromMe || msg.MediaType != "sticker" {
-		return nil // só figurinha enviada por nós: nunca troca a mídia de outra mensagem
+// replaceable diz se a mensagem pode ter o arquivo trocado: figurinha para o WebP final, ou foto/vídeo para o MP4 de um GIF.
+func replaceable(mediaType string, gif bool) bool {
+	if gif {
+		return mediaType == "image" || mediaType == "video"
+	}
+	return mediaType == "sticker"
+}
+
+// replaceSentMedia troca o arquivo de uma mídia ENVIADA pelo que o destinatário recebeu: o WebP final da figurinha ou o MP4 de um
+// GIF. O arquivo antigo (o PNG, GIF ou vídeo que o operador escolheu) fica no disco, como toda mídia; só a mensagem passa a
+// apontar para o novo.
+func (el *EventListener) replaceSentMedia(ctx context.Context, msg *domain.Message, mediaData, mimeType string, animated, gif, trimmed bool) error {
+	// Só mídia enviada por nós, do tipo certo: um evento "replaced" nunca mexe em outra mensagem.
+	if !msg.FromMe || !replaceable(msg.MediaType, gif) {
+		return nil
 	}
 	mediaURL, err := mediastore.SaveMediaBase64(mediaData, mimeType)
 	if err != nil {
-		log.Printf("[EventListener] figurinha enviada %s: gravar o WebP final falhou: %v", msg.ID, err)
+		log.Printf("[EventListener] mídia enviada %s: gravar o arquivo final falhou: %v", msg.ID, err)
 		return nil // a mensagem segue com o arquivo original; nada se perde
 	}
 	data := map[string]interface{}{}
@@ -160,8 +173,19 @@ func (el *EventListener) replaceSentMedia(ctx context.Context, msg *domain.Messa
 	} else {
 		delete(data, "animated")
 	}
+	upd := map[string]interface{}{"mediaUrl": mediaURL}
+	if gif {
+		// O GIF vira vídeo: a mensagem passa a ser "video" com a marca gif, que a tela toca em loop e sem som.
+		data["gif"] = true
+		if trimmed {
+			data["gifTrimmed"] = true
+		}
+		upd["mediaType"] = "video"
+		msg.MediaType = "video"
+	}
 	newData, _ := json.Marshal(data)
-	if err := el.messages.Update(ctx, msg, map[string]interface{}{"mediaUrl": mediaURL, "dataJson": string(newData)}); err != nil {
+	upd["dataJson"] = string(newData)
+	if err := el.messages.Update(ctx, msg, upd); err != nil {
 		return err
 	}
 	msg.MediaUrl, msg.DataJson = mediaURL, string(newData)
