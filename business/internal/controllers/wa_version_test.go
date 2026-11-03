@@ -33,7 +33,6 @@ func waVersionCall(t *testing.T, ctrl *WAVersionController, method, body string)
 
 func TestWAVersion_SalvaMesmoComEngineForaDoAr(t *testing.T) {
 	t.Setenv("ENGINE_HOST", "")
-	t.Setenv("GROUPS_API_TOKEN", "")
 	ctrl := NewWAVersionController(services.NewWAVersionService(testutil.NewTestDB(t)))
 
 	w, out := waVersionCall(t, ctrl, http.MethodPut, `{"mode":"manual","manualVersion":"2.3000.1052747707"}`)

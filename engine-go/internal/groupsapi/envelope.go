@@ -2,8 +2,7 @@
 // group/community management (T1.x, plan "Grupos e Comunidades" —
 // docs/agents/plugin-grupos-comunidades.md at watinkdev root, contract in
 // engine-go/docs/groups-api.md). It NEVER leaves the docker-internal
-// network — compose exposes it via `expose:`, never `ports:` — and every
-// request must carry a valid X-Internal-Token.
+// network — compose exposes it via `expose:`, never `ports:`.
 package groupsapi
 
 import (
@@ -19,7 +18,6 @@ import (
 const (
 	CodeInvalidInput        = "INVALID_INPUT"
 	CodeNotFound            = "NOT_FOUND"
-	CodeAuthFailed          = "AUTH_FAILED"
 	CodeNotAdmin            = "NOT_ADMIN"
 	CodeRateLimited         = "RATE_LIMITED"
 	CodeProviderError       = "PROVIDER_ERROR"

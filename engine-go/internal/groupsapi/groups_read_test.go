@@ -138,54 +138,26 @@ func (f *fakeBackend) WAVersionStatus(context.Context) (waversion.Status, error)
 
 func (f *fakeBackend) RefreshWAVersion(context.Context, bool) bool { return false }
 
-const testToken = "test-internal-token"
-
 func newTestServer(backend Backend) http.Handler {
-	return authMiddleware(testToken, newMux(backend, newThrottle()))
+	return newMux(backend, newThrottle())
 }
 
 func newTestServerWithThrottle(backend Backend, th *throttle) http.Handler {
-	return authMiddleware(testToken, newMux(backend, th))
+	return newMux(backend, th)
 }
 
-func doRequest(t *testing.T, h http.Handler, method, path, token string) *httptest.ResponseRecorder {
+func doRequest(t *testing.T, h http.Handler, method, path string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, path, nil)
-	if token != "" {
-		req.Header.Set("X-Internal-Token", token)
-	}
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	return rec
 }
 
-func TestAuthMiddleware_MissingToken(t *testing.T) {
-	h := newTestServer(&fakeBackend{})
-	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups", "")
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d", rec.Code)
-	}
-	var env envelope
-	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
-		t.Fatalf("invalid JSON: %v", err)
-	}
-	if env.OK || env.Error.Code != CodeAuthFailed {
-		t.Fatalf("expected AUTH_FAILED envelope, got %+v", env)
-	}
-}
-
-func TestAuthMiddleware_WrongToken(t *testing.T) {
-	h := newTestServer(&fakeBackend{})
-	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups", "wrong-token")
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d", rec.Code)
-	}
-}
-
 func TestListGroups_HappyPath(t *testing.T) {
 	backend := &fakeBackend{groups: []whatsapp.GroupInfo{{JID: "120363xxx@g.us", Subject: "Test"}}}
 	h := newTestServer(backend)
-	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups", testToken)
+	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -200,7 +172,7 @@ func TestListGroups_HappyPath(t *testing.T) {
 
 func TestListGroups_InvalidSessionID(t *testing.T) {
 	h := newTestServer(&fakeBackend{})
-	rec := doRequest(t, h, http.MethodGet, "/sessions/not-a-number/groups", testToken)
+	rec := doRequest(t, h, http.MethodGet, "/sessions/not-a-number/groups")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", rec.Code)
 	}
@@ -214,7 +186,7 @@ func TestListGroups_InvalidSessionID(t *testing.T) {
 func TestGetGroup_NotFound(t *testing.T) {
 	backend := &fakeBackend{groupErr: errors.Join(whatsapp.ErrGroupNotFound, errors.New("wa: no such group"))}
 	h := newTestServer(backend)
-	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups/120363xxx@g.us", testToken)
+	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups/120363xxx@g.us")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -228,7 +200,7 @@ func TestGetGroup_NotFound(t *testing.T) {
 func TestGetGroup_SessionNotConnected(t *testing.T) {
 	backend := &fakeBackend{groupErr: errors.Join(whatsapp.ErrSessionNotConnected, errors.New("session 1 is not connected"))}
 	h := newTestServer(backend)
-	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups/120363xxx@g.us", testToken)
+	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups/120363xxx@g.us")
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -245,7 +217,7 @@ func TestGetCommunity_HappyPath(t *testing.T) {
 		LinkedGroups: []whatsapp.GroupInfo{{JID: "120363zzz@g.us", Subject: "Subgrupo", IsSubGroup: true}},
 	}}
 	h := newTestServer(backend)
-	rec := doRequest(t, h, http.MethodGet, "/sessions/1/communities/120363yyy@g.us", testToken)
+	rec := doRequest(t, h, http.MethodGet, "/sessions/1/communities/120363yyy@g.us")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -254,7 +226,7 @@ func TestGetCommunity_HappyPath(t *testing.T) {
 func TestGetCommunity_ProviderError(t *testing.T) {
 	backend := &fakeBackend{communityErr: errors.New("whatsmeow: unclassified failure")}
 	h := newTestServer(backend)
-	rec := doRequest(t, h, http.MethodGet, "/sessions/1/communities/120363yyy@g.us", testToken)
+	rec := doRequest(t, h, http.MethodGet, "/sessions/1/communities/120363yyy@g.us")
 	if rec.Code != http.StatusBadGateway {
 		t.Fatalf("expected 502, got %d: %s", rec.Code, rec.Body.String())
 	}

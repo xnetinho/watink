@@ -42,20 +42,17 @@ func setupGroupsTestServer(t *testing.T, handler http.HandlerFunc) {
 	prev := groupsBaseURL
 	groupsBaseURL = func() string { return srv.URL }
 	t.Cleanup(func() { groupsBaseURL = prev })
-	t.Setenv("GROUPS_API_TOKEN", "test-internal-token")
 }
 
 func TestGroupsAPIConfig_MissingEnv_ReturnsFriendlyError(t *testing.T) {
 	t.Setenv("ENGINE_HOST", "")
-	t.Setenv("GROUPS_API_TOKEN", "")
-	_, _, err := groupsAPIConfig()
+	_, err := groupsAPIConfig()
 	require.Error(t, err)
 }
 
-func TestProvider_ListGroups_SendsTokenAndHappyPath(t *testing.T) {
-	var gotToken string
+func TestProvider_ListGroups_HappyPath(t *testing.T) {
 	setupGroupsTestServer(t, func(w http.ResponseWriter, r *http.Request) {
-		gotToken = r.Header.Get("X-Internal-Token")
+		assert.Empty(t, r.Header.Get("X-Internal-Token"), "a API interna não usa token")
 		assert.Equal(t, "/sessions/42/groups", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true,"data":[` + realGroupResponse + `]}`))
@@ -64,7 +61,6 @@ func TestProvider_ListGroups_SendsTokenAndHappyPath(t *testing.T) {
 	p := New(nil, nil)
 	groups, err := p.ListGroups(context.Background(), models.Whatsapp{ID: 42})
 	require.NoError(t, err)
-	assert.Equal(t, "test-internal-token", gotToken)
 	require.Len(t, groups, 1)
 	assert.Equal(t, "120363xxx@g.us", groups[0].JID)
 	assert.True(t, groups[0].Announce)

@@ -23,7 +23,7 @@ O WhatsApp recusa versões velhas do cliente e a embutida no `whatsmeow` envelhe
 - **Escolha global do superadmin** na tabela própria `WaVersionSettings` (linha única, sem RLS, `SELECT` para o papel do engine): modo `auto` ou `manual` com o número.
 - **Automático:** site oficial (`whatsmeow.GetLatestVersion`) → `currentVersion` do registro `wppconnect-team/wa-version` (sem o sufixo `-alpha`) → versão embutida. Fonte menor que a embutida é ignorada. **Manual:** só o número cadastrado, sem consultar a rede (número inválido cai no automático).
 - **405:** o engine marca a sessão `DISCONNECTED`, renova a versão e reconecta UMA vez por versão (sem martelar o servidor). Quando o superadmin salva outra versão, as sessões recusadas reconectam sozinhas.
-- **Tela** (PR seguinte): as quatro versões lado a lado (embutida, oficial, registro, vigente) e o seletor automático/manual. O business lê o engine pela API interna (`GET /wa-version`, `POST /wa-version/refresh`, mesmo `X-Internal-Token` do `groupsapi`); `GROUPS_API_TOKEN` passou a vir no `docker-compose.yml` (antes só no prod/dev).
+- **Tela** (PR seguinte): as quatro versões lado a lado (embutida, oficial, registro, vigente) e o seletor automático/manual. O business lê o engine pela API interna do `groupsapi` (`GET /wa-version`, `POST /wa-version/refresh`). Essa API não tem token: o `GROUPS_API_TOKEN` foi removido de todo o sistema em 03/nov/2026 (a defesa é a rede: porta só `expose`, nunca `ports:`, como no RabbitMQ e no áudio das chamadas, ADR 0031).
 
 ## Backlog
 

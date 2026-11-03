@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
 
@@ -19,7 +18,7 @@ import (
 
 // groupsHTTPClient is a small, timeout-bounded HTTP client for the
 // engine-go internal groups API (engine-go/docs/groups-api.md). Resolved
-// lazily from env (ENGINE_HOST, GROUPS_API_TOKEN) on each call — rather
+// lazily from env (ENGINE_HOST) on each call — rather
 // than threaded through enginego.New's constructor, to avoid
 // widening that signature for every existing call site
 // (internal/services/whatsapp_session.go and its tests).
@@ -38,18 +37,16 @@ var groupsHTTPClient = &http.Client{Timeout: 45 * time.Second}
 // teste apontar para um servidor local de porta aleatória.
 var groupsBaseURL = engineaddr.GroupsURL
 
-// groupsAPIConfig returns the internal API's base URL and token, or a
-// friendly, actionable error if either is unset — fail-closed, matching
-// the engine-go side's own refusal to start without GROUPS_API_TOKEN.
-func groupsAPIConfig() (baseURL, token string, err error) {
+// groupsAPIConfig returns the internal API's base URL, or a friendly, actionable error if ENGINE_HOST is unset. The API has
+// no authentication: the defence is the network (ADR 0031), like the RabbitMQ commands.
+func groupsAPIConfig() (baseURL string, err error) {
 	baseURL = groupsBaseURL()
-	token = os.Getenv("GROUPS_API_TOKEN")
-	if baseURL == "" || token == "" {
-		return "", "", utils.NewFriendlyError(http.StatusServiceUnavailable,
+	if baseURL == "" {
+		return "", utils.NewFriendlyError(http.StatusServiceUnavailable,
 			"Gestão de grupos indisponível para esta conexão no momento.",
-			errors.New("enginego: ENGINE_HOST e GROUPS_API_TOKEN não configurados"))
+			errors.New("enginego: ENGINE_HOST não configurado"))
 	}
-	return baseURL, token, nil
+	return baseURL, nil
 }
 
 // groupsEnvelope mirrors the response envelope defined by the internal
@@ -93,8 +90,6 @@ func friendlyGroupsError(status int, e *groupsErrorDetail) error {
 		msg = "O WhatsApp limitou essa ação temporariamente (proteção contra banimento). Aguarde um pouco e tente de novo."
 	case "INVALID_INPUT":
 		msg = e.Message
-	case "AUTH_FAILED":
-		msg = "Falha de autenticação com o WhatsApp para esta conexão."
 	default:
 		return e
 	}
@@ -105,7 +100,7 @@ func friendlyGroupsError(status int, e *groupsErrorDetail) error {
 // a retried write (e.g. add participant) would duplicate the action; the
 // caller decides whether to retry a read.
 func groupsDo(ctx context.Context, method, path string, body, out interface{}) error {
-	baseURL, token, err := groupsAPIConfig()
+	baseURL, err := groupsAPIConfig()
 	if err != nil {
 		return err
 	}
@@ -123,7 +118,6 @@ func groupsDo(ctx context.Context, method, path string, body, out interface{}) e
 	if err != nil {
 		return fmt.Errorf("enginego groupsapi: build request: %w", err)
 	}
-	req.Header.Set("X-Internal-Token", token)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

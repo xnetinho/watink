@@ -705,7 +705,7 @@ vários grupos de uma vez. Entidade própria (`GroupCampaign`/`GroupCampaignVari
 
 **O que NÃO fazer:**
 - Não expor a API HTTP interna do engine-go fora da rede docker (`expose:`, nunca `ports:`) —
-  nem subir o servidor sem `GROUPS_API_TOKEN` configurado (fail-closed).
+  a API não tem token: a defesa é só a rede, como no RabbitMQ e no áudio das chamadas (ADR 0031).
 - Não confundir `whatsappGroups` (RBAC deste plugin) com `ConnectionGroup`/`ProxyGroup`/
   `TagGroup` do core.
 - Não tratar `PluginInstallations.active` como prova de licença (mesma regra do resto do

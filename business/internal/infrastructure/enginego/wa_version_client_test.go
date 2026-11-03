@@ -12,7 +12,6 @@ import (
 func TestGetWAVersionStatus(t *testing.T) {
 	setupGroupsTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/wa-version", r.URL.Path)
-		assert.Equal(t, "test-internal-token", r.Header.Get("X-Internal-Token"))
 		_, _ = w.Write([]byte(`{"ok":true,"data":{"mode":"auto","embedded":"2.3000.1","official":{"version":"2.3000.3"},"registry":{"error":"sem rede"},"effective":"2.3000.3","source":"oficial"}}`))
 	})
 	st, err := GetWAVersionStatus(context.Background())
