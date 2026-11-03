@@ -74,6 +74,7 @@ func Migrate() {
 		&models.FlowRun{},
 		&models.FlowRunLog{},
 		&models.QuickAnswer{},
+		&models.StickerLibraryItem{},
 		&models.KnowledgeBase{},
 		&models.KnowledgeBaseSource{},
 		&models.Pipeline{},

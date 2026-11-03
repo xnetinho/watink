@@ -904,7 +904,14 @@ const messages = {
           all: "All available history",
         },
       },
+      stickerPicker: {
+        loading: "Loading stickers...",
+        empty: "No saved stickers. Open the menu of a sticker in a chat and choose Save sticker.",
+        send: "Send sticker",
+        remove: "Remove from library",
+      },
       messagesInput: {
+        stickers: "Stickers",
         drop: {
           title: "Drop the files here",
           hint: "Images, videos, audio and documents",
@@ -978,6 +985,9 @@ const messages = {
         },
       },
       messageOptionsMenu: {
+        saveSticker: "Save sticker",
+        stickerSaved: "Sticker saved to the library.",
+        stickerUnavailable: "This sticker is no longer available to save.",
         receipts: "Message info",
         edit: "Edit",
         editDialog: {

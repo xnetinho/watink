@@ -11,6 +11,9 @@ vi.mock("../../../services/api", () => ({
 }));
 
 vi.mock("../../../errors/toastError", () => ({ default: vi.fn() }));
+const toastSuccess = vi.fn();
+const toastWarning = vi.fn();
+vi.mock("react-toastify", () => ({ toast: { success: (m: string) => toastSuccess(m), warning: (m: string) => toastWarning(m), error: vi.fn() } }));
 
 describe("MessageOptionsMenu — reações rápidas", () => {
   beforeEach(() => {
@@ -116,5 +119,54 @@ describe("MessageOptionsMenu — Dados da mensagem", () => {
   it("não aparece no Telegram", () => {
     open({ id: 2, fromMe: true, ack: 3 }, "telegram");
     expect(screen.queryByTestId("message-receipts-item")).toBeNull();
+  });
+});
+
+describe("MessageOptionsMenu — Salvar figurinha", () => {
+  const Harness: React.FC<{ message: Record<string, unknown>; channel: string }> = ({ message, channel }) => {
+    const [openMenu, setOpenMenu] = React.useState(true);
+    return <MessageOptionsMenu message={message} menuOpen={openMenu} handleClose={() => setOpenMenu(false)} anchorEl={null} channel={channel} />;
+  };
+  const open = (message: Record<string, unknown>, channel = "whatsapp") => render(<Harness message={message} channel={channel} />);
+  const sticker = { id: "S1", fromMe: false, mediaType: "sticker", mediaUrl: "/public/media/a.webp" };
+
+  beforeEach(() => {
+    mockApiPost.mockReset();
+    toastSuccess.mockReset();
+    toastWarning.mockReset();
+  });
+
+  it("figurinha recebida ou enviada oferece Salvar e manda o ID DA MENSAGEM (nunca a URL)", async () => {
+    mockApiPost.mockResolvedValue({ data: {} });
+    open(sticker);
+    fireEvent.click(screen.getByTestId("message-save-sticker-item"));
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/stickers", { messageId: "S1" }));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+  });
+
+  it("enviada por nós também pode ser salva", () => {
+    open({ ...sticker, fromMe: true });
+    expect(screen.getByTestId("message-save-sticker-item")).toBeInTheDocument();
+  });
+
+  it("422 (sem arquivo guardado) avisa com mensagem própria em vez de erro genérico", async () => {
+    mockApiPost.mockRejectedValue({ response: { status: 422 } });
+    open(sticker);
+    fireEvent.click(screen.getByTestId("message-save-sticker-item"));
+    await waitFor(() => expect(toastWarning).toHaveBeenCalled());
+    expect(toastSuccess).not.toHaveBeenCalled();
+  });
+
+  it("não aparece em foto, em figurinha sem arquivo nem no Telegram", () => {
+    open({ id: "F1", mediaType: "image", mediaUrl: "/x.jpg" });
+    expect(screen.queryByTestId("message-save-sticker-item")).toBeNull();
+  });
+  it("sem arquivo guardado não oferece", () => {
+    open({ ...sticker, mediaUrl: "" });
+    expect(screen.queryByTestId("message-save-sticker-item")).toBeNull();
+  });
+  it("Telegram não oferece (a biblioteca é do WhatsApp)", () => {
+    open(sticker, "telegram");
+    expect(screen.queryByTestId("message-save-sticker-item")).toBeNull();
   });
 });

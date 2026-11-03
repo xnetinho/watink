@@ -25,6 +25,16 @@ O WhatsApp recusa versões velhas do cliente e a embutida no `whatsmeow` envelhe
 - **405:** o engine marca a sessão `DISCONNECTED`, renova a versão e reconecta UMA vez por versão (sem martelar o servidor). Quando o superadmin salva outra versão, as sessões recusadas reconectam sozinhas.
 - **Tela** (PR seguinte): as quatro versões lado a lado (embutida, oficial, registro, vigente) e o seletor automático/manual. O business lê o engine pela API interna do `groupsapi` (`GET /wa-version`, `POST /wa-version/refresh`). Essa API não tem token: o `GROUPS_API_TOKEN` foi removido de todo o sistema em 03/nov/2026 (a defesa é a rede: porta só `expose`, nunca `ports:`, como no RabbitMQ e no áudio das chamadas, ADR 0031).
 
+## Biblioteca de figurinhas
+
+Como o WhatsApp Web guarda figurinhas (investigado em 3/nov/2026, sem implementar): as **favoritas** vivem no app state da coleção `regular_low`, índice `favoriteSticker` (`StickerAction`: URL, `directPath`, `mediaKey`, `fileEncSHA256`, tamanho, `isFavorite`, `imageHash`), e as **recentes** no History Sync (`RecentStickers`/`FavoriteStickers`). Cada conta tem a sua lista; não existe lista da empresa no protocolo.
+
+Decisões do usuário: a biblioteca é da **EMPRESA** (todos os atendentes e todas as conexões WhatsApp veem as mesmas), **sem limite** de itens, **qualquer atendente** salva e remove (permissão `tickets:update`), e **regra A de espelhamento**: nada é escrito no celular de ninguém.
+
+Entregue (PR da biblioteca): tabela `StickerLibrary` (RLS por empresa, índice único por empresa e hash do conteúdo, então salvar de novo não duplica), `GET/POST/DELETE /stickers`, envio por `stickerId` (id da biblioteca, nunca URL), "Salvar figurinha" no menu da mensagem (recebida ou enviada) e seletor de figurinhas no compositor, só WhatsApp.
+
+Fica para depois (Parte 2): **ler as favoritas dos celulares** e uni-las à biblioteca. Exige ligar `EmitAppStateEventsOnFullSync` e forçar a ressincronização de `regular_low`, e confirmar se o download de uma favorita funciona sem o `fileSHA256` (o `StickerAction` não o traz; `imageHash` talvez sirva).
+
 ## Backlog
 
 Ordem acordada: A, B, E, F (C encerrado, D entregue).

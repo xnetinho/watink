@@ -119,6 +119,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	// implementation lives in the plugins package (DI pura, no global).
 	flowRuntime.SetAssistantRuntime(plugins.NewAssistantRuntime(container.DB, rabbitMQ, mediaWaiter))
 	flowController := controllers.NewFlowController(flowRuntime)
+	stickerLibraryController := controllers.NewStickerLibraryController()
 	quickAnswerController := controllers.NewQuickAnswerController(rabbitMQ, container.Broadcast, db, container.SessionService, container.QuickAnswerRepo)
 	versionController := controllers.NewVersionController(container.VersionRepo)
 	swaggerController := controllers.NewSwaggerController(container.SwaggerPermRepo)
@@ -273,6 +274,10 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		// existing ":ticketId" under "/messages/:ticketId").
 		protected.POST("/message/:messageId/react", auth.RequirePermission("tickets", "update"), messageController.ReactToMessage)
 		protected.POST("/message/:messageId/forward", auth.RequirePermission("tickets", "update"), messageController.ForwardMessage)
+		// Biblioteca de figurinhas da empresa: qualquer atendente que pode atender (tickets:update) salva e remove.
+		protected.GET("/stickers", stickerLibraryController.List)
+		protected.POST("/stickers", auth.RequirePermission("tickets", "update"), stickerLibraryController.Save)
+		protected.DELETE("/stickers/:stickerId", auth.RequirePermission("tickets", "update"), stickerLibraryController.Delete)
 		protected.POST("/message/:messageId/resend", auth.RequirePermission("tickets", "update"), messageController.ResendMessage)
 		protected.POST("/message/:messageId/edit", auth.RequirePermission("tickets", "update"), messageController.EditMessage)
 		protected.GET("/message/:messageId/edits", messageController.ListMessageEdits)
