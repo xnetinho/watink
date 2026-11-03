@@ -31,6 +31,8 @@ Como o WhatsApp Web guarda figurinhas (investigado em 3/nov/2026, sem implementa
 
 Decisões do usuário: a biblioteca é da **EMPRESA** (todos os atendentes e todas as conexões WhatsApp veem as mesmas), **sem limite** de itens, **qualquer atendente** salva e remove (permissão `tickets:update`), e **regra A de espelhamento**: nada é escrito no celular de ninguém.
 
+Aviso ao salvar: `POST /stickers` devolve `alreadySaved` (por empresa) e a tela diz "já está na biblioteca" em vez de "salva" quando a figurinha já existia.
+
 Entregue (PR da biblioteca): tabela `StickerLibrary` (RLS por empresa, índice único por empresa e hash do conteúdo, então salvar de novo não duplica), `GET/POST/DELETE /stickers`, envio por `stickerId` (id da biblioteca, nunca URL), "Salvar figurinha" no menu da mensagem (recebida ou enviada) e seletor de figurinhas no compositor, só WhatsApp.
 
 Fica para depois (Parte 2): **ler as favoritas dos celulares** e uni-las à biblioteca. Exige ligar `EmitAppStateEventsOnFullSync` e forçar a ressincronização de `regular_low`, e confirmar se o download de uma favorita funciona sem o `fileSHA256` (o `StickerAction` não o traz; `imageHash` talvez sirva).
