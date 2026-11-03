@@ -116,6 +116,8 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	var voice bool
 	// viewOnce: foto, vídeo ou áudio enviado para ser visto uma única vez (olho no painel de envio).
 	var viewOnce bool
+	// sticker: o operador pediu figurinha no painel (só vale para .webp, e só no WhatsApp).
+	var sticker bool
 	// fileName é o nome ORIGINAL do arquivo anexado: o destinatário vê este nome, não o hash com que o arquivo é salvo.
 	var fileName string
 
@@ -156,6 +158,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		quotedID = c.PostForm("quotedMsgId")
 		voice = c.PostForm("audioKind") == "voice"
 		viewOnce = c.PostForm("viewOnce") == "true"
+		sticker = c.PostForm("sticker") == "true"
 		file, header, err := c.Request.FormFile("medias")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "medias file required for multipart"})
@@ -175,12 +178,17 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 
 		mediaURL = savedURL
 		mediaType = mimeTypeToMediaType(mimeType)
+		// Um .webp sem o pedido continua sendo foto. Figurinha não tem legenda: o texto digitado não sai e não fica gravado.
+		if sticker = sticker && mimeType == "image/webp"; sticker {
+			mediaType, body = "sticker", ""
+		}
 	}
 
 	res, viaChannel, fail := mc.deliver(c.Request.Context(), db, tenantID, ticket, outboundInput{
 		Body: body, MediaType: mediaType, MediaURL: mediaURL, MimeType: mimeType, QuotedID: quotedID,
 		Voice:    voice && mediaType == "audio",
 		ViewOnce: viewOnce && canBeViewOnce(mediaType),
+		Sticker:  sticker,
 		FileName: fileName,
 	})
 	if fail != nil {

@@ -68,6 +68,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
     handleMediaCaptionChange,
     handleAudioKindChange,
     handleViewOnceChange,
+    handleStickerChange,
     handleUploadMedia,
     handleRemoveMedia,
     handleClearMedias,
@@ -130,6 +131,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ ticketStatus, whatsappStatu
         onCaptionChange={handleMediaCaptionChange}
         onAudioKindChange={handleAudioKindChange}
         onViewOnceChange={!channel || channel === "whatsapp" ? handleViewOnceChange : undefined}
+        onStickerChange={!channel || channel === "whatsapp" ? handleStickerChange : undefined}
         onAddMore={handleChangeMedias}
         onCancelAll={handleClearMedias}
         onUpload={handleUploadMedia}

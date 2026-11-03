@@ -6,7 +6,7 @@ vi.mock("../../../../services/api", () => ({ default: { post: (...a: unknown[]) 
 const toastError = vi.fn();
 vi.mock("../../../../errors/toastError", () => ({ default: (...a: unknown[]) => toastError(...a) }));
 
-import { useMediaUpload } from "../useMediaUpload";
+import { canBeSticker, useMediaUpload } from "../useMediaUpload";
 
 const files = (...fs: File[]) => ({ target: { files: fs } }) as unknown as React.ChangeEvent<HTMLInputElement>;
 const f = (name: string, type: string) => new File(["x"], name, { type });
@@ -90,5 +90,40 @@ describe("anexos: visualização única", () => {
     act(() => result.current.handleViewOnceChange(0, true));
     await act(async () => result.current.handleUploadMedia("9"));
     expect(post.mock.calls[0][1].get("viewOnce")).toBe("true");
+  });
+});
+
+describe("anexos: figurinha", () => {
+  it("o botão de cada .webp vai na SUA requisição; sem o botão, o .webp segue como foto", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.webp", "image/webp"), f("b.webp", "image/webp")), "", vi.fn()));
+    act(() => result.current.handleStickerChange(0, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls.map(([, form]) => form.get("sticker"))).toEqual(["true", null]);
+  });
+
+  it("só .webp vira figurinha: foto comum e documento nunca levam o campo", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.png", "image/png"), f("b.pdf", "application/pdf")), "", vi.fn()));
+    act(() => result.current.handleStickerChange(0, true));
+    act(() => result.current.handleStickerChange(1, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls.map(([, form]) => form.get("sticker"))).toEqual([null, null]);
+  });
+
+  it("reconhece o .webp pela extensão quando o navegador não informa o tipo", () => {
+    expect(canBeSticker({ type: "", name: "Figura.WEBP" })).toBe(true);
+    expect(canBeSticker({ type: "image/png", name: "a.png" })).toBe(false);
+  });
+
+  it("figurinha e visualização única se excluem, e a figurinha limpa a legenda", () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.webp", "image/webp")), "", vi.fn()));
+    act(() => result.current.handleMediaCaptionChange(0, "texto"));
+    act(() => result.current.handleViewOnceChange(0, true));
+    act(() => result.current.handleStickerChange(0, true));
+    expect(result.current.medias[0]).toMatchObject({ sticker: true, viewOnce: false, caption: "" });
+    act(() => result.current.handleViewOnceChange(0, true));
+    expect(result.current.medias[0]).toMatchObject({ sticker: false, viewOnce: true });
   });
 });

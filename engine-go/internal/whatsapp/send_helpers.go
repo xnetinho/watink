@@ -240,6 +240,7 @@ func buildMediaPayload(payload MediaCommandPayload, uploaded whatsmeow.UploadRes
 	case "sticker":
 		return &waProto.Message{StickerMessage: &waProto.StickerMessage{
 			Mimetype: proto.String(mimeType),
+			Height:   optU32(meta.Height), Width: optU32(meta.Width), MediaKeyTimestamp: proto.Int64(time.Now().Unix()),
 			URL:      proto.String(uploaded.URL), DirectPath: proto.String(uploaded.DirectPath),
 			MediaKey: uploaded.MediaKey, FileEncSHA256: uploaded.FileEncSHA256,
 			FileSHA256: uploaded.FileSHA256, FileLength: proto.Uint64(uploaded.FileLength),
