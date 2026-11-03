@@ -113,6 +113,7 @@ func Migrate() {
 		&models.GroupCampaignSend{},
 		&models.GroupCampaignReply{},
 		&models.InstancePolicy{},
+		&models.WAVersionSetting{},
 		&models.Product{},
 		&models.ProductSKU{},
 		&models.ProductComposition{},

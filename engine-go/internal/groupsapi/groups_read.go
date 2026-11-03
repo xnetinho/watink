@@ -29,6 +29,9 @@ func newMux(backend Backend, th *throttle) *http.ServeMux {
 	mux.HandleFunc("POST /sessions/{sessionID}/communities/{communityJID}/groups/{groupJID}", withThrottle(th, handleLinkCommunityGroup(backend)))
 	mux.HandleFunc("POST /sessions/{sessionID}/communities/{communityJID}/groups/{groupJID}/remove", withThrottle(th, handleUnlinkCommunityGroup(backend)))
 
+	mux.HandleFunc("GET /wa-version", handleWAVersionStatus(backend))
+	mux.HandleFunc("POST /wa-version/refresh", handleWAVersionRefresh(backend))
+
 	return mux
 }
 

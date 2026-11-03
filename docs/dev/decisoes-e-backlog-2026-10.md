@@ -15,6 +15,16 @@ Registro do que foi decidido ao fechar a consolidação de canais, para não dep
 | Stashes `{1}`, `{2}`, `{3}` | Equivalente já na `develop` | Comparação linha a linha. |
 | Stash `{0}` | Ferramenta de ambiente | Skills/commands do OpenSpec, não é código do produto. |
 
+## Versão do cliente WhatsApp (405 "client outdated")
+
+O WhatsApp recusa versões velhas do cliente e a embutida no `whatsmeow` envelhece (em 3/nov/2026 as duas conexões do `lt` caíram com 405). Decisões do usuário:
+
+- **Go 1.26 e `whatsmeow` de 02/nov** (PR #136); o Go sobe junto porque a biblioteca passou a exigi-lo.
+- **Escolha global do superadmin** na tabela própria `WaVersionSettings` (linha única, sem RLS, `SELECT` para o papel do engine): modo `auto` ou `manual` com o número.
+- **Automático:** site oficial (`whatsmeow.GetLatestVersion`) → `currentVersion` do registro `wppconnect-team/wa-version` (sem o sufixo `-alpha`) → versão embutida. Fonte menor que a embutida é ignorada. **Manual:** só o número cadastrado, sem consultar a rede (número inválido cai no automático).
+- **405:** o engine marca a sessão `DISCONNECTED`, renova a versão e reconecta UMA vez por versão (sem martelar o servidor). Quando o superadmin salva outra versão, as sessões recusadas reconectam sozinhas.
+- **Tela** (PR seguinte): as quatro versões lado a lado (embutida, oficial, registro, vigente) e o seletor automático/manual. O business lê o engine pela API interna (`GET /wa-version`, `POST /wa-version/refresh`, mesmo `X-Internal-Token` do `groupsapi`); `GROUPS_API_TOKEN` passou a vir no `docker-compose.yml` (antes só no prod/dev).
+
 ## Backlog
 
 Ordem acordada: A, B, E, F (C encerrado, D entregue).

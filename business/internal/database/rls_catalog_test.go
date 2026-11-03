@@ -277,7 +277,7 @@ func seedRow(db *sql.DB, table string, tenant uuid.UUID) error {
 	return err
 }
 
-// O papel do engine só lê Whatsapps: nenhuma outra tabela do negócio, nenhum DML e nenhum DDL em public.
+// O papel do engine só lê Whatsapps e WaVersionSettings: nenhuma outra tabela do negócio, nenhum DML e nenhum DDL em public.
 func TestMigracao_PapelDoEngineTemPrivilegioMinimo(t *testing.T) {
 	raw := os.Getenv("TEST_DATABASE_URL")
 	if raw == "" {
@@ -291,6 +291,7 @@ func TestMigracao_PapelDoEngineTemPrivilegioMinimo(t *testing.T) {
 
 	var n int
 	require.NoError(t, engine.QueryRow(`SELECT count(*) FROM public."Whatsapps"`).Scan(&n), "SELECT em Whatsapps é permitido")
+	require.NoError(t, engine.QueryRow(`SELECT count(*) FROM public."WaVersionSettings"`).Scan(&n), "SELECT em WaVersionSettings é permitido")
 
 	for _, q := range []string{
 		`SELECT count(*) FROM public."Tickets"`,
@@ -299,6 +300,8 @@ func TestMigracao_PapelDoEngineTemPrivilegioMinimo(t *testing.T) {
 		`SELECT count(*) FROM public."Contacts"`,
 		`UPDATE public."Whatsapps" SET name = name`,
 		`DELETE FROM public."Whatsapps"`,
+		`UPDATE public."WaVersionSettings" SET mode = mode`,
+		`SELECT count(*) FROM public."InstancePolicies"`,
 		`CREATE TABLE public.intruso (i int)`,
 	} {
 		_, err := engine.Exec(q)

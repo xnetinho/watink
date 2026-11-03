@@ -1,12 +1,14 @@
 package groupsapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/alltomatos/watinkdev/engine-go/internal/waversion"
 	"github.com/alltomatos/watinkdev/engine-go/internal/whatsapp"
 )
 
@@ -129,6 +131,12 @@ func (f *fakeBackend) UnlinkGroupFromCommunity(sessionID int, tenantID, communit
 	f.lastTenantID = tenantID
 	return f.writeErr
 }
+
+func (f *fakeBackend) WAVersionStatus(context.Context) (waversion.Status, error) {
+	return waversion.Status{}, nil
+}
+
+func (f *fakeBackend) RefreshWAVersion(context.Context, bool) bool { return false }
 
 const testToken = "test-internal-token"
 

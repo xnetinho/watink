@@ -49,6 +49,7 @@ var Exempt = map[string]string{
 	"Plans":            "catálogo de planos da instalação",
 	"Permissions":      "catálogo de permissões da instalação",
 	"InstancePolicies": "política da instalação definida pelo SaaS",
+	"WaVersionSettings": "versão do cliente WhatsApp da instalação (linha única, escolhida pelo superadmin)",
 	"SchemaMigrations": "controle de versão de migrações globais do banco",
 	"spatial_ref_sys":  "tabela do PostGIS",
 }
