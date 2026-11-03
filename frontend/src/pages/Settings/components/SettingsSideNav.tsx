@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router";
-import { SettingsIcon, Palette, Headphones, Brain, Library, HardDrive, Network, MapPin, Info, Sparkles, ClipboardList, Building2, Cloud, Phone } from "lucide-react";
+import { SettingsIcon, Palette, Headphones, Brain, Library, HardDrive, Network, MapPin, Info, Sparkles, ClipboardList, Building2, Cloud, Smartphone, Phone } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { t } from "@/lib/calls/t";
 
@@ -46,6 +46,7 @@ const SettingsSideNav: React.FC<SettingsSideNavProps> = ({ activeSection, active
       {item("proxy", Network, "Proxy")}
       {item("storage", HardDrive, tr("uiText.settings.nav.storage"), !!isSuperAdmin)}
       {item("saas-mode", Cloud, tr("uiText.settings.nav.saas"), !!isSuperAdmin)}
+      {item("wa-version", Smartphone, tr("uiText.settings.nav.waVersion"), !!isSuperAdmin)}
       {item("about", Info, tr("uiText.settings.nav.about"))}
 
       <Button

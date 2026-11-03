@@ -14,6 +14,7 @@ import {
 import AISettings from "./components/AISettings";
 import StorageSection from "./components/StorageSection";
 import SaaSModeSection from "./components/SaaSModeSection";
+import WAVersionSection from "./components/WAVersionSection";
 import AboutSection from "./components/AboutSection";
 import ProxySection from "./components/ProxySection";
 import AddressLookupSettings from "./components/AddressLookupSettings";
@@ -130,6 +131,9 @@ const Settings: React.FC = () => {
               )}
               {activeSection === "saas-mode" && isSuperAdmin && (
                 <SaaSModeSection />
+              )}
+              {activeSection === "wa-version" && isSuperAdmin && (
+                <WAVersionSection />
               )}
               {activeSection === "about" && (
                 <AboutSection />
