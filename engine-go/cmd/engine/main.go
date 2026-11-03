@@ -52,6 +52,7 @@ func main() {
 	log.Println("Connected to RabbitMQ")
 
 	waService := whatsapp.NewWhatsAppService(rabbit)
+	waService.RefreshWAVersion(ctx)
 
 	// API interna de grupos/comunidades (T1.1, docker-internal only) — no-op
 	// se GROUPS_API_TOKEN não estiver configurado (fail-closed).

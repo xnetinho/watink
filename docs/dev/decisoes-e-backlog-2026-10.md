@@ -15,6 +15,10 @@ Registro do que foi decidido ao fechar a consolidação de canais, para não dep
 | Stashes `{1}`, `{2}`, `{3}` | Equivalente já na `develop` | Comparação linha a linha. |
 | Stash `{0}` | Ferramenta de ambiente | Skills/commands do OpenSpec, não é código do produto. |
 
+## Versão do cliente WhatsApp (405 "client outdated")
+
+O WhatsApp recusa versões velhas do cliente e a embutida no `whatsmeow` envelhece (em 3/nov/2026 as duas conexões do `lt` caíram com 405). O engine resolve a versão em `internal/waversion`, na subida e a cada 405, nesta ordem: (1) site oficial (`whatsmeow.GetLatestVersion`); (2) `currentVersion` do registro `wppconnect-team/wa-version` (sem o sufixo `-alpha`); (3) `WATINK_WA_VERSION` (ex.: `2.3000.1052747707`); (4) a embutida na biblioteca. Nunca troca por uma versão menor que a vigente. Após um 405 reconecta a sessão uma vez por versão, sem martelar o servidor. `whatsmeow` fixado em `72f22e67194f` (21/ago): os commits seguintes exigem Go 1.26 e o projeto está em 1.25 (subir o Go é decisão à parte).
+
 ## Backlog
 
 Ordem acordada: A, B, E, F (C encerrado, D entregue).

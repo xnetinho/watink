@@ -12,8 +12,10 @@ import (
 	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/alltomatos/watinkdev/engine-go/internal/calls"
 	"github.com/alltomatos/watinkdev/engine-go/internal/rabbitmq"
+	"github.com/alltomatos/watinkdev/engine-go/internal/waversion"
 	_ "github.com/lib/pq"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
@@ -47,6 +49,11 @@ type WhatsAppService struct {
 	callMu       sync.Mutex
 	callSessions map[int]*calls.Session
 
+	// waVersion renova a versão do cliente WhatsApp quando o servidor responde 405; nil desliga (testes).
+	waVersion   *waversion.Resolver
+	waVersionMu sync.Mutex
+	waRetried   map[int]store.WAVersionContainer // versão da última reconexão por 405, por sessão
+
 	// publishEvent routes an event envelope to the messaging broker.
 	// Settable in tests to capture emitted events without a real broker.
 	publishEvent func(tenantID string, sessionID int, eventType string, payload map[string]interface{})
@@ -69,6 +76,8 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService) *WhatsAppService {
 	}
 
 	svc := &WhatsAppService{
+		waVersion:       waversion.NewResolver(),
+		waRetried:       make(map[int]store.WAVersionContainer),
 		container:       container,
 		clients:         make(map[int]*whatsmeow.Client),
 		clientsByTenant: make(map[clientKey]*whatsmeow.Client),
