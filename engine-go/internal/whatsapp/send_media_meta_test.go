@@ -94,3 +94,66 @@ func TestEnrichMedia_ArquivoDeAudioNuncaLevaOnda(t *testing.T) {
 		}
 	}
 }
+
+func TestEnrichMedia_FigurinhaPNGViraWebP512(t *testing.T) {
+	if !mediameta.Available() {
+		t.Skip("ffmpeg não instalado")
+	}
+	png, err := exec.Command("ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=c=green:s=640x480", "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, p, meta := enrichMedia(context.Background(), png, MediaCommandPayload{MediaType: "sticker", MimeType: "image/png", FileName: "a.png"})
+	info, ok := mediameta.ParseWebP(out)
+	if !ok || info.Width != 512 || info.Height != 512 || p.MimeType != "image/webp" || p.StickerError != "" {
+		t.Fatalf("PNG não virou figurinha: ok=%v %+v mime=%q err=%q", ok, info, p.MimeType, p.StickerError)
+	}
+	if meta.Animated || meta.Width != 512 || meta.Height != 512 {
+		t.Fatalf("meta = %+v", meta)
+	}
+}
+
+func TestEnrichMedia_FigurinhaGIFSaiAnimada(t *testing.T) {
+	if !mediameta.Available() {
+		t.Skip("ffmpeg não instalado")
+	}
+	gif, err := exec.Command("ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=200x200:r=12:d=2", "-f", "gif", "-").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, _, meta := enrichMedia(context.Background(), gif, MediaCommandPayload{MediaType: "sticker", MimeType: "image/gif", FileName: "a.gif"})
+	info, ok := mediameta.ParseWebP(out)
+	if !ok || !info.Animated || !meta.Animated {
+		t.Fatalf("GIF não virou figurinha animada: ok=%v %+v meta=%+v", ok, info, meta)
+	}
+	if meta.Width != 512 || meta.Height != 512 {
+		t.Fatalf("a animada sai sem largura e altura (o ffmpeg não lê WebP animado): %+v", meta)
+	}
+}
+
+func TestEnrichMedia_FigurinhaQueNaoConverteFalhaEmVezDeSairTorta(t *testing.T) {
+	if !mediameta.Available() {
+		t.Skip("ffmpeg não instalado")
+	}
+	lixo := bytes.Repeat([]byte{1, 2, 3}, 200)
+	_, p, _ := enrichMedia(context.Background(), lixo, MediaCommandPayload{MediaType: "sticker", MimeType: "image/webp", FileName: "a.webp"})
+	if p.StickerError == "" {
+		t.Fatal("figurinha que não converte tem de falhar com aviso, não sair como está")
+	}
+}
+
+func TestPublishStickerSent_DevolveOWebPFinalComReplaced(t *testing.T) {
+	s, calls := newTestService()
+	s.publishStickerSent("t1", 7, "MSG1", []byte("WEBPDATA"), true)
+	if len(*calls) != 1 {
+		t.Fatalf("esperava 1 evento, veio %d", len(*calls))
+	}
+	c := (*calls)[0]
+	if c.eventType != "message.media" || c.tenantID != "t1" || c.sessionID != 7 {
+		t.Fatalf("evento errado: %+v", c)
+	}
+	p := c.payload
+	if p["messageId"] != "MSG1" || p["mimetype"] != "image/webp" || p["replaced"] != true || p["animated"] != true || p["mediaData"] != "V0VCUERBVEE=" {
+		t.Fatalf("payload errado: %+v", p)
+	}
+}

@@ -170,9 +170,17 @@ describe("MediaPreviewPanel — figurinha", () => {
     expect(screen.getByTestId("media-preview-caption")).toBeDisabled();
   });
 
-  it("foto comum e documento não mostram o botão; sem o canal certo ninguém mostra", () => {
-    setup([item("a.png", "image/png")], { onStickerChange: vi.fn() });
+  it("foto, GIF e vídeo também mostram o botão (o engine converte); documento e áudio não", () => {
+    for (const [name, type] of [["a.png", "image/png"], ["a.gif", "image/gif"], ["a.mp4", "video/mp4"]]) {
+      const { unmount } = render(<MediaPreviewPanel medias={[item(name, type)]} loading={false} onRemoveMedia={vi.fn()} onCaptionChange={vi.fn()} onAudioKindChange={vi.fn()} onStickerChange={vi.fn()} onAddMore={vi.fn()} onCancelAll={vi.fn()} onUpload={vi.fn()} />);
+      expect(screen.getByTestId("media-preview-sticker")).toBeInTheDocument();
+      unmount();
+    }
+    setup([item("a.pdf", "application/pdf")], { onStickerChange: vi.fn() });
     expect(screen.queryByTestId("media-preview-sticker")).toBeNull();
+  });
+
+  it("sem o canal certo (sem onStickerChange) ninguém mostra o botão", () => {
     setup([item("a.webp", "image/webp")]);
     expect(screen.queryByTestId("media-preview-sticker")).toBeNull();
   });

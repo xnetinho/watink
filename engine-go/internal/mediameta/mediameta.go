@@ -39,6 +39,7 @@ type Meta struct {
 	ThumbW, ThumbH int    // dimensões da miniatura JPEG (documento)
 	Thumbnail      []byte // JPEG
 	Waveform       []byte // 64 amostras 0..100
+	Animated       bool   // figurinha com movimento (isAnimated do StickerMessage)
 }
 
 // AvailablePDF diz se o poppler (pdfinfo/pdftoppm) existe. Sem ele, PDF segue sem miniatura e sem nº de páginas.

@@ -350,3 +350,14 @@ func TestBuildMediaMessage_FigurinhaLevaDimensoesETipo(t *testing.T) {
 		t.Fatal("sem ffmpeg a largura deve ficar ausente (nunca 0)")
 	}
 }
+
+func TestBuildMediaMessage_FigurinhaAnimadaLevaIsAnimated(t *testing.T) {
+	an := buildMediaMessage(MediaCommandPayload{MediaType: "sticker", MimeType: "image/webp"}, whatsmeow.UploadResponse{}, mediameta.Meta{Width: 512, Height: 512, Animated: true}).GetStickerMessage()
+	if an.IsAnimated == nil || !*an.IsAnimated {
+		t.Fatal("figurinha animada sem isAnimated")
+	}
+	st := buildMediaMessage(MediaCommandPayload{MediaType: "sticker", MimeType: "image/webp"}, whatsmeow.UploadResponse{}, mediameta.Meta{Width: 512, Height: 512}).GetStickerMessage()
+	if st.IsAnimated != nil {
+		t.Fatal("estática não deve levar isAnimated (o cliente oficial não manda)")
+	}
+}

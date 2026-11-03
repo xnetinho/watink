@@ -9,12 +9,13 @@ export interface MediaItem {
   audioKind?: "voice" | "file";
   /** Enviar para ser visto uma única vez (foto, vídeo ou áudio). Vale só no WhatsApp. */
   viewOnce?: boolean;
-  /** Enviar o .webp como figurinha (sem isto vai como foto). Vale só no WhatsApp e sem legenda. */
+  /** Enviar como figurinha (sem isto vai como foto ou vídeo). Vale só no WhatsApp e sem legenda; o engine converte. */
   sticker?: boolean;
 }
 
-/** Só um .webp pode virar figurinha: é o formato que o WhatsApp aceita nelas. */
-export const canBeSticker = (f: { type: string; name: string }): boolean => f.type === "image/webp" || /\.webp$/i.test(f.name);
+/** Imagem (inclui GIF e WebP) ou vídeo curto viram figurinha: o engine converte para WebP 512x512. */
+export const canBeSticker = (f: { type: string; name: string }): boolean =>
+  f.type.startsWith("image/") || f.type.startsWith("video/") || /\.(webp|png|jpe?g|gif|mp4|webm|mov)$/i.test(f.name);
 
 /** Foto, vídeo e áudio aceitam visualização única; documento e figurinha não têm esse modo no WhatsApp. */
 export const canBeViewOnce = (f: { type: string; name: string }): boolean =>
