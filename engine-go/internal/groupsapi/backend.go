@@ -1,6 +1,11 @@
 package groupsapi
 
-import "github.com/alltomatos/watinkdev/engine-go/internal/whatsapp"
+import (
+	"context"
+
+	"github.com/alltomatos/watinkdev/engine-go/internal/waversion"
+	"github.com/alltomatos/watinkdev/engine-go/internal/whatsapp"
+)
 
 // Backend is the subset of *whatsapp.WhatsAppService this package depends
 // on. Keeping it as a narrow interface (rather than importing the concrete
@@ -29,6 +34,9 @@ type Backend interface {
 	CreateCommunity(sessionID int, tenantID, name string) (*whatsapp.CommunityInfo, error)
 	LinkGroupToCommunity(sessionID int, tenantID, communityJID, groupJID string) error
 	UnlinkGroupFromCommunity(sessionID int, tenantID, communityJID, groupJID string) error
+
+	WAVersionStatus(ctx context.Context) (waversion.Status, error)
+	RefreshWAVersion(ctx context.Context, force bool) bool
 }
 
 // compile-time assertion: *whatsapp.WhatsAppService must keep satisfying

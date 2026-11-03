@@ -102,6 +102,9 @@ services:
       - AMQP_URL=amqp://${RABBITMQ_USER:-watink}:${RABBITMQ_PASS:?defina RABBITMQ_PASS no .env}@rabbitmq:5672
       - REDIS_URL=redis://redis:6379
       - ENGINE_HOST=watink-engine
+      # API interna do engine (grupos/comunidades e versão do cliente WhatsApp): mesmo token nos dois serviços; sem ele o engine
+      # não abre a porta e o business recebe 'engine indisponível'.
+      - GROUPS_API_TOKEN=${GROUPS_API_TOKEN:-}
       # Áudio das chamadas de voz (ADR 0031): WebSocket interno do engine, só na rede do
       # stack. Token OBRIGATÓRIO e igual nos dois serviços (sem ele o stack não sobe).
       - JWT_SECRET=${JWT_SECRET:?defina JWT_SECRET no .env}
@@ -149,6 +152,8 @@ services:
       - DB_SEARCH_PATH=whatsmeow
       - DB_NAME=watink
       - HEALTH_PORT=8083
+      - GROUPS_API_PORT=8084
+      - GROUPS_API_TOKEN=${GROUPS_API_TOKEN:-}
       # Canal de áudio das chamadas (ADR 0031): só a rede interna (porta não publicada).
       # Precisa de saída UDP para os relays do WhatsApp.
       - CALLS_AUDIO_PORT=8085

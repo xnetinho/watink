@@ -124,6 +124,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 	swaggerController := controllers.NewSwaggerController(container.SwaggerPermRepo)
 	storageController := controllers.NewStorageController(s3Store)
 	saasModeController := controllers.NewSaaSModeController(saasContractSvc)
+	waVersionController := controllers.NewWAVersionController(services.NewWAVersionService(db))
 
 	// Canais Agnósticos de Mensageria (ADR 0033 / Task 3.4)
 	channelInboundSvc := services.NewChannelInboundService(
@@ -204,6 +205,8 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		{
 			system.GET("/stats", systemController.GetSystemStats)
 			system.GET("/storage", storageController.Status)
+			system.GET("/wa-version", waVersionController.Get)
+			system.PUT("/wa-version", waVersionController.Save)
 			system.GET("/saas-mode/status", saasModeController.Status)
 			system.GET("/saas-mode/precheck", saasModeController.Precheck)
 			system.POST("/saas-mode/register", saasModeController.Register)

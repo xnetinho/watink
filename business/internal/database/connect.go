@@ -228,7 +228,8 @@ func ensureRoles(ctx context.Context, admin *sql.DB, appPass, sysPass string) er
 }
 
 // RoleEngine é o papel do engine do WhatsApp (ADR 0034, D10): dono do schema "whatsmeow" (onde a biblioteca guarda chaves
-// e sessões) e SELECT apenas em Whatsapps, para o reinício de sessões. Não lê nenhuma outra tabela do negócio.
+// e sessões) e SELECT apenas em Whatsapps (reinício de sessões) e WaVersionSettings (versão do cliente WhatsApp, global).
+// Não lê nenhuma outra tabela do negócio.
 const RoleEngine = "watink_engine"
 
 func ensureEngineRole(ctx context.Context, admin *sql.DB, pass string) error {
@@ -246,7 +247,7 @@ func ensureEngineRole(ctx context.Context, admin *sql.DB, pass string) error {
 		fmt.Sprintf(`CREATE SCHEMA IF NOT EXISTS whatsmeow AUTHORIZATION %s`, name),
 		fmt.Sprintf(`ALTER SCHEMA whatsmeow OWNER TO %s`, name),
 		fmt.Sprintf(`GRANT USAGE ON SCHEMA public TO %s`, name),
-		fmt.Sprintf(`GRANT SELECT ON public."Whatsapps" TO %s`, name),
+		fmt.Sprintf(`GRANT SELECT ON public."Whatsapps", public."WaVersionSettings" TO %s`, name),
 		fmt.Sprintf(`ALTER ROLE %s SET search_path = whatsmeow`, name),
 	} {
 		if _, err := admin.ExecContext(ctx, q); err != nil {

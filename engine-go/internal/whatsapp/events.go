@@ -30,6 +30,7 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 	case *events.Presence:
 		s.handlePresenceEvent(id, tenantID, v)
 	case *events.Connected:
+		s.clearOutdatedRetry(id)
 		s.emitConnected(client, id, tenantID)
 		s.presenceOnConnect(id, client)
 	case *events.PairSuccess:
@@ -56,6 +57,8 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 		} else {
 			s.emitStatus(id, tenantID, "DISCONNECTED")
 		}
+	case *events.ClientOutdated:
+		s.handleClientOutdated(client, id, tenantID)
 	case *events.TemporaryBan:
 		// ConnectFailureTempBanned (402) — ban temporário; IP/numero sinalizado.
 		log.Printf("Session %d temporariamente banida (code: %v, expira em: %v)", id, v.Code, v.Expire)
