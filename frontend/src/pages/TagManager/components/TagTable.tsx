@@ -13,6 +13,8 @@ import {
 } from "../../../components/ui/table";
 import { TagTableRow } from "./TagTableRow";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface TagTableProps {
   tags: Tag[];
   loading: boolean;
@@ -34,7 +36,7 @@ export const TagTable = ({
         <TableRow>
           <TableHead>{i18n.t("tags.table.name")}</TableHead>
           <TableHead>Grupo</TableHead>
-          <TableHead>Descrição</TableHead>
+          <TableHead>{tr("uiText.tagManager.description")}</TableHead>
           <TableHead className="text-center w-[80px]">Uso</TableHead>
           <TableHead className="text-right w-[140px]">{i18n.t("tags.table.actions")}</TableHead>
         </TableRow>

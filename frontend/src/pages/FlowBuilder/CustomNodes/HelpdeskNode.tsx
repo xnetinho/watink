@@ -22,7 +22,7 @@ const HelpdeskNode: React.FC<HelpdeskNodeProps> = ({ data, isConnectable }) => {
       data={data}
       icon={LifeBuoy}
       colorClass="colorHelpdesk"
-      defaultLabel="Helpdesk"
+      defaultLabel="uiText.flow.node.helpdesk"
       sublabel={ACTION_LABELS[action] ?? action}
       isConnectable={isConnectable}
       targetHandles={[{ id: null, position: Position.Left }]}

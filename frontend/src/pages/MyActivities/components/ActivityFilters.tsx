@@ -6,6 +6,9 @@ import {
 } from "@/components/ui/select";
 import { ACTIVITY_PRIORITY_LABELS, ACTIVITY_STATUS_LABELS } from "../activityTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ActivityFiltersProps {
   search: string;
   onSearchChange: (v: string) => void;
@@ -23,10 +26,10 @@ const ActivityFilters: React.FC<ActivityFiltersProps> = ({
   <div className="flex items-center gap-2 flex-wrap">
     <Select value={status || "all"} onValueChange={(v) => onStatusChange(v === "all" ? "" : v)}>
       <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Status" />
+        <SelectValue placeholder={tr("uiText.common.status")} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">Todos os status</SelectItem>
+        <SelectItem value="all">{tr("uiText.activities.allStatuses")}</SelectItem>
         {Object.entries(ACTIVITY_STATUS_LABELS).map(([value, label]) => (
           <SelectItem key={value} value={value}>{label}</SelectItem>
         ))}
@@ -35,7 +38,7 @@ const ActivityFilters: React.FC<ActivityFiltersProps> = ({
 
     <Select value={priority || "all"} onValueChange={(v) => onPriorityChange(v === "all" ? "" : v)}>
       <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Prioridade" />
+        <SelectValue placeholder={tr("uiText.common.priority")} />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="all">Todas as prioridades</SelectItem>
@@ -48,7 +51,7 @@ const ActivityFilters: React.FC<ActivityFiltersProps> = ({
     <div className="relative">
       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
       <Input
-        placeholder="Buscar por título..."
+        placeholder={tr("uiText.activities.searchTitle")}
         className="pl-8 w-[220px]"
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}

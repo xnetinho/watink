@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { dateLocale } from "../../../lib/dateLocale";
 import { ArrowRight, Clock, ListChecks, MessageSquareWarning } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,6 +13,9 @@ import { Activity, ACTIVITY_STATUS_LABELS, ACTIVITY_PRIORITY_LABELS, NewOccurren
 import { timeToMinutes } from "../activityHelpers";
 import OccurrenceModal from "./OccurrenceModal";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   pending: "outline",
   in_progress: "secondary",
@@ -29,7 +32,7 @@ interface ActivityCardProps {
 }
 
 // Card da listagem — badge de status, badge de SLA/parada, progresso do
-// checklist, prazo, atalho "Registrar ocorrência" sem entrar na execução
+// checklist, prazo, atalho tr("uiText.activities.recordOccurrence") sem entrar na execução
 // (docs/agents/activities.md §Melhorias de UX).
 const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onExecute, onOccurrenceRegistered }) => {
   const [occurrenceModalOpen, setOccurrenceModalOpen] = useState(false);
@@ -43,7 +46,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onExecute, onOccu
         type: newOccurrence.type,
         timeImpact: timeToMinutes(newOccurrence.timeImpact),
       });
-      notify.success("Ocorrência registrada");
+      notify.success(tr("uiText.activities.occurrenceRecorded"));
       setOccurrenceModalOpen(false);
       setNewOccurrence(DEFAULT_OCCURRENCE);
       onOccurrenceRegistered();
@@ -54,9 +57,9 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onExecute, onOccu
 
   const progress = activity.checklistProgress;
   const slaChip = activity.slaStatus === "overdue"
-    ? { label: `Atrasada${activity.slaDueAt ? " há " + formatDistanceToNow(new Date(activity.slaDueAt), { locale: ptBR }) : ""}`, status: "error" as const }
+    ? { label: activity.slaDueAt ? tr("uiText.activities.overdueAgo", { time: formatDistanceToNow(new Date(activity.slaDueAt), { locale: dateLocale() }) }) : tr("uiText.activities.overdueLabel"), status: "error" as const }
     : activity.slaStatus === "atRisk"
-      ? { label: `Vence em ${activity.slaDueAt ? formatDistanceToNow(new Date(activity.slaDueAt), { locale: ptBR }) : ""}`, status: "warning" as const }
+      ? { label: tr("uiText.activities.dueIn", { time: activity.slaDueAt ? formatDistanceToNow(new Date(activity.slaDueAt), { locale: dateLocale() }) : "" }), status: "warning" as const }
       : null;
 
   return (
@@ -71,7 +74,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onExecute, onOccu
         </div>
         <CardTitle className="text-base leading-snug">{activity.title}</CardTitle>
         <CardDescription className="line-clamp-2">
-          {activity.description || "Sem descrição"}
+          {activity.description || tr("uiText.activities.noDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent className="mt-auto flex flex-col gap-3">
@@ -80,7 +83,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onExecute, onOccu
             <StatusChip
               status="warning"
               size="sm"
-              label={`Parada há ${formatDistanceToNow(new Date(activity.staleSince), { locale: ptBR })}`}
+              label={tr("uiText.activities.stalledAgo", { time: formatDistanceToNow(new Date(activity.staleSince), { locale: dateLocale() }) })}
             />
           )}
           {slaChip && <StatusChip status={slaChip.status} size="sm" label={slaChip.label} />}
@@ -95,7 +98,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onExecute, onOccu
 
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
-          {formatDistanceToNow(new Date(activity.createdAt), { locale: ptBR, addSuffix: true })}
+          {formatDistanceToNow(new Date(activity.createdAt), { locale: dateLocale(), addSuffix: true })}
         </div>
 
         <div className="flex gap-2">
@@ -103,7 +106,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onExecute, onOccu
             variant="outline"
             size="sm"
             onClick={() => setOccurrenceModalOpen(true)}
-            title="Registrar ocorrência"
+            title={tr("uiText.activities.recordOccurrence")}
           >
             <MessageSquareWarning className="h-4 w-4" />
           </Button>

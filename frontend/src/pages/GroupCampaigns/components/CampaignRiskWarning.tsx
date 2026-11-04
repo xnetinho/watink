@@ -4,6 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface CampaignRiskWarningProps {
     checked: boolean;
     onChange: (checked: boolean) => void;
@@ -29,17 +32,12 @@ const CampaignRiskWarning: React.FC<CampaignRiskWarningProps> = ({ checked, onCh
                 <div className="flex items-start gap-3">
                     <TriangleAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                     <div className="space-y-2 text-sm">
-                        <p className="font-semibold text-destructive">Risco de banimento da conexão</p>
+                        <p className="font-semibold text-destructive">{tr("uiText.campaigns.riskTitle")}</p>
                         <p className="text-muted-foreground">
-                            Conexões WhatsApp conectadas via este método podem ser identificadas e banidas em
-                            poucas semanas, independentemente da cadência de envio configurada aqui — o sinal
-                            que a Meta detecta é estrutural, não apenas comportamental. As proteções desta tela
-                            (intervalo, variação de mensagens, pausa entre lotes) reduzem o risco, mas não o
-                            eliminam.
+                            {tr("uiText.campaigns.riskBody")}
                         </p>
                         <p className="text-muted-foreground">
-                            Diferente de campanhas para contatos individuais, não existe hoje um canal oficial e
-                            sancionado para disparo em massa em grupos de WhatsApp.
+                            {tr("uiText.campaigns.riskBody2")}
                         </p>
                     </div>
                 </div>
@@ -51,7 +49,7 @@ const CampaignRiskWarning: React.FC<CampaignRiskWarningProps> = ({ checked, onCh
                         onCheckedChange={(v) => onChange(v === true)}
                     />
                     <Label htmlFor="campaign-risk-ack" className="text-sm font-normal cursor-pointer">
-                        Entendo o risco de banimento e assumo a responsabilidade
+                        {tr("uiText.campaigns.riskAck")}
                     </Label>
                 </div>
             </CardContent>

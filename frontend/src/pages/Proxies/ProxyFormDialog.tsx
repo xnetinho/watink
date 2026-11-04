@@ -25,6 +25,9 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import type { Proxy, ProxyGroup } from "../../types/domain";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProxyFormDialogProps {
   open: boolean;
   proxy: Proxy | null;
@@ -81,7 +84,7 @@ const ProxyFormDialog: React.FC<ProxyFormDialogProps> = ({ open, proxy, groups, 
 
   const handleSubmit = async () => {
     if (!form.host.trim() || !form.port.trim()) {
-      toast.warning("Host e porta são obrigatórios.");
+      toast.warning(tr("uiText.proxies.hostRequired"));
       return;
     }
     const payload = {
@@ -115,17 +118,17 @@ const ProxyFormDialog: React.FC<ProxyFormDialogProps> = ({ open, proxy, groups, 
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar proxy" : "Novo proxy"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar proxy" : tr("uiText.proxies.new")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label>Rótulo</Label>
+            <Label>{tr("uiText.settings.proxy.label")}</Label>
             <Input value={form.label} onChange={(e) => set("label", e.target.value)} placeholder="ex: residencial-BR-1" />
           </div>
 
           <div className="space-y-1">
-            <Label>Tipo</Label>
+            <Label>{tr("uiText.common.type")}</Label>
             <Select value={form.scheme} onValueChange={(v) => set("scheme", v)}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -147,12 +150,12 @@ const ProxyFormDialog: React.FC<ProxyFormDialogProps> = ({ open, proxy, groups, 
           </div>
 
           <div className="space-y-1">
-            <Label>Usuário</Label>
+            <Label>{tr("uiText.settings.proxy.user")}</Label>
             <Input value={form.username} onChange={(e) => set("username", e.target.value)} />
           </div>
 
           <div className="space-y-1">
-            <Label>Senha {isEdit && proxy?.hasPassword && <span className="text-xs text-muted-foreground">(deixe vazio para manter)</span>}</Label>
+            <Label>Senha {isEdit && proxy?.hasPassword && <span className="text-xs text-muted-foreground">{tr("uiText.proxies.keepEmpty")}</span>}</Label>
             <Input type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder={isEdit && proxy?.hasPassword ? "••••••••" : ""} />
           </div>
 
@@ -161,7 +164,7 @@ const ProxyFormDialog: React.FC<ProxyFormDialogProps> = ({ open, proxy, groups, 
             <Select value={form.group} onValueChange={(v) => set("group", v)}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sem grupo</SelectItem>
+                <SelectItem value="none">{tr("uiText.whatsAppModal.noGroup")}</SelectItem>
                 {groups.map((g) => (
                   <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
                 ))}
@@ -176,10 +179,10 @@ const ProxyFormDialog: React.FC<ProxyFormDialogProps> = ({ open, proxy, groups, 
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="outline" onClick={onClose}>{tr("uiText.common.cancel")}</Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEdit ? "Salvar" : "Criar"}
+            {isEdit ? tr("uiText.common.save") : tr("uiText.common.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

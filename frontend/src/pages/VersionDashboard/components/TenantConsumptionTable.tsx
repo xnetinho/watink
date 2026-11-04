@@ -1,11 +1,14 @@
 import React from "react";
 import { SystemStats } from "../types";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface TenantConsumptionTableProps {
   stats: SystemStats | null;
 }
 
-const HEADERS = ["Tenant", "Usuários", "Contatos", "Tickets", "Abertos", "WhatsApps"];
+const HEADERS = ["uiText.saas.tenant", "uiText.versionDashboard.hUsers", "uiText.versionDashboard.hContacts", "uiText.common.tickets", "uiText.versionDashboard.hOpen", "uiText.versionDashboard.hWhatsapps"];
 
 const TenantConsumptionTable: React.FC<TenantConsumptionTableProps> = ({ stats }) => (
   <div className="rounded-xl border border-border bg-card shadow-sm">
@@ -21,7 +24,7 @@ const TenantConsumptionTable: React.FC<TenantConsumptionTableProps> = ({ stats }
                 key={h}
                 className="px-4 py-2 text-left font-medium text-muted-foreground last:text-right [&:not(:first-child)]:text-right"
               >
-                {h}
+                {tr(h)}
               </th>
             ))}
           </tr>

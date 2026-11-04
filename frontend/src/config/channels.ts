@@ -22,7 +22,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
   {
     kind: "whatsapp",
     name: "WhatsApp",
-    description: "Mensagens, mídias e grupos pelo número oficial ou Whatsmeow.",
+    description: "uiText.channels.whatsapp",
     availability: "available",
     authKind: "qr",
     colorClass: "text-emerald-600 dark:text-emerald-400",
@@ -35,7 +35,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
   {
     kind: "telegram",
     name: "Telegram",
-    description: "Conecte bots via token do @BotFather com envio de texto e mídias.",
+    description: "uiText.channels.telegram",
     availability: "available",
     authKind: "token",
     colorClass: "text-sky-600 dark:text-sky-400",
@@ -48,7 +48,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
   {
     kind: "mercadolivre",
     name: "Mercado Livre",
-    description: "Atendimento pós-venda organizado por pedido (pack_id).",
+    description: "uiText.channels.mercadolivre",
     availability: "beta",
     authKind: "oauth",
     colorClass: "text-amber-600 dark:text-amber-400",
@@ -62,7 +62,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
   {
     kind: "instagram",
     name: "Instagram Direct",
-    description: "Responda a DMs e mensagens da sua página comercial do Instagram.",
+    description: "uiText.channels.instagram",
     availability: "requires_approval",
     authKind: "oauth_review",
     colorClass: "text-pink-600 dark:text-pink-400",
@@ -76,7 +76,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
   {
     kind: "olx",
     name: "OLX Chat",
-    description: "Converse com compradores e vendedores direto pelos anúncios da OLX.",
+    description: "uiText.channels.olx",
     availability: "coming_soon",
     authKind: "oauth",
     colorClass: "text-purple-600 dark:text-purple-400",
@@ -89,7 +89,7 @@ export const CHANNELS_CATALOG: ChannelDefinition[] = [
   {
     kind: "tiktok",
     name: "TikTok Direct Messages",
-    description: "Interaja com mensagens diretas recebidas na conta TikTok Business.",
+    description: "uiText.channels.tiktok",
     availability: "requires_approval",
     authKind: "oauth_review",
     colorClass: "text-foreground",

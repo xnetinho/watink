@@ -31,6 +31,9 @@ import ButtonWithSpinner from "@/components/ButtonWithSpinner";
 import { GroupInfo, ParticipantResult, updateParticipants } from "../../services/groupService";
 import { classifyGroupsApiError } from "./groupTypes";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface GroupParticipantsPanelProps {
     whatsappId: number;
     group: GroupInfo;
@@ -50,9 +53,9 @@ const GroupParticipantsPanel: React.FC<GroupParticipantsPanelProps> = ({ whatsap
             setLastResults(results);
             const failed = results.filter((r) => r.status === "error");
             if (failed.length > 0) {
-                toast.warning(`${results.length - failed.length}/${results.length} concluído(s) com sucesso`);
+                toast.warning(tr("uiText.groups.partialOk", { ok: results.length - failed.length, total: results.length }));
             } else {
-                toast.success("Ação concluída");
+                toast.success(tr("uiText.groups.actionDone"));
             }
             onChanged();
         } catch (err) {
@@ -84,7 +87,7 @@ const GroupParticipantsPanel: React.FC<GroupParticipantsPanelProps> = ({ whatsap
 
             {lastResults && (
                 <div className="rounded-2xl bg-card shadow-[0px_4px_20px_rgba(0,0,0,0.08)] p-4 text-sm">
-                    <p className="font-medium mb-2">Resultado da última ação</p>
+                    <p className="font-medium mb-2">{tr("uiText.groups.lastResult")}</p>
                     <ul className="space-y-1">
                         {lastResults.map((r) => (
                             <li key={r.jid} className="flex items-center gap-2">
@@ -167,15 +170,15 @@ const GroupParticipantsPanel: React.FC<GroupParticipantsPanelProps> = ({ whatsap
                     <Textarea
                         value={addRaw}
                         onChange={(e) => setAddRaw(e.target.value)}
-                        placeholder="Um número por linha"
+                        placeholder={tr("uiText.groups.numberPerLine")}
                         rows={5}
                     />
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setAddOpen(false)} disabled={addLoading}>
-                            Cancelar
+                            {tr("uiText.common.cancel")}
                         </Button>
                         <ButtonWithSpinner onClick={handleAddSubmit} loading={addLoading}>
-                            Adicionar
+                            {tr("uiText.common.add")}
                         </ButtonWithSpinner>
                     </DialogFooter>
                 </DialogContent>
@@ -189,7 +192,7 @@ const GroupParticipantsPanel: React.FC<GroupParticipantsPanelProps> = ({ whatsap
                     if (removeTarget) runAction("remove", [removeTarget]);
                 }}
             >
-                Tem certeza que deseja remover este participante do grupo?
+                {tr("uiText.groups.removeParticipant")}
             </ConfirmationModal>
         </div>
     );

@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { SystemStats, QueueAlert } from "../types";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface RabbitMQCardProps {
   stats: SystemStats | null;
   queueAlerts: Record<string, QueueAlert>;
@@ -16,7 +19,7 @@ const RabbitMQCard: React.FC<RabbitMQCardProps> = ({ stats, queueAlerts }) => {
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-semibold">Fila de Mensagens (RabbitMQ)</h2>
+        <h2 className="font-semibold">{tr("uiText.versionDashboard.rabbit")}</h2>
         <Button variant="ghost" size="sm" asChild>
           <RouterLink to="/monitor/queues">Ver filas</RouterLink>
         </Button>

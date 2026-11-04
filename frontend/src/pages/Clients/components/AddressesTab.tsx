@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddressInput } from "../clientTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface AddressesTabProps {
   addresses: AddressInput[];
   onAdd: () => void;
@@ -18,16 +21,16 @@ const AddressesTab: React.FC<AddressesTabProps> = ({
 }) => (
   <TabsContent value="addresses" className="mt-4">
     <div className="flex items-center justify-between mb-3">
-      <p className="text-sm font-medium text-muted-foreground">Endereços</p>
+      <p className="text-sm font-medium text-muted-foreground">{tr("uiText.clients.addresses")}</p>
       <Button variant="outline" size="sm" onClick={onAdd}>
         <Plus className="mr-1.5 h-4 w-4" />
-        Adicionar
+        {tr("uiText.common.add")}
       </Button>
     </div>
 
     {addresses.length === 0 ? (
       <p className="text-sm text-muted-foreground text-center py-8">
-        Nenhum endereço adicionado
+        {tr("uiText.clients.noAddress")}
       </p>
     ) : (
       <div className="space-y-4">
@@ -43,7 +46,7 @@ const AddressesTab: React.FC<AddressesTabProps> = ({
             </Button>
             <div className="grid grid-cols-4 gap-3 pr-10">
               <div className="col-span-1 space-y-1.5">
-                <label className="text-xs font-medium">Rótulo (ex: Sede)</label>
+                <label className="text-xs font-medium">{tr("uiText.clients.addressLabel")}</label>
                 <Input
                   value={address.label}
                   onChange={(e) => onAddressChange(index, "label", e.target.value)}
@@ -60,7 +63,7 @@ const AddressesTab: React.FC<AddressesTabProps> = ({
                 />
               </div>
               <div className="col-span-1 space-y-1.5">
-                <label className="text-xs font-medium">Número</label>
+                <label className="text-xs font-medium">{tr("uiText.clients.number")}</label>
                 <Input
                   value={address.number}
                   onChange={(e) => onAddressChange(index, "number", e.target.value)}
@@ -68,7 +71,7 @@ const AddressesTab: React.FC<AddressesTabProps> = ({
                 />
               </div>
               <div className="col-span-1 space-y-1.5">
-                <label className="text-xs font-medium">Complemento</label>
+                <label className="text-xs font-medium">{tr("uiText.clients.complement")}</label>
                 <Input
                   value={address.complement}
                   onChange={(e) => onAddressChange(index, "complement", e.target.value)}
@@ -84,19 +87,19 @@ const AddressesTab: React.FC<AddressesTabProps> = ({
                 />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <label className="text-xs font-medium">Bairro</label>
+                <label className="text-xs font-medium">{tr("uiText.clients.neighborhood")}</label>
                 <Input
                   value={address.neighborhood}
                   onChange={(e) => onAddressChange(index, "neighborhood", e.target.value)}
-                  placeholder="Bairro"
+                  placeholder={tr("uiText.clients.neighborhood")}
                 />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <label className="text-xs font-medium">Cidade</label>
+                <label className="text-xs font-medium">{tr("uiText.clients.city")}</label>
                 <Input
                   value={address.city}
                   onChange={(e) => onAddressChange(index, "city", e.target.value)}
-                  placeholder="Cidade"
+                  placeholder={tr("uiText.clients.city")}
                 />
               </div>
               <div className="col-span-2 space-y-1.5">

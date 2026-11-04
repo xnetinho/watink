@@ -11,11 +11,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Trash2, Reply, Forward, Pencil } from "lucide-react";
+import { Trash2, Reply, Forward, Pencil, Info, Sticker } from "lucide-react";
 import ForwardMessageDialog from "../ForwardMessageDialog";
 import { canForward, voiceOf } from "../../lib/messages/forward";
 import { canEdit } from "../../lib/messages/edit";
 import EditMessageDialog from "../EditMessageDialog";
+import MessageReceiptsDialog from "../MessagesList/components/MessageReceiptsDialog";
+import { canShowReceipts } from "../../lib/messages/receipts";
+import { canSaveSticker } from "../../lib/messages/sticker";
+import { toast } from "react-toastify";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
@@ -54,6 +58,7 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [receiptsOpen, setReceiptsOpen] = useState(false);
 
   const handleDeleteMessage = async () => {
     try {
@@ -71,6 +76,26 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
   const handleOpenEdit = () => {
     setEditOpen(true);
     handleClose();
+  };
+
+  const handleOpenReceipts = () => {
+    setReceiptsOpen(true);
+    handleClose();
+  };
+
+  const handleSaveSticker = async () => {
+    handleClose();
+    try {
+      const { data } = await api.post<{ alreadySaved?: boolean }>("/stickers", { messageId: message.id });
+      // A figurinha já estava na biblioteca da empresa (salva por outro atendente, ou por este antes): não foi gravada de novo.
+      if (data?.alreadySaved) toast.info(String(i18n.t("messageOptionsMenu.stickerAlreadySaved") ?? ""));
+      else toast.success(String(i18n.t("messageOptionsMenu.stickerSaved") ?? ""));
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      // 422: a figurinha não tem arquivo guardado (mídia ainda não baixada, ou já removida): avisa em vez de um erro genérico.
+      if (status === 422) toast.warning(String(i18n.t("messageOptionsMenu.stickerUnavailable") ?? ""));
+      else toastError(err);
+    }
   };
 
   const handleOpenForward = () => {
@@ -109,6 +134,14 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
           initialBody={typeof message.body === "string" ? message.body : ""}
           isCaption={typeof message.mediaType === "string" && message.mediaType !== "" && message.mediaType !== "chat"}
           onClose={() => setEditOpen(false)}
+        />
+      )}
+
+      {receiptsOpen && message.id !== undefined && (
+        <MessageReceiptsDialog
+          messageId={message.id}
+          isAudio={message.mediaType === "audio"}
+          onClose={() => setReceiptsOpen(false)}
         />
       )}
 
@@ -196,6 +229,25 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
             <DropdownMenuItem className="gap-2" onClick={handleOpenEdit}>
               <Pencil className="h-4 w-4" />
               {i18n.t("messageOptionsMenu.edit")}
+            </DropdownMenuItem>
+          )}
+          {canShowReceipts(
+            {
+              fromMe: message.fromMe,
+              isDeleted: message.isDeleted === true,
+              ack: typeof message.ack === "number" ? message.ack : undefined,
+            },
+            channel
+          ) && (
+            <DropdownMenuItem className="gap-2" onClick={handleOpenReceipts} data-testid="message-receipts-item">
+              <Info className="h-4 w-4" />
+              {i18n.t("messageOptionsMenu.receipts")}
+            </DropdownMenuItem>
+          )}
+          {canSaveSticker(message, channel) && (
+            <DropdownMenuItem className="gap-2" onClick={handleSaveSticker} data-testid="message-save-sticker-item">
+              <Sticker className="h-4 w-4" />
+              {i18n.t("messageOptionsMenu.saveSticker")}
             </DropdownMenuItem>
           )}
           {canForward(message) && (

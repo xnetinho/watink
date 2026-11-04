@@ -22,6 +22,8 @@ import api from '../../services/api';
 import { cn } from '@/lib/utils';
 import { i18n } from '../../translate/i18n';
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ─── Color map ────────────────────────────────────────────────────────────────
 
 const COLOR_MAP: Record<string, string> = {
@@ -99,13 +101,13 @@ const NodesSidebar: React.FC = () => {
 
   return (
     <aside className="w-full px-6 py-5 bg-[hsl(var(--bg-surface))] flex flex-col gap-3 overflow-y-auto">
-      <p className="text-base font-bold text-[hsl(var(--text-primary))] pl-1">Blocos Disponíveis</p>
+      <p className="text-base font-bold text-[hsl(var(--text-primary))] pl-1">{tr("uiText.flow.sidebar.blocks")}</p>
 
       {/* WhatsApp */}
       <p className="mt-5 text-[0.75rem] font-bold text-[hsl(var(--text-primary))] uppercase tracking-[0.05em] opacity-60">WhatsApp</p>
       <div className="grid grid-cols-3 gap-4">
         <DraggableNode type="trigger" label="Gatilho" icon={Bell} colorClass="colorTrigger" />
-        <DraggableNode type="message" label="Mensagem" icon={MessageSquare} colorClass="colorMessage" />
+        <DraggableNode type="message" label={tr("uiText.flow.ui.message")} icon={MessageSquare} colorClass="colorMessage" />
         <DraggableNode type="menu" label="Menu" icon={List} colorClass="colorMenu" />
         <DraggableNode
           type="quickAnswer"
@@ -116,22 +118,22 @@ const NodesSidebar: React.FC = () => {
       </div>
 
       {/* Lógica */}
-      <p className="mt-5 text-[0.75rem] font-bold text-[hsl(var(--text-primary))] uppercase tracking-[0.05em] opacity-60">Lógica</p>
+      <p className="mt-5 text-[0.75rem] font-bold text-[hsl(var(--text-primary))] uppercase tracking-[0.05em] opacity-60">{tr("uiText.flow.sidebar.logic")}</p>
       <div className="grid grid-cols-3 gap-4">
-        <DraggableNode type="input" label="Início" icon={Play} colorClass="colorTrigger" />
-        <DraggableNode type="switch" label="Decisão" icon={GitBranch} colorClass="colorSwitch" />
+        <DraggableNode type="input" label={tr("uiText.flow.ui.start")} icon={Play} colorClass="colorTrigger" />
+        <DraggableNode type="switch" label={tr("uiText.flow.ui.decision")} icon={GitBranch} colorClass="colorSwitch" />
         <DraggableNode type="output" label="Fim" icon={Square} colorClass="colorEnd" />
       </div>
 
       {/* Utilitários */}
-      <p className="mt-5 text-[0.75rem] font-bold text-[hsl(var(--text-primary))] uppercase tracking-[0.05em] opacity-60">Utilitários</p>
+      <p className="mt-5 text-[0.75rem] font-bold text-[hsl(var(--text-primary))] uppercase tracking-[0.05em] opacity-60">{tr("uiText.flow.sidebar.utilities")}</p>
       <div className="grid grid-cols-3 gap-4">
         <DraggableNode type="pipeline" label="Pipeline" icon={GitCommit} colorClass="colorPipeline" />
         <DraggableNode type="knowledge" label="Conhecimento" icon={Lightbulb} colorClass="colorKnowledge" />
         <DraggableNode type="agent" label="Agente IA" icon={Bot} colorClass="colorAgent" />
         <DraggableNode type="database" label="Database" icon={Database} colorClass="colorDatabase" />
         <DraggableNode type="filter" label="Filtro" icon={Filter} colorClass="colorFilter" />
-        <DraggableNode type="ticket" label="Ticket" icon={Ticket} colorClass="colorTicket" />
+        <DraggableNode type="ticket" label={tr("uiText.flow.ui.ticket")} icon={Ticket} colorClass="colorTicket" />
         <DraggableNode type="webhook" label="Webhook" icon={Webhook} colorClass="colorWebhook" />
         <DraggableNode type="api" label="API" icon={Globe} colorClass="colorApi" />
       </div>
@@ -146,7 +148,7 @@ const NodesSidebar: React.FC = () => {
         </>
       )}
 
-      <p className="mt-auto text-[11px] text-[hsl(var(--text-secondary))] text-center py-2">Arraste os ícones para o painel</p>
+      <p className="mt-auto text-[11px] text-[hsl(var(--text-secondary))] text-center py-2">{tr("uiText.flow.sidebar.dragHint")}</p>
     </aside>
   );
 };

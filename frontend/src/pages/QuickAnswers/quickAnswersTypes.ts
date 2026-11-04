@@ -7,7 +7,7 @@ export type QuickAnswerType =
   | "carousel"
   | "pix";
 
-export type PixKeyType = "CPF" | "CNPJ" | "PHONE" | "EMAIL" | "EVP";
+export type PixKeyType = "CPF" | "CNPJ" | "PHONE" | "EMAIL" | "EVP"; // i18n-ignore: valores técnicos da API
 
 export interface QuickAnswerContentText {
   body: string;

@@ -149,6 +149,7 @@ services:
       - DB_SEARCH_PATH=whatsmeow
       - DB_NAME=watink
       - HEALTH_PORT=8083
+      - GROUPS_API_PORT=8084
       # Canal de áudio das chamadas (ADR 0031): só a rede interna (porta não publicada).
       # Precisa de saída UDP para os relays do WhatsApp.
       - CALLS_AUDIO_PORT=8085

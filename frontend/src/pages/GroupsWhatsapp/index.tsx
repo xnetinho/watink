@@ -11,6 +11,9 @@ import ComunidadesTab from "./components/ComunidadesTab";
 import MonitoramentoTab from "./components/MonitoramentoTab";
 import CampanhasTab from "./components/CampanhasTab";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 /**
  * Central "Grupos WhatsApp" — mesmo padrão da Central de Acessos
  * (src/pages/Acessos/index.tsx): substitui os 3 itens soltos no sidebar
@@ -35,7 +38,7 @@ const GroupsWhatsapp: React.FC = () => {
 
     return (
         <PageContainer>
-            <PageHeader title="Grupos WhatsApp" description="Gestão de grupos, comunidades e monitoramento de frases" />
+            <PageHeader title="Grupos WhatsApp" description={tr("uiText.groups.pageSubtitle")} />
             <PageContent>
                 <Tabs
                     value={activeTab}

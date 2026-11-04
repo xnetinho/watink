@@ -11,6 +11,9 @@ import { Label } from "../../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
 import { usePublicPlans, formatBRL } from "../Plans/planCatalog";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FormState {
   companyName: string;
   document: string;
@@ -33,19 +36,19 @@ const emptyForm: FormState = {
 // (business/internal/controllers/register.go) — nunca mostrar o código cru.
 const ERROR_MESSAGES: Record<string, string> = {
   weak_password: "A senha precisa ter pelo menos 8 caracteres.",
-  captcha_required: "Confirme que você não é um robô e tente novamente.",
-  captcha_failed: "Não conseguimos confirmar o CAPTCHA. Tente novamente.",
-  plan_not_found: "Este plano não existe mais. Escolha outro.",
-  plan_not_eligible: "Este plano não está disponível para cadastro imediato.",
-  email_already_registered: "Este e-mail já está cadastrado. Faça login ou use outro e-mail.",
-  registration_closed: "O cadastro está temporariamente indisponível.",
-  too_many_attempts: "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.",
-  invalid_request: "Confira os dados informados.",
+  captcha_required: "uiText.register.err.captchaRequired",
+  captcha_failed: "uiText.register.err.captchaFailed",
+  plan_not_found: "uiText.register.err.planNotFound",
+  plan_not_eligible: "uiText.register.err.planNotEligible",
+  email_already_registered: "uiText.register.err.emailTaken",
+  registration_closed: "uiText.register.err.closed",
+  too_many_attempts: "uiText.register.err.tooMany",
+  invalid_request: "uiText.register.err.invalid",
 };
 
 function friendlyError(code: string | undefined): string {
-  if (!code) return "Não foi possível concluir o cadastro. Tente novamente.";
-  return ERROR_MESSAGES[code] ?? "Não foi possível concluir o cadastro. Tente novamente.";
+  if (!code) return tr("uiText.register.err.generic");
+  return ERROR_MESSAGES[code] ? tr(ERROR_MESSAGES[code]) : tr("uiText.register.err.generic");
 }
 
 type Stage = "provisioning" | "ready" | "failed";
@@ -149,7 +152,7 @@ const RegisterPage: React.FC = () => {
         <Card className="w-full max-w-md">
           <CardContent className="pt-8 pb-8 px-8 text-center space-y-4">
             <p className="text-muted-foreground">
-              O cadastro self-service não está disponível nesta instalação no momento.
+              {tr("uiText.plans.selfServiceOff")}
             </p>
             <RouterLink to="/login" className="inline-flex items-center gap-2 text-primary font-medium hover:underline">
               <ArrowLeft className="h-4 w-4" /> Voltar para o login
@@ -169,8 +172,8 @@ const RegisterPage: React.FC = () => {
               <>
                 <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
                 <div>
-                  <p className="font-medium">Preparando seu ambiente…</p>
-                  <p className="text-sm text-muted-foreground mt-1">Isso leva só alguns segundos.</p>
+                  <p className="font-medium">{tr("uiText.register.preparing")}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{tr("uiText.register.fewSeconds")}</p>
                 </div>
               </>
             )}
@@ -179,7 +182,7 @@ const RegisterPage: React.FC = () => {
                 <PartyPopper className="h-10 w-10 text-primary mx-auto" />
                 <div>
                   <p className="font-medium">Tudo pronto!</p>
-                  <p className="text-sm text-muted-foreground mt-1">Sua conta foi criada com sucesso.</p>
+                  <p className="text-sm text-muted-foreground mt-1">{tr("uiText.register.created")}</p>
                 </div>
                 <Button className="w-full h-11" onClick={goToLogin}>
                   Entrar agora
@@ -188,12 +191,12 @@ const RegisterPage: React.FC = () => {
             )}
             {stage === "failed" && (
               <>
-                <p className="font-medium">Isso está demorando mais que o esperado.</p>
+                <p className="font-medium">{tr("uiText.register.slow")}</p>
                 <p className="text-sm text-muted-foreground">
-                  Tente entrar em alguns instantes — seu cadastro pode já ter sido concluído.
+                  {tr("uiText.register.tryLater")}
                 </p>
                 <Button variant="outline" className="w-full h-11" onClick={goToLogin}>
-                  Ir para o login
+                  {tr("uiText.register.goLogin")}
                 </Button>
               </>
             )}
@@ -209,8 +212,8 @@ const RegisterPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>Crie sua conta</CardTitle>
-          <CardDescription>Preencha seus dados para começar a usar agora mesmo.</CardDescription>
+          <CardTitle>{tr("uiText.register.title")}</CardTitle>
+          <CardDescription>{tr("uiText.register.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4">
@@ -224,9 +227,9 @@ const RegisterPage: React.FC = () => {
               >
                 {plans.map((plan) => (
                   <option key={plan.id} value={plan.id}>
-                    {plan.name} — {plan.priceCents === 0 ? "Grátis" : formatBRL(plan.priceCents)}
+                    {plan.name} — {plan.priceCents === 0 ? tr("uiText.plans.free") : formatBRL(plan.priceCents)}
                     {plan.priceCents > 0 ? (plan.billingCycle === "yearly" ? "/ano" : "/mês") : ""}
-                    {plan.trialDays > 0 ? ` (${plan.trialDays} dias grátis)` : ""}
+                    {plan.trialDays > 0 ? tr("uiText.register.trial", { days: plan.trialDays }) : ""}
                   </option>
                 ))}
               </select>
@@ -236,7 +239,7 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="companyName">Nome da empresa</Label>
+              <Label htmlFor="companyName">{tr("uiText.register.company")}</Label>
               <Input id="companyName" name="companyName" required value={form.companyName} onChange={handleChange} className="h-11" />
             </div>
             <div className="grid gap-2">
@@ -245,7 +248,7 @@ const RegisterPage: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="firstName">Nome</Label>
+                <Label htmlFor="firstName">{tr("uiText.common.name")}</Label>
                 <Input id="firstName" name="firstName" required value={form.firstName} onChange={handleChange} className="h-11" />
               </div>
               <div className="grid gap-2">
@@ -277,7 +280,7 @@ const RegisterPage: React.FC = () => {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres. Esta é a senha que você vai usar para entrar.</p>
+              <p className="text-xs text-muted-foreground">{tr("uiText.register.passwordHint")}</p>
             </div>
 
             {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}

@@ -146,6 +146,7 @@ const Ticket: React.FC<TicketProps> = ({ onToggleDetails, showDetails }) => {
         <MessageInput
           ticketStatus={ticket.status}
           whatsappStatus={ticket.whatsapp?.status}
+          channel={ticket.channel}
         />
         </TicketDropZone>
         </MediaDropProvider>

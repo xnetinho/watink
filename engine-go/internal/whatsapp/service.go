@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -12,8 +13,10 @@ import (
 	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/alltomatos/watinkdev/engine-go/internal/calls"
 	"github.com/alltomatos/watinkdev/engine-go/internal/rabbitmq"
+	"github.com/alltomatos/watinkdev/engine-go/internal/waversion"
 	_ "github.com/lib/pq"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
@@ -47,6 +50,11 @@ type WhatsAppService struct {
 	callMu       sync.Mutex
 	callSessions map[int]*calls.Session
 
+	// waVersion decide a versão do cliente WhatsApp e a renova no 405; nil desliga (testes).
+	waVersion   *waversion.Resolver
+	waVersionMu sync.Mutex
+	waRetried   map[int]store.WAVersionContainer // versão da última reconexão por 405, por sessão
+
 	// publishEvent routes an event envelope to the messaging broker.
 	// Settable in tests to capture emitted events without a real broker.
 	publishEvent func(tenantID string, sessionID int, eventType string, payload map[string]interface{})
@@ -68,7 +76,15 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService) *WhatsAppService {
 		log.Fatalf("Failed to connect to Postgres for WhatsMeow store: %v", err)
 	}
 
+	// Conexão própria só para ler WaVersionSettings: o sqlstore não expõe o *sql.DB. sql.Open não conecta; a falha de
+	// leitura cai no modo automático.
+	var versionDB *sql.DB
+	if db, derr := sql.Open("postgres", dsn); derr == nil {
+		versionDB = db
+	}
+
 	svc := &WhatsAppService{
+		waRetried:       make(map[int]store.WAVersionContainer),
 		container:       container,
 		clients:         make(map[int]*whatsmeow.Client),
 		clientsByTenant: make(map[clientKey]*whatsmeow.Client),
@@ -78,6 +94,9 @@ func NewWhatsAppService(rabbit *rabbitmq.RabbitMQService) *WhatsAppService {
 		groupMetaMap:    make(map[string]groupMeta),
 		picCache:        make(map[string]string),
 		callSessions:    make(map[int]*calls.Session),
+	}
+	if versionDB != nil {
+		svc.waVersion = waversion.NewResolver(loadWAVersionSetting(versionDB))
 	}
 	svc.publishEvent = svc.defaultPublishEvent
 	return svc

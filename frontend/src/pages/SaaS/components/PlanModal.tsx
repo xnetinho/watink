@@ -13,6 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import type { Plan, PlanForm } from "../saasTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PlanModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -34,11 +37,11 @@ export function PlanModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>{selectedPlan ? "Editar Plano" : "Novo Plano"}</DialogTitle>
+                    <DialogTitle>{selectedPlan ? "Editar Plano" : tr("uiText.saas.newPlan")}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="planNameInput">Nome do Plano</Label>
+                        <Label htmlFor="planNameInput">{tr("uiText.saas.planName")}</Label>
                         <Input
                             id="planNameInput"
                             value={form.name}
@@ -48,7 +51,7 @@ export function PlanModal({
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="planPluginQuota">Quota de Plugins</Label>
+                            <Label htmlFor="planPluginQuota">{tr("uiText.saas.pluginQuota")}</Label>
                             <Input
                                 id="planPluginQuota"
                                 type="number"
@@ -59,7 +62,7 @@ export function PlanModal({
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="planPrice">Preço (R$)</Label>
+                            <Label htmlFor="planPrice">{tr("uiText.saas.price")}</Label>
                             <Input
                                 id="planPrice"
                                 type="number"
@@ -83,9 +86,9 @@ export function PlanModal({
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
-                        Cancelar
+                        {tr("uiText.common.cancel")}
                     </Button>
-                    <Button onClick={onSave}>Salvar</Button>
+                    <Button onClick={onSave}>{tr("uiText.common.save")}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

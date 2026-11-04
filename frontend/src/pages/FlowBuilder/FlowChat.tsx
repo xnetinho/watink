@@ -6,6 +6,9 @@ import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { cn } from '@/lib/utils';
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ChatMessage {
@@ -26,7 +29,7 @@ const FlowChat: React.FC<FlowChatProps> = ({ onFlowGenerated }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
-      text: 'Olá! Sou seu assistente de criação de fluxos. Descreva o fluxo que você gostaria de criar.',
+      text: tr("uiText.flow.chat.welcome"),
       sender: 'bot',
     },
   ]);
@@ -49,7 +52,7 @@ const FlowChat: React.FC<FlowChatProps> = ({ onFlowGenerated }) => {
 
       const botMsg: ChatMessage = {
         id: Date.now() + 1,
-        text: data.message || 'Aqui está uma sugestão para o seu fluxo.',
+        text: data.message || tr("uiText.flow.chat.suggestion"),
         sender: 'bot',
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -64,9 +67,9 @@ const FlowChat: React.FC<FlowChatProps> = ({ onFlowGenerated }) => {
       const disabled =
         backendError.includes('ERR_AI_DISABLED') || backendError.includes('ERR_NO_AI');
       const text = disabled
-        ? 'A IA do FlowBuilder não está configurada. Ative "IA no FlowBuilder" e configure o gateway em Configurações → Agente de IA.'
-        : 'Desculpe, tive um problema ao processar. Verifique se o gateway de IA está disponível e tente novamente.';
-      toast.error(disabled ? 'IA do FlowBuilder não configurada' : 'Erro ao processar sua solicitação.');
+        ? tr("uiText.flow.chat.notConfigured")
+        : tr("uiText.flow.chat.problem");
+      toast.error(disabled ? tr("uiText.flow.chat.notConfiguredToast") : tr("uiText.flow.chat.requestError"));
       setMessages((prev) => [...prev, { id: Date.now() + 1, text, sender: 'bot' }]);
     } finally {
       setLoading(false);
@@ -121,7 +124,7 @@ const FlowChat: React.FC<FlowChatProps> = ({ onFlowGenerated }) => {
       <div className="flex items-center gap-2 p-3 border-t bg-[hsl(var(--bg-surface))] shrink-0">
         <Textarea
           className="flex-1 text-sm resize-none min-h-[36px] max-h-[80px]"
-          placeholder="Ex: Crie um fluxo para agendar consultas..."
+          placeholder={tr("uiText.flow.chat.placeholder")}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}

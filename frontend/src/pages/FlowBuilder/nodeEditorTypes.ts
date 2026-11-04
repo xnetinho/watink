@@ -1,7 +1,6 @@
 import type { Condition } from './components/ConditionBuilder';
 import type { Filter } from './components/FilterBuilder';
 import type { DataField } from './components/DataBuilder';
-import { i18n } from '../../translate/i18n';
 
 export interface NodeData {
   label?: string;
@@ -113,24 +112,24 @@ export interface NodeEditorSidebarProps {
 }
 
 export const NODE_TITLES: Record<string, string> = {
-  start: 'Configurar Início',
-  input: 'Configurar Início',
-  trigger: 'Configurar Gatilho',
-  message: 'Configurar Mensagem',
-  menu: 'Configurar Menu',
-  switch: 'Configurar Decisão',
-  pipeline: 'Configurar Pipeline (Kanban)',
-  ticket: 'Configurar Ticket',
-  webhook: 'Configurar Webhook',
-  knowledge: 'Configurar Conhecimento',
-  agent: 'Configurar Agente IA',
-  database: 'Configurar Database',
-  filter: 'Configurar Filtro de Dados',
-  api: 'Configurar Requisição API',
-  helpdesk: 'Configurar Helpdesk',
-  end: 'Configurar Fim',
-  output: 'Configurar Fim',
-  quickAnswer: i18n.t('flowBuilder.nodes.quickAnswer.title'),
+  start: "uiText.flow.editor.title.start",
+  input: "uiText.flow.editor.title.start",
+  trigger: 'uiText.flow.editor.title.trigger',
+  message: 'uiText.flow.editor.title.message',
+  menu: 'uiText.flow.editor.title.menu',
+  switch: "uiText.flow.editor.title.switch",
+  pipeline: 'uiText.flow.editor.title.pipeline',
+  ticket: 'uiText.flow.editor.title.ticket',
+  webhook: 'uiText.flow.editor.title.webhook',
+  knowledge: 'uiText.flow.editor.title.knowledge',
+  agent: 'uiText.flow.editor.title.agent',
+  database: 'uiText.flow.editor.title.database',
+  filter: "uiText.flow.editor.title.filter",
+  api: "uiText.flow.editor.title.api",
+  helpdesk: 'uiText.flow.editor.title.helpdesk',
+  end: 'uiText.flow.editor.title.end',
+  output: 'uiText.flow.editor.title.end',
+  quickAnswer: 'flowBuilder.nodes.quickAnswer.title',
 };
 
 export const TABLE_ALL_FIELDS: Record<string, string[]> = {
@@ -145,26 +144,26 @@ export const TABLE_ALL_FIELDS: Record<string, string[]> = {
 };
 
 export const FILTERABLE_FIELDS = [
-  { value: 'id', label: 'ID' },
-  { value: 'name', label: 'Nome' },
-  { value: 'status', label: 'Status' },
-  { value: 'email', label: 'E-mail' },
-  { value: 'number', label: 'Número' },
-  { value: 'body', label: 'Conteúdo' },
-  { value: 'queueId', label: 'ID da Fila' },
-  { value: 'userId', label: 'ID do Usuário' },
-  { value: 'createdAt', label: 'Data de Criação' },
+  { value: 'id', label: 'uiText.flow.field.id' },
+  { value: 'name', label: 'uiText.flow.field.name' },
+  { value: 'status', label: 'uiText.flow.field.status' },
+  { value: 'email', label: 'uiText.flow.field.email' },
+  { value: 'number', label: 'uiText.flow.field.number' },
+  { value: 'body', label: 'uiText.flow.field.body' },
+  { value: 'queueId', label: 'uiText.flow.field.queueId' },
+  { value: 'userId', label: 'uiText.flow.field.userId' },
+  { value: 'createdAt', label: 'uiText.flow.field.createdAt' },
 ];
 
 export const FILTER_OPERATORS_NODE = [
-  { value: 'equals', label: 'Igual a' },
-  { value: 'notEquals', label: 'Diferente de' },
-  { value: 'contains', label: 'Contém' },
-  { value: 'notContains', label: 'Não contém' },
-  { value: 'startsWith', label: 'Começa com' },
-  { value: 'endsWith', label: 'Termina com' },
-  { value: 'greaterThan', label: 'Maior que' },
-  { value: 'lessThan', label: 'Menor que' },
-  { value: 'isEmpty', label: 'Está vazio' },
-  { value: 'isNotEmpty', label: 'Não está vazio' },
+  { value: 'equals', label: 'uiText.flow.op.equals' },
+  { value: 'notEquals', label: 'uiText.flow.op.notEquals' },
+  { value: 'contains', label: 'uiText.flow.op.contains' },
+  { value: 'notContains', label: 'uiText.flow.op.notContains' },
+  { value: 'startsWith', label: 'uiText.flow.op.startsWith' },
+  { value: 'endsWith', label: 'uiText.flow.op.endsWith' },
+  { value: 'greaterThan', label: 'uiText.flow.op.greaterThan' },
+  { value: 'lessThan', label: 'uiText.flow.op.lessThan' },
+  { value: 'isEmpty', label: 'uiText.flow.op.isEmpty' },
+  { value: 'isNotEmpty', label: 'uiText.flow.op.isNotEmpty' },
 ];

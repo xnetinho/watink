@@ -15,6 +15,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // newWAMessageID generates a WhatsApp-compatible outgoing message ID
@@ -114,6 +115,10 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	var body, mediaType, mediaURL, mimeType, quotedID string
 	// voice: o áudio é uma GRAVAÇÃO (bolha de voz com onda), não um arquivo de áudio. Só vale para mediaType=audio.
 	var voice bool
+	// viewOnce: foto, vídeo ou áudio enviado para ser visto uma única vez (olho no painel de envio).
+	var viewOnce bool
+	// sticker: o operador pediu figurinha no painel (imagem, GIF ou vídeo; o engine converte para WebP 512x512; só no WhatsApp).
+	var sticker bool
 	// fileName é o nome ORIGINAL do arquivo anexado: o destinatário vê este nome, não o hash com que o arquivo é salvo.
 	var fileName string
 
@@ -122,6 +127,9 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			Body      string `json:"body"`
 			MediaType string `json:"mediaType"`
 			MediaUrl  string `json:"mediaUrl"`
+			// StickerID manda uma figurinha da biblioteca da empresa. É o id da biblioteca, nunca uma URL: o arquivo é o que
+			// a empresa guardou, e nenhum caminho de disco vem do cliente.
+			StickerID int `json:"stickerId"`
 			QuotedMsg *struct {
 				ID string `json:"id"`
 			} `json:"quotedMsg"`
@@ -148,11 +156,23 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 		if input.QuotedMsg != nil {
 			quotedID = input.QuotedMsg.ID
 		}
+		if input.StickerID != 0 {
+			var item models.StickerLibraryItem
+			if err := db.Session(&gorm.Session{NewDB: true}).Where(`id = ? AND "tenantId" = ?`, input.StickerID, tenantID).First(&item).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Sticker not found"})
+				return
+			}
+			// Figurinha não tem legenda; o arquivo já é o WebP final, o engine só o valida.
+			mediaType, mediaURL, mimeType, body = "sticker", item.MediaUrl, "image/webp", ""
+			sticker = true
+		}
 	} else {
 		// multipart/form-data: arquivo(s) de mídia
 		body = c.PostForm("body")
 		quotedID = c.PostForm("quotedMsgId")
 		voice = c.PostForm("audioKind") == "voice"
+		viewOnce = c.PostForm("viewOnce") == "true"
+		sticker = c.PostForm("sticker") == "true"
 		file, header, err := c.Request.FormFile("medias")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "medias file required for multipart"})
@@ -172,11 +192,17 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 
 		mediaURL = savedURL
 		mediaType = mimeTypeToMediaType(mimeType)
+		// Um .webp sem o pedido continua sendo foto. Figurinha não tem legenda: o texto digitado não sai e não fica gravado.
+		if sticker = sticker && canBeSticker(mimeType); sticker {
+			mediaType, body = "sticker", ""
+		}
 	}
 
 	res, viaChannel, fail := mc.deliver(c.Request.Context(), db, tenantID, ticket, outboundInput{
 		Body: body, MediaType: mediaType, MediaURL: mediaURL, MimeType: mimeType, QuotedID: quotedID,
 		Voice:    voice && mediaType == "audio",
+		ViewOnce: viewOnce && canBeViewOnce(mediaType),
+		Sticker:  sticker,
 		FileName: fileName,
 	})
 	if fail != nil {
@@ -189,6 +215,22 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	}
 	mc.announce(db, tenantID, res)
 	c.JSON(http.StatusOK, gin.H{"message": "Message sent", "messageId": res.ID})
+}
+
+// canBeSticker diz se o arquivo pode virar figurinha: imagem (inclui GIF e WebP) ou vídeo curto. O engine converte para WebP
+// 512x512 e recusa o que não converter.
+func canBeSticker(mimeType string) bool {
+	return strings.HasPrefix(mimeType, "image/") || strings.HasPrefix(mimeType, "video/")
+}
+
+// canBeViewOnce diz se o tipo aceita visualização única: foto, vídeo e áudio. Documento e figurinha não têm esse modo no
+// WhatsApp; o pedido é ignorado em vez de falhar (o arquivo sai como mídia comum).
+func canBeViewOnce(mediaType string) bool {
+	switch mediaType {
+	case "image", "video", "audio":
+		return true
+	}
+	return false
 }
 
 // sanitizeMimeType strips newlines and control characters from a user-supplied

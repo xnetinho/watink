@@ -8,6 +8,9 @@ import { messagesReducer } from "./messagesReducer";
 import { useMessagesSocket } from "./useMessagesSSE";
 import { useMessagesScroll } from "./useMessagesScroll";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface UseMessagesListReturn {
   messagesList: Message[];
   pageNumber: number;
@@ -160,7 +163,7 @@ export function useMessagesList(
 
   const handleSyncHistory = async () => {
     if (!historyFromDate) {
-      toast.error("Selecione uma data de início");
+      toast.error(tr("uiText.messagesList.historyNoDate"));
       return;
     }
     setHistoryLoading(true);
@@ -168,7 +171,7 @@ export function useMessagesList(
       await api.post(`/tickets/${ticketId}/history`, {
         fromDate: historyFromDate,
       });
-      toast.success("Buscando histórico de mensagens...");
+      toast.success(tr("uiText.messagesList.historyFetching"));
       setHistoryModalOpen(false);
       setHistoryFromDate("");
     } catch (err) {

@@ -15,6 +15,9 @@ import { useProtocolModal } from "./hooks/useProtocolModal";
 import { ProtocolContactSearch } from "./components/ProtocolContactSearch";
 import { ProtocolPriorityCategory } from "./components/ProtocolPriorityCategory";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProtocolModalProps {
   open: boolean;
   onClose: () => void;
@@ -51,7 +54,7 @@ const ProtocolModal: React.FC<ProtocolModalProps> = ({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-lg w-full">
         <DialogHeader>
-          <DialogTitle>Novo Protocolo</DialogTitle>
+          <DialogTitle>{tr("uiText.helpdesk.newProtocol")}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 pt-2">
@@ -72,7 +75,7 @@ const ProtocolModal: React.FC<ProtocolModalProps> = ({
               name="subject"
               value={formData.subject}
               onChange={handleChange}
-              placeholder="Assunto do protocolo"
+              placeholder={tr("uiText.helpdesk.subjectPlaceholder")}
             />
           </div>
 
@@ -85,21 +88,21 @@ const ProtocolModal: React.FC<ProtocolModalProps> = ({
           />
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="modal-description">Descrição</Label>
+            <Label htmlFor="modal-description">{tr("uiText.helpdesk.description")}</Label>
             <Textarea
               id="modal-description"
               name="description"
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              placeholder="Descreva o problema ou solicitação..."
+              placeholder={tr("uiText.helpdesk.descriptionPlaceholder")}
             />
           </div>
         </div>
 
         <DialogFooter className="mt-2">
           <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancelar
+            {tr("uiText.common.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

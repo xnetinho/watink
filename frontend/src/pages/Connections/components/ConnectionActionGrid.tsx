@@ -2,6 +2,9 @@ import React from "react";
 import { Loader2, PlugZap, RefreshCw, QrCode, Trash2 } from "lucide-react";
 import ActionCard from "./ActionCard";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ConnectionActionGridProps {
   isConnected: boolean;
   isBusy: boolean;
@@ -33,7 +36,7 @@ const ConnectionActionGrid = ({
     />
     <ActionCard
       icon={restarting ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
-      label="Reiniciar sessão"
+      label={tr("uiText.connections.restartSession")}
       tone="default"
       disabled={isBusy || restarting}
       onClick={onRestart}
@@ -47,7 +50,7 @@ const ConnectionActionGrid = ({
     />
     <ActionCard
       icon={<Trash2 className="h-5 w-5" />}
-      label="Excluir conexão"
+      label={tr("uiText.connections.deleteConnection")}
       tone="destructive"
       onClick={onDelete}
     />

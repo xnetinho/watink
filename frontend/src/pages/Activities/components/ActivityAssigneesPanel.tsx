@@ -4,6 +4,9 @@ import { Avatar } from "@/components/ui/avatar";
 import notify from "@/lib/notify";
 import api from "../../../services/api";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UserOption {
   id: number;
   name: string;
@@ -44,11 +47,11 @@ const ActivityAssigneesPanel: React.FC<ActivityAssigneesPanelProps> = ({ selecte
   };
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Carregando usuários...</p>;
+    return <p className="text-sm text-muted-foreground">{tr("uiText.activities.loadingUsers")}</p>;
   }
 
   if (users.length === 0) {
-    return <p className="text-sm text-muted-foreground">Nenhum usuário disponível neste tenant.</p>;
+    return <p className="text-sm text-muted-foreground">{tr("uiText.activities.noUsersTenant")}</p>;
   }
 
   return (

@@ -22,7 +22,7 @@ const TicketNode: React.FC<TicketNodeProps> = ({ data, isConnectable }) => (
     data={data}
     icon={Ticket}
     colorClass="colorTicket"
-    defaultLabel="Ticket"
+    defaultLabel="uiText.flow.node.ticket"
     sublabel={getActionLabel(data?.ticketAction as string)}
     isConnectable={isConnectable}
   />

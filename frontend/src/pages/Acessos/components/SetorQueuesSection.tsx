@@ -6,6 +6,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useQueues } from "@/hooks/useQueues";
 import type { SetorQueueLink } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SetorQueuesSectionProps {
   linkedQueues: SetorQueueLink[];
   onSave: (queueIds: number[]) => Promise<void>;
@@ -68,7 +71,7 @@ const SetorQueuesSection: React.FC<SetorQueuesSectionProps> = ({ linkedQueues, o
         disabled={saving || isLoading}
       >
         <Save className="mr-2 h-3.5 w-3.5" />
-        Salvar filas do setor
+        {tr("uiText.acessos.saveQueues")}
       </Button>
       {queues.length === 0 && !isLoading && (
         <p className="flex items-center gap-1 text-xs text-muted-foreground">

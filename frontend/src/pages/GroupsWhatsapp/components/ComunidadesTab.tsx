@@ -28,6 +28,9 @@ import { useGroupsConnection } from "../../Groups/hooks/useGroups";
 import { classifyGroupsApiError, GroupsApiError } from "../../Groups/groupTypes";
 import GroupsErrorState from "../../Groups/GroupsErrorState";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const ComunidadesTab: React.FC = () => {
     const navigate = useNavigate();
     const { whatsapps, whatsappId, setWhatsappId, loadingConnections } = useGroupsConnection();
@@ -79,7 +82,7 @@ const ComunidadesTab: React.FC = () => {
                     onValueChange={(v) => setWhatsappId(Number(v))}
                 >
                     <SelectTrigger className="w-[220px]">
-                        <SelectValue placeholder="Selecione a conexão" />
+                        <SelectValue placeholder={tr("uiText.campaigns.selectConnectionPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                         {whatsapps.map((w) => (
@@ -103,8 +106,8 @@ const ComunidadesTab: React.FC = () => {
                 </div>
             ) : whatsapps.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6 py-16">
-                    <h3 className="text-lg font-semibold">Nenhuma conexão disponível</h3>
-                    <Button onClick={() => navigate("/connections")}>Ir para Conexões</Button>
+                    <h3 className="text-lg font-semibold">{tr("uiText.groups.noConnection")}</h3>
+                    <Button onClick={() => navigate("/connections")}>{tr("uiText.groups.goConnections")}</Button>
                 </div>
             ) : apiError ? (
                 <GroupsErrorState error={apiError} />
@@ -147,15 +150,15 @@ const ComunidadesTab: React.FC = () => {
                         <DialogTitle>Criar comunidade</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-1.5 py-2">
-                        <Label htmlFor="community-name">Nome da comunidade</Label>
+                        <Label htmlFor="community-name">{tr("uiText.groups.communityName")}</Label>
                         <Input id="community-name" value={name} onChange={(e) => setName(e.target.value)} />
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
-                            Cancelar
+                            {tr("uiText.common.cancel")}
                         </Button>
                         <ButtonWithSpinner onClick={handleCreate} loading={creating}>
-                            Criar
+                            {tr("uiText.common.create")}
                         </ButtonWithSpinner>
                     </DialogFooter>
                 </DialogContent>

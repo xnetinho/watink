@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/select";
 import { NewOccurrence } from "../activityTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface OccurrenceModalProps {
   open: boolean;
   newOccurrence: NewOccurrence;
@@ -32,11 +35,11 @@ const OccurrenceModal: React.FC<OccurrenceModalProps> = ({
   <Dialog open={open} onOpenChange={onCancel}>
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Registrar Ocorrência</DialogTitle>
+        <DialogTitle>{tr("uiText.activities.recordOccurrenceTitle")}</DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Tipo</label>
+          <label className="text-sm font-medium">{tr("uiText.common.type")}</label>
           <Select
             value={newOccurrence.type}
             onValueChange={(v) => onChange((prev) => ({ ...prev, type: v as NewOccurrence["type"] }))}
@@ -46,22 +49,22 @@ const OccurrenceModal: React.FC<OccurrenceModalProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="info">Informativo</SelectItem>
-              <SelectItem value="impediment">Impedimento (Parou o serviço)</SelectItem>
+              <SelectItem value="impediment">{tr("uiText.activities.impedimentLong")}</SelectItem>
               <SelectItem value="delay">Atraso (Reduziu ritmo)</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Descrição do Fato</label>
+          <label className="text-sm font-medium">{tr("uiText.activities.factDescription")}</label>
           <Textarea
             value={newOccurrence.description}
             onChange={(e) => onChange((prev) => ({ ...prev, description: e.target.value }))}
             rows={3}
-            placeholder="Descreva o que ocorreu..."
+            placeholder={tr("uiText.activities.factPlaceholder")}
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Tempo de Impacto (ex: 01:30)</label>
+          <label className="text-sm font-medium">{tr("uiText.activities.timeImpact")}</label>
           <Input
             value={newOccurrence.timeImpact}
             onChange={(e) => onChange((prev) => ({ ...prev, timeImpact: e.target.value }))}
@@ -73,7 +76,7 @@ const OccurrenceModal: React.FC<OccurrenceModalProps> = ({
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+        <Button variant="outline" onClick={onCancel}>{tr("uiText.common.cancel")}</Button>
         <Button onClick={onConfirm} disabled={!newOccurrence.description.trim()}>
           Registrar
         </Button>

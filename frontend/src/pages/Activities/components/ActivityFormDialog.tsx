@@ -16,6 +16,9 @@ import { Activity, ActivityPriority, ACTIVITY_PRIORITY_LABELS } from "../../MyAc
 import ActivityAssigneesPanel from "./ActivityAssigneesPanel";
 import ActivityChecklistBuilder, { ChecklistDraftItem } from "./ActivityChecklistBuilder";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ActivityFormDialogProps {
   open: boolean;
   activity: Activity | null;
@@ -118,20 +121,20 @@ const ActivityFormDialog: React.FC<ActivityFormDialogProps> = ({ open, activity,
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{activity ? "Editar Atividade" : "Nova Atividade"}</DialogTitle>
+          <DialogTitle>{activity ? tr("uiText.activities.edit") : tr("uiText.activities.new")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          <FormField htmlFor="activity-title" label="Título" required>
+          <FormField htmlFor="activity-title" label={tr("uiText.common.title")} required>
             <Input
               id="activity-title"
               value={form.title}
               onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              placeholder="Ex: Instalar roteador no cliente"
+              placeholder={tr("uiText.activities.titlePlaceholder")}
             />
           </FormField>
 
-          <FormField htmlFor="activity-description" label="Descrição">
+          <FormField htmlFor="activity-description" label={tr("uiText.common.description")}>
             <Textarea
               id="activity-description"
               rows={3}
@@ -142,8 +145,8 @@ const ActivityFormDialog: React.FC<ActivityFormDialogProps> = ({ open, activity,
 
           <FormField
             htmlFor="activity-priority"
-            label="Prioridade"
-            helperText={slaLabel ? `Prazo de SLA aplicado: ${slaLabel}` : undefined}
+            label={tr("uiText.common.priority")}
+            helperText={slaLabel ? tr("uiText.activities.slaApplied", { sla: slaLabel }) : undefined}
           >
             <Select
               value={form.priority}
@@ -154,13 +157,13 @@ const ActivityFormDialog: React.FC<ActivityFormDialogProps> = ({ open, activity,
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(ACTIVITY_PRIORITY_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                  <SelectItem key={value} value={value}>{tr(label)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </FormField>
 
-          <FormField htmlFor="activity-scheduled" label="Agendada para (opcional)">
+          <FormField htmlFor="activity-scheduled" label={tr("uiText.activities.scheduledOptional")}>
             <Input
               id="activity-scheduled"
               type="datetime-local"
@@ -171,7 +174,7 @@ const ActivityFormDialog: React.FC<ActivityFormDialogProps> = ({ open, activity,
 
           <Separator />
 
-          <FormField htmlFor="activity-assignees" label="Responsáveis">
+          <FormField htmlFor="activity-assignees" label={tr("uiText.activities.assignees")}>
             <ActivityAssigneesPanel selectedUserIds={assigneeIds} onChange={handleAssigneesChange} />
           </FormField>
 
@@ -186,7 +189,7 @@ const ActivityFormDialog: React.FC<ActivityFormDialogProps> = ({ open, activity,
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhum item no checklist.</p>
+                <p className="text-sm text-muted-foreground">{tr("uiText.activities.noChecklist")}</p>
               )}
             </FormField>
           ) : (
@@ -197,9 +200,9 @@ const ActivityFormDialog: React.FC<ActivityFormDialogProps> = ({ open, activity,
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>{tr("uiText.common.cancel")}</Button>
           <Button onClick={handleSubmit} disabled={saving || !form.title.trim()}>
-            {activity ? "Salvar" : "Criar"}
+            {activity ? tr("uiText.common.save") : tr("uiText.common.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

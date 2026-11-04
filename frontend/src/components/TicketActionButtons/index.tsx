@@ -13,6 +13,8 @@ import PlaceCallButton from "../Calls/PlaceCallButton";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface TicketUser {
   id: number;
   name: string;
@@ -140,7 +142,7 @@ const TicketActionButtons: React.FC<TicketActionButtonsProps> = ({ ticket, onTog
             onOpenChange={(open) => (open ? handleOpenMenu() : handleCloseMenu())}
           >
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Mais opções">
+              <Button variant="ghost" size="icon" aria-label={tr("uiText.common.moreOptions")}>
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

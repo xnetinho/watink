@@ -15,6 +15,9 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import type { ConnectionGroup } from "../../types/domain";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ConnectionGroupsDialogProps {
   open: boolean;
   onClose: () => void;
@@ -60,7 +63,7 @@ const ConnectionGroupsDialog: React.FC<ConnectionGroupsDialogProps> = ({ open, o
   };
 
   const handleDelete = async (g: ConnectionGroup) => {
-    if (!window.confirm(`Remover o grupo "${g.name}"? As conexões serão desvinculadas.`)) return;
+    if (!window.confirm(tr("uiText.proxies.removeConnGroup", { name: g.name }))) return;
     try {
       await api.delete(`/connection-groups/${g.id}`);
       toast.success("Grupo removido.");
@@ -74,7 +77,7 @@ const ConnectionGroupsDialog: React.FC<ConnectionGroupsDialogProps> = ({ open, o
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Grupos de Conexões</DialogTitle>
+          <DialogTitle>{tr("uiText.proxies.connGroups")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -82,14 +85,14 @@ const ConnectionGroupsDialog: React.FC<ConnectionGroupsDialogProps> = ({ open, o
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Nome do novo grupo"
+              placeholder={tr("uiText.proxies.newGroupName")}
               onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
             />
             <Button onClick={handleCreate}><Plus className="h-4 w-4" /></Button>
           </div>
 
           {groups.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Nenhum grupo de conexões.</p>
+            <p className="text-xs text-muted-foreground">{tr("uiText.proxies.noConnGroups")}</p>
           ) : (
             <div className="space-y-1">
               {groups.map((g) => (

@@ -2,13 +2,16 @@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface IntegrationTabProps {
   whatsAppId?: number;
 }
 
 const IntegrationTab: React.FC<IntegrationTabProps> = ({ whatsAppId }) => {
   if (!whatsAppId) {
-    return <p className="text-sm text-muted-foreground mt-4">Salve para gerar o código</p>;
+    return <p className="text-sm text-muted-foreground mt-4">{tr("uiText.webchatModal.saveFirst")}</p>;
   }
 
   const backendUrl =
@@ -31,7 +34,7 @@ const IntegrationTab: React.FC<IntegrationTabProps> = ({ whatsAppId }) => {
 
   return (
     <div className="space-y-2 mt-4">
-      <Label>Código de Incorporação (Embed):</Label>
+      <Label>{tr("uiText.webchatModal.embedCode")}</Label>
       <Textarea
         readOnly
         value={script}

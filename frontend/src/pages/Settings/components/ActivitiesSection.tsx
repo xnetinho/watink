@@ -8,6 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import notify from "@/lib/notify";
 import api from "../../../services/api";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SlaConfigResponse {
   slaConfig: SlaConfigValue;
   staleThresholdMinutes: number;
@@ -52,7 +55,7 @@ const ActivitiesSection: React.FC = () => {
         slaConfig: nextSla,
         staleThresholdMinutes: nextStale,
       });
-      notify.success("Configuração de Atividades atualizada!");
+      notify.success(tr("uiText.settings.activities.updated"));
     } catch (err) {
       notify.error(err);
     } finally {
@@ -85,15 +88,15 @@ const ActivitiesSection: React.FC = () => {
     <div className="space-y-6">
       <SlaConfigCard
         icon={<ClipboardList className="h-5 w-5" />}
-        title="Configuração de Atividades (Ordens de Serviço)"
-        description="Prazos de SLA por prioridade e alerta de atividade parada"
+        title={tr("uiText.settings.activities.title")}
+        description={tr("uiText.settings.activities.subtitle")}
         value={slaConfig}
         onChange={handleSlaChange}
       >
         <FormField
           htmlFor="activities-stale-threshold"
-          label="Alerta de atividade parada (minutos)"
-          helperText='Uma atividade "Em andamento" sem nenhuma mutação por este tempo entra como "Parada" na listagem.'
+          label={tr("uiText.settings.activities.stalledLabel")}
+          helperText={tr("uiText.settings.activities.stalledHint")}
         >
           <Input
             id="activities-stale-threshold"

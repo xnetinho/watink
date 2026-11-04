@@ -12,6 +12,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FlowToolbarProps {
     flowName: string;
     flowId: string | undefined;
@@ -63,7 +66,7 @@ export function FlowToolbar({
                     variant={isActive ? 'secondary' : 'outline'}
                     className={isActive ? 'bg-green-100 text-green-700' : ''}
                 >
-                    {isActive ? 'Ativo' : 'Pausado'}
+                    {isActive ? tr("uiText.flow.toolbar.active") : 'Pausado'}
                 </Badge>
             </div>
 
@@ -83,11 +86,11 @@ export function FlowToolbar({
                         value={whatsappId == null ? 'none' : String(whatsappId)}
                         onValueChange={(v) => onWhatsappChange(v === 'none' ? null : Number(v))}
                     >
-                        <SelectTrigger className="h-8 w-[180px] text-xs" title="Conexão atrelada a este fluxo">
-                            <SelectValue placeholder="Sem conexão" />
+                        <SelectTrigger className="h-8 w-[180px] text-xs" title={tr("uiText.flow.toolbar.connectionTied")}>
+                            <SelectValue placeholder={tr("uiText.flow.toolbar.noConnection")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="none">Sem conexão</SelectItem>
+                            <SelectItem value="none">{tr("uiText.flow.toolbar.noConnection")}</SelectItem>
                             {connections.map((conn) => (
                                 <SelectItem key={conn.id} value={String(conn.id)}>
                                     {conn.name}
@@ -141,7 +144,7 @@ export function FlowToolbar({
                     ) : (
                         <Save size={14} />
                     )}
-                    {saving ? 'Salvando...' : 'Salvar'}
+                    {saving ? 'Salvando...' : tr("uiText.common.save")}
                 </Button>
             </div>
         </header>

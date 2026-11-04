@@ -8,6 +8,9 @@ import api from "../../../services/api";
 import toastError from "../../../errors/toastError";
 import type { AcessosUserListItem, SetorMember } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SetorAddMemberRowProps {
   existingMembers: SetorMember[];
   onAdd: (userId: number, ehGestor: boolean) => void;
@@ -51,7 +54,7 @@ const SetorAddMemberRow: React.FC<SetorAddMemberRowProps> = ({ existingMembers, 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Buscar usuário para adicionar..."
+          placeholder={tr("uiText.acessos.searchUserAdd")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -62,7 +65,7 @@ const SetorAddMemberRow: React.FC<SetorAddMemberRowProps> = ({ existingMembers, 
         <ul className="max-h-[160px] space-y-1 overflow-y-auto">
           {candidates.length === 0 ? (
             <li className="py-2 text-center text-xs text-muted-foreground">
-              Nenhum usuário disponível
+              {tr("uiText.acessos.noUserAvailable")}
             </li>
           ) : (
             candidates.map((u) => (
@@ -86,7 +89,7 @@ const SetorAddMemberRow: React.FC<SetorAddMemberRowProps> = ({ existingMembers, 
         <div className="flex items-center justify-between gap-2 pt-1">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <Checkbox checked={ehGestor} onCheckedChange={(v) => setEhGestor(!!v)} />
-            É gestor deste setor
+            {tr("uiText.acessos.isManager")}
           </label>
           <Button
             type="button"
@@ -99,7 +102,7 @@ const SetorAddMemberRow: React.FC<SetorAddMemberRowProps> = ({ existingMembers, 
             }}
           >
             <UserPlus className="mr-1 h-4 w-4" />
-            Adicionar
+            {tr("uiText.acessos.add")}
           </Button>
         </div>
       )}

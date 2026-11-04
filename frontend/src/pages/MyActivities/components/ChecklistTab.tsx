@@ -5,6 +5,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TabsContent } from "@/components/ui/tabs";
 import { ChecklistItem } from "../activityTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ChecklistTabProps {
   items: ChecklistItem[];
   onItemChange: (item: ChecklistItem, field: string, value: unknown) => void;
@@ -14,7 +17,7 @@ interface ChecklistTabProps {
 const ChecklistTab: React.FC<ChecklistTabProps> = ({ items, onItemChange, onFileUpload }) => (
   <TabsContent value="checklist" className="space-y-3">
     {items.length === 0 ? (
-      <p className="text-center text-muted-foreground py-8">Nenhum item no checklist.</p>
+      <p className="text-center text-muted-foreground py-8">{tr("uiText.activities.noChecklist")}</p>
     ) : (
       items.map((item) => (
         <div key={item.id} className="space-y-2 rounded-lg border border-border p-4">

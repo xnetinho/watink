@@ -9,6 +9,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { ALCANCE_OPTIONS, type Alcance } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UserAlcanceSectionProps {
   alcance: Alcance | string;
   onChange: (alcance: string) => void;
@@ -19,7 +22,7 @@ const UserAlcanceSection: React.FC<UserAlcanceSectionProps> = ({ alcance, onChan
 
   return (
     <div className="space-y-1.5">
-      <Label>Alcance</Label>
+      <Label>{tr("uiText.acessos.scope")}</Label>
       <Select value={alcance || "proprio"} onValueChange={onChange}>
         <SelectTrigger>
           <SelectValue />
@@ -27,12 +30,12 @@ const UserAlcanceSection: React.FC<UserAlcanceSectionProps> = ({ alcance, onChan
         <SelectContent>
           {ALCANCE_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
+              {tr(opt.label)}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      {current && <p className="text-xs text-muted-foreground">{current.description}</p>}
+      {current && <p className="text-xs text-muted-foreground">{tr(current.description)}</p>}
     </div>
   );
 };

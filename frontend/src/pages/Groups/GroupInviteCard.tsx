@@ -9,6 +9,9 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 import { getInviteLink, revokeInviteLink } from "../../services/groupService";
 import { classifyGroupsApiError } from "./groupTypes";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface GroupInviteCardProps {
     whatsappId: number;
     groupJid: string;
@@ -49,7 +52,7 @@ const GroupInviteCard: React.FC<GroupInviteCardProps> = ({ whatsappId, groupJid 
         try {
             const newLink = await revokeInviteLink(whatsappId, groupJid);
             setLink(newLink);
-            toast.success("Link revogado — novo link gerado.");
+            toast.success(tr("uiText.groups.linkRevoked"));
         } catch (err) {
             toast.error(classifyGroupsApiError(err).message);
         } finally {
@@ -60,7 +63,7 @@ const GroupInviteCard: React.FC<GroupInviteCardProps> = ({ whatsappId, groupJid 
     return (
         <Card className="rounded-2xl bg-card shadow-[0px_4px_20px_rgba(0,0,0,0.08)] max-w-2xl">
             <CardContent className="p-6 space-y-4">
-                <p className="font-medium">Link de convite</p>
+                <p className="font-medium">{tr("uiText.groups.inviteLink")}</p>
                 {loading ? (
                     <Skeleton className="h-10 w-full" />
                 ) : (
@@ -77,16 +80,16 @@ const GroupInviteCard: React.FC<GroupInviteCardProps> = ({ whatsappId, groupJid 
                     disabled={loading || revoking}
                 >
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Revogar e gerar novo
+                    {tr("uiText.groups.revokeAndNew")}
                 </Button>
             </CardContent>
             <ConfirmationModal
-                title="Revogar link de convite"
+                title={tr("uiText.groups.revokeTitle")}
                 open={confirmRevoke}
                 onClose={() => setConfirmRevoke(false)}
                 onConfirm={handleRevoke}
             >
-                O link atual deixará de funcionar imediatamente e um novo será gerado. Esta ação não pode ser desfeita.
+                {tr("uiText.groups.revokeConfirm")}
             </ConfirmationModal>
         </Card>
     );

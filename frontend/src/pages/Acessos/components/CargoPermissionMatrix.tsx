@@ -3,6 +3,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import type { PermissionsCatalog } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface CargoPermissionMatrixProps {
   catalog: PermissionsCatalog;
   selectedIds: number[];
@@ -26,7 +29,7 @@ const CargoPermissionMatrix: React.FC<CargoPermissionMatrixProps> = ({
   if (resources.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Catálogo de permissões indisponível.
+        {tr("uiText.acessos.catalogUnavailable")}
       </p>
     );
   }

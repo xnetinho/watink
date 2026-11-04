@@ -31,6 +31,9 @@ import {
     updateAssistant,
 } from "../../services/assistantService";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const MODE_LABELS: Record<Assistant["mode"], string> = {
     pipeline: "Pipeline",
     flow: "Flow",
@@ -57,7 +60,7 @@ const Assistants: React.FC = () => {
         try {
             setAssistants(await listAssistants());
         } catch {
-            toast.error("Erro ao carregar assistentes");
+            toast.error(tr("uiText.assistants.listError"));
         }
         setLoading(false);
     };
@@ -75,10 +78,10 @@ const Assistants: React.FC = () => {
         if (!assistantToDelete) return;
         try {
             await deleteAssistant(assistantToDelete.id);
-            toast.success("Assistente excluído com sucesso!");
+            toast.success(tr("uiText.assistants.deleted"));
             fetchAssistants();
         } catch {
-            toast.error("Erro ao excluir assistente");
+            toast.error(tr("uiText.assistants.deleteError"));
         } finally {
             setAssistantToDelete(null);
         }
@@ -88,10 +91,10 @@ const Assistants: React.FC = () => {
         e.stopPropagation();
         try {
             await duplicateAssistant(assistant.id);
-            toast.success("Assistente duplicado com sucesso!");
+            toast.success(tr("uiText.assistants.duplicated"));
             fetchAssistants();
         } catch {
-            toast.error("Erro ao duplicar assistente");
+            toast.error(tr("uiText.assistants.duplicateError"));
         }
     };
 
@@ -109,7 +112,7 @@ const Assistants: React.FC = () => {
             setAssistants((prev) => prev.map((a) => (a.id === assistant.id ? { ...a, active: !nextActive } : a)));
             const message =
                 (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-                "Erro ao alterar status do assistente";
+                tr("uiText.assistants.statusError");
             toast.error(message);
         } finally {
             setTogglingId(null);
@@ -128,18 +131,17 @@ const Assistants: React.FC = () => {
     return (
         <PageContainer>
             <ConfirmationModal
-                title="Excluir assistente"
+                title={tr("uiText.assistants.deleteTitle")}
                 open={!!assistantToDelete}
                 onClose={() => setAssistantToDelete(null)}
                 onConfirm={handleConfirmDelete}
             >
-                Tem certeza que deseja excluir o assistente "{assistantToDelete?.name}"? Esta ação
-                não pode ser desfeita.
+                {tr("uiText.assistants.deleteConfirm", { name: assistantToDelete?.name ?? "" })}
             </ConfirmationModal>
 
             <PageHeader
-                title="Assistentes de IA"
-                description="Crie atendentes automáticos ligados a um pipeline, flow ou persona"
+                title={tr("uiText.assistants.title")}
+                description={tr("uiText.assistants.subtitle")}
             >
                 {assistants.length > 1 && (
                     <div className="relative w-full max-w-[220px] hidden md:block">
@@ -188,7 +190,7 @@ const Assistants: React.FC = () => {
                         <div>
                             <p className="font-semibold text-foreground">Nenhum assistente criado</p>
                             <p className="text-sm text-muted-foreground mt-1">
-                                Crie seu primeiro assistente de IA para começar
+                                {tr("uiText.assistants.emptyHint")}
                             </p>
                         </div>
                         <Button onClick={() => navigate("/assistants/new")}>
@@ -238,7 +240,7 @@ const Assistants: React.FC = () => {
                                                         onClick={() => navigate(`/assistants/${assistant.id}/edit`)}
                                                     >
                                                         <Pencil className="mr-2 h-3.5 w-3.5" />
-                                                        Editar
+                                                        {tr("uiText.common.edit")}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={(e) => handleDuplicate(e, assistant)}>
                                                         <Copy className="mr-2 h-3.5 w-3.5" />
@@ -249,7 +251,7 @@ const Assistants: React.FC = () => {
                                                         onClick={(e) => handleRequestDelete(e, assistant)}
                                                     >
                                                         <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                                        Excluir
+                                                        {tr("uiText.common.delete")}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -275,7 +277,7 @@ const Assistants: React.FC = () => {
                                                         : "text-[11px] text-muted-foreground"
                                                 }
                                             >
-                                                {assistant.active ? "Ativo" : "Inativo"}
+                                                {assistant.active ? tr("uiText.common.active") : tr("uiText.common.inactive")}
                                             </span>
                                             <Switch
                                                 checked={assistant.active}

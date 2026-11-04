@@ -72,6 +72,8 @@ func (mc *MessageController) ResendMessage(c *gin.Context) {
 		MimeType: dataFieldString(src.DataJson, "mimetype"), QuotedID: quotedID,
 		Voice:    voice && src.MediaType == "audio",
 		FileName: dataFieldString(src.DataJson, "fileName"),
+		// Quem mandou como visualização única e falhou espera o mesmo no reenvio, não uma mídia comum.
+		ViewOnce: dataFieldBool(src.DataJson, "viewOnce") && canBeViewOnce(src.MediaType),
 	})
 	if fail != nil {
 		fail.respond(c)

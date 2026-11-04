@@ -5,6 +5,9 @@ import { getSwaggerUrl } from "../../config";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { PageContainer, PageHeader, PageContent } from "../../components/ui/page-layout";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const Swagger: React.FC = () => {
@@ -35,7 +38,7 @@ const Swagger: React.FC = () => {
         <PageContent>
           <div className="flex flex-col items-center justify-center gap-3 py-24 text-muted-foreground">
             <ShieldAlert className="h-10 w-10 text-destructive" />
-            <p className="text-lg font-medium">Sem permissão para visualizar o Swagger.</p>
+            <p className="text-lg font-medium">{tr("uiText.swagger.noAccess")}</p>
           </div>
         </PageContent>
       </PageContainer>
@@ -44,7 +47,7 @@ const Swagger: React.FC = () => {
 
   return (
     <PageContainer>
-      <PageHeader title="Documentação API" description="Swagger UI — acesso restrito" />
+      <PageHeader title={tr("uiText.swagger.title")} description={tr("uiText.swagger.restricted")} />
       <PageContent className="p-0 flex flex-col" style={{ height: "calc(100vh - 120px)" }}>
         <iframe
           src={url}

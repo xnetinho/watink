@@ -11,6 +11,8 @@ import {
 
 import { i18n } from "../../../translate/i18n";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface WhatsApp {
   id: number | string;
   name: string;
@@ -39,7 +41,7 @@ export function WhatsappSelect({
           />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">Selecione uma conexão</SelectItem>
+          <SelectItem value="none">{tr("transferTicketModal.fieldConnectionPlaceholder")}</SelectItem>
           {whatsApps.map((wa) => (
             <SelectItem key={wa.id} value={String(wa.id)}>
               {wa.name}

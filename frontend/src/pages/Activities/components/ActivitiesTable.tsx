@@ -1,7 +1,7 @@
 import React from "react";
 import { Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { dateLocale } from "../../../lib/dateLocale";
 
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -10,6 +10,9 @@ import { Can } from "../../../components/Can";
 import type { User } from "../../../types/domain";
 import { Activity, ACTIVITY_STATUS_LABELS, ACTIVITY_PRIORITY_LABELS } from "../../MyActivities/activityTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ActivitiesTableProps {
   activities: Activity[];
   loading: boolean;
@@ -31,23 +34,23 @@ export function ActivitiesTable({ activities, loading, error, onRetry, user, onE
   const columns: DataTableColumn<Activity>[] = [
     {
       key: "status",
-      header: "Status",
-      cell: (a) => <StatusChip status={STATUS_CHIP[a.status]} label={ACTIVITY_STATUS_LABELS[a.status]} />,
+      header: tr("uiText.common.status"),
+      cell: (a) => <StatusChip status={STATUS_CHIP[a.status]} label={tr(ACTIVITY_STATUS_LABELS[a.status])} />,
     },
-    { key: "title", header: "Título", cell: (a) => <span className="font-medium">{a.title}</span> },
-    { key: "priority", header: "Prioridade", cell: (a) => ACTIVITY_PRIORITY_LABELS[a.priority] },
+    { key: "title", header: tr("uiText.common.title"), cell: (a) => <span className="font-medium">{a.title}</span> },
+    { key: "priority", header: tr("uiText.common.priority"), cell: (a) => tr(ACTIVITY_PRIORITY_LABELS[a.priority]) },
     {
       key: "assignees",
-      header: "Responsáveis",
+      header: tr("uiText.activities.assignees"),
       cell: (a) => (a.assignees && a.assignees.length > 0
         ? a.assignees.map((asg) => asg.user?.name).filter(Boolean).join(", ")
-        : <span className="text-muted-foreground">Sem responsável</span>),
+        : <span className="text-muted-foreground">{tr("uiText.activities.noAssignee")}</span>),
     },
     {
       key: "slaDueAt",
       header: "Prazo",
       cell: (a) => (a.slaDueAt
-        ? format(new Date(a.slaDueAt), "dd/MM/yyyy HH:mm", { locale: ptBR })
+        ? format(new Date(a.slaDueAt), "dd/MM/yyyy HH:mm", { locale: dateLocale() })
         : <span className="text-muted-foreground">—</span>),
     },
     {
@@ -59,7 +62,7 @@ export function ActivitiesTable({ activities, loading, error, onRetry, user, onE
     },
     {
       key: "actions",
-      header: "Ações",
+      header: tr("uiText.common.actions"),
       className: "text-right w-[100px]",
       cell: (activity) => (
         <div className="flex items-center justify-end gap-1">
@@ -95,7 +98,7 @@ export function ActivitiesTable({ activities, loading, error, onRetry, user, onE
       error={error}
       onRetry={onRetry}
       emptyTitle="Nenhuma atividade encontrada"
-      emptyDescription="Crie a primeira atividade para começar."
+      emptyDescription={tr("uiText.activities.emptyHint")}
     />
   );
 }

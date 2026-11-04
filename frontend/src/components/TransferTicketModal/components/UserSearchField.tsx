@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { i18n } from "../../../translate/i18n";
 import type { UserOption } from "../transferTicketModalTypes";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UserSearchFieldProps {
   searchParam: string;
   loading: boolean;
@@ -30,7 +32,7 @@ export function UserSearchField({
       <div className="relative">
         <Input
           autoFocus
-          placeholder="Buscar usuário..."
+          placeholder={tr("transferTicketModal.searchUser")}
           value={searchParam}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full"

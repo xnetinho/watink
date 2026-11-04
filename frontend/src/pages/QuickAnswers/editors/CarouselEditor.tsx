@@ -16,6 +16,9 @@ import type {
   QuickAnswerCarouselButtonType,
 } from "../quickAnswersTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const CarouselEditor = ({
   content,
   onChange,
@@ -29,7 +32,7 @@ export const CarouselEditor = ({
     if (t === "url") return "https://...";
     if (t === "call") return "+5585999990000";
     if (t === "copy") return "Texto a copiar";
-    return "ID da resposta (opcional)";
+    return tr("uiText.quick.replyId");
   };
   const setCard = (ci: number, patch: Partial<QuickAnswerContentCarousel["cards"][number]>) => {
     onChange({ ...content, cards: content.cards.map((c, i) => (i === ci ? { ...c, ...patch } : c)) });
@@ -37,10 +40,10 @@ export const CarouselEditor = ({
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <Label>Mensagem <span className="text-muted-foreground font-normal">(opcional, acima dos cards)</span></Label>
+        <Label>{tr("uiText.quick.message")} <span className="text-muted-foreground font-normal">(opcional, acima dos cards)</span></Label>
         <Textarea
           rows={2}
-          placeholder="Texto introdutório do carousel"
+          placeholder={tr("uiText.quick.carouselIntro")}
           value={content.body}
           onChange={(e) => onChange({ ...content, body: e.target.value })}
           className="resize-none"
@@ -71,13 +74,13 @@ export const CarouselEditor = ({
             />
             <Textarea
               rows={2}
-              placeholder="Texto do card"
+              placeholder={tr("uiText.quick.cardText")}
               value={card.title}
               onChange={(e) => setCard(ci, { title: e.target.value })}
               className="resize-none"
             />
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">Botões</span>
+              <span className="text-xs text-muted-foreground">{tr("uiText.quick.buttons")}</span>
               {card.buttons.map((btn, bi) => (
                 <div key={btn.id} className="space-y-1.5 rounded-md border border-border/60 p-2">
                   <div className="flex gap-2 items-center">
@@ -93,12 +96,12 @@ export const CarouselEditor = ({
                       <SelectTrigger className="w-28 shrink-0"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {CAROUSEL_BUTTON_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          <SelectItem key={t.value} value={t.value}>{tr(t.label)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Input
-                      placeholder={`Rótulo do botão ${bi + 1}`}
+                      placeholder={tr("uiText.quick.buttonLabel", { n: bi + 1 })}
                       value={btn.label}
                       onChange={(e) => {
                         const buttons = card.buttons.map((b, j) => (j === bi ? { ...b, label: e.target.value } : b));

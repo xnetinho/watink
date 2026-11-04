@@ -7,6 +7,9 @@ import {
   PendingReassign, EMPTY_ADDRESS,
 } from "../clientTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ClientProp is what the modal receives to seed the form when editing — the
 // real GET/POST/PUT /clients(/:id) response (ClientRecord). It carries no
 // contacts/addresses: those are separate resources
@@ -103,7 +106,7 @@ export const useClientModal = (
           setFormData((prev) => ({ ...prev, addresses }));
         })
         .catch(() => {
-          toast.error("Erro ao carregar endereços do cliente");
+          toast.error(tr("uiText.clients.addressesError"));
         });
       fetchLinkedContacts(client.id);
     } else {
@@ -158,12 +161,12 @@ export const useClientModal = (
   // ConfirmationModal instead of failing silently.
   const handleLinkContact = async (contactId: number, confirmReassign = false) => {
     if (!clientId) {
-      toast.error("Salve o cliente antes de vincular contatos");
+      toast.error(tr("uiText.clients.saveBeforeLink"));
       return;
     }
     try {
       await api.post(`/clients/${clientId}/contacts/${contactId}/link`, { confirmReassign });
-      toast.success("Contato vinculado com sucesso");
+      toast.success(tr("uiText.clients.contactLinkedOk"));
       setContactResults([]);
       setPendingReassign(null);
       fetchLinkedContacts(clientId);
@@ -174,13 +177,13 @@ export const useClientModal = (
         const contact = contactResults.find((c) => Number(c.id) === contactId);
         setPendingReassign({
           contactId,
-          contactName: contact?.name ?? "este contato",
+          contactName: contact?.name ?? tr("uiText.clients.thisContact"),
           currentClientId: body.currentClientId ?? 0,
-          currentClientName: body.currentClientName ?? "outro cliente",
+          currentClientName: body.currentClientName ?? tr("uiText.clients.anotherClient"),
         });
         return;
       }
-      toast.error("Erro ao vincular contato");
+      toast.error(tr("uiText.clients.linkError"));
     }
   };
 
@@ -200,7 +203,7 @@ export const useClientModal = (
       toast.success("Contato desvinculado");
       setLinkedContacts((prev) => prev.filter((c) => Number(c.id) !== contactId));
     } catch {
-      toast.error("Erro ao desvincular contato");
+      toast.error(tr("uiText.clients.unlinkError"));
     }
   };
 
@@ -234,7 +237,7 @@ export const useClientModal = (
         street: string; neighborhood: string; city: string; state: string; notFound: boolean;
       }>("/addresses/lookup", { params: { cep } });
       if (data.notFound) {
-        toast.error("CEP não encontrado");
+        toast.error(tr("uiText.clients.zipNotFound"));
         return;
       }
       setFormData((prev) => {
@@ -249,7 +252,7 @@ export const useClientModal = (
         return { ...prev, addresses };
       });
     } catch {
-      toast.error("Erro ao consultar CEP");
+      toast.error(tr("uiText.clients.zipError"));
     }
   };
 
@@ -269,7 +272,7 @@ export const useClientModal = (
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      toast.error("Nome é obrigatório");
+      toast.error(tr("uiText.clients.nameRequired"));
       return;
     }
     try {
@@ -278,11 +281,11 @@ export const useClientModal = (
       if (client) {
         await api.put(`/clients/${client.id}`, clientPayload());
         savedClientId = client.id;
-        toast.success("Cliente atualizado com sucesso");
+        toast.success(tr("uiText.clients.updated"));
       } else {
         const { data } = await api.post<ClientRecord>("/clients", clientPayload());
         savedClientId = data.id;
-        toast.success("Cliente criado com sucesso");
+        toast.success(tr("uiText.clients.created"));
         // A pré-seleção de um Contact (ex: botão "Cadastrar Cliente" a partir
         // do sidebar de um Ticket) só preenche os campos de texto acima —
         // sem este link, o Contact nunca fica de fato vinculado ao Client
@@ -293,7 +296,7 @@ export const useClientModal = (
               confirmReassign: false,
             });
           } catch {
-            toast.error("Cliente criado, mas não foi possível vincular o contato automaticamente");
+            toast.error(tr("uiText.clients.createdNoLink"));
           }
         }
       }
@@ -320,7 +323,7 @@ export const useClientModal = (
 
       onClose();
     } catch {
-      toast.error("Erro ao salvar cliente");
+      toast.error(tr("uiText.clients.saveError"));
     } finally {
       setLoading(false);
     }

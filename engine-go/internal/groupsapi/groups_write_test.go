@@ -11,7 +11,7 @@ import (
 	"github.com/alltomatos/watinkdev/engine-go/internal/whatsapp"
 )
 
-func doJSONRequest(t *testing.T, h http.Handler, method, path, token string, body interface{}) *httptest.ResponseRecorder {
+func doJSONRequest(t *testing.T, h http.Handler, method, path string, body interface{}) *httptest.ResponseRecorder {
 	t.Helper()
 	var buf bytes.Buffer
 	if body != nil {
@@ -20,9 +20,6 @@ func doJSONRequest(t *testing.T, h http.Handler, method, path, token string, bod
 		}
 	}
 	req := httptest.NewRequest(method, path, &buf)
-	if token != "" {
-		req.Header.Set("X-Internal-Token", token)
-	}
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -40,7 +37,7 @@ func fmtGroupRateLimited() error {
 func TestCreateGroup_HappyPath(t *testing.T) {
 	backend := &fakeBackend{group: &whatsapp.GroupInfo{JID: "120363xxx@g.us", Subject: "Novo grupo"}}
 	h := newTestServer(backend)
-	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups", testToken, map[string]interface{}{
+	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups", map[string]interface{}{
 		"tenantId": "tenant-1", "subject": "Novo grupo", "participants": []string{"5511999999999@s.whatsapp.net"},
 	})
 	if rec.Code != http.StatusCreated {
@@ -54,7 +51,7 @@ func TestCreateGroup_HappyPath(t *testing.T) {
 func TestCreateGroup_MissingSubject(t *testing.T) {
 	backend := &fakeBackend{}
 	h := newTestServer(backend)
-	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups", testToken, map[string]interface{}{
+	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups", map[string]interface{}{
 		"tenantId": "tenant-1", "participants": []string{},
 	})
 	if rec.Code != http.StatusBadRequest {
@@ -65,7 +62,7 @@ func TestCreateGroup_MissingSubject(t *testing.T) {
 func TestUpdateParticipants_ActionPassedThrough(t *testing.T) {
 	backend := &fakeBackend{results: []whatsapp.ParticipantResult{{JID: "a@s.whatsapp.net", Status: "ok"}}}
 	h := newTestServer(backend)
-	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/participants", testToken, map[string]interface{}{
+	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/participants", map[string]interface{}{
 		"tenantId": "tenant-1", "action": "promote", "participants": []string{"a@s.whatsapp.net"},
 	})
 	if rec.Code != http.StatusOK {
@@ -79,7 +76,7 @@ func TestUpdateParticipants_ActionPassedThrough(t *testing.T) {
 func TestUpdateParticipants_EmptyParticipants(t *testing.T) {
 	backend := &fakeBackend{}
 	h := newTestServer(backend)
-	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/participants", testToken, map[string]interface{}{
+	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/participants", map[string]interface{}{
 		"tenantId": "tenant-1", "action": "add", "participants": []string{},
 	})
 	if rec.Code != http.StatusBadRequest {
@@ -90,7 +87,7 @@ func TestUpdateParticipants_EmptyParticipants(t *testing.T) {
 func TestUpdateGroupSettings_NotAdmin_Returns403(t *testing.T) {
 	backend := &fakeBackend{writeErr: fmtGroupNotAdmin()}
 	h := newTestServer(backend)
-	rec := doJSONRequest(t, h, http.MethodPut, "/sessions/1/groups/120363xxx@g.us", testToken, map[string]interface{}{
+	rec := doJSONRequest(t, h, http.MethodPut, "/sessions/1/groups/120363xxx@g.us", map[string]interface{}{
 		"tenantId": "tenant-1", "subject": "novo nome",
 	})
 	if rec.Code != http.StatusForbidden {
@@ -106,7 +103,7 @@ func TestUpdateGroupSettings_NotAdmin_Returns403(t *testing.T) {
 func TestUpdateGroupSettings_RateLimited_Returns429(t *testing.T) {
 	backend := &fakeBackend{writeErr: fmtGroupRateLimited()}
 	h := newTestServer(backend)
-	rec := doJSONRequest(t, h, http.MethodPut, "/sessions/1/groups/120363xxx@g.us", testToken, map[string]interface{}{
+	rec := doJSONRequest(t, h, http.MethodPut, "/sessions/1/groups/120363xxx@g.us", map[string]interface{}{
 		"tenantId": "tenant-1", "locked": true,
 	})
 	if rec.Code != http.StatusTooManyRequests {
@@ -122,7 +119,7 @@ func TestUpdateGroupSettings_RateLimited_Returns429(t *testing.T) {
 func TestRevokeInviteLink_HappyPath(t *testing.T) {
 	backend := &fakeBackend{link: "https://chat.whatsapp.com/new"}
 	h := newTestServer(backend)
-	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/invite/revoke", testToken, map[string]interface{}{
+	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/invite/revoke", map[string]interface{}{
 		"tenantId": "tenant-1",
 	})
 	if rec.Code != http.StatusOK {
@@ -133,7 +130,7 @@ func TestRevokeInviteLink_HappyPath(t *testing.T) {
 func TestLeaveGroup_HappyPath(t *testing.T) {
 	backend := &fakeBackend{}
 	h := newTestServer(backend)
-	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/leave", testToken, map[string]interface{}{
+	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/leave", map[string]interface{}{
 		"tenantId": "tenant-1",
 	})
 	if rec.Code != http.StatusOK {
@@ -144,7 +141,7 @@ func TestLeaveGroup_HappyPath(t *testing.T) {
 func TestResolveJoinRequests_EmptyParticipants(t *testing.T) {
 	backend := &fakeBackend{}
 	h := newTestServer(backend)
-	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/join-requests", testToken, map[string]interface{}{
+	rec := doJSONRequest(t, h, http.MethodPost, "/sessions/1/groups/120363xxx@g.us/join-requests", map[string]interface{}{
 		"tenantId": "tenant-1", "action": "approve", "participants": []string{},
 	})
 	if rec.Code != http.StatusBadRequest {
@@ -155,7 +152,7 @@ func TestResolveJoinRequests_EmptyParticipants(t *testing.T) {
 func TestListJoinRequests_HappyPath(t *testing.T) {
 	backend := &fakeBackend{joinRequests: []whatsapp.JoinRequestEntry{{JID: "a@s.whatsapp.net", RequestedAt: 123}}}
 	h := newTestServer(backend)
-	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups/120363xxx@g.us/join-requests", testToken)
+	rec := doRequest(t, h, http.MethodGet, "/sessions/1/groups/120363xxx@g.us/join-requests")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}

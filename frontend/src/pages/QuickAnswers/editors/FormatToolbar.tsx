@@ -1,12 +1,15 @@
 import React from "react";
 import { Bold, Italic, Strikethrough, Code } from "lucide-react";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // Formatação WhatsApp: envolve a seleção do textarea com os marcadores.
 const WA_FORMATS = [
-  { icon: Bold, label: "Negrito", marker: "*" },
-  { icon: Italic, label: "Itálico", marker: "_" },
-  { icon: Strikethrough, label: "Tachado", marker: "~" },
-  { icon: Code, label: "Monoespaçado", marker: "```" },
+  { icon: Bold, label: "uiText.quick.fmt.bold", marker: "*" },
+  { icon: Italic, label: "uiText.quick.fmt.italic", marker: "_" },
+  { icon: Strikethrough, label: "uiText.quick.fmt.strike", marker: "~" },
+  { icon: Code, label: "uiText.quick.fmt.mono", marker: "```" },
 ];
 
 export function wrapSelection(
@@ -38,8 +41,8 @@ export const FormatToolbar = ({ onApply }: { onApply: (marker: string) => void }
       <button
         key={f.marker}
         type="button"
-        title={f.label}
-        aria-label={f.label}
+        title={tr(f.label)}
+        aria-label={tr(f.label)}
         onMouseDown={(e) => {
           e.preventDefault();
           onApply(f.marker);

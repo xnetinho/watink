@@ -31,6 +31,9 @@ import {
 import { AddSourceDialog } from "./components/AddSourceDialog";
 import { KBSourceListItem } from "./components/KBSourceListItem";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface KnowledgeBase {
   id: number;
   name: string;
@@ -171,7 +174,7 @@ const KnowledgeBaseConfig: React.FC = () => {
         `/knowledge-bases/${knowledgeBaseId}/sources`,
         formData
       );
-      toast.success("Fonte enviada com sucesso! A indexação foi iniciada.");
+      toast.success(tr("uiText.kb.sourceSent"));
       setSources((prev) => [data, ...prev]);
       setDialogOpen(false);
       resetDialog();
@@ -188,7 +191,7 @@ const KnowledgeBaseConfig: React.FC = () => {
       await api.post(
         `/knowledge-bases/${knowledgeBaseId}/sources/${source.id}/reingest`
       );
-      toast.info("Reingestão solicitada.");
+      toast.info(tr("uiText.kb.reingest"));
       setSources((prev) =>
         prev.map((s) =>
           s.id === source.id
@@ -212,7 +215,7 @@ const KnowledgeBaseConfig: React.FC = () => {
       await api.delete(
         `/knowledge-bases/${knowledgeBaseId}/sources/${deleteTarget.id}`
       );
-      toast.success("Fonte removida com sucesso.");
+      toast.success(tr("uiText.kb.sourceRemoved"));
       setSources((prev) => prev.filter((s) => s.id !== deleteTarget.id));
       setConfirmOpen(false);
       setDeleteTarget(null);
@@ -231,10 +234,10 @@ const KnowledgeBaseConfig: React.FC = () => {
   return (
     <PageContainer>
       <PageHeader
-        title={kb?.name ? `Base: ${kb.name}` : "Base de Conhecimento"}
+        title={kb?.name ? `Base: ${kb.name}` : tr("uiText.kb.title")}
         description={
           kb?.description ||
-          "Adicione fontes para que a IA aprenda a responder sobre sua empresa"
+          tr("uiText.kb.configHint")
         }
       >
         <div className="flex gap-2">
@@ -244,7 +247,7 @@ const KnowledgeBaseConfig: React.FC = () => {
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Voltar
+            {tr("uiText.common.back")}
           </Button>
           <Button
             variant="outline"
@@ -277,7 +280,7 @@ const KnowledgeBaseConfig: React.FC = () => {
                 Nenhuma fonte adicionada
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Adicione textos ou arquivos para a IA aprender com eles
+                {tr("uiText.kb.addHint")}
               </p>
             </div>
             <Button onClick={() => setDialogOpen(true)}>
@@ -334,13 +337,12 @@ const KnowledgeBaseConfig: React.FC = () => {
       />
 
       <ConfirmationModal
-        title="Remover fonte de conhecimento"
+        title={tr("uiText.kb.removeSource")}
         open={confirmOpen}
         onClose={setConfirmOpen}
         onConfirm={handleConfirmDelete}
       >
-        Tem certeza que deseja remover esta fonte? Os chunks e embeddings
-        armazenados serão excluídos permanentemente.
+        {tr("uiText.kb.removeConfirm")}
       </ConfirmationModal>
 
       {knowledgeBaseId && (

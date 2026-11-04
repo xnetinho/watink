@@ -32,6 +32,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface KnowledgeBase {
   id: number;
   name: string;
@@ -76,7 +79,7 @@ const KnowledgeBase: React.FC = () => {
         name: name.trim(),
         description: description.trim(),
       });
-      toast.success("Base de conhecimento criada");
+      toast.success(tr("uiText.kb.created"));
       setDialogOpen(false);
       setName("");
       setDescription("");
@@ -101,7 +104,7 @@ const KnowledgeBase: React.FC = () => {
     if (!deleteTarget) return;
     try {
       await api.delete(`/knowledge-bases/${deleteTarget.id}`);
-      toast.success("Base de conhecimento removida");
+      toast.success(tr("uiText.kb.removed"));
       await fetchBases();
     } catch (err) {
       toastError(err);
@@ -114,23 +117,22 @@ const KnowledgeBase: React.FC = () => {
     <PageContainer>
       <ConfirmationModal
         title={
-          deleteTarget ? `Excluir "${deleteTarget.name}"?` : "Excluir base?"
+          deleteTarget ? tr("uiText.kb.deleteTitle", { name: deleteTarget.name }) : tr("uiText.kb.deleteBaseTitle")
         }
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleConfirmDelete}
       >
-        Esta ação removerá a base de conhecimento e todas as suas fontes. Não
-        pode ser desfeita.
+        {tr("uiText.kb.deleteConfirm")}
       </ConfirmationModal>
 
       <PageHeader
-        title="Base de Conhecimento"
-        description="Gerencie as bases de conhecimento usadas pela IA (RAG)"
+        title={tr("uiText.kb.title")}
+        description={tr("uiText.kb.subtitle")}
       >
         <Button onClick={() => setDialogOpen(true)}>
           <Plus className="h-4 w-4" />
-          Nova Base
+          {tr("uiText.kb.newShort")}
         </Button>
       </PageHeader>
 
@@ -146,10 +148,10 @@ const KnowledgeBase: React.FC = () => {
             </div>
             <div>
               <p className="font-semibold text-foreground">
-                Nenhuma base de conhecimento
+                {tr("uiText.kb.none")}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Crie uma base para alimentar a IA com seus documentos e textos
+                {tr("uiText.kb.noneHint")}
               </p>
             </div>
             <Button onClick={() => setDialogOpen(true)}>
@@ -183,14 +185,14 @@ const KnowledgeBase: React.FC = () => {
                         {base.name}
                       </CardTitle>
                       <CardDescription className="mt-1 line-clamp-2">
-                        {base.description || "Sem descrição"}
+                        {base.description || tr("uiText.activities.noDescription")}
                       </CardDescription>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Excluir base"
+                    aria-label={tr("uiText.kb.deleteBase")}
                     onClick={(e) => handleRequestDelete(e, base)}
                     className="shrink-0 text-muted-foreground hover:text-[hsl(var(--destructive))]"
                   >
@@ -207,37 +209,37 @@ const KnowledgeBase: React.FC = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova Base de Conhecimento</DialogTitle>
+            <DialogTitle>{tr("uiText.kb.newBase")}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="kb-name">Nome</Label>
+              <Label htmlFor="kb-name">{tr("uiText.common.name")}</Label>
               <Input
                 id="kb-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: FAQ de Produtos"
+                placeholder={tr("uiText.kb.namePlaceholder")}
                 autoFocus
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="kb-description">Descrição</Label>
+              <Label htmlFor="kb-description">{tr("uiText.common.description")}</Label>
               <Textarea
                 id="kb-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Descreva o propósito desta base (opcional)"
+                placeholder={tr("uiText.kb.descPlaceholder")}
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
+              {tr("uiText.common.cancel")}
             </Button>
             <Button onClick={handleCreate} disabled={!name.trim() || saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Criar
+              {tr("uiText.common.create")}
             </Button>
           </DialogFooter>
         </DialogContent>

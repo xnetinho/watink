@@ -1,3 +1,7 @@
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
+
 /**
  * Classificação de risco de ban/throttle a partir do último sinal
  * `session.risk` persistido na conexão (whatsmeow IQ 401/403/429/463).
@@ -36,22 +40,22 @@ export function getConnectionHealthLevel(risk: ConnectionRiskInfo): ConnectionHe
 /** Explicação em português de cada código de risco, para exibir ao usuário
  * exatamente o que está acontecendo — não só o número do erro. */
 export const RISK_CODE_EXPLANATIONS: Record<number, string> = {
-  401: "O WhatsApp recusou uma ação por falta de autorização — pode indicar que a sessão está sendo vista como suspeita.",
-  403: "O WhatsApp bloqueou uma ação nesta conexão (forbidden) — sinal de restrição da conta.",
-  429: "O WhatsApp está limitando o volume de ações desta conexão (rate-overlimit) — reduza o ritmo de envios.",
-  463: "O WhatsApp está limitando o alcance desta conexão (reach-out timelock) — isso pode preceder um banimento. Evite iniciar conversas com números novos por enquanto.",
+  401: "uiText.connections.risk.code401",
+  403: "uiText.connections.risk.code403",
+  429: "uiText.connections.risk.code429",
+  463: "uiText.connections.risk.code463",
 };
 
 export function describeRiskCode(code?: number): string {
   if (!code) return "";
-  return RISK_CODE_EXPLANATIONS[code] ?? `O WhatsApp retornou um sinal de risco (código ${code}) para esta conexão.`;
+  return RISK_CODE_EXPLANATIONS[code] ? tr(RISK_CODE_EXPLANATIONS[code]) : tr("uiText.connections.risk.codeOther", { code });
 }
 
 /** Referência educativa dos limiares de segurança citados na pesquisa
  * anti-ban — conteúdo estático, não calculado a partir de dados reais. */
 export const ANTI_BAN_THRESHOLDS: { label: string; safe: string; danger: string }[] = [
-  { label: "Taxa de resposta às mensagens enviadas", safe: "> 30%", danger: "< 15%" },
-  { label: "Taxa de bloqueio pelos destinatários", safe: "< 2%", danger: "> 2%" },
-  { label: "Novos contatos por dia (primeira mensagem)", safe: "< 20/dia", danger: "> 50/dia" },
-  { label: "Uso proativo (inicia conversa) vs. reativo (só responde)", safe: "reativo: < 2% de ban em 12 meses", danger: "proativo: 15–30% de ban em 12 meses" },
+  { label: "uiText.connections.risk.responseRate", safe: "> 30%", danger: "< 15%" },
+  { label: "uiText.connections.risk.blockRate", safe: "< 2%", danger: "> 2%" },
+  { label: "uiText.connections.risk.newContacts", safe: "uiText.connections.risk.perDaySafe", danger: "uiText.connections.risk.perDayDanger" },
+  { label: "uiText.connections.risk.proactive", safe: "uiText.connections.risk.proactiveSafe", danger: "uiText.connections.risk.proactiveDanger" },
 ];

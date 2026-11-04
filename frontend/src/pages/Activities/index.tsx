@@ -16,6 +16,9 @@ import { ActivitiesTable } from "./components/ActivitiesTable";
 import ActivityFormDialog from "./components/ActivityFormDialog";
 import { useActivities } from "./hooks/useActivities";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // Tela de gestão de Atividades — lista do tenant inteiro (GET /activities),
 // distinta de "Minhas Atividades" (visão do executor, filtro por
 // assignee). Atribuição N:N e montador de checklist ficam em issue seguinte.
@@ -42,29 +45,29 @@ const Activities: React.FC = () => {
                 Atividades
               </span>
             }
-            description="Gestão de ordens de serviço do tenant"
+            description={tr("uiText.activities.pageDescription")}
           >
             <div className="flex items-center gap-2 flex-wrap">
               <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={tr("uiText.common.status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="all">{tr("uiText.activities.allStatuses")}</SelectItem>
                   {Object.entries(ACTIVITY_STATUS_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                    <SelectItem key={value} value={value}>{tr(label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
               <Select value={priorityFilter || "all"} onValueChange={(v) => setPriorityFilter(v === "all" ? "" : v)}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Prioridade" />
+                  <SelectValue placeholder={tr("uiText.common.priority")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as prioridades</SelectItem>
                   {Object.entries(ACTIVITY_PRIORITY_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                    <SelectItem key={value} value={value}>{tr(label)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -72,7 +75,7 @@ const Activities: React.FC = () => {
               <div className="relative hidden md:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por título..."
+                  placeholder={tr("uiText.activities.searchTitle")}
                   value={searchParam}
                   onChange={(e) => setSearchParam(e.target.value)}
                   className="pl-9 h-10 w-64"
@@ -81,7 +84,7 @@ const Activities: React.FC = () => {
 
               <Button onClick={() => handleOpenForm()}>
                 <Plus className="mr-2 h-4 w-4" />
-                Nova Atividade
+                {tr("uiText.activities.new")}
               </Button>
             </div>
           </PageHeader>
@@ -107,13 +110,13 @@ const Activities: React.FC = () => {
           />
 
           <ConfirmationModal
-            title="Excluir Atividade"
+            title={tr("uiText.activities.deleteTitle")}
             open={confirmDeleteOpen}
             onClose={() => setConfirmDeleteOpen(false)}
             onConfirm={handleConfirmDelete}
           >
             {activityToDelete
-              ? `Deseja realmente excluir a atividade "${activityToDelete.title}"?`
+              ? tr("uiText.activities.deleteConfirm", { title: activityToDelete.title })
               : ""}
           </ConfirmationModal>
         </PageContainer>
@@ -122,7 +125,7 @@ const Activities: React.FC = () => {
         <PageContainer>
           <PageContent>
             <p className="text-center text-muted-foreground py-16">
-              Você não tem permissão para visualizar esta página.
+              {tr("uiText.activities.noPermission")}
             </p>
           </PageContent>
         </PageContainer>

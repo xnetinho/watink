@@ -2,17 +2,21 @@ import React from "react";
 import { getColorByKey } from "../pipelineCreatorTypes";
 import type { StageFormItem } from "../pipelineCreatorTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PipelinePreviewProps {
     stages: StageFormItem[];
 }
 
+// Nomes fictícios só para ilustrar a prévia do funil (não são texto de interface).
 const MOCK_DEALS = [
     { title: "Loja Aurora",    value: 4200,  initials: "LA" },
-    { title: "Studio Vértice", value: 1000,  initials: "SV" },
-    { title: "Café Norte",     value: 9500,  initials: "CN" },
+    { title: "Studio Vértice", value: 1000,  initials: "SV" }, // i18n-ignore
+    { title: "Café Norte",     value: 9500,  initials: "CN" }, // i18n-ignore
     { title: "Tech Mendes",    value: 12000, initials: "TM" },
     { title: "Padaria Sol",    value: 2300,  initials: "PS" },
-    { title: "Agência Ponto",  value: 3800,  initials: "AP" },
+    { title: "Agência Ponto",  value: 3800,  initials: "AP" }, // i18n-ignore
 ];
 
 const fmt = (v: number) =>
@@ -22,7 +26,7 @@ const PipelinePreview: React.FC<PipelinePreviewProps> = ({ stages }) => {
     if (stages.length === 0) {
         return (
             <p className="text-sm text-muted-foreground text-center py-6">
-                Adicione etapas para ver a prévia.
+                {tr("uiText.pipelines.addStages")}
             </p>
         );
     }

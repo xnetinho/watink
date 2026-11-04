@@ -9,6 +9,9 @@ import {
 } from '@/components/ui/select';
 import { Filter, FieldConfig, CONTEXT_VARIABLES } from './filterBuilderTypes';
 
+import { i18n } from '../../../translate/i18n';
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FilterValueInputProps {
   filter: Filter;
   fieldConfig: FieldConfig | undefined;
@@ -36,8 +39,8 @@ const FilterValueInput: React.FC<FilterValueInputProps> = ({ filter, fieldConfig
           <SelectValue placeholder="Valor" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true">Sim</SelectItem>
-          <SelectItem value="false">Não</SelectItem>
+          <SelectItem value="true">{tr("uiText.common.yes")}</SelectItem>
+          <SelectItem value="false">{tr("uiText.common.no")}</SelectItem>
         </SelectContent>
       </Select>
     );
@@ -75,7 +78,7 @@ const FilterValueInput: React.FC<FilterValueInputProps> = ({ filter, fieldConfig
           </SelectItem>
           {CONTEXT_VARIABLES.filter((v) => v.value.includes('Id')).map((v) => (
             <SelectItem key={v.value} value={v.value}>
-              {v.label}
+              {tr(v.label)}
             </SelectItem>
           ))}
         </SelectContent>

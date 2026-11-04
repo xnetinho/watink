@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import type { SimResult } from '../components/simulator/SimulatorTypes';
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ─── useFlowSimulator ─────────────────────────────────────────────────────────
 
 interface UseFlowSimulatorOptions {
@@ -27,7 +30,7 @@ export function useFlowSimulator({ flowId, onSimulate, onClose }: UseFlowSimulat
       setResult(response);
       setTestMessage('');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao simular fluxo';
+      const msg = err instanceof Error ? err.message : tr("uiText.flow.io.simulateError");
       setResult({ success: false, error: msg, log: [], responses: [] });
     } finally {
       setLoading(false);

@@ -14,6 +14,9 @@ import {
   DialogContent,
 } from "../ui/dialog";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Attachment {
   id: number | string;
   filePath: string;
@@ -147,12 +150,12 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
                           type="button"
                           className="p-0.5 rounded hover:bg-[var(--border-subtle)] transition-colors"
                           onClick={(e) => handleDelete(attachment, e)}
-                          aria-label="Excluir"
+                          aria-label={tr("uiText.common.delete")}
                         >
                           <Trash2 className="h-3.5 w-3.5 text-[hsl(var(--status-error))]" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent>Excluir</TooltipContent>
+                      <TooltipContent>{tr("uiText.common.delete")}</TooltipContent>
                     </Tooltip>
                   )}
                 </div>
@@ -168,7 +171,7 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
               type="button"
               className="absolute top-4 right-4 z-50 p-1.5 rounded-full bg-[var(--overlay-dark-medium)] text-[hsl(var(--bg-surface))] hover:bg-[var(--overlay-dark-strong)] transition-colors"
               onClick={() => setLightboxOpen(false)}
-              aria-label="Fechar"
+              aria-label={tr("uiText.common.close")}
             >
               <X className="h-5 w-5" />
             </button>

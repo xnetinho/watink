@@ -7,6 +7,9 @@ import FlowFormDialog from "./components/FlowFormDialog";
 import FlowToolbar from "./components/FlowToolbar";
 import FlowGrid from "./components/FlowGrid";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const FlowManager: React.FC = () => {
   const {
     whatsapps,
@@ -47,8 +50,7 @@ const FlowManager: React.FC = () => {
         onClose={() => setConfirmModalOpen(false)}
         onConfirm={handleDeleteFlow}
       >
-        Esta ação é irreversível e removerá todos os nós e conexões deste fluxo
-        de automação.
+        {tr("uiText.flowManager.deleteHint")}
       </ConfirmationModal>
 
       <FlowFormDialog
@@ -66,8 +68,8 @@ const FlowManager: React.FC = () => {
       />
 
       <PageHeader
-        title="Gestor de Fluxos"
-        description="Crie e gerencie árvores de decisão e automações inteligentes"
+        title={tr("uiText.flowManager.title")}
+        description={tr("uiText.flowManager.subtitle")}
       >
         <FlowToolbar
           searchParam={searchParam}

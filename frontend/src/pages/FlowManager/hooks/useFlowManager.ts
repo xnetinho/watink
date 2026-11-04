@@ -5,6 +5,9 @@ import api from "../../../services/api";
 import toastError from "../../../errors/toastError";
 import { Flow, FlowApi, Whatsapp } from "../flowManagerTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 /** Maps the backend `active` field to the UI-facing `isActive`. */
 const toFlow = (raw: FlowApi): Flow => ({
   id: raw.id,
@@ -77,7 +80,7 @@ export function useFlowManager() {
 
   const handleSaveFlow = async () => {
     if (!newFlowName.trim()) {
-      toast.error("O nome do fluxo é obrigatório");
+      toast.error(tr("uiText.flowManager.nameRequired"));
       return;
     }
     try {
@@ -86,7 +89,7 @@ export function useFlowManager() {
           name: newFlowName,
           whatsappId: selectedWhatsapp ? Number(selectedWhatsapp) : null,
         });
-        toast.success("Fluxo atualizado com sucesso");
+        toast.success(tr("uiText.flowManager.updated"));
         fetchFlows();
         handleCloseModal();
       } else {
@@ -97,13 +100,13 @@ export function useFlowManager() {
             {
               id: "1",
               position: { x: 250, y: 50 },
-              data: { label: "Início do Fluxo" },
+              data: { label: tr("uiText.flowManager.startNode") },
               type: "input",
             },
           ],
           edges: [],
         });
-        toast.success("Fluxo criado com sucesso");
+        toast.success(tr("uiText.flowManager.created"));
         handleCloseModal();
         navigate(`/flowbuilder/${data.id}`);
       }
@@ -116,7 +119,7 @@ export function useFlowManager() {
     if (!deletingFlow) return;
     try {
       await api.delete(`/flows/${deletingFlow.id}`);
-      toast.success("Fluxo removido com sucesso");
+      toast.success(tr("uiText.flowManager.removed"));
       fetchFlows();
       setConfirmModalOpen(false);
       setDeletingFlow(null);

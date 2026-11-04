@@ -7,6 +7,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProtocolDetailsHeaderProps {
   protocolNumber: string;
   onBack: () => void;
@@ -22,7 +25,7 @@ const ProtocolDetailsHeader: React.FC<ProtocolDetailsHeaderProps> = ({
     <div className="flex items-center gap-3">
       <Button variant="outline" size="sm" onClick={onBack}>
         <ArrowLeft className="mr-1 h-4 w-4" />
-        Voltar
+        {tr("uiText.common.back")}
       </Button>
       <h1 className="text-2xl font-bold">Protocolo #{protocolNumber}</h1>
       <Tooltip>
@@ -36,7 +39,7 @@ const ProtocolDetailsHeader: React.FC<ProtocolDetailsHeaderProps> = ({
             <Link className="h-5 w-5" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Copiar link externo (para enviar ao cliente)</TooltipContent>
+        <TooltipContent>{tr("uiText.helpdesk.copyLink")}</TooltipContent>
       </Tooltip>
     </div>
   </div>

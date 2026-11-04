@@ -14,6 +14,7 @@ import {
 import AISettings from "./components/AISettings";
 import StorageSection from "./components/StorageSection";
 import SaaSModeSection from "./components/SaaSModeSection";
+import WAVersionSection from "./components/WAVersionSection";
 import AboutSection from "./components/AboutSection";
 import ProxySection from "./components/ProxySection";
 import AddressLookupSettings from "./components/AddressLookupSettings";
@@ -28,6 +29,9 @@ import AiGatewaysSection from "./components/AiGatewaysSection";
 import CallsSection from "./components/CallsSection";
 import SettingsSideNav from "./components/SettingsSideNav";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -54,7 +58,7 @@ const Settings: React.FC = () => {
 
   return (
     <PageContainer>
-      <PageHeader title="Configurações do Sistema">
+      <PageHeader title={tr("uiText.settings.pageTitle")}>
         <div className="flex gap-2">
           <Can
             user={user}
@@ -127,6 +131,9 @@ const Settings: React.FC = () => {
               )}
               {activeSection === "saas-mode" && isSuperAdmin && (
                 <SaaSModeSection />
+              )}
+              {activeSection === "wa-version" && isSuperAdmin && (
+                <WAVersionSection />
               )}
               {activeSection === "about" && (
                 <AboutSection />

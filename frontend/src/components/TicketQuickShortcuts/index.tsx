@@ -18,6 +18,9 @@ import {
 import api from "../../services/api";
 import TicketTagsSection from "../../pages/Tickets/components/TicketTagsSection";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Stage {
   id: number;
   name: string;
@@ -88,9 +91,9 @@ const TicketQuickShortcuts: React.FC<TicketQuickShortcutsProps> = ({ ticketId })
     try {
       await api.put(`/deals/${deal.id}`, { stageId: Number(stageId) });
       setDeal({ ...deal, stageId: Number(stageId) });
-      toast.success("Negócio movido de etapa com sucesso!");
+      toast.success(tr("uiText.ticketQuickShortcuts.dealMoved"));
     } catch {
-      toast.error("Erro ao mover o negócio de etapa.");
+      toast.error(tr("uiText.ticketQuickShortcuts.dealMoveError"));
     }
   };
 
@@ -109,7 +112,7 @@ const TicketQuickShortcuts: React.FC<TicketQuickShortcutsProps> = ({ ticketId })
 
       <Popover open={pipelineOpen} onOpenChange={handleOpenPipeline}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Mover no pipeline">
+          <Button variant="ghost" size="icon" aria-label={tr("uiText.ticketQuickShortcuts.movePipeline")}>
             <Kanban className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
@@ -119,12 +122,12 @@ const TicketQuickShortcuts: React.FC<TicketQuickShortcutsProps> = ({ ticketId })
           )}
           {!loadingPipeline && !deal && (
             <p className="text-xs text-muted-foreground">
-              Nenhum negócio vinculado a este ticket.
+              {tr("uiText.ticketQuickShortcuts.noDeal")}
             </p>
           )}
           {!loadingPipeline && deal && !pipeline && (
             <p className="text-xs text-muted-foreground">
-              Não foi possível carregar o pipeline deste negócio.
+              {tr("uiText.ticketQuickShortcuts.pipelineError")}
             </p>
           )}
           {!loadingPipeline && deal && pipeline && (

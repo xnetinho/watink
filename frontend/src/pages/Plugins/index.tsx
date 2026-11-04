@@ -12,6 +12,9 @@ import { PageContainer, PageContent, PageHeader } from "@/components/ui/page-lay
 import { Switch } from "@/components/ui/switch";
 import { EMBEDDED_PLUGINS } from "./embeddedPlugins";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // Plugins embarcados no Watink. Não há marketplace nem licença: o administrador da empresa liga ou desliga cada um, e a
 // alocação por empresa (PluginInstallations) é o único gate de runtime no backend.
 const Plugins: React.FC = () => {
@@ -61,14 +64,14 @@ const Plugins: React.FC = () => {
         <PageContainer>
           <PageContent>
             <div className="flex h-64 items-center justify-center text-muted-foreground">
-              Você não tem permissão para gerenciar plugins.
+              {tr("uiText.plugins.noPermission")}
             </div>
           </PageContent>
         </PageContainer>
       )}
       yes={() => (
         <PageContainer>
-          <PageHeader title="Plugins" description="Ative ou desative os recursos adicionais desta empresa." />
+          <PageHeader title="Plugins" description={tr("uiText.plugins.pageDescription")} />
           <PageContent>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-busy={loading}>
               {EMBEDDED_PLUGINS.map((plugin) => {
@@ -78,18 +81,18 @@ const Plugins: React.FC = () => {
                     <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
                       <div className="flex items-center gap-3">
                         <Puzzle className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                        <CardTitle className="text-base">{plugin.name}</CardTitle>
+                        <CardTitle className="text-base">{tr(plugin.name)}</CardTitle>
                       </div>
                       <Switch
                         checked={isActive}
                         disabled={loading || busy === plugin.slug}
                         onCheckedChange={(next) => void toggle(plugin.slug, next)}
-                        aria-label={`${isActive ? "Desativar" : "Ativar"} ${plugin.name}`}
+                        aria-label={tr(isActive ? "uiText.plugins.deactivate" : "uiText.plugins.activate", { name: tr(plugin.name) })}
                       />
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <CardDescription>{plugin.description}</CardDescription>
-                      <Badge variant={isActive ? "default" : "outline"}>{isActive ? "Ativo" : "Inativo"}</Badge>
+                      <CardDescription>{tr(plugin.description)}</CardDescription>
+                      <Badge variant={isActive ? "default" : "outline"}>{tr(isActive ? "uiText.plugins.active" : "uiText.plugins.inactive")}</Badge>
                     </CardContent>
                   </Card>
                 );

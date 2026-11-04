@@ -16,7 +16,7 @@ const AgentNode: React.FC<AgentNodeProps> = ({ data, isConnectable }) => {
       data={data}
       icon={Bot}
       colorClass="colorAgent"
-      defaultLabel="Agente IA"
+      defaultLabel="uiText.flow.node.agent"
       sublabel={sublabel}
       isConnectable={isConnectable}
     />

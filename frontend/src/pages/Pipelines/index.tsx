@@ -24,6 +24,9 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 import api from "../../services/api";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const STAGE_COLORS = [
     "hsl(var(--status-info))",
     "hsl(var(--status-warning))",
@@ -70,7 +73,7 @@ const Pipelines: React.FC = () => {
             const { data } = await api.get("/pipelines");
             setPipelines(Array.isArray(data) ? data : []);
         } catch {
-            toast.error("Erro ao carregar pipelines");
+            toast.error(tr("uiText.pipelines.listError"));
         }
         setLoading(false);
     };
@@ -94,10 +97,10 @@ const Pipelines: React.FC = () => {
         if (!pipelineToDelete) return;
         try {
             await api.delete(`/pipelines/${pipelineToDelete.id}`);
-            toast.success("Pipeline excluído com sucesso!");
+            toast.success(tr("uiText.pipelines.deleted"));
             fetchPipelines();
         } catch {
-            toast.error("Erro ao excluir pipeline");
+            toast.error(tr("uiText.pipelines.deleteError"));
         } finally {
             setPipelineToDelete(null);
         }
@@ -107,15 +110,15 @@ const Pipelines: React.FC = () => {
         e.stopPropagation();
         try {
             await api.post("/pipelines", {
-                name: `${pipeline.name} (cópia)`,
+                name: tr("uiText.pipelines.copyOf", { name: pipeline.name }),
                 description: pipeline.description,
                 type: pipeline.type,
                 stages: pipeline.stages.map((s) => ({ name: s.name })),
             });
-            toast.success("Pipeline duplicado com sucesso!");
+            toast.success(tr("uiText.pipelines.duplicated"));
             fetchPipelines();
         } catch {
-            toast.error("Erro ao duplicar pipeline");
+            toast.error(tr("uiText.pipelines.duplicateError"));
         }
     };
 
@@ -134,7 +137,7 @@ const Pipelines: React.FC = () => {
             document.body.removeChild(link);
             URL.revokeObjectURL(href);
         } catch {
-            toast.error("Erro ao exportar pipeline");
+            toast.error(tr("uiText.pipelines.exportError"));
         }
     };
 
@@ -158,11 +161,11 @@ const Pipelines: React.FC = () => {
                 if (!ev.target?.result) throw new Error("File empty");
                 const json = JSON.parse(ev.target.result as string);
                 await api.post("/pipelines/import", json);
-                toast.success("Pipeline importado com sucesso!");
+                toast.success(tr("uiText.pipelines.imported"));
                 fetchPipelines();
             } catch (err) {
-                const message = err instanceof Error ? err.message : "Erro desconhecido";
-                toast.error("Erro ao importar pipeline: " + message);
+                const message = err instanceof Error ? err.message : tr("uiText.pipelines.unknownError");
+                toast.error(tr("uiText.pipelines.importError", { error: message }));
             }
         };
         reader.readAsText(file);
@@ -172,19 +175,17 @@ const Pipelines: React.FC = () => {
     return (
         <PageContainer>
             <ConfirmationModal
-                title="Excluir pipeline"
+                title={tr("uiText.pipelines.deleteTitle")}
                 open={!!pipelineToDelete}
                 onClose={() => setPipelineToDelete(null)}
                 onConfirm={handleConfirmDeletePipeline}
             >
-                Tem certeza que deseja excluir o pipeline "{pipelineToDelete?.name}"? Todas as
-                etapas e negócios vinculados a ele serão excluídos permanentemente. Esta ação não
-                pode ser desfeita.
+                {tr("uiText.pipelines.deleteConfirm", { name: pipelineToDelete?.name ?? "" })}
             </ConfirmationModal>
 
             <PageHeader
                 title="Pipelines"
-                description="Gerencie seus fluxos de atendimento e funis de vendas"
+                description={tr("uiText.pipelines.subtitle")}
             >
                 {pipelines.length > 1 && (
                     <div className="relative w-full max-w-[220px] hidden md:block">
@@ -248,7 +249,7 @@ const Pipelines: React.FC = () => {
                         <div>
                             <p className="font-semibold text-foreground">Nenhum pipeline criado</p>
                             <p className="text-sm text-muted-foreground mt-1">
-                                Crie seu primeiro funil de vendas para começar
+                                {tr("uiText.pipelines.emptyHint")}
                             </p>
                         </div>
                         <Button onClick={() => navigate("/pipelines/new")}>
@@ -297,7 +298,7 @@ const Pipelines: React.FC = () => {
                                                 >
                                                     <DropdownMenuItem onClick={(e) => handleEditPipeline(e, pipeline.id)}>
                                                         <Pencil className="mr-2 h-3.5 w-3.5" />
-                                                        Editar
+                                                        {tr("uiText.common.edit")}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={(e) => handleDuplicatePipeline(e, pipeline)}>
                                                         <Copy className="mr-2 h-3.5 w-3.5" />
@@ -312,7 +313,7 @@ const Pipelines: React.FC = () => {
                                                         onClick={(e) => handleRequestDeletePipeline(e, pipeline)}
                                                     >
                                                         <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                                        Excluir
+                                                        {tr("uiText.common.delete")}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -361,7 +362,7 @@ const Pipelines: React.FC = () => {
                                                       }
                                             }
                                         >
-                                            {pipeline.type === "kanban" ? "Kanban" : "Funil de Vendas"}
+                                            {pipeline.type === "kanban" ? "Kanban" : tr("uiText.pipelines.typeFunnel")}
                                         </Badge>
                                         {pipeline.stages?.length > 0 && (
                                             <span className="text-[11px] text-muted-foreground">

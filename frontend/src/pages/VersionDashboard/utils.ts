@@ -1,5 +1,8 @@
 import { QueueItem, QueueAlert } from "./types";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const formatBytes = (bytes: number, decimals = 2): string => {
   if (!bytes) return "0 Bytes";
   const k = 1024;
@@ -40,11 +43,11 @@ export const compareVersions = (a: string, b: string): number => {
 };
 
 export const queueAlert = (queue: QueueItem, prevMessages: number): QueueAlert => {
-  if (queue?.error) return { level: "error", label: "Erro" };
+  if (queue?.error) return { level: "error", label: tr("uiText.campaigns.error") };
   if ((queue?.consumers || 0) === 0 && (queue?.messages || 0) > 0)
-    return { level: "error", label: "Sem consumidor" };
+    return { level: "error", label: tr("uiText.versionDashboard.noConsumer") };
   if ((queue?.messages || 0) >= 50) return { level: "error", label: "Fila alta" };
-  if ((queue?.messages || 0) >= 20) return { level: "warning", label: "Atenção" };
+  if ((queue?.messages || 0) >= 20) return { level: "warning", label: tr("uiText.connections.attention") };
   if (
     (queue?.messages || 0) > (prevMessages || 0) &&
     (queue?.messages || 0) >= 10

@@ -21,8 +21,11 @@ import UserPanel from "./UserPanel";
 import { ALCANCE_OPTIONS } from "../acessosTypes";
 import type { AcessosUserListItem } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const alcanceLabel = (value: string): string =>
-  ALCANCE_OPTIONS.find((o) => o.value === value)?.label ?? value;
+  (() => { const o = ALCANCE_OPTIONS.find((x) => x.value === value); return o ? tr(o.label) : value; })();
 
 const UsuariosTab: React.FC = () => {
   const {
@@ -65,7 +68,7 @@ const UsuariosTab: React.FC = () => {
   return (
     <div className="flex flex-col gap-4">
       <ConfirmationModal
-        title={deletingUser ? `Excluir o usuário ${deletingUser.name}?` : ""}
+        title={deletingUser ? tr("uiText.acessos.deleteUserTitle", { name: deletingUser.name }) : ""}
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={async () => {
@@ -74,7 +77,7 @@ const UsuariosTab: React.FC = () => {
           setDeletingUser(null);
         }}
       >
-        O dono do tenant e o último Administrador não podem ser excluídos.
+        {tr("uiText.acessos.userDeleteHint")}
       </ConfirmationModal>
 
       <UserPanel
@@ -92,7 +95,7 @@ const UsuariosTab: React.FC = () => {
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar usuário..."
+            placeholder={tr("uiText.acessos.searchUser")}
             value={searchParam}
             onChange={handleSearch}
             className="pl-9 h-10"
@@ -100,7 +103,7 @@ const UsuariosTab: React.FC = () => {
         </div>
         <Button onClick={openCreate} className="ml-auto gap-2">
           <Plus className="h-4 w-4" />
-          Novo Usuário
+          {tr("uiText.acessos.newUser")}
         </Button>
       </div>
 
@@ -109,11 +112,11 @@ const UsuariosTab: React.FC = () => {
           <TableHeader>
             <TableRow>
               <TableHead className="w-14 text-center">Avatar</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Cargo</TableHead>
+              <TableHead>{tr("uiText.common.name")}</TableHead>
+              <TableHead>{tr("uiText.common.email")}</TableHead>
+              <TableHead>{tr("uiText.common.role")}</TableHead>
               <TableHead className="text-center">Alcance</TableHead>
-              <TableHead className="text-right w-[110px]">Ações</TableHead>
+              <TableHead className="text-right w-[110px]">{tr("uiText.common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -173,7 +176,7 @@ const UsuariosTab: React.FC = () => {
             {!loading && users.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  Nenhum usuário encontrado.
+                  {tr("uiText.acessos.noUserFound")}
                 </TableCell>
               </TableRow>
             )}

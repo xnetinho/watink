@@ -1,3 +1,7 @@
+import { i18n } from "../../translate/i18n";
+
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface WhatsappOption {
     id: number;
     name: string;
@@ -16,7 +20,7 @@ export function classifyGroupsApiError(err: unknown): GroupsApiError {
     const status = (err as { response?: { status?: number } })?.response?.status;
     const message =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        "Erro inesperado ao gerenciar grupos.";
+        tr("uiText.groups.unexpected");
     switch (status) {
         case 402:
             return { kind: "blocked", message };

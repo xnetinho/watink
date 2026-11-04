@@ -8,6 +8,9 @@ import {
 } from '@/components/ui/select';
 import { NodeData, FilterCondition, FILTERABLE_FIELDS, FILTER_OPERATORS_NODE } from '../../nodeEditorTypes';
 
+import { i18n } from '../../../../translate/i18n';
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FilterFormProps {
   formData: NodeData;
   onChange: (field: string, value: unknown) => void;
@@ -36,22 +39,22 @@ const FilterForm: React.FC<FilterFormProps> = ({ formData, onChange }) => {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Este nó recebe dados de uma variável, aplica filtros e entrega o resultado filtrado para o próximo nó.
+        {tr("uiText.flow.form.filterIntro")}
       </p>
 
       <div className="space-y-1">
-        <Label className="text-xs">Variável de entrada</Label>
+        <Label className="text-xs">{tr("uiText.flow.form.inputVar")}</Label>
         <Input
           className="h-8 text-xs"
           placeholder="dados"
           value={formData.inputVariable || ''}
           onChange={(e) => onChange('inputVariable', e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
         />
-        <p className="text-[10px] text-muted-foreground">Nome da variável que contém os dados</p>
+        <p className="text-[10px] text-muted-foreground">{tr("uiText.flow.form.inputVarHint")}</p>
       </div>
 
       <div className="space-y-2">
-        <p className="text-xs font-medium">Condições de Filtro</p>
+        <p className="text-xs font-medium">{tr("uiText.flow.form.filterConditions")}</p>
 
         {filterConditions.map((condition, index) => (
           <div key={condition.id} className="flex flex-wrap gap-1 items-center">
@@ -69,7 +72,7 @@ const FilterForm: React.FC<FilterFormProps> = ({ formData, onChange }) => {
               <SelectTrigger className="w-[110px] h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {FILTERABLE_FIELDS.map((f) => (
-                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  <SelectItem key={f.value} value={f.value}>{tr(f.label)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -78,7 +81,7 @@ const FilterForm: React.FC<FilterFormProps> = ({ formData, onChange }) => {
               <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {FILTER_OPERATORS_NODE.map((op) => (
-                  <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
+                  <SelectItem key={op.value} value={op.value}>{tr(op.label)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -104,7 +107,7 @@ const FilterForm: React.FC<FilterFormProps> = ({ formData, onChange }) => {
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs">Variável de saída</Label>
+        <Label className="text-xs">{tr("uiText.flow.form.outputVar")}</Label>
         <Input
           className="h-8 text-xs"
           placeholder="filtrado"

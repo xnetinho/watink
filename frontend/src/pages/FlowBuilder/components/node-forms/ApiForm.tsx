@@ -7,6 +7,9 @@ import {
 } from '@/components/ui/select';
 import { NodeData } from '../../nodeEditorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ApiFormProps {
   formData: NodeData;
   onChange: (field: string, value: unknown) => void;
@@ -15,7 +18,7 @@ interface ApiFormProps {
 const ApiForm: React.FC<ApiFormProps> = ({ formData, onChange }) => (
   <div className="space-y-3">
     <div className="space-y-1">
-      <Label className="text-xs">Método</Label>
+      <Label className="text-xs">{tr("uiText.flow.form.method")}</Label>
       <Select value={formData.method || 'GET'} onValueChange={(v) => onChange('method', v)}>
         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -42,7 +45,7 @@ const ApiForm: React.FC<ApiFormProps> = ({ formData, onChange }) => (
     </div>
 
     <div className="space-y-1">
-      <Label className="text-xs">Nome da Variável de Resultado</Label>
+      <Label className="text-xs">{tr("uiText.flow.form.resultVar")}</Label>
       <Input className="h-8 text-xs" placeholder="Ex: resultadoApi" value={formData.resultVariable || ''} onChange={(e) => onChange('resultVariable', e.target.value)} />
       <p className="text-[10px] text-muted-foreground">O resultado será salvo em {`{{${formData.resultVariable || 'variavel'}}}`}</p>
     </div>

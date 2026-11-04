@@ -19,6 +19,9 @@ import {
 } from "@/components/ui/select";
 import type { Tenant, Plan, TenantForm } from "../saasTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface TenantModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -52,7 +55,7 @@ export function TenantModal({
                             onValueChange={(value) => onFormChange({ ...form, planName: value })}
                         >
                             <SelectTrigger id="planName">
-                                <SelectValue placeholder="Selecione um plano" />
+                                <SelectValue placeholder={tr("uiText.saas.selectPlan")} />
                             </SelectTrigger>
                             <SelectContent>
                                 {plans.map((p) => (
@@ -67,7 +70,7 @@ export function TenantModal({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="pluginQuota">Quota de Plugins</Label>
+                        <Label htmlFor="pluginQuota">{tr("uiText.saas.pluginQuota")}</Label>
                         <Input
                             id="pluginQuota"
                             type="number"
@@ -79,7 +82,7 @@ export function TenantModal({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="tenantStatus">Status da Assinatura</Label>
+                        <Label htmlFor="tenantStatus">{tr("uiText.saas.subStatus")}</Label>
                         <Select
                             value={form.status}
                             onValueChange={(value) => onFormChange({ ...form, status: value })}
@@ -88,14 +91,14 @@ export function TenantModal({
                                 <SelectValue placeholder="Selecione o status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="active">Ativo</SelectItem>
+                                <SelectItem value="active">{tr("uiText.common.active")}</SelectItem>
                                 <SelectItem value="overdue">Inadimplente</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="expiresAt">Expira em</Label>
+                        <Label htmlFor="expiresAt">{tr("uiText.saas.expiresAt")}</Label>
                         <Input
                             id="expiresAt"
                             type="date"
@@ -106,9 +109,9 @@ export function TenantModal({
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
-                        Cancelar
+                        {tr("uiText.common.cancel")}
                     </Button>
-                    <Button onClick={onSave}>Salvar</Button>
+                    <Button onClick={onSave}>{tr("uiText.common.save")}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

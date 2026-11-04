@@ -6,11 +6,15 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { SimResult } from './SimulatorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+import { localeTag } from "../../../../lib/dateLocale";
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const formatTime = (ts?: string) => {
   if (!ts) return '';
-  return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date(ts).toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 };
 
 // ─── SimulatorChatArea ────────────────────────────────────────────────────────
@@ -40,7 +44,7 @@ const SimulatorChatArea: React.FC<SimulatorChatAreaProps> = ({
       {!result && !loading && (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
           <Play className="w-12 h-12 opacity-30" />
-          <p className="text-sm">Digite uma mensagem para iniciar a simulação</p>
+          <p className="text-sm">{tr("uiText.flow.sim.start")}</p>
         </div>
       )}
 
@@ -98,7 +102,7 @@ const SimulatorChatArea: React.FC<SimulatorChatAreaProps> = ({
     <div className="flex items-center gap-2 p-3 border-t bg-white shrink-0">
       <Input
         className="h-9 text-sm"
-        placeholder="Digite uma mensagem para simular..."
+        placeholder={tr("uiText.flow.sim.placeholder")}
         value={testMessage}
         onChange={(e) => onMessageChange(e.target.value)}
         onKeyDown={onKeyDown}

@@ -42,6 +42,9 @@ import {
     genId,
 } from "@/pages/QuickAnswers/quickAnswersHelpers";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const DEFAULT_SCHEDULE: CampaignScheduleState = {
     scheduleMode: "immediate",
     startAt: "",
@@ -158,23 +161,23 @@ const GroupCampaignEditor: React.FC = () => {
 
     const buildInput = (): UpsertGroupCampaignInput | null => {
         if (!whatsappId) {
-            notify.warning("Selecione uma conexão.");
+            notify.warning(tr("uiText.campaigns.selectConnection"));
             return null;
         }
         if (!name.trim()) {
-            notify.warning("Informe um nome para a campanha.");
+            notify.warning(tr("uiText.campaigns.nameRequired"));
             return null;
         }
         if (!riskAckChecked) {
-            notify.warning("Marque o aceite de risco antes de continuar.");
+            notify.warning(tr("uiText.campaigns.riskRequired"));
             return null;
         }
         if (targets.length === 0) {
-            notify.warning("Selecione ao menos um grupo.");
+            notify.warning(tr("uiText.campaigns.groupRequired"));
             return null;
         }
         if (!variants.some((v) => v.active)) {
-            notify.warning("Ative ao menos uma variante de mensagem.");
+            notify.warning(tr("uiText.campaigns.variantRequired"));
             return null;
         }
 
@@ -256,17 +259,17 @@ const GroupCampaignEditor: React.FC = () => {
     return (
         <PageContainer>
             <PageHeader
-                title={isEdit ? "Editar campanha" : "Nova campanha"}
-                description="Postar uma mensagem programada em vários grupos de uma vez"
+                title={isEdit ? "Editar campanha" : tr("uiText.campaigns.new")}
+                description={tr("uiText.campaigns.newHint")}
             >
                 <div className="flex items-center gap-2">
                     <Button variant="ghost" onClick={() => navigate("/grupos-whatsapp/campanhas")}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Voltar
+                        {tr("uiText.common.back")}
                     </Button>
                     <Button variant="outline" onClick={handleSave} disabled={disableActions}>
                         {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Salvar rascunho
+                        {tr("uiText.campaigns.saveDraft")}
                     </Button>
                     <Button onClick={handleStart} disabled={disableActions}>
                         {starting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
@@ -287,18 +290,18 @@ const GroupCampaignEditor: React.FC = () => {
 
                             <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                                 <CardContent className="p-5 space-y-4">
-                                    <SectionTitle>Identificação</SectionTitle>
+                                    <SectionTitle>{tr("uiText.quick.identification")}</SectionTitle>
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="camp-name">Nome</Label>
+                                        <Label htmlFor="camp-name">{tr("uiText.common.name")}</Label>
                                         <Input
                                             id="camp-name"
-                                            placeholder="Ex: Lançamento produto X"
+                                            placeholder={tr("uiText.campaigns.namePlaceholder")}
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                         />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="camp-desc">Descrição (opcional)</Label>
+                                        <Label htmlFor="camp-desc">{tr("uiText.assistants.descriptionOptional")}</Label>
                                         <Textarea
                                             id="camp-desc"
                                             value={description}
@@ -306,14 +309,14 @@ const GroupCampaignEditor: React.FC = () => {
                                         />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <Label>Conexão</Label>
+                                        <Label>{tr("uiText.common.connection")}</Label>
                                         <Select
                                             value={whatsappId ? String(whatsappId) : ""}
                                             onValueChange={(v) => setWhatsappId(Number(v))}
                                             disabled={loadingConnections || isEdit}
                                         >
                                             <SelectTrigger className="w-[280px]">
-                                                <SelectValue placeholder="Selecione a conexão" />
+                                                <SelectValue placeholder={tr("uiText.campaigns.selectConnectionPlaceholder")} />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {whatsapps.map((w) => (
@@ -329,7 +332,7 @@ const GroupCampaignEditor: React.FC = () => {
 
                             <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                                 <CardContent className="p-5 space-y-4">
-                                    <SectionTitle>Variantes de mensagem</SectionTitle>
+                                    <SectionTitle>{tr("uiText.campaigns.variants")}</SectionTitle>
                                     <CampaignVariantsEditor
                                         variants={variants}
                                         onChange={setVariants}
@@ -358,7 +361,7 @@ const GroupCampaignEditor: React.FC = () => {
 
                             <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                                 <CardContent className="p-5 space-y-4">
-                                    <SectionTitle>Cadência (anti-ban)</SectionTitle>
+                                    <SectionTitle>{tr("uiText.campaigns.pacing")}</SectionTitle>
                                     <CampaignPacingForm
                                         value={pacing}
                                         onChange={(patch) => setPacing((p) => ({ ...p, ...patch }))}
@@ -370,7 +373,7 @@ const GroupCampaignEditor: React.FC = () => {
 
                             <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                                 <CardContent className="p-5 space-y-4">
-                                    <SectionTitle>Captura de resposta</SectionTitle>
+                                    <SectionTitle>{tr("uiText.campaigns.capture")}</SectionTitle>
                                     <div className="space-y-1.5">
                                         <Label>Modo</Label>
                                         <Select
@@ -381,9 +384,9 @@ const GroupCampaignEditor: React.FC = () => {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="quoted">Só respostas citando a mensagem</SelectItem>
+                                                <SelectItem value="quoted">{tr("uiText.campaigns.captureQuoted")}</SelectItem>
                                                 <SelectItem value="quoted_and_window">
-                                                    Citação + mensagens na janela de tempo
+                                                    {tr("uiText.campaigns.captureWindow")}
                                                 </SelectItem>
                                             </SelectContent>
                                         </Select>
@@ -400,9 +403,7 @@ const GroupCampaignEditor: React.FC = () => {
                                                 onChange={(e) => setCaptureWindowMinutes(Number(e.target.value))}
                                             />
                                             <p className="text-[11px] text-muted-foreground max-w-md">
-                                                Mensagens na janela contam qualquer conversa do grupo, relacionada ou
-                                                não — o relatório sempre mostra os dois números separados, nunca
-                                                somados.
+                                                {tr("uiText.campaigns.windowHint")}
                                             </p>
                                         </div>
                                     )}
@@ -411,11 +412,11 @@ const GroupCampaignEditor: React.FC = () => {
 
                             <div className="flex items-center justify-end gap-2 pb-8">
                                 <Button variant="outline" onClick={() => navigate("/grupos-whatsapp/campanhas")}>
-                                    Cancelar
+                                    {tr("uiText.common.cancel")}
                                 </Button>
                                 <Button variant="outline" onClick={handleSave} disabled={disableActions}>
                                     {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Salvar rascunho
+                                    {tr("uiText.campaigns.saveDraft")}
                                 </Button>
                                 <Button onClick={handleStart} disabled={disableActions}>
                                     {starting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}

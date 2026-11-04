@@ -5,6 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface AssistantAdvancedTabProps {
   sessionExpiryMinutes: string;
   onSessionExpiryMinutesChange: (v: string) => void;
@@ -56,7 +59,7 @@ export const AssistantAdvancedTab: React.FC<AssistantAdvancedTabProps> = ({
     <div className="flex flex-col gap-4 pt-2">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label>Expiração de sessão (min)</Label>
+          <Label>{tr("uiText.assistants.sessionExpiry")}</Label>
           <Input
             type="number"
             value={sessionExpiryMinutes}
@@ -64,7 +67,7 @@ export const AssistantAdvancedTab: React.FC<AssistantAdvancedTabProps> = ({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>Atraso de digitação (ms)</Label>
+          <Label>{tr("uiText.assistants.typingDelay")}</Label>
           <Input
             type="number"
             value={typingDelayMs}
@@ -80,7 +83,7 @@ export const AssistantAdvancedTab: React.FC<AssistantAdvancedTabProps> = ({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>Palavra para encerrar</Label>
+          <Label>{tr("uiText.assistants.endWord")}</Label>
           <Input
             value={endKeyword}
             onChange={(e) => onEndKeywordChange(e.target.value)}
@@ -89,7 +92,7 @@ export const AssistantAdvancedTab: React.FC<AssistantAdvancedTabProps> = ({
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label>Mensagem de expiração</Label>
+        <Label>{tr("uiText.assistants.expiryMessage")}</Label>
         <Textarea
           value={expiryMessage}
           onChange={(e) => onExpiryMessageChange(e.target.value)}
@@ -97,7 +100,7 @@ export const AssistantAdvancedTab: React.FC<AssistantAdvancedTabProps> = ({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label>Mensagem de encerramento</Label>
+        <Label>{tr("uiText.assistants.endMessage")}</Label>
         <Textarea
           value={closingMessage}
           onChange={(e) => onClosingMessageChange(e.target.value)}
@@ -119,19 +122,18 @@ export const AssistantAdvancedTab: React.FC<AssistantAdvancedTabProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="flex items-center justify-between rounded-xl border p-3">
           <div>
-            <p className="text-sm font-medium">Entende áudio</p>
+            <p className="text-sm font-medium">{tr("uiText.assistants.understandsAudio")}</p>
             <p className="text-xs text-muted-foreground">
-              Transcreve mensagens de voz recebidas via o AiGateway configurado.
-              Se desligado, responde avisando que não entende áudio.
+              {tr("uiText.assistants.understandsAudioHint")}
             </p>
           </div>
           <Switch checked={acceptsAudio} onCheckedChange={onAcceptsAudioChange} />
         </div>
         <div className="flex items-center justify-between rounded-xl border p-3">
           <div>
-            <p className="text-sm font-medium">Responde com áudio</p>
+            <p className="text-sm font-medium">{tr("uiText.assistants.repliesAudio")}</p>
             <p className="text-xs text-muted-foreground">
-              Sintetiza as respostas como mensagem de voz em vez de texto.
+              {tr("uiText.assistants.repliesAudioHint")}
             </p>
           </div>
           <Switch checked={respondsWithAudio} onCheckedChange={onRespondsWithAudioChange} />

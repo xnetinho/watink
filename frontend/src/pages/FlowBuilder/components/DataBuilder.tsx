@@ -5,6 +5,9 @@ import { DataBuilderProps } from './dataBuilderTypes';
 import { useDataBuilder } from './hooks/useDataBuilder';
 import DataFieldRow from './DataFieldRow';
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export type { DataField } from './dataBuilderTypes';
 
 const DataBuilder: React.FC<DataBuilderProps> = ({
@@ -21,11 +24,11 @@ const DataBuilder: React.FC<DataBuilderProps> = ({
   });
 
   if (!tableName) {
-    return <p className="text-xs text-muted-foreground">Selecione uma tabela primeiro</p>;
+    return <p className="text-xs text-muted-foreground">{tr("uiText.flow.data.selectTableFirst")}</p>;
   }
 
   if (editableFields.length === 0) {
-    return <p className="text-xs text-muted-foreground">Nenhum campo editável para esta tabela</p>;
+    return <p className="text-xs text-muted-foreground">{tr("uiText.flow.data.noEditable")}</p>;
   }
 
   return (

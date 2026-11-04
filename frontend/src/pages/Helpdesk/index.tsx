@@ -17,6 +17,9 @@ import { useHelpdesk } from "./hooks/useHelpdesk";
 import HelpdeskFilters from "./components/HelpdeskFilters";
 import ProtocolsTable from "./components/ProtocolsTable";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const Helpdesk: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -47,7 +50,7 @@ const Helpdesk: React.FC = () => {
               </h1>
               <TabsList>
                 <TabsTrigger value="protocols">Protocolos</TabsTrigger>
-                <TabsTrigger value="reports">Relatórios</TabsTrigger>
+                <TabsTrigger value="reports">{tr("uiText.helpdesk.reports")}</TabsTrigger>
               </TabsList>
             </div>
 
@@ -67,7 +70,7 @@ const Helpdesk: React.FC = () => {
                     yes={() => (
                       <Button onClick={handleOpenModal}>
                         <Plus className="mr-2 h-4 w-4" />
-                        Novo Protocolo
+                        {tr("uiText.helpdesk.newProtocol")}
                       </Button>
                     )}
                   />
@@ -102,7 +105,7 @@ const Helpdesk: React.FC = () => {
       no={() => (
         <div className="flex h-full min-h-[50vh] items-center justify-center p-6">
           <h2 className="text-xl font-semibold text-muted-foreground">
-            Você não tem permissão para visualizar esta página.
+            {tr("uiText.helpdesk.noPermission")}
           </h2>
         </div>
       )}

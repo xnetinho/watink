@@ -3,6 +3,7 @@ package whatsapp
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/types"
@@ -29,6 +30,7 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 	case *events.Presence:
 		s.handlePresenceEvent(id, tenantID, v)
 	case *events.Connected:
+		s.clearOutdatedRetry(id)
 		s.emitConnected(client, id, tenantID)
 		s.presenceOnConnect(id, client)
 	case *events.PairSuccess:
@@ -55,6 +57,8 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 		} else {
 			s.emitStatus(id, tenantID, "DISCONNECTED")
 		}
+	case *events.ClientOutdated:
+		s.handleClientOutdated(client, id, tenantID)
 	case *events.TemporaryBan:
 		// ConnectFailureTempBanned (402) — ban temporário; IP/numero sinalizado.
 		log.Printf("Session %d temporariamente banida (code: %v, expira em: %v)", id, v.Code, v.Expire)
@@ -81,12 +85,24 @@ func (s *WhatsAppService) handleEvent(id int, tenantID string, evt interface{}) 
 
 func (s *WhatsAppService) handleReceiptEvent(id int, tenantID string, v *events.Receipt) {
 	ack := receiptAck(v.Type)
+	// at/by: quando o WhatsApp registrou o recibo e quem o mandou (em grupo, cada participante manda o seu). Sem horário
+	// do servidor, o instante da chegada aqui é a melhor aproximação.
+	at := v.Timestamp
+	if at.IsZero() {
+		at = time.Now()
+	}
+	by := v.Sender.ToNonAD().String()
+	if v.Sender.IsEmpty() {
+		by = ""
+	}
 	for _, messageID := range v.MessageIDs {
 		s.publishEvent(tenantID, id, "message.ack", map[string]interface{}{
 			"sessionId": fmt.Sprintf("%d", id),
 			"messageId": string(messageID),
 			"jid":       v.Chat.String(),
 			"ack":       ack,
+			"at":        at.UTC().Format(time.RFC3339),
+			"by":        by,
 		})
 	}
 }

@@ -10,6 +10,9 @@ import UsuariosTab from "./components/UsuariosTab";
 import SetoresTab from "./components/SetoresTab";
 import CargosTab from "./components/CargosTab";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 /**
  * Central de Acessos (ADR 0022) — substitui as 7 rotas antigas
  * (/users, /users/:userId, /groups, /groups/:groupId, /roles, /roles/:roleId,
@@ -36,7 +39,7 @@ const Acessos: React.FC = () => {
     <PageContainer>
       <PageHeader
         title="Acessos"
-        description="Gerencie usuários, setores e cargos do sistema"
+        description={tr("uiText.acessos.pageDescription")}
       />
       <PageContent>
         <Tabs
@@ -47,7 +50,7 @@ const Acessos: React.FC = () => {
           <TabsList>
             <TabsTrigger value="usuarios" className="gap-1.5">
               <Users className="h-4 w-4" />
-              Usuários
+              {tr("uiText.acessos.users")}
             </TabsTrigger>
             <TabsTrigger value="setores" className="gap-1.5">
               <Building2 className="h-4 w-4" />

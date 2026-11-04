@@ -19,6 +19,9 @@ import NotificationPermissionBanner from "../NotificationPermissionBanner";
 import { getBackendUrl } from "../../helpers/urlUtils";
 import { User as UserDomain } from "../../types/domain";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface MainTopBarProps {
   user: UserDomain | null;
   systemTitle: string;
@@ -85,7 +88,7 @@ const MainTopBar: React.FC<MainTopBarProps> = ({
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer">
               <SettingsIcon className="mr-2 h-4 w-4" />
-              <span>Configurações</span>
+              <span>{tr("uiText.mainTopBar.settings")}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-destructive focus:text-destructive">

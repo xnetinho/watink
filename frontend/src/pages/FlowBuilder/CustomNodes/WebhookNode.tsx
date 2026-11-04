@@ -12,7 +12,7 @@ const WebhookNode: React.FC<WebhookNodeProps> = ({ data, isConnectable }) => (
     data={data}
     icon={Webhook}
     colorClass="colorWebhook"
-    defaultLabel="Webhook"
+    defaultLabel="uiText.flow.node.webhook"
     sublabel={`${(data?.method as string) || ''} ${(data?.url as string) || ''}`}
     isConnectable={isConnectable}
   />

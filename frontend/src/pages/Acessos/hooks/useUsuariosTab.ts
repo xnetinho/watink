@@ -12,6 +12,9 @@ import type {
   UserSetorVinculo,
 } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UseUsuariosTabReturn {
   users: AcessosUserListItem[];
   loading: boolean;
@@ -112,10 +115,10 @@ export function useUsuariosTab(): UseUsuariosTabReturn {
     try {
       if (id) {
         await api.put(`/users/${id}`, payload);
-        toast.success("Usuário atualizado com sucesso");
+        toast.success(tr("uiText.acessos.userUpdated"));
       } else {
         await api.post("/users", payload);
-        toast.success("Usuário criado com sucesso");
+        toast.success(tr("uiText.acessos.userCreated"));
       }
       closePanel();
       await fetchUsers();
@@ -131,7 +134,7 @@ export function useUsuariosTab(): UseUsuariosTabReturn {
   const deleteUser = async (user: AcessosUserListItem) => {
     try {
       await api.delete(`/users/${user.id}`);
-      toast.success("Usuário removido com sucesso");
+      toast.success(tr("uiText.acessos.userRemoved"));
       // Só recarrega a lista (nunca remove a linha otimisticamente) — se o
       // backend bloqueou com 409 (dono/último Administrador), o catch abaixo
       // impede qualquer mutação de estado local.

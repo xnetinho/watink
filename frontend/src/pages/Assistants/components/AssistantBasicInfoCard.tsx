@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import type { WhatsappOption } from "../assistantCreatorTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface AssistantBasicInfoCardProps {
   name: string;
   onNameChange: (val: string) => void;
@@ -39,14 +42,14 @@ export const AssistantBasicInfoCard: React.FC<AssistantBasicInfoCardProps> = ({
       <CardContent className="p-5 flex flex-col gap-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label>Nome</Label>
+            <Label>{tr("uiText.common.name")}</Label>
             <Input value={name} onChange={(e) => onNameChange(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Conexão</Label>
+            <Label>{tr("uiText.common.connection")}</Label>
             <Select value={whatsappId} onValueChange={onWhatsappIdChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
+                <SelectValue placeholder={tr("uiText.common.select")} />
               </SelectTrigger>
               <SelectContent>
                 {whatsapps.map((w) => (
@@ -60,7 +63,7 @@ export const AssistantBasicInfoCard: React.FC<AssistantBasicInfoCardProps> = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label>Descrição (opcional)</Label>
+          <Label>{tr("uiText.assistants.descriptionOptional")}</Label>
           <Input value={description} onChange={(e) => onDescriptionChange(e.target.value)} />
         </div>
 
@@ -70,7 +73,7 @@ export const AssistantBasicInfoCard: React.FC<AssistantBasicInfoCardProps> = ({
             <Switch checked={active} onCheckedChange={onActiveChange} />
           </div>
           <div className="flex items-center justify-between rounded-xl border p-3">
-            <p className="text-sm font-medium">Permitir múltiplos bots na mesma conexão</p>
+            <p className="text-sm font-medium">{tr("uiText.assistants.multiBots")}</p>
             <Switch checked={allowMultipleOnConnection} onCheckedChange={onAllowMultipleOnConnectionChange} />
           </div>
         </div>

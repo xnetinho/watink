@@ -25,13 +25,16 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import type { ProxyGroup } from "../../types/domain";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProxyGroupsPanelProps {
   onChanged: () => void;
 }
 
 const ROTATION_LABEL: Record<string, string> = {
-  sticky: "Fixo (sticky)",
-  rotate: "Rotação",
+  sticky: "uiText.proxies.sticky",
+  rotate: "uiText.proxies.rotation",
 };
 
 const ProxyGroupsPanel: React.FC<ProxyGroupsPanelProps> = ({ onChanged }) => {
@@ -57,7 +60,7 @@ const ProxyGroupsPanel: React.FC<ProxyGroupsPanelProps> = ({ onChanged }) => {
   const openEdit = (g: ProxyGroup) => { setEditing(g); setName(g.name); setRotation(g.rotationStrategy); setDialogOpen(true); };
 
   const handleSave = async () => {
-    if (!name.trim()) { toast.warning("Nome é obrigatório."); return; }
+    if (!name.trim()) { toast.warning(tr("uiText.proxies.nameRequired")); return; }
     setSaving(true);
     try {
       if (editing) {
@@ -77,7 +80,7 @@ const ProxyGroupsPanel: React.FC<ProxyGroupsPanelProps> = ({ onChanged }) => {
   };
 
   const handleDelete = async (g: ProxyGroup) => {
-    if (!window.confirm(`Remover o grupo "${g.name}"? Os proxies serão desvinculados.`)) return;
+    if (!window.confirm(tr("uiText.proxies.removeProxyGroup", { name: g.name }))) return;
     try {
       await api.delete(`/proxy-groups/${g.id}`);
       toast.success("Grupo removido.");
@@ -100,18 +103,18 @@ const ProxyGroupsPanel: React.FC<ProxyGroupsPanelProps> = ({ onChanged }) => {
       </div>
 
       {groups.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Nenhum grupo. Crie um pool para rotacionar IPs entre conexões.</p>
+        <p className="text-xs text-muted-foreground">{tr("uiText.proxies.noGroups")}</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {groups.map((g) => (
             <div key={g.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5">
               <span className="text-sm font-medium">{g.name}</span>
-              <Badge variant="secondary">{ROTATION_LABEL[g.rotationStrategy] ?? g.rotationStrategy}</Badge>
+              <Badge variant="secondary">{ROTATION_LABEL[g.rotationStrategy] ? tr(ROTATION_LABEL[g.rotationStrategy]) : g.rotationStrategy}</Badge>
               <span className="text-xs text-muted-foreground">{g.activeProxyCount ?? 0}/{g.proxyCount ?? 0} ativos</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" title="Editar" onClick={() => openEdit(g)}>
+              <Button variant="ghost" size="icon" className="h-6 w-6" title={tr("uiText.common.edit")} onClick={() => openEdit(g)}>
                 <Pencil className="h-3 w-3" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-6 w-6" title="Remover" onClick={() => handleDelete(g)}>
+              <Button variant="ghost" size="icon" className="h-6 w-6" title={tr("uiText.common.remove")} onClick={() => handleDelete(g)}>
                 <Trash2 className="h-3 w-3 text-muted-foreground" />
               </Button>
             </div>
@@ -122,27 +125,27 @@ const ProxyGroupsPanel: React.FC<ProxyGroupsPanelProps> = ({ onChanged }) => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar grupo" : "Novo grupo de proxy"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar grupo" : tr("uiText.proxies.newGroup")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Nome</Label>
+              <Label>{tr("uiText.common.name")}</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: residenciais-BR" />
             </div>
             <div className="space-y-1">
-              <Label>Estratégia de rotação</Label>
+              <Label>{tr("uiText.proxies.strategy")}</Label>
               <Select value={rotation} onValueChange={setRotation}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sticky">Fixo — mesmo IP por conexão</SelectItem>
-                  <SelectItem value="rotate">Rotação — troca de IP a cada reconexão</SelectItem>
+                  <SelectItem value="sticky">{tr("uiText.proxies.fixed")}</SelectItem>
+                  <SelectItem value="rotate">{tr("uiText.proxies.rotating")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>{editing ? "Salvar" : "Criar"}</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{tr("uiText.common.cancel")}</Button>
+            <Button onClick={handleSave} disabled={saving}>{editing ? tr("uiText.common.save") : tr("uiText.common.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

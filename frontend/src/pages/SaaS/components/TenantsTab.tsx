@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/table";
 import type { Tenant } from "../saasTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface TenantsTabProps {
     tenants: Tenant[];
     onEdit: (tenant: Tenant) => void;
@@ -23,9 +26,9 @@ export function TenantsTab({ tenants, onEdit }: TenantsTabProps) {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Tenant</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[100px] text-right">Ações</TableHead>
+                        <TableHead>{tr("uiText.saas.tenant")}</TableHead>
+                        <TableHead>{tr("uiText.common.status")}</TableHead>
+                        <TableHead className="w-[100px] text-right">{tr("uiText.common.actions")}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>

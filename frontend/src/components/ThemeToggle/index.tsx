@@ -4,10 +4,11 @@ import { Moon, Sun } from "lucide-react";
 
 import { Button } from "../ui/button";
 import { useThemeContext } from "../../context/DarkMode";
+import { i18n } from "../../translate/i18n";
 
 const ThemeToggle: React.FC = () => {
   const { darkMode, toggleTheme } = useThemeContext();
-  const label = darkMode ? "Mudar para tema claro" : "Mudar para tema escuro";
+  const label = String(i18n.t(darkMode ? "uiText.themeToggle.toLight" : "uiText.themeToggle.toDark"));
 
   return (
     <Button

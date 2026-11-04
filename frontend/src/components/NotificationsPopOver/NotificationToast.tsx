@@ -4,6 +4,9 @@ import { Ticket, Contact } from "../../types/Ticket";
 import { Message } from "../../types/Message";
 import { getContactDisplayName } from "@/utils/clientDisplayName";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface NotificationToastProps {
   ticket: Ticket;
   message: Message;
@@ -35,7 +38,7 @@ const NotificationToast = ({
       />
       <div className="flex flex-col min-w-0">
         <span className="font-semibold text-sm truncate">
-          {getContactDisplayName(contact) || "Contato"}
+          {getContactDisplayName(contact) || tr("uiText.common.contact")}
         </span>
         <span className="text-xs text-[hsl(var(--text-muted))] line-clamp-2 max-w-[220px] leading-tight">
           {message.body}

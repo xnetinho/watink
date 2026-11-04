@@ -3,6 +3,7 @@ package whatsapp
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types"
@@ -128,6 +129,47 @@ func TestHandleReceiptEvent_AcksAllIDs(t *testing.T) {
 		if c.payload["ack"] != 3 {
 			t.Errorf("call[%d]: ack = %v, want 3 (Read)", i, c.payload["ack"])
 		}
+	}
+}
+
+// O recibo leva o horário que o WhatsApp registrou e quem o mandou: é o que alimenta o "Dados da mensagem" (entregue/lida
+// em quando, por quem). Em grupo cada participante manda o seu recibo.
+func TestHandleReceiptEvent_CarriesTimeAndSender(t *testing.T) {
+	svc, calls := newTestService()
+	group, _ := types.ParseJID("120363000000000001@g.us")
+	member, _ := types.ParseJID("5511988887777:12@s.whatsapp.net")
+	when := time.Date(2026, 10, 30, 14, 5, 7, 0, time.UTC)
+
+	svc.handleReceiptEvent(1, "t", &events.Receipt{
+		MessageSource: types.MessageSource{Chat: group, Sender: member, IsGroup: true},
+		MessageIDs:    []types.MessageID{"G1"},
+		Timestamp:     when,
+		Type:          types.ReceiptTypeRead,
+	})
+	if len(*calls) != 1 {
+		t.Fatalf("esperava 1 evento, veio %d", len(*calls))
+	}
+	p := (*calls)[0].payload
+	if p["at"] != "2026-10-30T14:05:07Z" {
+		t.Errorf("at = %v", p["at"])
+	}
+	if p["by"] != "5511988887777@s.whatsapp.net" {
+		t.Errorf("by = %v, o dispositivo (:12) não pode vazar", p["by"])
+	}
+}
+
+func TestHandleReceiptEvent_WithoutSenderOrTime(t *testing.T) {
+	svc, calls := newTestService()
+	chat, _ := types.ParseJID("5511999990002@s.whatsapp.net")
+	before := time.Now().Add(-time.Second)
+	svc.handleReceiptEvent(1, "t", &events.Receipt{MessageSource: types.MessageSource{Chat: chat}, MessageIDs: []types.MessageID{"X"}, Type: types.ReceiptTypeDelivered})
+	p := (*calls)[0].payload
+	if p["by"] != "" {
+		t.Errorf("sem remetente, by deve ser vazio, veio %v", p["by"])
+	}
+	at, err := time.Parse(time.RFC3339, p["at"].(string))
+	if err != nil || at.Before(before.UTC().Truncate(time.Second)) {
+		t.Errorf("sem horário do servidor, usa o da chegada: at=%v err=%v", p["at"], err)
 	}
 }
 

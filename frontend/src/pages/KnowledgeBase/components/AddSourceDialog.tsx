@@ -14,6 +14,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface AddSourceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -73,21 +76,21 @@ export const AddSourceDialog: React.FC<AddSourceDialogProps> = ({
 
           <TabsContent value="text" className="flex flex-col gap-4 pt-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="source-name">Nome</Label>
+              <Label htmlFor="source-name">{tr("uiText.common.name")}</Label>
               <Input
                 id="source-name"
                 value={textName}
                 onChange={(e) => onTextNameChange(e.target.value)}
-                placeholder="Ex: Política de trocas"
+                placeholder={tr("uiText.kb.sourceNamePlaceholder")}
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="source-content">Conteúdo</Label>
+              <Label htmlFor="source-content">{tr("uiText.quick.content")}</Label>
               <Textarea
                 id="source-content"
                 value={textContent}
                 onChange={(e) => onTextContentChange(e.target.value)}
-                placeholder="Cole aqui o texto que a IA deve aprender"
+                placeholder={tr("uiText.kb.pasteText")}
                 rows={8}
               />
             </div>
@@ -95,7 +98,7 @@ export const AddSourceDialog: React.FC<AddSourceDialogProps> = ({
 
           <TabsContent value="url" className="flex flex-col gap-4 pt-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="source-url">Endereço (URL)</Label>
+              <Label htmlFor="source-url">{tr("uiText.kb.url")}</Label>
               <Input
                 id="source-url"
                 type="url"
@@ -104,7 +107,7 @@ export const AddSourceDialog: React.FC<AddSourceDialogProps> = ({
                 placeholder="https://exemplo.com/pagina"
               />
               <p className="text-xs text-muted-foreground">
-                A página será raspada e convertida em texto para a IA aprender.
+                {tr("uiText.kb.urlHint")}
               </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -113,7 +116,7 @@ export const AddSourceDialog: React.FC<AddSourceDialogProps> = ({
                 id="source-url-name"
                 value={urlName}
                 onChange={(e) => onUrlNameChange(e.target.value)}
-                placeholder="Ex: Notícias do dia"
+                placeholder={tr("uiText.kb.urlNamePlaceholder")}
               />
             </div>
           </TabsContent>
@@ -143,11 +146,11 @@ export const AddSourceDialog: React.FC<AddSourceDialogProps> = ({
             onClick={() => onOpenChange(false)}
             disabled={submitting}
           >
-            Cancelar
+            {tr("uiText.common.cancel")}
           </Button>
           <Button onClick={onSubmit} disabled={!canSubmit || submitting}>
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar e indexar
+            {tr("uiText.kb.saveIndex")}
           </Button>
         </DialogFooter>
       </DialogContent>

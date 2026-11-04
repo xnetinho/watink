@@ -25,6 +25,9 @@ import {
 import { QuickAnswer, QuickAnswerType } from "../quickAnswersTypes";
 import type { ViewMode } from "./QuickAnswersToolbar";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface QuickAnswersTableProps {
   quickAnswers: QuickAnswer[];
   loading: boolean;
@@ -39,43 +42,43 @@ const TYPE_CONFIG: Record<
   { label: string; icon: React.ElementType; bg: string; color: string }
 > = {
   text: {
-    label: "Texto",
+    label: "uiText.quick.table.text",
     icon: MessageSquare,
     bg: "hsl(var(--status-info-bg))",
     color: "hsl(var(--status-info))",
   },
   interactive_buttons: {
-    label: "Botões",
+    label: "uiText.quick.table.interactive_buttons",
     icon: Zap,
     bg: "hsl(var(--status-warning-bg))",
     color: "hsl(var(--status-warning))",
   },
   list: {
-    label: "Lista",
+    label: "uiText.quick.table.list",
     icon: LayoutList,
     bg: "hsl(var(--status-success-bg))",
     color: "hsl(var(--status-success))",
   },
   media: {
-    label: "Mídia",
+    label: "uiText.quick.table.media",
     icon: Image,
     bg: "hsl(var(--status-default-bg, var(--muted)))",
     color: "hsl(var(--status-default-text, var(--muted-foreground)))",
   },
   poll: {
-    label: "Enquete",
+    label: "uiText.quick.table.poll",
     icon: BarChart2,
     bg: "hsl(var(--status-error-bg))",
     color: "hsl(var(--status-error))",
   },
   carousel: {
-    label: "Carrossel",
+    label: "uiText.quick.table.carousel",
     icon: Hash,
     bg: "hsl(var(--status-default-bg, var(--muted)))",
     color: "hsl(var(--status-default-text, var(--muted-foreground)))",
   },
   pix: {
-    label: "PIX",
+    label: "uiText.quick.table.pix",
     icon: QrCode,
     bg: "hsl(var(--status-success-bg))",
     color: "hsl(var(--status-success))",
@@ -129,9 +132,9 @@ export const QuickAnswersTable = ({
             <TableRow>
               <TableHead className="w-[48px]"></TableHead>
               <TableHead className="w-[180px]">Atalho</TableHead>
-              <TableHead>Mensagem</TableHead>
-              <TableHead className="w-[120px]">Tipo</TableHead>
-              <TableHead className="text-right w-[90px]">Ações</TableHead>
+              <TableHead>{tr("uiText.quick.message")}</TableHead>
+              <TableHead className="w-[120px]">{tr("uiText.common.type")}</TableHead>
+              <TableHead className="text-right w-[90px]">{tr("uiText.common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -163,7 +166,7 @@ export const QuickAnswersTable = ({
                       className="border-transparent text-[11px] font-semibold"
                       style={{ backgroundColor: cfg.bg, color: cfg.color }}
                     >
-                      {cfg.label}
+                      {tr(cfg.label)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -266,7 +269,7 @@ export const QuickAnswersTable = ({
                     className="border-transparent text-[11px] font-semibold"
                     style={{ backgroundColor: cfg.bg, color: cfg.color }}
                   >
-                    {cfg.label}
+                    {tr(cfg.label)}
                   </Badge>
                 </div>
               </CardContent>

@@ -19,6 +19,7 @@ import { useThemeContext } from "../context/DarkMode";
 import { CallsProvider } from "../context/Calls/CallsContext";
 import CallsOverlay from "../components/Calls/CallsOverlay";
 
+import { i18n } from "../translate/i18n";
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -113,8 +114,8 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
     const handleMatch = (payload: GroupWatchMatch) => {
       if (!payload?.notifyGlobally) return;
-      const title = `"${payload.phrase}" mencionada`;
-      const body = `${payload.groupSubject || "Um grupo"}${payload.contactName ? " — " + payload.contactName : ""}: ${payload.snippet}`;
+      const title = String(i18n.t("uiText.layout.phraseMentioned", { phrase: payload.phrase }));
+      const body = `${payload.groupSubject || String(i18n.t("uiText.layout.aGroup"))}${payload.contactName ? " — " + payload.contactName : ""}: ${payload.snippet}`;
 
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
         try {
@@ -136,7 +137,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         Notification.requestPermission().catch(() => {});
       }
 
-      toast.info(`${title} em ${payload.groupSubject || "um grupo"}`, {
+      toast.info(String(i18n.t("uiText.layout.inGroup", { title, group: payload.groupSubject || String(i18n.t("uiText.layout.aGroupLower")) })), {
         onClick: () => navigate(`/tickets/${payload.ticketId}`),
       });
     };

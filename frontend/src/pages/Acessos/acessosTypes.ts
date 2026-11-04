@@ -8,10 +8,10 @@ export const ACESSOS_TABS = ["usuarios", "setores", "cargos"] as const;
 export type AcessosTab = (typeof ACESSOS_TABS)[number];
 
 export const ALCANCE_OPTIONS = [
-  { value: "proprio", label: "Próprio", description: "Só o que o usuário mesmo faz/atende" },
-  { value: "setor", label: "Setor", description: "Tudo dos Setores em que é marcado Gestor" },
-  { value: "tenant", label: "Tenant", description: "Todos os Setores do tenant (Gerente Geral/Administrador)" },
-  { value: "plataforma", label: "Plataforma", description: "Superadmin — fora do RBAC do tenant" },
+  { value: "proprio", label: "uiText.acessos.scopes.proprio.label", description: "uiText.acessos.scopes.proprio.description" },
+  { value: "setor", label: "uiText.acessos.scopes.setor.label", description: "uiText.acessos.scopes.setor.description" },
+  { value: "tenant", label: "uiText.acessos.scopes.tenant.label", description: "uiText.acessos.scopes.tenant.description" },
+  { value: "plataforma", label: "uiText.acessos.scopes.plataforma.label", description: "uiText.acessos.scopes.plataforma.description" },
 ] as const;
 export type Alcance = (typeof ALCANCE_OPTIONS)[number]["value"];
 

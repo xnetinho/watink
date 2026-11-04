@@ -29,6 +29,8 @@ import toastError from "../../errors/toastError";
 import QueueSelect from "../QueueSelect";
 import type { WhatsAppConnection, WhatsAppFormValues, Proxy, ProxyGroup, ConnectionGroup } from "../../types/domain";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const SessionSchema = Yup.object().shape({
   name: Yup.string().min(2, "Too Short!").max(50, "Too Long!").required("Required"),
 });
@@ -166,7 +168,7 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
                   checked={values.syncHistory}
                   onCheckedChange={(checked) => setFieldValue("syncHistory", checked)}
                 />
-                <Label htmlFor="wa-sync">Sincronizar Histórico</Label>
+                <Label htmlFor="wa-sync">{tr("uiText.whatsAppModal.syncHistory")}</Label>
               </div>
 
               <div className="space-y-1 pt-2">
@@ -196,13 +198,13 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sem proxy" />
+                    <SelectValue placeholder={tr("uiText.whatsAppModal.noProxy")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Sem proxy (IP do servidor)</SelectItem>
+                    <SelectItem value="none">{tr("uiText.whatsAppModal.noProxyServerIp")}</SelectItem>
                     {proxyGroups.map((g) => (
                       <SelectItem key={`g${g.id}`} value={`group:${g.id}`}>
-                        Grupo: {g.name} ({g.rotationStrategy === "rotate" ? "rotação" : "fixo"})
+                        {tr("uiText.whatsAppModal.proxyGroup", { name: g.name, strategy: tr(g.rotationStrategy === "rotate" ? "uiText.whatsAppModal.rotate" : "uiText.whatsAppModal.fixed") })}
                       </SelectItem>
                     ))}
                     {proxies.map((p) => (
@@ -213,21 +215,21 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Alterar o proxy só vale na próxima conexão — reconecte para aplicar.
+                  {tr("uiText.whatsAppModal.proxyNextConnection")}
                 </p>
               </div>
 
               <div className="space-y-1 pt-2">
-                <Label>Grupo de conexões</Label>
+                <Label>{tr("uiText.whatsAppModal.connectionGroup")}</Label>
                 <Select
                   value={values.connectionGroupId ? String(values.connectionGroupId) : "none"}
                   onValueChange={(v) => setFieldValue("connectionGroupId", v === "none" ? null : Number(v))}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sem grupo" />
+                    <SelectValue placeholder={tr("uiText.whatsAppModal.noGroup")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Sem grupo</SelectItem>
+                    <SelectItem value="none">{tr("uiText.whatsAppModal.noGroup")}</SelectItem>
                     {connectionGroups.map((g) => (
                       <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
                     ))}

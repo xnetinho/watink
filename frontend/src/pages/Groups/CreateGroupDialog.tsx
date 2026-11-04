@@ -15,6 +15,9 @@ import ButtonWithSpinner from "@/components/ButtonWithSpinner";
 import { createGroup } from "../../services/groupService";
 import { classifyGroupsApiError } from "./groupTypes";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface CreateGroupDialogProps {
     open: boolean;
     whatsappId: number;
@@ -29,7 +32,7 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, whatsappId,
 
     const handleSubmit = async () => {
         if (!subject.trim()) {
-            toast.error("Informe o nome do grupo");
+            toast.error(tr("uiText.groups.nameRequired"));
             return;
         }
         const participants = participantsRaw
@@ -57,12 +60,12 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, whatsappId,
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                     <div className="space-y-1.5">
-                        <Label htmlFor="group-subject">Nome do grupo</Label>
+                        <Label htmlFor="group-subject">{tr("uiText.groups.name")}</Label>
                         <Input
                             id="group-subject"
                             value={subject}
                             onChange={(e) => setSubject(e.target.value)}
-                            placeholder="Ex.: Time de Vendas"
+                            placeholder={tr("uiText.groups.namePlaceholder")}
                         />
                     </div>
                     <div className="space-y-1.5">
@@ -71,17 +74,17 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, whatsappId,
                             id="group-participants"
                             value={participantsRaw}
                             onChange={(e) => setParticipantsRaw(e.target.value)}
-                            placeholder="Um número por linha, ex.: 5511999999999"
+                            placeholder={tr("uiText.groups.numbersHint")}
                             rows={4}
                         />
                     </div>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose} disabled={loading}>
-                        Cancelar
+                        {tr("uiText.common.cancel")}
                     </Button>
                     <ButtonWithSpinner onClick={handleSubmit} loading={loading}>
-                        Criar
+                        {tr("uiText.common.create")}
                     </ButtonWithSpinner>
                 </DialogFooter>
             </DialogContent>

@@ -12,6 +12,9 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Stage {
     id: number;
     name: string;
@@ -44,7 +47,7 @@ const PipelineFunnelChart: React.FC<PipelineFunnelChartProps> = ({ pipeline, dea
     return (
         <Card className="m-4">
             <CardHeader>
-                <CardTitle>Análise de Funil</CardTitle>
+                <CardTitle>{tr("uiText.pipelines.funnelAnalysis")}</CardTitle>
             </CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={400}>

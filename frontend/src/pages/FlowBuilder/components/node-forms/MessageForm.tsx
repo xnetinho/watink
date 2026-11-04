@@ -8,6 +8,9 @@ import {
 } from '@/components/ui/select';
 import { NodeData } from '../../nodeEditorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface MessageFormProps {
   formData: NodeData;
   onChange: (field: string, value: unknown) => void;
@@ -16,14 +19,14 @@ interface MessageFormProps {
 const MessageForm: React.FC<MessageFormProps> = ({ formData, onChange }) => (
   <div className="space-y-3">
     <div className="space-y-1">
-      <Label className="text-xs">Tipo de Conteúdo</Label>
+      <Label className="text-xs">{tr("uiText.flow.form.contentType")}</Label>
       <Select value={formData.contentType || 'text'} onValueChange={(v) => onChange('contentType', v)}>
         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="text">Texto</SelectItem>
           <SelectItem value="image">Imagem</SelectItem>
-          <SelectItem value="video">Vídeo</SelectItem>
-          <SelectItem value="audio">Áudio</SelectItem>
+          <SelectItem value="video">{tr("uiText.flow.form.video")}</SelectItem>
+          <SelectItem value="audio">{tr("uiText.flow.form.audio")}</SelectItem>
           <SelectItem value="file">Arquivo</SelectItem>
         </SelectContent>
       </Select>
@@ -46,7 +49,7 @@ const MessageForm: React.FC<MessageFormProps> = ({ formData, onChange }) => (
     )}
 
     <div className="space-y-1">
-      <p className="text-[10px] text-muted-foreground">Inserir variável:</p>
+      <p className="text-[10px] text-muted-foreground">{tr("uiText.flow.form.insertVar")}</p>
       <div className="flex flex-wrap gap-1">
         {['{{firstName}}', '{{name}}', '{{protocol}}', '{{date}}'].map((v) => (
           <Button

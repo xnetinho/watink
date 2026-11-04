@@ -68,7 +68,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25'
+          go-version: '1.26'
 
       - name: Cache Go modules
         uses: actions/cache@v6
@@ -192,7 +192,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25'
+          go-version: '1.26'
 
       - name: Cache Go modules
         uses: actions/cache@v6
@@ -259,7 +259,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25'
+          go-version: '1.26'
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -403,7 +403,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25'
+          go-version: '1.26'
 
       - name: Install root deps (Playwright)
         run: npm ci

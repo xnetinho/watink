@@ -16,6 +16,8 @@ import { i18n } from "../../translate/i18n";
 
 import { WhatsAppSessionSocketEvent } from "../../types/api";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PairingCodeModalProps {
   open: boolean;
   onClose: () => void;
@@ -104,7 +106,7 @@ const PairingCodeModal = ({ open, onClose, whatsAppId }: PairingCodeModalProps) 
             <p className="text-sm text-muted-foreground text-center">
               {i18n.t("connections.pairingCodeModal.instructions")}
             </p>
-            <Button variant="outline" onClick={handleClose}>Fechar</Button>
+            <Button variant="outline" onClick={handleClose}>{tr("uiText.common.close")}</Button>
           </div>
         )}
       </DialogContent>

@@ -9,6 +9,9 @@ import {
 } from '@/components/ui/select';
 import { DataField, FieldConfig, CONTEXT_VARIABLES } from './dataBuilderTypes';
 
+import { i18n } from '../../../translate/i18n';
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface DataFieldValueInputProps {
   dataField: DataField;
   fieldConfig: FieldConfig | undefined;
@@ -27,11 +30,11 @@ const DataFieldValueInput: React.FC<DataFieldValueInputProps> = ({
         onValueChange={(v) => onUpdate(dataField.id, 'value', v)}
       >
         <SelectTrigger className="flex-1 min-w-[120px] h-8 text-xs">
-          <SelectValue placeholder="Variável" />
+          <SelectValue placeholder={tr("uiText.flow.data.variable")} />
         </SelectTrigger>
         <SelectContent>
           {CONTEXT_VARIABLES.map((v) => (
-            <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
+            <SelectItem key={v.value} value={v.value}>{tr(v.label)}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -59,8 +62,8 @@ const DataFieldValueInput: React.FC<DataFieldValueInputProps> = ({
           <SelectValue placeholder="Valor" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true">Sim</SelectItem>
-          <SelectItem value="false">Não</SelectItem>
+          <SelectItem value="true">{tr("uiText.common.yes")}</SelectItem>
+          <SelectItem value="false">{tr("uiText.common.no")}</SelectItem>
         </SelectContent>
       </Select>
     );
@@ -95,7 +98,7 @@ const DataFieldValueInput: React.FC<DataFieldValueInputProps> = ({
         </SelectTrigger>
         <SelectContent>
           {CONTEXT_VARIABLES.filter((v) => v.value.includes('Id')).map((v) => (
-            <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
+            <SelectItem key={v.value} value={v.value}>{tr(v.label)}</SelectItem>
           ))}
         </SelectContent>
       </Select>

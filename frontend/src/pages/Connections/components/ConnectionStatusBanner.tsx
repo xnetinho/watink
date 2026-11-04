@@ -3,6 +3,9 @@ import { Loader2, Scan, CheckCircle2, PlugZap } from "lucide-react";
 import { Card, CardContent } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ConnectionStatusBannerProps {
   isConnected: boolean;
   isBusy: boolean;
@@ -28,8 +31,8 @@ const ConnectionStatusBanner: React.FC<ConnectionStatusBannerProps> = ({
         <CardContent className="flex items-center gap-4 p-4">
           <CheckCircle2 className="h-8 w-8 text-green-500" />
           <div className="flex-1">
-            <p className="font-semibold text-green-800">Sessão ativa</p>
-            <p className="text-sm text-green-700">Tudo certo — seu número está pronto para enviar e receber.</p>
+            <p className="font-semibold text-green-800">{tr("uiText.connections.sessionActive")}</p>
+            <p className="text-sm text-green-700">{tr("uiText.connections.allGood")}</p>
           </div>
           <Button variant="default" onClick={onDisconnect}>
             <PlugZap className="mr-2 h-4 w-4" /> Desconectar
@@ -46,12 +49,12 @@ const ConnectionStatusBanner: React.FC<ConnectionStatusBannerProps> = ({
         <div className="flex-1 min-w-[200px]">
           <p className="font-semibold text-amber-800">
             {status === "QRCODE"
-              ? "Aguardando leitura do QR Code"
+              ? tr("uiText.connections.waitingQr")
               : isBusy
-              ? "Iniciando sessão..."
-              : "Sessão desconectada"}
+              ? tr("uiText.connections.startingSession")
+              : tr("uiText.connections.sessionDisconnected")}
           </p>
-          <p className="text-sm text-amber-700">Conecte um número para começar a enviar e receber mensagens.</p>
+          <p className="text-sm text-amber-700">{tr("uiText.connections.connectNumber")}</p>
         </div>
         {!isBusy && status !== "QRCODE" && (
           <div className="flex gap-2">
@@ -61,10 +64,10 @@ const ConnectionStatusBanner: React.FC<ConnectionStatusBannerProps> = ({
               ) : (
                 <Scan className="mr-2 h-4 w-4" />
               )}
-              Conectar com QR Code
+              {tr("uiText.connections.connectQr")}
             </Button>
             <Button variant="outline" onClick={onConnectPairing}>
-              Usar código
+              {tr("uiText.connections.useCode")}
             </Button>
           </div>
         )}

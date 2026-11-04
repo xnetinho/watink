@@ -6,6 +6,9 @@ import {
 import ConditionBuilder from '../ConditionBuilder';
 import { NodeData } from '../../nodeEditorTypes';
 
+import { i18n } from "../../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface TriggerFormProps {
   formData: NodeData;
   onChange: (field: string, value: unknown) => void;
@@ -14,7 +17,7 @@ interface TriggerFormProps {
 const TriggerForm: React.FC<TriggerFormProps> = ({ formData, onChange }) => (
   <div className="space-y-3">
     <div className="space-y-1">
-      <Label className="text-xs">Tipo de Gatilho</Label>
+      <Label className="text-xs">{tr("uiText.flow.form.triggerType")}</Label>
       <Select value={formData.triggerType || 'keyword'} onValueChange={(v) => onChange('triggerType', v)}>
         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -30,7 +33,7 @@ const TriggerForm: React.FC<TriggerFormProps> = ({ formData, onChange }) => (
 
     {formData.triggerType === 'keyword' && (
       <div className="space-y-1 pt-2">
-        <p className="text-xs font-medium text-muted-foreground">Condição de Ativação</p>
+        <p className="text-xs font-medium text-muted-foreground">{tr("uiText.flow.form.activationCondition")}</p>
         <ConditionBuilder
           conditions={formData.conditions || []}
           onChange={(c) => onChange('conditions', c)}

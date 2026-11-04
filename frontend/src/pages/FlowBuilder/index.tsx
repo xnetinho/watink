@@ -35,6 +35,9 @@ import QuickAnswerNode from './CustomNodes/QuickAnswerNode';
 
 import './flowbuilder.css';
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const nodeTypes = {
     start: StartNode,
     input: StartNode,
@@ -65,7 +68,7 @@ const FlowBuilderContent = () => {
             <div className="flex h-screen w-full items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-2">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground animate-pulse">Carregando editor de fluxo...</p>
+                    <p className="text-sm text-muted-foreground animate-pulse">{tr("uiText.flow.io.loading")}</p>
                 </div>
             </div>
         );

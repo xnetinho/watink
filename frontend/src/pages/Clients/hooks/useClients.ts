@@ -3,6 +3,9 @@ import { toast } from "react-toastify";
 import api from "../../../services/api";
 import type { ClientRecord } from "../clientTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // Client mirrors the real backend response (ClientRecord) — kept as a
 // separate exported alias so existing imports (`import type { Client } from
 // "../hooks/useClients"`) keep working without churn across the module.
@@ -41,7 +44,7 @@ export function useClients(): UseClientsReturn {
       });
       setClients(data.clients ?? []);
     } catch {
-      toast.error("Erro ao carregar clientes");
+      toast.error(tr("uiText.clients.loadError"));
     } finally {
       setLoading(false);
     }
@@ -70,10 +73,10 @@ export function useClients(): UseClientsReturn {
   const handleConfirmDelete = async () => {
     try {
       await api.delete(`/clients/${clientToDelete?.id}`);
-      toast.success("Cliente excluído com sucesso");
+      toast.success(tr("uiText.clients.deleted"));
       loadClients();
     } catch {
-      toast.error("Erro ao excluir cliente");
+      toast.error(tr("uiText.clients.deleteError"));
     }
     setConfirmDeleteOpen(false);
     setClientToDelete(null);

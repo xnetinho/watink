@@ -1,6 +1,8 @@
 import { toast } from "react-toastify";
 import { i18n } from "../translate/i18n";
 
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ApiError {
   response?: {
     status?: number;
@@ -42,7 +44,7 @@ const toastError = (err: unknown): void => {
 
   if (status === 402) {
     toast.error(
-      "Recurso indisponível. Ative o plugin em Configurações > Plugins.",
+      tr("uiText.errors.pluginRequired"),
       {
         toastId: "PAYMENT_REQUIRED",
         onClick: () => {

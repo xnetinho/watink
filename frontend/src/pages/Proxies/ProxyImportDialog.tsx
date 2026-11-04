@@ -25,6 +25,9 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import type { ProxyGroup } from "../../types/domain";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProxyImportDialogProps {
   open: boolean;
   groups: ProxyGroup[];
@@ -53,7 +56,7 @@ const ProxyImportDialog: React.FC<ProxyImportDialogProps> = ({ open, groups, onC
 
   const handleImport = async () => {
     if (!raw.trim()) {
-      toast.warning("Cole a lista de proxies.");
+      toast.warning(tr("uiText.proxies.pasteList"));
       return;
     }
     setImporting(true);
@@ -69,7 +72,7 @@ const ProxyImportDialog: React.FC<ProxyImportDialogProps> = ({ open, groups, onC
         toast.success(`${data.imported} proxies importados${data.duplicates ? ` (${data.duplicates} duplicados ignorados)` : ""}.`);
         onImported();
       } else if (data.duplicates && data.duplicates > 0) {
-        toast.warning(`Todos já estavam cadastrados — ${data.duplicates} duplicados ignorados.`);
+        toast.warning(tr("uiText.proxies.allDuplicates", { count: data.duplicates }));
       } else {
         toast.warning("Nenhum proxy importado — verifique o formato.");
       }
@@ -84,18 +87,17 @@ const ProxyImportDialog: React.FC<ProxyImportDialogProps> = ({ open, groups, onC
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Importar proxies em massa</DialogTitle>
+          <DialogTitle>{tr("uiText.proxies.bulkImport")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Um proxy por linha no formato <code className="font-mono">host:porta:usuário:senha</code> (formato Webshare).
-            Linhas só com <code className="font-mono">host:porta</code> também são aceitas.
+            {tr("uiText.proxies.importFormat")}
           </p>
 
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label>Tipo</Label>
+              <Label>{tr("uiText.common.type")}</Label>
               <Select value={scheme} onValueChange={setScheme}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -105,7 +107,7 @@ const ProxyImportDialog: React.FC<ProxyImportDialogProps> = ({ open, groups, onC
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Rótulo (opcional)</Label>
+              <Label>{tr("uiText.proxies.labelOptional")}</Label>
               <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="webshare-lote-1" />
             </div>
           </div>
@@ -115,7 +117,7 @@ const ProxyImportDialog: React.FC<ProxyImportDialogProps> = ({ open, groups, onC
             <Select value={group} onValueChange={setGroup}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sem grupo</SelectItem>
+                <SelectItem value="none">{tr("uiText.whatsAppModal.noGroup")}</SelectItem>
                 {groups.map((g) => (
                   <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
                 ))}
@@ -149,7 +151,7 @@ const ProxyImportDialog: React.FC<ProxyImportDialogProps> = ({ open, groups, onC
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" onClick={handleClose}>Fechar</Button>
+          <Button variant="outline" onClick={handleClose}>{tr("uiText.common.close")}</Button>
           <Button onClick={handleImport} disabled={importing}>
             {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Importar

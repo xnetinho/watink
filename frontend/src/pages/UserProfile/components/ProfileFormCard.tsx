@@ -24,6 +24,9 @@ import {
 import { Separator } from "../../../components/ui/separator";
 import type { UserProfileFormValues } from "../userProfileTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProfileFormCardProps {
   initialValues: UserProfileFormValues;
   showPassword: boolean;
@@ -44,9 +47,9 @@ export function ProfileFormCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Dados do Perfil</CardTitle>
+        <CardTitle>{tr("uiText.userProfile.cardTitle")}</CardTitle>
         <CardDescription>
-          Mantenha seus dados atualizados para facilitar a identificação
+          {tr("uiText.userProfile.cardHint")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -129,7 +132,7 @@ export function ProfileFormCard({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                <Label htmlFor="confirmPassword">{tr("uiText.userProfile.confirmPassword")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -175,7 +178,7 @@ export function ProfileFormCard({
                   ) : (
                     <Save className="mr-2 h-4 w-4" />
                   )}
-                  Salvar Alterações
+                  {tr("uiText.userProfile.save")}
                 </Button>
               </div>
             </Form>

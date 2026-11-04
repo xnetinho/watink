@@ -11,6 +11,9 @@ import {
 import { Filter, FieldConfig, FILTER_OPERATORS } from './filterBuilderTypes';
 import FilterValueInput from './FilterValueInput';
 
+import { i18n } from '../../../translate/i18n';
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FilterRowProps {
   filter: Filter;
   index: number;
@@ -55,7 +58,7 @@ const FilterRow: React.FC<FilterRowProps> = ({
         <SelectContent>
           {tableFields.map((f) => (
             <SelectItem key={f.value} value={f.value}>
-              {f.label}
+              {tr(f.label)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -71,7 +74,7 @@ const FilterRow: React.FC<FilterRowProps> = ({
         <SelectContent>
           {FILTER_OPERATORS.map((op) => (
             <SelectItem key={op.value} value={op.value}>
-              {op.label}
+              {tr(op.label)}
             </SelectItem>
           ))}
         </SelectContent>

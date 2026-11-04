@@ -13,7 +13,7 @@ const EndNode: React.FC<EndNodeProps> = ({ data, isConnectable }) => (
     data={data}
     icon={Square}
     colorClass="colorEnd"
-    defaultLabel="Fim"
+    defaultLabel="uiText.flow.node.end"
     sublabel={(data?.endAction as string) || ''}
     isConnectable={isConnectable}
     targetHandles={[{ id: null, position: Position.Left }]}

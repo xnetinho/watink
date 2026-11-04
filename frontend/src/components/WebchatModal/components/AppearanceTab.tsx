@@ -6,6 +6,9 @@ import { Label } from "@/components/ui/label";
 import { WhatsAppData } from "../webchatModalTypes";
 import { DEFAULT_WEBCHAT_BUTTON_COLOR } from "../hooks/useWebchatModal";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const resolveDesignToken = (token: string): string => {
   if (typeof window === "undefined") return "var(--color-success)";
   const rootStyles = window.getComputedStyle(document.documentElement);
@@ -23,7 +26,7 @@ const AppearanceTab: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="chatConfig.title">Título do Chat</Label>
+            <Label htmlFor="chatConfig.title">{tr("uiText.webchatModal.chatTitle")}</Label>
             <Field name="chatConfig.title">
               {({ field }: FieldProps) => (
                 <Input {...field} id="chatConfig.title" />
@@ -31,7 +34,7 @@ const AppearanceTab: React.FC = () => {
             </Field>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="chatConfig.subtitle">Subtítulo</Label>
+            <Label htmlFor="chatConfig.subtitle">{tr("uiText.webchatModal.subtitle")}</Label>
             <Field name="chatConfig.subtitle">
               {({ field }: FieldProps) => (
                 <Input {...field} id="chatConfig.subtitle" />
@@ -39,7 +42,7 @@ const AppearanceTab: React.FC = () => {
             </Field>
           </div>
           <div className="space-y-2">
-            <Label>Cor do Botão</Label>
+            <Label>{tr("uiText.webchatModal.buttonColor")}</Label>
             <div className="flex items-center gap-3">
               <Input
                 type="color"
@@ -55,7 +58,7 @@ const AppearanceTab: React.FC = () => {
         </div>
 
         <div className="flex flex-col">
-          <Label className="mb-2">Prévia</Label>
+          <Label className="mb-2">{tr("uiText.webchatModal.preview")}</Label>
           <div className="flex-1 min-h-[180px] rounded-lg border border-dashed flex items-end justify-end p-6 bg-muted/30 relative overflow-hidden">
             <div className="absolute top-2 left-2 text-[10px] text-muted-foreground uppercase tracking-widest">Preview Area</div>
             <div

@@ -6,7 +6,7 @@ vi.mock("../../../../services/api", () => ({ default: { post: (...a: unknown[]) 
 const toastError = vi.fn();
 vi.mock("../../../../errors/toastError", () => ({ default: (...a: unknown[]) => toastError(...a) }));
 
-import { useMediaUpload } from "../useMediaUpload";
+import { canBeSticker, useMediaUpload } from "../useMediaUpload";
 
 const files = (...fs: File[]) => ({ target: { files: fs } }) as unknown as React.ChangeEvent<HTMLInputElement>;
 const f = (name: string, type: string) => new File(["x"], name, { type });
@@ -54,5 +54,77 @@ describe("anexos: tipo do áudio", () => {
     await act(async () => result.current.handleUploadMedia("9"));
     expect(toastError).toHaveBeenCalledTimes(1);
     expect(result.current.medias.map((m) => m.file.name)).toEqual(["b.png"]);
+  });
+});
+
+describe("anexos: visualização única", () => {
+  it("o olho de cada mídia vai na SUA requisição; sem o olho, nada é enviado", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.png", "image/png"), f("b.png", "image/png"), f("c.mp4", "video/mp4")), "", vi.fn()));
+    act(() => result.current.handleViewOnceChange(0, true));
+    act(() => result.current.handleViewOnceChange(2, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls.map(([, form]) => form.get("viewOnce"))).toEqual(["true", null, "true"]);
+  });
+
+  it("desligar o olho tira o campo", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.png", "image/png")), "", vi.fn()));
+    act(() => result.current.handleViewOnceChange(0, true));
+    act(() => result.current.handleViewOnceChange(0, false));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls[0][1].get("viewOnce")).toBeNull();
+  });
+
+  it("documento nunca leva o campo, mesmo se alguém ligar o olho (não existe visualização única de PDF)", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("c.pdf", "application/pdf")), "", vi.fn()));
+    act(() => result.current.handleViewOnceChange(0, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls[0][1].get("viewOnce")).toBeNull();
+  });
+
+  it("áudio aceita (mensagem de voz ou arquivo)", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.mp3", "audio/mpeg")), "", vi.fn()));
+    act(() => result.current.handleViewOnceChange(0, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls[0][1].get("viewOnce")).toBe("true");
+  });
+});
+
+describe("anexos: figurinha", () => {
+  it("o botão de cada .webp vai na SUA requisição; sem o botão, o .webp segue como foto", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.webp", "image/webp"), f("b.webp", "image/webp")), "", vi.fn()));
+    act(() => result.current.handleStickerChange(0, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls.map(([, form]) => form.get("sticker"))).toEqual(["true", null]);
+  });
+
+  it("imagem, GIF e vídeo viram figurinha; documento e áudio nunca levam o campo", async () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.png", "image/png"), f("b.gif", "image/gif"), f("c.mp4", "video/mp4"), f("d.pdf", "application/pdf"), f("e.mp3", "audio/mpeg")), "", vi.fn()));
+    for (let i = 0; i < 5; i++) act(() => result.current.handleStickerChange(i, true));
+    await act(async () => result.current.handleUploadMedia("9"));
+    expect(post.mock.calls.map(([, form]) => form.get("sticker"))).toEqual(["true", "true", "true", null, null]);
+  });
+
+  it("reconhece pela extensão quando o navegador não informa o tipo", () => {
+    expect(canBeSticker({ type: "", name: "Figura.WEBP" })).toBe(true);
+    expect(canBeSticker({ type: "", name: "a.gif" })).toBe(true);
+    expect(canBeSticker({ type: "application/pdf", name: "a.pdf" })).toBe(false);
+    expect(canBeSticker({ type: "audio/mpeg", name: "a.mp3" })).toBe(false);
+  });
+
+  it("figurinha e visualização única se excluem, e a figurinha limpa a legenda", () => {
+    const { result } = renderHook(() => useMediaUpload(vi.fn()));
+    act(() => result.current.handleChangeMedias(files(f("a.webp", "image/webp")), "", vi.fn()));
+    act(() => result.current.handleMediaCaptionChange(0, "texto"));
+    act(() => result.current.handleViewOnceChange(0, true));
+    act(() => result.current.handleStickerChange(0, true));
+    expect(result.current.medias[0]).toMatchObject({ sticker: true, viewOnce: false, caption: "" });
+    act(() => result.current.handleViewOnceChange(0, true));
+    expect(result.current.medias[0]).toMatchObject({ sticker: false, viewOnce: true });
   });
 });

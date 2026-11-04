@@ -5,6 +5,9 @@ import { toast } from 'react-toastify';
 import api from '../../../services/api';
 import { stripLegacyDimensions } from '../flowBuilderTypes';
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UseFlowIOOptions {
     flowId: string | undefined;
     nodes: Node[];
@@ -35,12 +38,12 @@ export function useFlowIO({ flowId, nodes, edges, setNodes, setEdges, fileInputR
                 if (parsed.nodes && parsed.edges) {
                     setNodes(stripLegacyDimensions(parsed.nodes));
                     setEdges(parsed.edges);
-                    toast.success('Fluxo importado com sucesso!');
+                    toast.success(tr("uiText.flow.io.imported"));
                 } else {
-                    toast.error('Arquivo de fluxo inválido');
+                    toast.error(tr("uiText.flow.io.invalid"));
                 }
             } catch {
-                toast.error('Erro ao ler arquivo');
+                toast.error(tr("uiText.flow.io.readError"));
             }
         };
         // reset so the same file can be re-imported
@@ -54,7 +57,7 @@ export function useFlowIO({ flowId, nodes, edges, setNodes, setEdges, fileInputR
         } catch (err) {
             const status = (err as { response?: { status?: number } })?.response?.status;
             if (status === 501) {
-                const friendly = 'Recurso indisponível no momento';
+                const friendly = tr("uiText.flow.io.unavailable");
                 toast.info(friendly, { toastId: 'flow-simulate-501' });
                 throw new Error(friendly);
             }

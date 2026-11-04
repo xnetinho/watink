@@ -10,6 +10,9 @@ import type {
   PermissionsCatalog,
 } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UseCargosTabReturn {
   cargos: CargoListItem[];
   loading: boolean;
@@ -98,7 +101,7 @@ export function useCargosTab(): UseCargosTabReturn {
       } else {
         await api.post("/cargos", payload);
       }
-      toast.success(id ? "Cargo atualizado com sucesso" : "Cargo criado com sucesso");
+      toast.success(tr(id ? "uiText.acessos.cargoUpdated" : "uiText.acessos.cargoCreated"));
       closePanel();
       await fetchCargos();
       return true;
@@ -111,7 +114,7 @@ export function useCargosTab(): UseCargosTabReturn {
   const deleteCargo = async (cargo: CargoListItem) => {
     try {
       await api.delete(`/cargos/${cargo.id}`);
-      toast.success("Cargo removido com sucesso");
+      toast.success(tr("uiText.acessos.cargoRemoved"));
       await fetchCargos();
     } catch (err) {
       // 409 (Administrador único / cargo em uso) chega aqui com a mensagem

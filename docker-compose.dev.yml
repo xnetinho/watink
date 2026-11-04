@@ -105,9 +105,6 @@ services:
       - AMQP_URL=amqp://guest:guest@rabbitmq:5672
       - REDIS_URL=redis://redis:6379
       - ENGINE_HOST=watink-engine
-      # API interna de grupos/comunidades (T2.2) — mesmo host docker-interno
-      # do watink-engine, nunca exposta fora da rede (ver watink-engine.expose acima).
-      - GROUPS_API_TOKEN=${GROUPS_API_TOKEN:-}
       - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_in_prod}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev_jwt_refresh_secret_change_in_prod}
       # Chave de criptografia-at-rest das senhas de proxy (AES-GCM via SHA-256).
@@ -186,7 +183,6 @@ services:
       - DB_NAME=watink
       - HEALTH_PORT=8083
       - GROUPS_API_PORT=8084
-      - GROUPS_API_TOKEN=${GROUPS_API_TOKEN:-}
       - CALLS_AUDIO_PORT=8085
     depends_on:
       watink-migrate:

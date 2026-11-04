@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import api from "../../../services/api";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface Contact {
   id: number;
   name: string;
@@ -16,7 +19,8 @@ export interface ProtocolFormData {
   contactId: number | null;
 }
 
-const DEFAULT_CATEGORIES = ["Incidente", "Requisição de Serviço", "Problema", "Mudança"];
+// Valores de domínio gravados no protocolo (não são texto de tela).
+const DEFAULT_CATEGORIES = ["Incidente", "Requisição de Serviço", "Problema", "Mudança"]; // i18n-ignore
 
 const initialFormData: ProtocolFormData = {
   subject: "",
@@ -106,7 +110,7 @@ export function useProtocolModal(
         });
         setContactOptions(data.contacts);
       } catch {
-        toast.error("Erro ao buscar contatos");
+        toast.error(tr("uiText.helpdesk.contactsError"));
       } finally {
         setContactLoading(false);
       }
@@ -143,22 +147,22 @@ export function useProtocolModal(
 
   const handleSubmit = async () => {
     if (!formData.subject.trim()) {
-      toast.error("Assunto é obrigatório");
+      toast.error(tr("uiText.helpdesk.subjectRequired"));
       return;
     }
     if (!formData.contactId) {
-      toast.error("Contato é obrigatório");
+      toast.error(tr("uiText.helpdesk.contactRequired"));
       return;
     }
 
     try {
       setLoading(true);
       await api.post("/protocols", { ...formData, ticketId: initialTicketId });
-      toast.success("Protocolo criado com sucesso");
+      toast.success(tr("uiText.helpdesk.protocolCreated"));
       onSuccess?.();
       onClose();
     } catch {
-      toast.error("Erro ao criar protocolo");
+      toast.error(tr("uiText.helpdesk.createError"));
     } finally {
       setLoading(false);
     }

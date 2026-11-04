@@ -119,3 +119,69 @@ describe("pré-visualização estilo WhatsApp Web", () => {
     expect(p.onAudioKindChange).toHaveBeenCalled();
   });
 });
+
+describe("MediaPreviewPanel — visualização única", () => {
+  it("foto, vídeo e áudio mostram o olho; clicar liga e desliga na mídia selecionada", () => {
+    for (const [name, type] of [["a.png", "image/png"], ["a.mp4", "video/mp4"], ["a.mp3", "audio/mpeg"]]) {
+      const onViewOnceChange = vi.fn();
+      const { unmount } = render(
+        <MediaPreviewPanel medias={[item(name, type)]} loading={false} onRemoveMedia={vi.fn()} onCaptionChange={vi.fn()} onAudioKindChange={vi.fn()} onViewOnceChange={onViewOnceChange} onAddMore={vi.fn()} onCancelAll={vi.fn()} onUpload={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByTestId("media-preview-view-once"));
+      expect(onViewOnceChange).toHaveBeenCalledWith(0, true);
+      unmount();
+    }
+  });
+
+  it("ligado: o botão fica marcado e o clique desliga", () => {
+    const onViewOnceChange = vi.fn();
+    render(
+      <MediaPreviewPanel medias={[item("a.png", "image/png", "", { viewOnce: true })]} loading={false} onRemoveMedia={vi.fn()} onCaptionChange={vi.fn()} onAudioKindChange={vi.fn()} onViewOnceChange={onViewOnceChange} onAddMore={vi.fn()} onCancelAll={vi.fn()} onUpload={vi.fn()} />,
+    );
+    const btn = screen.getByTestId("media-preview-view-once");
+    expect(btn).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(btn);
+    expect(onViewOnceChange).toHaveBeenCalledWith(0, false);
+  });
+
+  it("documento não mostra o olho; sem o canal certo (Telegram) ninguém mostra", () => {
+    setup([item("a.pdf", "application/pdf")], { onViewOnceChange: vi.fn() });
+    expect(screen.queryByTestId("media-preview-view-once")).toBeNull();
+  });
+  it("sem onViewOnceChange (canal sem suporte) o olho não aparece nem em foto", () => {
+    setup([item("a.png", "image/png")]);
+    expect(screen.queryByTestId("media-preview-view-once")).toBeNull();
+  });
+});
+
+describe("MediaPreviewPanel — figurinha", () => {
+  it(".webp mostra o botão; clicar liga e desliga na mídia selecionada", () => {
+    const onStickerChange = vi.fn();
+    setup([item("a.webp", "image/webp")], { onStickerChange });
+    const btn = screen.getByTestId("media-preview-sticker");
+    expect(btn).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(btn);
+    expect(onStickerChange).toHaveBeenCalledWith(0, true);
+  });
+
+  it("ligada: o botão fica marcado e a legenda é bloqueada (figurinha não tem legenda)", () => {
+    setup([item("a.webp", "image/webp", "", { sticker: true })], { onStickerChange: vi.fn() });
+    expect(screen.getByTestId("media-preview-sticker")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("media-preview-caption")).toBeDisabled();
+  });
+
+  it("foto, GIF e vídeo também mostram o botão (o engine converte); documento e áudio não", () => {
+    for (const [name, type] of [["a.png", "image/png"], ["a.gif", "image/gif"], ["a.mp4", "video/mp4"]]) {
+      const { unmount } = render(<MediaPreviewPanel medias={[item(name, type)]} loading={false} onRemoveMedia={vi.fn()} onCaptionChange={vi.fn()} onAudioKindChange={vi.fn()} onStickerChange={vi.fn()} onAddMore={vi.fn()} onCancelAll={vi.fn()} onUpload={vi.fn()} />);
+      expect(screen.getByTestId("media-preview-sticker")).toBeInTheDocument();
+      unmount();
+    }
+    setup([item("a.pdf", "application/pdf")], { onStickerChange: vi.fn() });
+    expect(screen.queryByTestId("media-preview-sticker")).toBeNull();
+  });
+
+  it("sem o canal certo (sem onStickerChange) ninguém mostra o botão", () => {
+    setup([item("a.webp", "image/webp")]);
+    expect(screen.queryByTestId("media-preview-sticker")).toBeNull();
+  });
+});

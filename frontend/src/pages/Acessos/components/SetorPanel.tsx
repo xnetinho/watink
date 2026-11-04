@@ -17,6 +17,9 @@ import SetorAddMemberRow from "./SetorAddMemberRow";
 import SetorQueuesSection from "./SetorQueuesSection";
 import type { SetorDetail } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface SetorPanelProps {
   open: boolean;
   loading: boolean;
@@ -65,7 +68,7 @@ const SetorPanel: React.FC<SetorPanelProps> = ({
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-6">
         <SheetHeader>
-          <SheetTitle>{isNew ? "Novo Setor" : "Editar Setor"}</SheetTitle>
+          <SheetTitle>{isNew ? tr("uiText.acessos.newSetor") : tr("uiText.acessos.editSetor")}</SheetTitle>
         </SheetHeader>
 
         {loading ? (
@@ -75,7 +78,7 @@ const SetorPanel: React.FC<SetorPanelProps> = ({
         ) : (
           <div className="mt-4 flex flex-col gap-5">
             <div className="space-y-1.5">
-              <Label htmlFor="setor-name">Nome</Label>
+              <Label htmlFor="setor-name">{tr("uiText.common.name")}</Label>
               <div className="flex gap-2">
                 <Input
                   id="setor-name"
@@ -85,7 +88,7 @@ const SetorPanel: React.FC<SetorPanelProps> = ({
                 />
                 <Button type="button" onClick={handleSaveName} disabled={saving || !name.trim()}>
                   {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isNew ? "Criar" : "Salvar"}
+                  {isNew ? tr("uiText.common.create") : tr("uiText.common.save")}
                 </Button>
               </div>
             </div>
@@ -119,7 +122,7 @@ const SetorPanel: React.FC<SetorPanelProps> = ({
 
             {isNew && (
               <p className="text-xs text-muted-foreground">
-                Salve o nome para poder gerenciar membros e filas deste setor.
+                {tr("uiText.acessos.saveNameFirst")}
               </p>
             )}
           </div>
@@ -127,7 +130,7 @@ const SetorPanel: React.FC<SetorPanelProps> = ({
 
         <SheetFooter className="mt-6">
           <Button type="button" variant="outline" onClick={onClose}>
-            Fechar
+            {tr("uiText.common.close")}
           </Button>
         </SheetFooter>
       </SheetContent>

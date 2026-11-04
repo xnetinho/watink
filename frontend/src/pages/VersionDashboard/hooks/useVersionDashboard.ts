@@ -5,6 +5,9 @@ import { AuthContext } from "../../../context/Auth/AuthContext";
 import { SystemStats, ReleaseMeta, QueueAlert } from "../types";
 import { queueAlert, compareVersions } from "../utils";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export interface UseVersionDashboardReturn {
   isSuperAdmin: boolean;
   stats: SystemStats | null;
@@ -67,7 +70,7 @@ export function useVersionDashboard(): UseVersionDashboardReturn {
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setError(
-        err?.response?.data?.error || err?.message || "Falha ao carregar estatísticas"
+        err?.response?.data?.error || err?.message || tr("uiText.versionDashboard.statsError")
       );
     } finally {
       setLoading(false);

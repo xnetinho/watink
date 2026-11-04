@@ -8,6 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { Badge } from "../../components/ui/badge";
 import { usePublicPlans, FEATURE_LABEL, formatBRL } from "./planCatalog";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 // Vitrine pública dos planos (Onda 6, ADR 0007) — o botão "Registrar-se" do
 // login cai aqui. A pessoa escolhe o plano e clica "Contratar", que leva ao
 // formulário de cadastro (/register) já com o plano selecionado no dropdown.
@@ -29,7 +32,7 @@ const PlansPage: React.FC = () => {
         <Card className="w-full max-w-md">
           <CardContent className="pt-8 pb-8 px-8 text-center space-y-4">
             <p className="text-muted-foreground">
-              O cadastro self-service não está disponível nesta instalação no momento.
+              {tr("uiText.plans.selfServiceOff")}
             </p>
             <RouterLink to="/login" className="inline-flex items-center gap-2 text-primary font-medium hover:underline">
               <ArrowLeft className="h-4 w-4" /> Voltar para o login
@@ -46,8 +49,8 @@ const PlansPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
       <Card className={`w-full ${plans.length > 2 ? "max-w-5xl" : "max-w-3xl"}`}>
         <CardHeader className="text-center">
-          <CardTitle>Escolha seu plano</CardTitle>
-          <CardDescription>Comece a usar o Watink agora mesmo — sem cartão para começar.</CardDescription>
+          <CardTitle>{tr("uiText.plans.choose")}</CardTitle>
+          <CardDescription>{tr("uiText.plans.chooseHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className={`grid gap-4 ${plans.length > 1 ? "sm:grid-cols-2" : ""} ${plans.length > 2 ? "lg:grid-cols-3" : ""}`}>
@@ -62,28 +65,28 @@ const PlansPage: React.FC = () => {
                     )}
                   </div>
                   <p className="mt-3 text-2xl font-bold">
-                    {plan.priceCents === 0 ? "Grátis" : formatBRL(plan.priceCents)}
+                    {plan.priceCents === 0 ? tr("uiText.plans.free") : formatBRL(plan.priceCents)}
                     {plan.priceCents > 0 && (
                       <span className="text-sm font-normal text-muted-foreground">
-                        /{plan.billingCycle === "yearly" ? "ano" : "mês"}
+                        /{tr(plan.billingCycle === "yearly" ? "uiText.plans.year" : "uiText.plans.month")}
                       </span>
                     )}
                   </p>
                   {plan.trialDays > 0 && (
                     <Badge variant="secondary" className="mt-2 w-fit">
-                      {plan.trialDays} dias grátis
+                      {tr("uiText.plans.trialDays", { days: plan.trialDays })}
                     </Badge>
                   )}
                   <ul className="mt-3 text-sm text-muted-foreground space-y-1">
-                    <li>{plan.usersLimit === 0 ? "Usuários ilimitados" : `Até ${plan.usersLimit} usuários`}</li>
-                    <li>{plan.connectionsLimit === 0 ? "Conexões ilimitadas" : `Até ${plan.connectionsLimit} conexões`}</li>
+                    <li>{plan.usersLimit === 0 ? tr("uiText.plans.unlimitedUsers") : tr("uiText.plans.upToUsers", { count: plan.usersLimit })}</li>
+                    <li>{plan.connectionsLimit === 0 ? tr("uiText.plans.unlimitedConnections") : tr("uiText.plans.upToConnections", { count: plan.connectionsLimit })}</li>
                   </ul>
                   {featureKeys.length > 0 && (
                     <ul className="mt-3 pt-3 border-t border-border/60 space-y-1.5 flex-1">
                       {featureKeys.map((key) => (
                         <li key={key} className="flex items-start gap-2 text-sm">
                           <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-500 shrink-0 mt-0.5" />
-                          <span>{FEATURE_LABEL[key]}</span>
+                          <span>{tr(FEATURE_LABEL[key])}</span>
                         </li>
                       ))}
                     </ul>

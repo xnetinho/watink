@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import type { ChatMessage } from "../pipelineCreatorTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PipelineAIChatProps {
     messages: ChatMessage[];
     input: string;
@@ -57,7 +60,7 @@ const PipelineAIChat: React.FC<PipelineAIChatProps> = ({
         <div className="p-3 border-t bg-muted/30">
             <div className="relative">
                 <Input
-                    placeholder="Descreva seu processo..."
+                    placeholder={tr("uiText.pipelines.describeProcess")}
                     value={input}
                     onChange={(e) => onInputChange(e.target.value)}
                     onKeyDown={onKeyDown}
@@ -75,7 +78,7 @@ const PipelineAIChat: React.FC<PipelineAIChatProps> = ({
                 </Button>
             </div>
             <span className="text-[10px] text-muted-foreground block text-center mt-2">
-                A IA atualizará as etapas automaticamente.
+                {tr("uiText.pipelines.aiUpdates")}
             </span>
         </div>
     </Card>

@@ -16,7 +16,7 @@ const MessageNode: React.FC<MessageNodeProps> = ({ data, isConnectable }) => {
       data={data}
       icon={MessageSquare}
       colorClass="colorMessage"
-      defaultLabel="Mensagem"
+      defaultLabel="uiText.flow.node.message"
       sublabel={preview}
       isConnectable={isConnectable}
     />

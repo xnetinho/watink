@@ -18,6 +18,9 @@ import {
   StatusBadge,
 } from "./KBSourceBadges";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface KBSourceListItemProps {
   source: KBSource;
   isExpandable: boolean;
@@ -86,7 +89,7 @@ export const KBSourceListItem: React.FC<KBSourceListItemProps> = ({
             variant="ghost"
             size="icon"
             aria-label="Reprocessar fonte"
-            title="Reprocessar (re-disparar raspagem/ingestão)"
+            title={tr("uiText.kb.reprocess")}
             onClick={() => onReingest(source)}
             className="shrink-0 text-muted-foreground"
           >
@@ -109,10 +112,10 @@ export const KBSourceListItem: React.FC<KBSourceListItemProps> = ({
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--status-error-text))]" />
           <div className="min-w-0">
             <p className="text-sm font-medium text-[hsl(var(--status-error-text))]">
-              Falha ao processar esta fonte
+              {tr("uiText.kb.processFailThis")}
             </p>
             <p className="break-words text-xs text-muted-foreground">
-              {source.lastError || "Erro desconhecido durante a ingestão."}
+              {source.lastError || tr("uiText.kb.ingestUnknown")}
             </p>
             {source.type !== "text" && (
               <Button
@@ -134,13 +137,10 @@ export const KBSourceListItem: React.FC<KBSourceListItemProps> = ({
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--status-warning-text))]" />
           <div className="min-w-0">
             <p className="text-sm font-medium text-[hsl(var(--status-warning-text))]">
-              Nenhum conteúdo extraído
+              {tr("uiText.kb.noExtracted")}
             </p>
             <p className="break-words text-xs text-muted-foreground">
-              A fonte foi processada, mas não gerou nenhum trecho. O site pode ter
-              bloqueado a raspagem, exigir login, depender de JavaScript pesado
-              ou ter excedido o tempo limite. Tente outra URL ou uma página mais
-              simples.
+              {tr("uiText.kb.noExtractedHint")}
             </p>
           </div>
         </div>
@@ -150,8 +150,8 @@ export const KBSourceListItem: React.FC<KBSourceListItemProps> = ({
         <div className="mx-2 mt-1 flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           {source.status === "processing"
-            ? "Processando: raspando e indexando o conteúdo…"
-            : "Na fila, aguardando processamento…"}
+            ? tr("uiText.kb.processing")
+            : tr("uiText.kb.queued")}
         </div>
       )}
 
@@ -163,7 +163,7 @@ export const KBSourceListItem: React.FC<KBSourceListItemProps> = ({
             </div>
           ) : !chunks || chunks.length === 0 ? (
             <p className="py-3 text-center text-sm text-muted-foreground">
-              Nenhum chunk para esta fonte.
+              {tr("uiText.kb.noChunk")}
             </p>
           ) : (
             <div className="flex flex-col gap-2">

@@ -9,6 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { SlaConfigCard } from "../../../components/ui/sla-config-card";
 import { SlaConfig } from "../hooks/useSettings";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface HelpdeskSectionProps {
   getSettingValue: (key: string) => string;
   handleUpdateSetting: (key: string, value: string) => Promise<void>;
@@ -35,15 +38,15 @@ const HelpdeskSection: React.FC<HelpdeskSectionProps> = ({
   <div className="space-y-6">
     <SlaConfigCard
       icon={<Headphones className="h-5 w-5" />}
-      title="Configuração de Atendimento (Helpdesk)"
-      description="Configure acordos de nível de serviço (SLA) e triagem de chamados"
+      title={tr("uiText.settings.helpdesk.title")}
+      description={tr("uiText.settings.helpdesk.subtitle")}
       value={slaConfig}
       onChange={handleUpdateSla}
     >
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
           <Label>Habilitar Helpdesk SLA</Label>
-          <p className="text-sm text-muted-foreground">Exige temporizador de SLA ativo nas conversas dos colaboradores</p>
+          <p className="text-sm text-muted-foreground">{tr("uiText.settings.helpdesk.slaTimer")}</p>
         </div>
         <Switch
           checked={getSettingValue("helpdesk_sla_enabled") === "true"}
@@ -52,7 +55,7 @@ const HelpdeskSection: React.FC<HelpdeskSectionProps> = ({
       </div>
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
-          <Label>Criar Atividade ao abrir Protocolo</Label>
+          <Label>{tr("uiText.settings.helpdesk.createActivity")}</Label>
           <p className="text-sm text-muted-foreground">
             Gera automaticamente uma Atividade (ordem de serviço) vinculada a cada novo protocolo, com ou sem ticket de origem
           </p>
@@ -68,14 +71,14 @@ const HelpdeskSection: React.FC<HelpdeskSectionProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-primary">
           <Tags className="h-5 w-5" />
-          Categorias ITIL da Triagem
+          {tr("uiText.settings.helpdesk.itil")}
         </CardTitle>
-        <CardDescription>Gerencie as categorias padrão solicitadas aos usuários para abertura de novos incidentes</CardDescription>
+        <CardDescription>{tr("uiText.settings.helpdesk.itilHint")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Input
-            placeholder="Ex: Falha de Conexão, Redefinição de Senha"
+            placeholder={tr("uiText.settings.helpdesk.categoryPlaceholder")}
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}

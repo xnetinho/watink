@@ -9,6 +9,9 @@ import { CAMPAIGN_TYPE_OPTIONS, defaultVariant, validateVariant } from "../campa
 import type { CampaignVariantDraft, CampaignVariantType } from "../campaignTypes";
 import CampaignVariantContentEditor from "./CampaignVariantContentEditor";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface CampaignVariantsEditorProps {
     variants: CampaignVariantDraft[];
     onChange: (variants: CampaignVariantDraft[]) => void;
@@ -38,12 +41,11 @@ const CampaignVariantsEditor: React.FC<CampaignVariantsEditorProps> = ({ variant
     return (
         <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-                Variantes são alternadas entre os grupos — conteúdo idêntico em muitos grupos é o padrão que a
-                Meta detecta.
+                {tr("uiText.campaigns.variantsHint")}
             </p>
             {showMoreVariantsHint && (
                 <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    Com mais de 10 grupos selecionados, recomendamos ao menos 2 variantes ativas.
+                    {tr("uiText.campaigns.variantsRecommend")}
                 </p>
             )}
 
@@ -76,7 +78,7 @@ const CampaignVariantsEditor: React.FC<CampaignVariantsEditorProps> = ({ variant
                                             onCheckedChange={(checked) => updateVariant(v.localId, { active: checked })}
                                         />
                                         <span className="text-xs text-muted-foreground">
-                                            {v.active ? "Ativa" : "Inativa"}
+                                            {v.active ? tr("uiText.campaigns.active") : tr("uiText.campaigns.inactive")}
                                         </span>
                                     </div>
                                     {variants.length > 1 && (
@@ -94,7 +96,7 @@ const CampaignVariantsEditor: React.FC<CampaignVariantsEditorProps> = ({ variant
                                 {expanded && (
                                     <div className="space-y-3 pt-2 border-t">
                                         <div className="space-y-1.5">
-                                            <Label>Rótulo (opcional, só pra identificar no relatório)</Label>
+                                            <Label>{tr("uiText.campaigns.variantLabel")}</Label>
                                             <Input
                                                 placeholder={`Variante ${idx + 1}`}
                                                 value={v.label}
@@ -102,7 +104,7 @@ const CampaignVariantsEditor: React.FC<CampaignVariantsEditorProps> = ({ variant
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label>Tipo de mensagem</Label>
+                                            <Label>{tr("uiText.quick.messageType")}</Label>
                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                 {CAMPAIGN_TYPE_OPTIONS.map((opt) => (
                                                     <button

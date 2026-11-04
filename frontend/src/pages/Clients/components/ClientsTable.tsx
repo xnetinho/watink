@@ -7,6 +7,9 @@ import { Can } from "../../../components/Can";
 import type { User } from "../../../types/domain";
 import type { Client } from "../hooks/useClients";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ClientsTableProps {
   clients: Client[];
   loading: boolean;
@@ -24,14 +27,14 @@ function ClientTypeBadge({ type }: { type: Client["type"] }) {
 
 export function ClientsTable({ clients, loading, user, onEdit, onDelete }: ClientsTableProps) {
   const columns: DataTableColumn<Client>[] = [
-    { key: "type", header: "Tipo", cell: (c) => <ClientTypeBadge type={c.type} /> },
-    { key: "name", header: "Nome", cell: (c) => <span className="font-medium">{c.name}</span> },
-    { key: "document", header: "Documento", cell: (c) => <span className="text-muted-foreground">{c.document ?? "—"}</span> },
-    { key: "email", header: "Email", cell: (c) => <span className="text-muted-foreground">{c.email ?? "—"}</span> },
-    { key: "phone", header: "Telefone", cell: (c) => <span className="text-muted-foreground">{c.phone ?? "—"}</span> },
+    { key: "type", header: tr("uiText.common.type"), cell: (c) => <ClientTypeBadge type={c.type} /> },
+    { key: "name", header: tr("uiText.common.name"), cell: (c) => <span className="font-medium">{c.name}</span> },
+    { key: "document", header: tr("uiText.common.document"), cell: (c) => <span className="text-muted-foreground">{c.document ?? "—"}</span> },
+    { key: "email", header: tr("uiText.common.email"), cell: (c) => <span className="text-muted-foreground">{c.email ?? "—"}</span> },
+    { key: "phone", header: tr("uiText.common.phone"), cell: (c) => <span className="text-muted-foreground">{c.phone ?? "—"}</span> },
     {
       key: "actions",
-      header: "Ações",
+      header: tr("uiText.common.actions"),
       className: "text-right w-[100px]",
       cell: (client) => (
         <div className="flex items-center justify-end gap-1">
@@ -65,7 +68,7 @@ export function ClientsTable({ clients, loading, user, onEdit, onDelete }: Clien
       getRowKey={(c) => c.id}
       loading={loading}
       emptyTitle="Nenhum cliente encontrado"
-      emptyDescription="Cadastre o primeiro cliente para começar."
+      emptyDescription={tr("uiText.clients.emptyHint")}
     />
   );
 }

@@ -4,6 +4,9 @@ import { Upload, X, File, Image as ImageIcon, FileType, FileText, FileSpreadshee
 import { cn } from "../../lib/utils";
 import { Progress } from "../ui/progress";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface FileWithPreview extends File {
   preview?: string;
   uploading?: boolean;
@@ -119,7 +122,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         onDrop={handleDrop}
         onClick={() => !disabled && document.getElementById("file-upload-input")?.click()}
         role="button"
-        aria-label="Área de upload de arquivos"
+        aria-label={tr("uiText.fileUploader.uploadArea")}
         tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && !disabled && document.getElementById("file-upload-input")?.click()}
       >
@@ -134,7 +137,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         />
         <Upload className="h-12 w-12 text-[hsl(var(--action-primary))] mx-auto mb-2" />
         <p className="text-sm font-medium text-[hsl(var(--action-primary))]">
-          Arraste arquivos aqui ou clique para selecionar
+          {tr("uiText.fileUploader.dropHint")}
         </p>
         <p className="text-xs text-[hsl(var(--text-muted))] mt-1">
           Máx. {maxFiles} arquivos, até {Math.round(maxSize / 1024 / 1024)}MB cada

@@ -13,6 +13,9 @@ import { Can } from "../../../components/Can";
 import { AuthContext } from "../../../context/Auth/AuthContext";
 import { Contact } from "../contactsTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ContactActionsMenuProps {
   contact: Contact;
   onStartChat: (contactId: number) => void;
@@ -55,7 +58,7 @@ const ContactActionsMenu: React.FC<ContactActionsMenuProps> = ({
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => onEdit(contact.id)}>
             <Edit className="mr-2 h-4 w-4" />
-            <span>Editar</span>
+            <span>{tr("uiText.common.edit")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onMakeClient(contact)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -70,7 +73,7 @@ const ContactActionsMenu: React.FC<ContactActionsMenuProps> = ({
                 onClick={() => onDelete(contact.id)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                <span>Excluir</span>
+                <span>{tr("uiText.common.delete")}</span>
               </DropdownMenuItem>
             )}
           />

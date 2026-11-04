@@ -14,6 +14,9 @@ import { Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getContactDisplayName } from "@/utils/clientDisplayName";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Contact {
     name?: string;
     client?: { socialName?: string | null } | null;
@@ -150,7 +153,7 @@ const PipelineKanban: React.FC<PipelineKanbanProps> = ({
                                                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                                             <User className="h-3 w-3 shrink-0" />
                                                             <span className="truncate max-w-[120px]">
-                                                                {getContactDisplayName(deal.contact) || "Sem contato"}
+                                                                {getContactDisplayName(deal.contact) || tr("uiText.helpdesk.noContact")}
                                                             </span>
                                                         </div>
                                                         {deal.value && parseFloat(String(deal.value)) > 0 && (
@@ -182,7 +185,7 @@ const PipelineKanban: React.FC<PipelineKanbanProps> = ({
                             onClick={() => onNewDeal?.(stage.id)}
                         >
                             <Plus className="h-3.5 w-3.5 mr-1" />
-                            Novo Deal
+                            {tr("uiText.pipelines.newDeal")}
                         </Button>
                     </div>
                 );

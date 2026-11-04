@@ -11,6 +11,9 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PhoneInputDialogProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -31,7 +34,7 @@ const PhoneInputDialog: React.FC<PhoneInputDialogProps> = ({
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Número para Pareamento</DialogTitle>
+        <DialogTitle>{tr("uiText.connections.pairingNumber")}</DialogTitle>
       </DialogHeader>
       <div className="py-4">
         <Label htmlFor="phoneNumber" className="mb-2 block">
@@ -47,14 +50,14 @@ const PhoneInputDialog: React.FC<PhoneInputDialogProps> = ({
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          Cancelar
+          {tr("uiText.common.cancel")}
         </Button>
         <Button
           onClick={onConfirm}
           disabled={!phoneNumber || phoneNumber.length < 10 || pairingLoading}
         >
           {pairingLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Gerar Código
+          {tr("uiText.connections.generateCode")}
         </Button>
       </DialogFooter>
     </DialogContent>

@@ -26,6 +26,12 @@ interface Props {
 const isVoice = (data: Record<string, unknown>): boolean =>
   data.voice === true || (data.rich as { voice?: unknown } | undefined)?.voice === true;
 
+/** O vídeo é um GIF? Marcado ao enviar (dataJson.gif) ou ao receber (dataJson.rich.gif, do gifPlayback do WhatsApp). */
+export const isGif = (dataJson: Message["dataJson"]): boolean => {
+  const d = parseData(dataJson);
+  return d.gif === true || (d.rich as { gif?: boolean } | undefined)?.gif === true;
+};
+
 const DOWNLOADABLE_TYPES = ["image", "video", "audio", "document", "sticker"];
 
 const MessageMedia: React.FC<Props> = ({ message, sender }) => {
@@ -170,6 +176,23 @@ const MessageMedia: React.FC<Props> = ({ message, sender }) => {
         className="h-[240px] w-[240px] rounded-full object-cover bg-[hsl(var(--bg-surface))]"
         data-testid="round-video"
       />
+    );
+  }
+
+  // GIF (enviado por nós, ou recebido como vídeo com gifPlayback): toca sozinho, em loop e sem som, sem controles, como o WhatsApp.
+  if (message.mediaType === "video" && isGif(message.dataJson)) {
+    return (
+      <div className="relative w-full max-w-[300px] rounded-lg overflow-hidden">
+        <video
+          src={getBackendUrl(message.mediaUrl)}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-auto max-h-[300px] object-contain bg-[hsl(var(--bg-surface))]"
+          data-testid="gif-video"
+        />
+      </div>
     );
   }
 

@@ -6,6 +6,9 @@ import { useFilterBuilder } from './hooks/useFilterBuilder';
 import FilterRow from './FilterRow';
 import FilterContextVariables from './FilterContextVariables';
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export type { Filter } from './filterBuilderTypes';
 
 const FilterBuilder: React.FC<FilterBuilderProps> = ({
@@ -18,7 +21,7 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({
     useFilterBuilder({ filters, onChange, tableName, maxFilters });
 
   if (!tableName) {
-    return <p className="text-xs text-muted-foreground">Selecione uma tabela primeiro</p>;
+    return <p className="text-xs text-muted-foreground">{tr("uiText.flow.data.selectTableFirst")}</p>;
   }
 
   return (

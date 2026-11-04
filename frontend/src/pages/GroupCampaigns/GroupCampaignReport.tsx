@@ -27,13 +27,17 @@ import {
     type GroupCampaignReply,
 } from "@/services/groupCampaignService";
 
+import { localeTag } from "../../lib/dateLocale";
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const SEND_STATUS_CHIP: Record<GroupCampaignSendStatus, { status: "success" | "error" | "warning" | "info" | "default"; label: string }> = {
-    pending: { status: "default", label: "Pendente" },
-    sending: { status: "info", label: "Enviando" },
-    sent: { status: "success", label: "Enviado" },
-    failed: { status: "error", label: "Falhou" },
-    skipped: { status: "warning", label: "Ignorado" },
-    canceled: { status: "default", label: "Cancelado" },
+    pending: { status: "default", label: "uiText.flow.form.statusPending" },
+    sending: { status: "info", label: "uiText.campaigns.sending" },
+    sent: { status: "success", label: "uiText.campaigns.sent" },
+    failed: { status: "error", label: "uiText.campaigns.failed" },
+    skipped: { status: "warning", label: "uiText.campaigns.skipped" },
+    canceled: { status: "default", label: "uiText.campaigns.canceled" },
 };
 
 interface VariantStat {
@@ -196,16 +200,16 @@ const GroupCampaignReport: React.FC = () => {
             { key: "subject", header: "Grupo", cell: (s) => <span className="truncate">{s.subject || s.jid}</span> },
             {
                 key: "status",
-                header: "Status",
+                header: tr("uiText.common.status"),
                 cell: (s) => {
                     const chip = SEND_STATUS_CHIP[s.status];
-                    return <StatusChip status={chip.status} label={chip.label} size="sm" />;
+                    return <StatusChip status={chip.status} label={tr(chip.label)} size="sm" />;
                 },
             },
             {
                 key: "scheduledAt",
-                header: "Horário",
-                cell: (s) => (s.sentAt ? new Date(s.sentAt).toLocaleString("pt-BR") : new Date(s.scheduledAt).toLocaleString("pt-BR")),
+                header: tr("uiText.campaigns.time"),
+                cell: (s) => (s.sentAt ? new Date(s.sentAt).toLocaleString(localeTag()) : new Date(s.scheduledAt).toLocaleString(localeTag())),
             },
             {
                 key: "variant",
@@ -214,8 +218,8 @@ const GroupCampaignReport: React.FC = () => {
             },
             {
                 key: "error",
-                header: "Erro",
-                cell: (s) => (s.status === "failed" ? <span className="text-destructive text-xs">{s.lastError || "Erro desconhecido"}</span> : "—"),
+                header: tr("uiText.campaigns.error"),
+                cell: (s) => (s.status === "failed" ? <span className="text-destructive text-xs">{s.lastError || tr("uiText.pipelines.unknownError")}</span> : "—"),
             },
         ],
         [selectedRun]
@@ -235,7 +239,7 @@ const GroupCampaignReport: React.FC = () => {
         return (
             <PageContainer>
                 <PageContent>
-                    <p className="text-center text-muted-foreground py-20">Campanha não encontrada.</p>
+                    <p className="text-center text-muted-foreground py-20">{tr("uiText.campaigns.notFound")}</p>
                 </PageContent>
             </PageContainer>
         );
@@ -247,28 +251,28 @@ const GroupCampaignReport: React.FC = () => {
 
     return (
         <PageContainer>
-            <PageHeader title={`Relatório — ${campaign.name}`} description="Envios e respostas por ocorrência">
+            <PageHeader title={tr("uiText.campaigns.reportTitle", { name: campaign.name })} description={tr("uiText.campaigns.sendsAndReplies")}>
                 <Button variant="ghost" onClick={() => navigate("/grupos-whatsapp/campanhas")}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar
+                    {tr("uiText.common.back")}
                 </Button>
             </PageHeader>
 
             <PageContent>
                 <div className="space-y-6">
                     <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium">Ocorrência:</span>
+                        <span className="text-sm font-medium">{tr("uiText.campaigns.occurrence")}</span>
                         <Select
                             value={selectedRunId ? String(selectedRunId) : ""}
                             onValueChange={(v) => setSelectedRunId(Number(v))}
                         >
                             <SelectTrigger className="w-[320px]">
-                                <SelectValue placeholder="Selecione uma ocorrência" />
+                                <SelectValue placeholder={tr("uiText.campaigns.selectOccurrence")} />
                             </SelectTrigger>
                             <SelectContent>
                                 {runs.map((r) => (
                                     <SelectItem key={r.id} value={String(r.id)}>
-                                        {new Date(r.scheduledFor).toLocaleString("pt-BR")} · {r.status}
+                                        {new Date(r.scheduledFor).toLocaleString(localeTag())} · {r.status}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -277,7 +281,7 @@ const GroupCampaignReport: React.FC = () => {
 
                     {!selectedRun ? (
                         <p className="text-sm text-muted-foreground py-8 text-center">
-                            Esta campanha ainda não teve nenhuma ocorrência disparada.
+                            {tr("uiText.campaigns.noOccurrence")}
                         </p>
                     ) : (
                         <>
@@ -323,7 +327,7 @@ const GroupCampaignReport: React.FC = () => {
                             {variantStats.length > 0 && (
                                 <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                                     <CardContent className="p-5 space-y-3">
-                                        <p className="text-sm font-semibold">Taxa de resposta por variante</p>
+                                        <p className="text-sm font-semibold">{tr("uiText.campaigns.rateByVariant")}</p>
                                         {variantStatsLoading ? (
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                 <Loader2 className="h-4 w-4 animate-spin" /> Calculando...
@@ -347,7 +351,7 @@ const GroupCampaignReport: React.FC = () => {
 
                             <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                                 <CardContent className="p-5 space-y-3">
-                                    <p className="text-sm font-semibold">Envios desta ocorrência</p>
+                                    <p className="text-sm font-semibold">{tr("uiText.campaigns.sendsOfOccurrence")}</p>
                                     <DataTable
                                         columns={sendColumns}
                                         data={sends}
@@ -367,7 +371,7 @@ const GroupCampaignReport: React.FC = () => {
                                                     disabled={sendsPage <= 1 || sendsLoading}
                                                     onClick={() => fetchSends(sendsPage - 1)}
                                                 >
-                                                    Anterior
+                                                    {tr("uiText.campaigns.previous")}
                                                 </Button>
                                                 <Button
                                                     variant="outline"
@@ -375,7 +379,7 @@ const GroupCampaignReport: React.FC = () => {
                                                     disabled={sendsPage >= totalSendsPages || sendsLoading}
                                                     onClick={() => fetchSends(sendsPage + 1)}
                                                 >
-                                                    Próxima
+                                                    {tr("uiText.campaigns.next")}
                                                 </Button>
                                             </div>
                                         </div>
@@ -387,21 +391,20 @@ const GroupCampaignReport: React.FC = () => {
 
                     <Card className="rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
                         <CardContent className="p-5 space-y-4">
-                            <p className="text-sm font-semibold">Respostas da campanha</p>
+                            <p className="text-sm font-semibold">{tr("uiText.campaigns.replies")}</p>
                             <p className="text-xs text-muted-foreground">
-                                Citação e janela de tempo nunca são somadas num único número — o sinal de janela é
-                                mais fraco (conta qualquer conversa do grupo).
+                                {tr("uiText.campaigns.repliesHint")}
                             </p>
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-1.5 text-sm">
                                     <Quote className="h-4 w-4 text-primary" />
                                     <span className="font-semibold">{quotedCount}</span>
-                                    <span className="text-muted-foreground">com citação</span>
+                                    <span className="text-muted-foreground">{tr("uiText.campaigns.withQuote")}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-sm">
                                     <Clock className="h-4 w-4 text-amber-600" />
                                     <span className="font-semibold">{windowCount}</span>
-                                    <span className="text-muted-foreground">na janela</span>
+                                    <span className="text-muted-foreground">{tr("uiText.campaigns.inWindow")}</span>
                                 </div>
                             </div>
 
@@ -410,7 +413,7 @@ const GroupCampaignReport: React.FC = () => {
                                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                                 </div>
                             ) : replies.length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-6">Nenhuma resposta capturada ainda.</p>
+                                <p className="text-sm text-muted-foreground text-center py-6">{tr("uiText.campaigns.noReplies")}</p>
                             ) : (
                                 <div className="space-y-2">
                                     {replies.map((r) => (
@@ -424,7 +427,7 @@ const GroupCampaignReport: React.FC = () => {
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <span className="text-sm font-medium">{r.contactName || r.participant || "Participante"}</span>
                                                     <Badge variant="outline" className="text-[10px]">
-                                                        {r.matchType === "quoted" ? "Citação" : "Janela"}
+                                                        {r.matchType === "quoted" ? tr("uiText.campaigns.quote") : "Janela"}
                                                     </Badge>
                                                     {r.isOptOut && (
                                                         <Badge variant="destructive" className="gap-1 text-[10px]">
@@ -432,7 +435,7 @@ const GroupCampaignReport: React.FC = () => {
                                                         </Badge>
                                                     )}
                                                     <span className="text-[11px] text-muted-foreground">
-                                                        {new Date(r.repliedAt).toLocaleString("pt-BR")}
+                                                        {new Date(r.repliedAt).toLocaleString(localeTag())}
                                                     </span>
                                                 </div>
                                                 <p className="text-sm text-muted-foreground truncate">{r.body}</p>
@@ -452,7 +455,7 @@ const GroupCampaignReport: React.FC = () => {
                                             disabled={repliesPage <= 1 || repliesLoading}
                                             onClick={() => fetchReplies(repliesPage - 1)}
                                         >
-                                            Anterior
+                                            {tr("uiText.campaigns.previous")}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -460,7 +463,7 @@ const GroupCampaignReport: React.FC = () => {
                                             disabled={!hasMoreReplies || repliesLoading}
                                             onClick={() => fetchReplies(repliesPage + 1)}
                                         >
-                                            Próxima
+                                            {tr("uiText.campaigns.next")}
                                         </Button>
                                     </div>
                                 </div>

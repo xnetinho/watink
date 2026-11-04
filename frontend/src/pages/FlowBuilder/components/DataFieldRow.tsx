@@ -13,6 +13,9 @@ import {
 import { DataField, FieldConfig } from './dataBuilderTypes';
 import DataFieldValueInput from './DataFieldValueInput';
 
+import { i18n } from '../../../translate/i18n';
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface DataFieldRowProps {
   dataField: DataField;
   editableFields: FieldConfig[];
@@ -38,7 +41,7 @@ const DataFieldRow: React.FC<DataFieldRowProps> = ({
       </SelectTrigger>
       <SelectContent>
         {editableFields.map((f) => (
-          <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+          <SelectItem key={f.value} value={f.value}>{tr(f.label)}</SelectItem>
         ))}
       </SelectContent>
     </Select>

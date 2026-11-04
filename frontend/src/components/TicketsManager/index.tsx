@@ -22,6 +22,9 @@ import {
 import { Search, Plus, Filter, Tag, Users, CircleDot } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 type ActiveTab = "all" | "open" | "pending" | "closed" | "groups";
 
 const TicketsManager: React.FC = () => {
@@ -107,11 +110,11 @@ const TicketsManager: React.FC = () => {
               yes={() => (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-primary hover:bg-primary/10" aria-label="Novo ticket" onClick={() => setNewTicketModalOpen(true)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-primary hover:bg-primary/10" aria-label={tr("uiText.common.newTicket")} onClick={() => setNewTicketModalOpen(true)}>
                       <Plus size={15} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">Novo Ticket</TooltipContent>
+                  <TooltipContent side="bottom">{tr("uiText.common.newTicket")}</TooltipContent>
                 </Tooltip>
               )}
               no={() => null}
@@ -120,8 +123,8 @@ const TicketsManager: React.FC = () => {
 
           {/* Pills de abas: individuais (Todos/Abertos/Aguardando/Fechados) + Grupos -- todas sempre visíveis e clicáveis */}
           <div className="flex items-center gap-1 flex-wrap">
-            <FilterPill label="Todos"      active={activeTab === "all"}     onClick={() => handleTabChange("all")}     count={activeTab === "all" ? currentCount : undefined} />
-            <FilterPill label="Abertos"    active={activeTab === "open"}    onClick={() => handleTabChange("open")}    count={activeTab === "open" ? currentCount : undefined} />
+            <FilterPill label={tr("uiText.common.all")}      active={activeTab === "all"}     onClick={() => handleTabChange("all")}     count={activeTab === "all" ? currentCount : undefined} />
+            <FilterPill label={tr("uiText.common.opened")}    active={activeTab === "open"}    onClick={() => handleTabChange("open")}    count={activeTab === "open" ? currentCount : undefined} />
             <FilterPill label="Aguardando" active={activeTab === "pending"} onClick={() => handleTabChange("pending")} count={activeTab === "pending" ? currentCount : undefined} />
             <FilterPill label="Fechados"   active={activeTab === "closed"}  onClick={() => handleTabChange("closed")}  count={activeTab === "closed" ? currentCount : undefined} />
             <FilterPill
@@ -137,7 +140,7 @@ const TicketsManager: React.FC = () => {
           <div className="flex items-center gap-1.5">
             <ToggleChip
               icon={<CircleDot size={11} />}
-              label="Não lidas"
+              label={tr("uiText.ticketsManager.unread")}
               active={showUnreadOnly}
               onClick={() => setShowUnreadOnly((v) => !v)}
             />

@@ -217,6 +217,11 @@ func (el *EventListener) HandlePollVoteEvent(ctx context.Context, payload json.R
 	return el.handlePollVote(ctx, payload, tenantID)
 }
 
+// HandleMessageAckEvent é a porta exportada do recibo de uma mensagem (mesma lógica do consumidor).
+func (el *EventListener) HandleMessageAckEvent(ctx context.Context, payload json.RawMessage, tenantID uuid.UUID) error {
+	return el.handleMessageAck(ctx, payload, tenantID)
+}
+
 // HandleMediaDownloadedEvent é a porta exportada do resultado de um download de mídia do engine (mesma lógica do consumidor).
 func (el *EventListener) HandleMediaDownloadedEvent(ctx context.Context, payload json.RawMessage, tenantID uuid.UUID) error {
 	return el.handleMediaDownloaded(ctx, payload, tenantID)

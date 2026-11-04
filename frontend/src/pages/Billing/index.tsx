@@ -6,6 +6,9 @@ import { PageContainer, PageHeader, PageContent } from "@/components/ui/page-lay
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Plan {
   name: string;
   price: string;
@@ -23,7 +26,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan }) => (
       <CardTitle className="text-2xl">{plan.name}</CardTitle>
       <CardDescription className="mt-2">
         <span className="text-4xl font-bold text-primary">R$ {plan.price}</span>
-        <span className="text-muted-foreground">/mês</span>
+        <span className="text-muted-foreground">/{tr("uiText.billing.perMonth")}</span>
       </CardDescription>
       <p className="text-sm text-muted-foreground mt-1">{plan.limit}</p>
     </CardHeader>
@@ -45,9 +48,9 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan }) => (
         um plano). Até o Hub ganhar gateway, o botão fica desabilitado com um
         estado claro em vez de apontar para um checkout inexistente.
       */}
-      <Button className="w-full" disabled title="Checkout indisponível nesta versão">
+      <Button className="w-full" disabled title={tr("uiText.billing.checkoutUnavailableTitle")}>
         <CreditCard className="mr-2 h-4 w-4" />
-        Checkout indisponível
+        {tr("uiText.billing.checkoutUnavailable")}
       </Button>
     </div>
   </Card>
@@ -72,34 +75,34 @@ const Billing: React.FC = () => {
     {
       name: "Start",
       price: "49,99",
-      limit: "4 plugins",
+      limit: tr("uiText.billing.plans.start.limit"),
       features: [
-        "Até 4 plugins Business",
-        "Suporte Standard",
-        "Atualizações Core",
-        "Webchat incluso",
+        tr("uiText.billing.plans.start.f1"),
+        tr("uiText.billing.plans.start.f2"),
+        tr("uiText.billing.plans.start.f3"),
+        tr("uiText.billing.plans.start.f4"),
       ],
     },
     {
       name: "Pro",
       price: "99,99",
-      limit: "6 plugins",
+      limit: tr("uiText.billing.plans.pro.limit"),
       features: [
-        "Até 6 plugins Business",
-        "Suporte Prioritário",
-        "Todas as Engines (WhatsMeow/Papi)",
-        "Acesso antecipado",
+        tr("uiText.billing.plans.pro.f1"),
+        tr("uiText.billing.plans.pro.f2"),
+        tr("uiText.billing.plans.pro.f3"),
+        tr("uiText.billing.plans.pro.f4"),
       ],
     },
     {
       name: "SaaS",
       price: "199,99",
-      limit: "Módulo SaaS",
+      limit: tr("uiText.billing.plans.saas.limit"),
       features: [
-        "Plugin de Gestão SaaS",
-        "Painel Multi-instância",
-        "White-label habilitado",
-        "Faturamento centralizado",
+        tr("uiText.billing.plans.saas.f1"),
+        tr("uiText.billing.plans.saas.f2"),
+        tr("uiText.billing.plans.saas.f3"),
+        tr("uiText.billing.plans.saas.f4"),
       ],
     },
   ];
@@ -110,7 +113,7 @@ const Billing: React.FC = () => {
         title={
           <span className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-muted-foreground" />
-            Assinatura e Planos
+            {tr("uiText.billing.title")}
           </span>
         }
       />
@@ -118,9 +121,7 @@ const Billing: React.FC = () => {
         <div className="mb-6 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/20 dark:text-amber-200">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            O checkout automático não está disponível nesta versão. A liberação da
-            licença é feita manualmente pelo administrador — entre em contato para
-            assinar ou alterar seu plano.
+            {tr("uiText.billing.checkoutNote")}
           </span>
         </div>
 
@@ -133,10 +134,10 @@ const Billing: React.FC = () => {
         {instanceId && (
           <div className="mt-8 rounded-lg border border-border bg-blue-50 p-4 dark:bg-blue-950/20">
             <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-              Seu Instance ID: <span className="font-mono font-normal">{instanceId}</span>
+              {tr("uiText.billing.instanceId")} <span className="font-mono font-normal">{instanceId}</span>
             </p>
             <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-              Este ID identifica sua instalação única do Watink e é necessário para validar sua licença após o pagamento.
+              {tr("uiText.billing.instanceHint")}
             </p>
           </div>
         )}

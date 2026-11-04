@@ -6,6 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { genId } from "../quickAnswersHelpers";
 import type { QuickAnswerContentButtons } from "../quickAnswersTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 export const ButtonsEditor = ({
   content,
   onChange,
@@ -17,10 +20,10 @@ export const ButtonsEditor = ({
 }) => (
   <div className="space-y-4">
     <div className="space-y-1.5">
-      <Label>Mensagem</Label>
+      <Label>{tr("uiText.quick.message")}</Label>
       <Textarea
         rows={4}
-        placeholder="Use *negrito*, _itálico_, ~tachado~"
+        placeholder={tr("uiText.quick.formatHint")}
         value={content.body}
         onChange={(e) => onChange({ ...content, body: e.target.value })}
         className="resize-none"
@@ -29,20 +32,20 @@ export const ButtonsEditor = ({
       {errors.body && <p className="text-xs text-destructive">{errors.body}</p>}
     </div>
     <div className="space-y-1.5">
-      <Label>Rodapé <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+      <Label>{tr("uiText.quick.footer")} <span className="text-muted-foreground font-normal">(opcional)</span></Label>
       <Input
-        placeholder="Texto do rodapé"
+        placeholder={tr("uiText.quick.footerText")}
         value={content.footer ?? ""}
         onChange={(e) => onChange({ ...content, footer: e.target.value })}
       />
     </div>
     <div className="space-y-2">
-      <Label>Botões</Label>
+      <Label>{tr("uiText.quick.buttons")}</Label>
       {content.buttons.map((btn, idx) => (
         <div key={btn.id} className="flex gap-2 items-center">
           <span className="text-xs text-muted-foreground w-5 shrink-0">{idx + 1}.</span>
           <Input
-            placeholder={`Rótulo do botão ${idx + 1}`}
+            placeholder={tr("uiText.quick.buttonLabel", { n: idx + 1 })}
             value={btn.label}
             onChange={(e) => {
               const buttons = content.buttons.map((b, i) =>

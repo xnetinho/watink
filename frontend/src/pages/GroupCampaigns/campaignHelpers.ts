@@ -16,6 +16,10 @@ import type {
     GroupCampaignTargetInput,
 } from "@/services/groupCampaignService";
 
+import { localeTag } from "../../lib/dateLocale";
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 /** Only the 5 types released in v1 (plan §7) -- Carousel and PIX filtered
  * out of the shared TYPE_OPTIONS from QuickAnswers (reused, not duplicated). */
 export const CAMPAIGN_TYPE_OPTIONS = TYPE_OPTIONS.filter(
@@ -128,18 +132,18 @@ export function buildVariantInput(v: CampaignVariantDraft, position: number): Gr
 export function validateVariant(v: CampaignVariantDraft): string | undefined {
     switch (v.type) {
         case "text":
-            return v.textBody.trim() ? undefined : "Mensagem obrigatória";
+            return v.textBody.trim() ? undefined : tr("uiText.quick.validation.bodyRequired");
         case "interactive_buttons":
-            if (!v.buttonsContent.body.trim()) return "Mensagem obrigatória";
-            if (v.buttonsContent.buttons.length < 1) return "Adicione ao menos 1 botão";
+            if (!v.buttonsContent.body.trim()) return tr("uiText.quick.validation.bodyRequired");
+            if (v.buttonsContent.buttons.length < 1) return tr("uiText.quick.validation.minButton");
             return undefined;
         case "list":
-            return v.listContent.body.trim() ? undefined : "Mensagem obrigatória";
+            return v.listContent.body.trim() ? undefined : tr("uiText.quick.validation.bodyRequired");
         case "media":
-            return v.mediaContent.url.trim() ? undefined : "URL obrigatória";
+            return v.mediaContent.url.trim() ? undefined : tr("uiText.quick.validation.urlRequired");
         case "poll":
-            if (!v.pollContent.question.trim()) return "Pergunta obrigatória";
-            if (v.pollContent.options.length < 2) return "Adicione ao menos 2 opções";
+            if (!v.pollContent.question.trim()) return tr("uiText.quick.validation.questionRequired");
+            if (v.pollContent.options.length < 2) return tr("uiText.quick.validation.minOptions");
             return undefined;
         default:
             return undefined;
@@ -182,6 +186,6 @@ export function estimateCampaignDuration(input: PacingEstimateInput, now: Date =
         (targetsCount - 1) * intervalSeconds + (batches - 1) * batchPauseSeconds;
     const totalMinutes = Math.round(totalSeconds / 60);
     const finishAt = new Date(now.getTime() + totalSeconds * 1000);
-    const finishLabel = finishAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    return `${targetsCount} grupo${targetsCount === 1 ? "" : "s"} · ~${totalMinutes} min · término previsto ${finishLabel}`;
+    const finishLabel = finishAt.toLocaleTimeString(localeTag(), { hour: "2-digit", minute: "2-digit" });
+    return tr(targetsCount === 1 ? "uiText.campaigns.summaryOne" : "uiText.campaigns.summaryMany", { count: targetsCount, minutes: totalMinutes, finish: finishLabel });
 }

@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 import type { AssistantTestResult } from "@/services/assistantService";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface AssistantTestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -48,11 +51,11 @@ export const AssistantTestDialog: React.FC<AssistantTestDialogProps> = ({
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label>Mensagem de teste</Label>
+            <Label>{tr("uiText.assistants.testMessage")}</Label>
             <Textarea
               value={testMessage}
               onChange={(e) => onTestMessageChange(e.target.value)}
-              placeholder="Olá, isso é um teste. Pode responder normalmente?"
+              placeholder={tr("uiText.assistants.testPlaceholder")}
               rows={2}
             />
           </div>
@@ -87,14 +90,14 @@ export const AssistantTestDialog: React.FC<AssistantTestDialogProps> = ({
                     <p className="text-xs text-muted-foreground">
                       Ação do modelo: <span className="font-medium">{testResult.action}</span>
                       {typeof testResult.confidence === "number" &&
-                        ` · confiança ${(testResult.confidence * 100).toFixed(0)}%`}
+                        tr("uiText.assistants.confidence", { value: (testResult.confidence * 100).toFixed(0) })}
                     </p>
                   )}
                 </>
               ) : (
                 <div className="flex items-start gap-2 text-sm text-destructive">
                   <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span>{testResult.error ?? "Falha ao testar o assistente."}</span>
+                  <span>{testResult.error ?? tr("uiText.assistants.testFail")}</span>
                 </div>
               )}
             </div>
@@ -102,7 +105,7 @@ export const AssistantTestDialog: React.FC<AssistantTestDialogProps> = ({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Fechar
+            {tr("uiText.common.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

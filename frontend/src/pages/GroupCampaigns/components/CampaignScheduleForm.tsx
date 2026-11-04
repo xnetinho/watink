@@ -7,14 +7,18 @@ import type {
     GroupCampaignRecurrenceRule,
 } from "@/services/groupCampaignService";
 
+import { localeTag } from "../../../lib/dateLocale";
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const WEEKDAYS: { value: string; label: string }[] = [
-    { value: "0", label: "Dom" },
-    { value: "1", label: "Seg" },
-    { value: "2", label: "Ter" },
-    { value: "3", label: "Qua" },
-    { value: "4", label: "Qui" },
-    { value: "5", label: "Sex" },
-    { value: "6", label: "Sáb" },
+    { value: "0", label: "uiText.campaigns.wd0" },
+    { value: "1", label: "uiText.campaigns.wd1" },
+    { value: "2", label: "uiText.campaigns.wd2" },
+    { value: "3", label: "uiText.campaigns.wd3" },
+    { value: "4", label: "uiText.campaigns.wd4" },
+    { value: "5", label: "uiText.campaigns.wd5" },
+    { value: "6", label: "uiText.campaigns.wd6" },
 ];
 
 export interface CampaignScheduleState {
@@ -37,22 +41,22 @@ function toggleDay(csv: string, day: string): string {
 }
 
 function summarize(v: CampaignScheduleState): string {
-    if (v.scheduleMode === "immediate") return "Dispara assim que iniciada.";
+    if (v.scheduleMode === "immediate") return tr("uiText.campaigns.fireNow");
     if (v.scheduleMode === "once") {
         if (!v.startAt) return "Selecione a data e hora.";
-        return `Dispara em ${new Date(v.startAt).toLocaleString("pt-BR")}.`;
+        return tr("uiText.campaigns.fireAt", { date: new Date(v.startAt).toLocaleString(localeTag()) });
     }
     const time = v.recurrenceTime || "--:--";
     if (v.recurrenceRule === "weekly") {
         const days = v.recurrenceDays
             .split(",")
             .filter(Boolean)
-            .map((d) => WEEKDAYS.find((w) => w.value === d)?.label ?? d);
-        const daysLabel = days.length > 0 ? days.join(", ") : "nenhum dia selecionado";
-        return `Toda ${daysLabel}, às ${time}${v.recurrenceEndAt ? ` até ${v.recurrenceEndAt}` : " (sem data final)"}.`;
+            .map((d) => WEEKDAYS.find((w) => w.value === d)?.label ? tr(WEEKDAYS.find((w) => w.value === d)!.label) : d);
+        const daysLabel = days.length > 0 ? days.join(", ") : tr("uiText.campaigns.noDay");
+        return tr("uiText.campaigns.weeklySummary", { days: daysLabel, time, end: v.recurrenceEndAt ? tr("uiText.campaigns.until", { date: v.recurrenceEndAt }) : tr("uiText.campaigns.noEnd") });
     }
-    const days = v.recurrenceDays.split(",").filter(Boolean).join(", ") || "nenhum dia selecionado";
-    return `Todo dia ${days} do mês, às ${time}${v.recurrenceEndAt ? ` até ${v.recurrenceEndAt}` : " (sem data final)"}.`;
+    const days = v.recurrenceDays.split(",").filter(Boolean).join(", ") || tr("uiText.campaigns.noDay");
+    return tr("uiText.campaigns.monthlySummary", { days, time, end: v.recurrenceEndAt ? tr("uiText.campaigns.until", { date: v.recurrenceEndAt }) : tr("uiText.campaigns.noEnd") });
 }
 
 const CampaignScheduleForm: React.FC<CampaignScheduleFormProps> = ({ value, onChange }) => {
@@ -71,7 +75,7 @@ const CampaignScheduleForm: React.FC<CampaignScheduleFormProps> = ({ value, onCh
                 <div className="flex items-center gap-2">
                     <RadioGroupItem value="once" id="sched-once" />
                     <Label htmlFor="sched-once" className="font-normal cursor-pointer">
-                        Data e hora específica
+                        {tr("uiText.campaigns.specificDate")}
                     </Label>
                 </div>
                 <div className="flex items-center gap-2">
@@ -118,7 +122,7 @@ const CampaignScheduleForm: React.FC<CampaignScheduleFormProps> = ({ value, onCh
 
                     {value.recurrenceRule === "monthly" ? (
                         <div className="space-y-1.5">
-                            <Label>Dia do mês</Label>
+                            <Label>{tr("uiText.campaigns.dayOfMonth")}</Label>
                             <Input
                                 type="number"
                                 min={1}
@@ -131,7 +135,7 @@ const CampaignScheduleForm: React.FC<CampaignScheduleFormProps> = ({ value, onCh
                         </div>
                     ) : (
                         <div className="space-y-1.5">
-                            <Label>Dias da semana</Label>
+                            <Label>{tr("uiText.campaigns.weekdays")}</Label>
                             <div className="flex gap-1.5 flex-wrap">
                                 {WEEKDAYS.map((d) => {
                                     const active = value.recurrenceDays.split(",").includes(d.value);
@@ -146,7 +150,7 @@ const CampaignScheduleForm: React.FC<CampaignScheduleFormProps> = ({ value, onCh
                                                     : "border-border text-muted-foreground hover:bg-muted/40"
                                             }`}
                                         >
-                                            {d.label}
+                                            {tr(d.label)}
                                         </button>
                                     );
                                 })}
@@ -156,7 +160,7 @@ const CampaignScheduleForm: React.FC<CampaignScheduleFormProps> = ({ value, onCh
 
                     <div className="flex items-end gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="sched-time">Horário</Label>
+                            <Label htmlFor="sched-time">{tr("uiText.campaigns.time")}</Label>
                             <Input
                                 id="sched-time"
                                 type="time"

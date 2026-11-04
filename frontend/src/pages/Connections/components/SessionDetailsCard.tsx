@@ -7,6 +7,9 @@ import DetailItem from "./DetailItem";
 import { formatPhone } from "../connectionConfigUtils";
 import type { WhatsApp } from "../connectionConfigTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface ProxyDisplay {
   line1: string;
   line2?: string;
@@ -15,7 +18,7 @@ interface ProxyDisplay {
 
 const proxyDisplay = (whatsapp: WhatsApp): ProxyDisplay => {
   const p = whatsapp.proxy;
-  if (!p) return { line1: "Direto (sem proxy)" };
+  if (!p) return { line1: tr("uiText.connections.direct") };
 
   if (p.mode === "single") {
     const loc = [p.city, p.countryCode].filter(Boolean).join(", ");
@@ -29,9 +32,9 @@ const proxyDisplay = (whatsapp: WhatsApp): ProxyDisplay => {
   const current = p.current;
   const line2 = current
     ? `${current.endpoint}${current.city ? ` (${current.city}, ${current.countryCode ?? ""})` : ""}`
-    : "aguardando próxima conexão";
+    : tr("uiText.connections.awaitingNext");
   return {
-    line1: `Grupo "${p.name}" (${p.rotationStrategy === "rotate" ? "rotação" : "fixo"})`,
+    line1: tr("uiText.whatsAppModal.proxyGroup", { name: p.name, strategy: tr(p.rotationStrategy === "rotate" ? "uiText.whatsAppModal.rotate" : "uiText.whatsAppModal.fixed") }),
     line2,
   };
 };
@@ -54,20 +57,20 @@ const SessionDetailsCard: React.FC<SessionDetailsCardProps> = ({
   <Card>
     <CardHeader>
       <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Detalhes da Sessão
+        {tr("uiText.connections.sessionDetails")}
       </CardTitle>
     </CardHeader>
     <CardContent>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <DetailItem icon={<Hash className="h-4 w-4" />} label="Nome da Sessão" value={whatsapp.name} />
+        <DetailItem icon={<Hash className="h-4 w-4" />} label={tr("uiText.connections.sessionName")} value={whatsapp.name} />
         <DetailItem
           icon={<MessageSquare className="h-4 w-4" />}
-          label="Número Conectado"
+          label={tr("uiText.connections.connectedNumber")}
           value={formatPhone(whatsapp.number) || "—"}
         />
         <DetailItem
           icon={<Calendar className="h-4 w-4" />}
-          label="Data da 1ª Conexão"
+          label={tr("uiText.connections.firstConnection")}
           value={
             whatsapp.firstConnection
               ? new Date(whatsapp.firstConnection).toLocaleDateString()
@@ -76,8 +79,8 @@ const SessionDetailsCard: React.FC<SessionDetailsCardProps> = ({
               : "—"
           }
         />
-        <DetailItem icon={<ShieldCheck className="h-4 w-4" />} label="Status Oficial" value={status} />
-        <DetailItem icon={<Star className="h-4 w-4" />} label="Padrão" value={whatsapp.isDefault ? "Sim" : "Não"} />
+        <DetailItem icon={<ShieldCheck className="h-4 w-4" />} label={tr("uiText.connections.officialStatus")} value={status} />
+        <DetailItem icon={<Star className="h-4 w-4" />} label={tr("uiText.connections.default")} value={whatsapp.isDefault ? tr("uiText.common.yes") : tr("uiText.common.no")} />
         <div className="flex items-start gap-2">
           <span className="mt-0.5 text-muted-foreground">
             <Network className="h-4 w-4" />
@@ -87,7 +90,7 @@ const SessionDetailsCard: React.FC<SessionDetailsCardProps> = ({
             <div className="mt-1 flex items-center gap-1.5">
               <span className="text-sm truncate" title={proxy.line1}>{proxy.line1}</span>
               {proxy.healthy === true && <Badge variant="default" className="shrink-0">OK</Badge>}
-              {proxy.healthy === false && <Badge variant="destructive" className="shrink-0">instável</Badge>}
+              {proxy.healthy === false && <Badge variant="destructive" className="shrink-0">{tr("uiText.connections.unstable")}</Badge>}
             </div>
             {proxy.line2 && (
               <p className="mt-0.5 text-xs font-mono text-muted-foreground truncate" title={proxy.line2}>
@@ -101,7 +104,7 @@ const SessionDetailsCard: React.FC<SessionDetailsCardProps> = ({
             <Clock className="h-4 w-4" />
           </span>
           <div className="flex-1">
-            <p className="text-xs font-medium text-muted-foreground">Reconexão Automática</p>
+            <p className="text-xs font-medium text-muted-foreground">{tr("uiText.connections.autoReconnect")}</p>
             <div className="mt-1 flex items-center gap-2">
               <Switch
                 checked={!!whatsapp.keepAlive}

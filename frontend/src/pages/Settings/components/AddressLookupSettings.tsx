@@ -18,6 +18,9 @@ import {
 } from "../../../components/ui/select";
 import { Input } from "../../../components/ui/input";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface AddressLookupSettingsProps {
   getSettingValue: (key: string) => string;
   handleUpdateSetting: (key: string, value: string) => Promise<void>;
@@ -38,14 +41,13 @@ const AddressLookupSettings: React.FC<AddressLookupSettingsProps> = ({
             Integração de Endereço (CEP)
           </CardTitle>
           <CardDescription>
-            Provedor usado para autocompletar endereços de Clientes a partir do
-            CEP.
+            {tr("uiText.settings.address.hint")}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="address-lookup-provider">
-              Provedor de Busca de CEP
+              {tr("uiText.settings.address.provider")}
             </Label>
             <Select
               value={provider}
@@ -63,7 +65,7 @@ const AddressLookupSettings: React.FC<AddressLookupSettingsProps> = ({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="address-lookup-base-url">URL Base da API</Label>
+            <Label htmlFor="address-lookup-base-url">{tr("uiText.settings.ai.baseUrl")}</Label>
             <Input
               id="address-lookup-base-url"
               placeholder="https://viacep.com.br/ws"
@@ -76,8 +78,7 @@ const AddressLookupSettings: React.FC<AddressLookupSettingsProps> = ({
               }
             />
             <p className="text-xs text-muted-foreground">
-              Usado pelo backend para autocompletar endereços de Clientes a
-              partir do CEP (nunca chamado diretamente pelo frontend).
+              {tr("uiText.settings.address.baseUrlHint")}
             </p>
           </div>
         </CardContent>

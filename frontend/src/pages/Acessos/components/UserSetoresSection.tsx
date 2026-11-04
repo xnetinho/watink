@@ -3,6 +3,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { SetorListItem, UserSetorVinculo } from "../acessosTypes";
 
+import { i18n } from "../../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface UserSetoresSectionProps {
   setores: SetorListItem[];
   vinculos: UserSetorVinculo[];
@@ -30,12 +33,12 @@ const UserSetoresSection: React.FC<UserSetoresSectionProps> = ({ setores, vincul
   };
 
   if (setores.length === 0) {
-    return <p className="text-sm text-muted-foreground">Nenhum setor cadastrado ainda.</p>;
+    return <p className="text-sm text-muted-foreground">{tr("uiText.acessos.noSetor")}</p>;
   }
 
   return (
     <div className="space-y-1.5">
-      <Label>Setores &amp; Gestão</Label>
+      <Label>{tr("uiText.acessos.setoresAndManagement")}</Label>
       <div className="space-y-1 rounded-xl bg-muted/40 p-2">
         {setores.map((setor) => {
           const checked = isChecked(setor.id);

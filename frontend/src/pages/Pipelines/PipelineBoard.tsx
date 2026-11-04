@@ -9,6 +9,9 @@ import { toast } from "react-toastify";
 import PipelineKanban from "./PipelineKanban";
 import PipelineFunnelView from "./PipelineFunnelView";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface Contact {
     name?: string;
 }
@@ -78,7 +81,7 @@ const PipelineBoard: React.FC = () => {
             }
             setLoading(false);
         } catch {
-            toast.error("Erro ao carregar pipeline");
+            toast.error(tr("uiText.pipelines.loadError"));
             setLoading(false);
         }
     };
@@ -109,7 +112,7 @@ const PipelineBoard: React.FC = () => {
                     pipelineId: Number(pipelineId),
                 });
             } catch {
-                toast.error("Erro ao mover card");
+                toast.error(tr("uiText.pipelines.moveError"));
                 fetchPipelineData();
             }
         }
@@ -128,7 +131,7 @@ const PipelineBoard: React.FC = () => {
             link.click();
             document.body.removeChild(link);
         } catch {
-            toast.error("Erro ao exportar");
+            toast.error(tr("uiText.pipelines.exportErrorShort"));
         }
     };
 
@@ -143,10 +146,10 @@ const PipelineBoard: React.FC = () => {
     if (!pipeline) {
         return (
             <div className="flex flex-col items-center justify-center h-full gap-4">
-                <p className="text-muted-foreground">Pipeline não encontrado</p>
+                <p className="text-muted-foreground">{tr("uiText.pipelines.notFound")}</p>
                 <Button variant="outline" onClick={() => navigate("/pipelines")}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar
+                    {tr("uiText.common.back")}
                 </Button>
             </div>
         );
@@ -197,7 +200,7 @@ const PipelineBoard: React.FC = () => {
                         className="text-muted-foreground hover:text-foreground"
                     >
                         <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                        Editar
+                        {tr("uiText.common.edit")}
                     </Button>
                     <Button variant="outline" size="sm" onClick={exportPipeline}>
                         <FileDown className="mr-1.5 h-3.5 w-3.5" />

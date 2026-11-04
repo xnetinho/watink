@@ -16,6 +16,9 @@ import {
 import api from "../../services/api";
 import { toast } from "react-toastify";
 
+import { i18n } from "../../translate/i18n";
+
+const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const COLORS = [
   "var(--status-info)",
   "var(--status-success)",
@@ -62,7 +65,7 @@ const HelpdeskReports: React.FC = () => {
         const { data: responseData } = await api.get("/protocols/dashboard");
         setData(responseData);
       } catch {
-        toast.error("Erro ao carregar relatórios");
+        toast.error(tr("uiText.helpdesk.reportsError"));
       } finally {
         setLoading(false);
       }
@@ -80,28 +83,18 @@ const HelpdeskReports: React.FC = () => {
   }
 
   const slaData = [
-    { name: "No Prazo", value: data.slaStatus.onTime },
-    { name: "Atrasado", value: data.slaStatus.overdue },
+    { name: tr("uiText.helpdesk.onTime"), value: data.slaStatus.onTime },
+    { name: tr("uiText.helpdesk.overdue"), value: data.slaStatus.overdue },
   ];
 
   const translateStatus = (status: string): string => {
-    const map: Record<string, string> = {
-      open: "Aberto",
-      in_progress: "Em Andamento",
-      resolved: "Resolvido",
-      closed: "Fechado",
-    };
-    return map[status] || status;
+    const known = ["open", "in_progress", "resolved", "closed"];
+    return known.includes(status) ? tr(`uiText.helpdesk.status.${status}`) : status;
   };
 
   const translatePriority = (priority: string): string => {
-    const map: Record<string, string> = {
-      low: "Baixa",
-      medium: "Média",
-      high: "Alta",
-      urgent: "Urgente",
-    };
-    return map[priority] || priority;
+    const known = ["low", "medium", "high", "urgent"];
+    return known.includes(priority) ? tr(`uiText.helpdesk.priority.${priority}`) : priority;
   };
 
   const formattedStatusData = data.statusCounts.map((item) => ({

@@ -8,17 +8,17 @@ export interface VirtualBackgroundConfig {
 export const PRESET_BACKGROUNDS = [
   {
     id: "office",
-    name: "Escritório Moderno",
+    name: "uiText.calls.backgroundNames.office",
     url: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=640&q=80",
   },
   {
     id: "meeting",
-    name: "Sala de Reunião",
+    name: "uiText.calls.backgroundNames.meeting",
     url: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=640&q=80",
   },
   {
     id: "books",
-    name: "Estante Clássica",
+    name: "uiText.calls.backgroundNames.books",
     url: "https://images.unsplash.com/photo-1507842229458-5776306e6e24?auto=format&fit=crop&w=640&q=80",
   },
 ] as const;
