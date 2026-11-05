@@ -150,14 +150,10 @@ func (sc *SessionController) RestartAllSessions(c *gin.Context) {
 func channelSessionToModel(s *domain.ChannelSession) models.Whatsapp {
 	return models.Whatsapp{
 		ID:                  s.ID,
-		Session:             s.Session,
 		Qrcode:              s.Qrcode,
 		Status:              s.Status,
-		Battery:             s.Battery,
-		Plugged:             s.Plugged,
 		Name:                s.Name,
 		IsDefault:           s.IsDefault,
-		Retries:             s.Retries,
 		GreetingMessage:     s.GreetingMessage,
 		FarewellMessage:     s.FarewellMessage,
 		TenantID:            s.TenantID,

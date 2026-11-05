@@ -255,9 +255,8 @@ func (wc *WhatsappController) UpdateWhatsapp(c *gin.Context) {
 		key string
 		val interface{}
 	}{
-		{"session", input.Session}, {"qrcode", input.Qrcode}, {"status", input.Status},
-		{"battery", input.Battery}, {"plugged", input.Plugged}, {"name", input.Name},
-		{"isDefault", input.IsDefault}, {"retries", input.Retries},
+		{"qrcode", input.Qrcode}, {"status", input.Status}, {"name", input.Name},
+		{"isDefault", input.IsDefault},
 		{"greetingMessage", input.GreetingMessage}, {"farewellMessage", input.FarewellMessage},
 		{"syncHistory", input.SyncHistory}, {"syncPeriod", input.SyncPeriod},
 		{"number", input.Number}, {"profilePicUrl", input.ProfilePicUrl},
