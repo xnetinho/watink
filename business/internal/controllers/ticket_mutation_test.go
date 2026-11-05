@@ -289,6 +289,7 @@ func TestRecoverHistory(t *testing.T) {
 	ticketRepo := repository.NewGORMTicketRepo(db)
 	updateUC := usecases.NewUpdateTicketUseCase(ticketRepo, &stubEventBus{}, nil, nil)
 	tc := NewTicketController(updateUC, nil, &stubMessageRepo{}, pub)
+	useWhatsAppChannel(pub)
 
 	// Seed whatsapp + contact with number + ticket
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}

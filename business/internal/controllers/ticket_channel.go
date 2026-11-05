@@ -25,3 +25,8 @@ func channelOf(db *gorm.DB, tenantID uuid.UUID, t models.Ticket) (conn models.Ch
 	ch, err = domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind))
 	return conn, ch, true, err
 }
+
+// channelOfConnection é channelOf para quem já tem o id da conexão (contatos), não um ticket.
+func channelOfConnection(db *gorm.DB, tenantID uuid.UUID, connID int) (conn models.ChannelConnection, ch domain.Channel, found bool, err error) {
+	return channelOf(db, tenantID, models.Ticket{WhatsappID: connID})
+}

@@ -18,6 +18,7 @@ import (
 func phoneRouter(db *gorm.DB, tenant uuid.UUID, pub *mockPublisher) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	ctrl := NewContactController(repository.NewGORMContactRepo(db), nil, pub, nil)
+	useWhatsAppChannel(pub)
 	r := gin.New()
 	r.Use(testScopedMiddleware(db, tenant.String()))
 	r.POST("/contacts", ctrl.CreateContact)

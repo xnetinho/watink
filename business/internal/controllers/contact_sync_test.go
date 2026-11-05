@@ -20,13 +20,19 @@ func TestContactController_SyncContact_EngineGo_PublishesCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// A sessão precisa existir de verdade: o envio resolve a conexão em ChannelConnections antes de publicar.
+	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
+		t.Fatal(err)
+	}
 	sessions := &MockChannelSessionRepo{}
 	sessions.On("FindAll", mock.Anything, tenantID).Return([]domain.ChannelSession{
-		{ID: 7, Status: "CONNECTED", EngineType: "whatsmeow", TenantID: tenantID},
+		{ID: wa.ID, Status: "CONNECTED", EngineType: "whatsmeow", TenantID: tenantID},
 	}, nil)
 	pub := &mockPublisher{}
 
 	ctrl := NewContactController(&MockContactRepo{db: db}, sessions, pub, nil)
+	useWhatsAppChannel(pub)
 
 	r := gin.New()
 	r.Use(testScopedMiddleware(db, tenantID.String()))
@@ -42,7 +48,7 @@ func TestContactController_SyncContact_EngineGo_PublishesCommand(t *testing.T) {
 	if !pub.called {
 		t.Fatal("publisher should be called for a whatsmeow (engine-go) session")
 	}
-	want := "wbot." + tenantID.String() + ".7.contact.sync"
+	want := "wbot." + tenantID.String() + "." + strconv.Itoa(wa.ID) + ".contact.sync"
 	if pub.routingKey != want {
 		t.Fatalf("routing key = %q, want %q", pub.routingKey, want)
 	}

@@ -228,6 +228,24 @@ type PresenceWatcher interface {
 	WatchPresence(ctx context.Context, conn *models.ChannelConnection, to string) error
 }
 
+// MediaDownloader pede ao canal o download de uma mídia recebida; o arquivo chega depois por evento (mediawait). Proto é o que o
+// canal gravou no recebimento (no WhatsApp, o mediaProto do dataJson).
+type MediaDownloader interface {
+	DownloadMedia(ctx context.Context, conn *models.ChannelConnection, messageID, mediaType, proto string) error
+}
+
+// HistoryRecoverer pede mensagens antigas da conversa. Params leva o que o canal precisa (chat, id e hora da mais antiga).
+type HistoryRecoverer interface {
+	RecoverHistory(ctx context.Context, conn *models.ChannelConnection, params map[string]interface{}) error
+}
+
+// ContactSyncer sincroniza contatos com a conta do canal: importa a agenda, atualiza um contato ou grava um na agenda.
+type ContactSyncer interface {
+	ImportContacts(ctx context.Context, conn *models.ChannelConnection) error
+	SyncContact(ctx context.Context, conn *models.ChannelConnection, number string) error
+	SaveContact(ctx context.Context, conn *models.ChannelConnection, number, name string) error
+}
+
 // ChannelRegistry gerencia os adaptadores de canais registrados no sistema.
 type ChannelRegistry struct {
 	mu       sync.RWMutex

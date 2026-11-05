@@ -5,18 +5,18 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/aiclient"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/cryptobox"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -168,20 +168,12 @@ func (mc *MessageController) resolveAudioBytes(ctx context.Context, msg *models.
 		return nil, "", fmt.Errorf("ticket não encontrado para esta mensagem")
 	}
 
-	command := map[string]interface{}{
-		"id":        uuid.New().String(),
-		"timestamp": time.Now().UnixMilli(),
-		"tenantId":  tenantID.String(),
-		"type":      "media.download",
-		"payload": map[string]interface{}{
-			"sessionId":  msg.Ticket.WhatsappID,
-			"messageId":  msg.ID,
-			"mediaType":  msg.MediaType,
-			"mediaProto": data.MediaProto,
-		},
+	conn, ch, found, cerr := channelOf(mc.db, tenantID, msg.Ticket)
+	downloader, can := ch.(domain.MediaDownloader)
+	if !found || cerr != nil || !can {
+		return nil, "", fmt.Errorf("o canal desta conversa não baixa mídia")
 	}
-	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(msg.Ticket.WhatsappID), wbot.CommandMediaDownload)
-	if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
+	if err := downloader.DownloadMedia(ctx, &conn, msg.ID, msg.MediaType, data.MediaProto); err != nil {
 		return nil, "", fmt.Errorf("falha ao solicitar download do áudio: %w", err)
 	}
 

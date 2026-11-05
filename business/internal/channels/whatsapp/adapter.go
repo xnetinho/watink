@@ -308,10 +308,13 @@ func (a *Adapter) command(conn *models.ChannelConnection, commandType string, pa
 func newMessageID() string { return "3EB0" + fmt.Sprintf("%016X", time.Now().UnixNano()) }
 
 var (
-	_ domain.Reactor         = (*Adapter)(nil)
-	_ domain.Editor          = (*Adapter)(nil)
-	_ domain.PollVoter       = (*Adapter)(nil)
-	_ domain.PresenceWatcher = (*Adapter)(nil)
+	_ domain.Reactor          = (*Adapter)(nil)
+	_ domain.Editor           = (*Adapter)(nil)
+	_ domain.PollVoter        = (*Adapter)(nil)
+	_ domain.PresenceWatcher  = (*Adapter)(nil)
+	_ domain.MediaDownloader  = (*Adapter)(nil)
+	_ domain.HistoryRecoverer = (*Adapter)(nil)
+	_ domain.ContactSyncer    = (*Adapter)(nil)
 )
 
 func (a *Adapter) React(_ context.Context, conn *models.ChannelConnection, to, targetMsgID string, targetFromMe bool, reaction string) error {
@@ -334,4 +337,26 @@ func (a *Adapter) VotePoll(_ context.Context, conn *models.ChannelConnection, ch
 
 func (a *Adapter) WatchPresence(_ context.Context, conn *models.ChannelConnection, to string) error {
 	return a.command(conn, wbot.CommandPresenceSubscribe, map[string]interface{}{"to": to})
+}
+
+func (a *Adapter) DownloadMedia(_ context.Context, conn *models.ChannelConnection, messageID, mediaType, proto string) error {
+	return a.command(conn, wbot.CommandMediaDownload, map[string]interface{}{
+		"messageId": messageID, "mediaType": mediaType, "mediaProto": proto,
+	})
+}
+
+func (a *Adapter) RecoverHistory(_ context.Context, conn *models.ChannelConnection, params map[string]interface{}) error {
+	return a.command(conn, wbot.CommandHistoryRecover, params)
+}
+
+func (a *Adapter) ImportContacts(_ context.Context, conn *models.ChannelConnection) error {
+	return a.command(conn, wbot.CommandContactImport, map[string]interface{}{})
+}
+
+func (a *Adapter) SyncContact(_ context.Context, conn *models.ChannelConnection, number string) error {
+	return a.command(conn, wbot.CommandContactSync, map[string]interface{}{"number": number})
+}
+
+func (a *Adapter) SaveContact(_ context.Context, conn *models.ChannelConnection, number, name string) error {
+	return a.command(conn, wbot.CommandContactSave, map[string]interface{}{"number": number, "name": name})
 }
