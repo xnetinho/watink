@@ -23,7 +23,7 @@ func resolveConnection(db *gorm.DB, tenantID uuid.UUID, source string, id int) (
 	switch source {
 	case domain.ConnectionSourceWhatsapp, "":
 		var w models.Whatsapp
-		if s.Select("id", "name", "status").Where(`id = ? AND "tenantId" = ?`, id, tenantID).First(&w).Error != nil {
+		if models.FirstWhatsapp(s.Where(`id = ? AND "tenantId" = ?`, id, tenantID), &w) != nil {
 			return resolvedConnection{}, false
 		}
 		return resolvedConnection{Ref: domain.WhatsappConnection(w.ID), Kind: string(domain.ChannelKindWhatsApp), Name: w.Name, Status: w.Status}, true

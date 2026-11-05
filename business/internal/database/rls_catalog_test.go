@@ -227,6 +227,16 @@ func routerOver(t *testing.T, app *sql.DB) *tenantdb.Router {
 	return r
 }
 
+// seedWhatsapp insere uma conexão WhatsApp (ChannelConnections + whatsapp_connection_details) e devolve o id.
+func seedWhatsapp(db *sql.DB, tenant uuid.UUID, name string) (int, error) {
+	var id int
+	if err := db.QueryRow(`INSERT INTO "ChannelConnections" ("tenantId", kind, name) VALUES ($1,'whatsapp',$2) RETURNING id`, tenant, name).Scan(&id); err != nil {
+		return 0, err
+	}
+	_, err := db.Exec(`INSERT INTO whatsapp_connection_details ("connectionId") VALUES ($1)`, id)
+	return id, err
+}
+
 // seedRow insere uma linha mínima com a empresa informada, preenchendo colunas NOT NULL sem default por tipo.
 func seedRow(db *sql.DB, table string, tenant uuid.UUID) error {
 	rows, err := db.Query(`
@@ -277,7 +287,7 @@ func seedRow(db *sql.DB, table string, tenant uuid.UUID) error {
 	return err
 }
 
-// O papel do engine só lê Whatsapps e WaVersionSettings: nenhuma outra tabela do negócio, nenhum DML e nenhum DDL em public.
+// O papel do engine só lê WaVersionSettings: nenhuma outra tabela do negócio, nenhum DML e nenhum DDL em public.
 func TestMigracao_PapelDoEngineTemPrivilegioMinimo(t *testing.T) {
 	raw := os.Getenv("TEST_DATABASE_URL")
 	if raw == "" {
@@ -290,7 +300,6 @@ func TestMigracao_PapelDoEngineTemPrivilegioMinimo(t *testing.T) {
 	engine := openAs(t, u, RoleEngine, testEnginePass, name)
 
 	var n int
-	require.NoError(t, engine.QueryRow(`SELECT count(*) FROM public."Whatsapps"`).Scan(&n), "SELECT em Whatsapps é permitido")
 	require.NoError(t, engine.QueryRow(`SELECT count(*) FROM public."WaVersionSettings"`).Scan(&n), "SELECT em WaVersionSettings é permitido")
 
 	for _, q := range []string{
@@ -298,8 +307,10 @@ func TestMigracao_PapelDoEngineTemPrivilegioMinimo(t *testing.T) {
 		`SELECT count(*) FROM public."Users"`,
 		`SELECT count(*) FROM public."Messages"`,
 		`SELECT count(*) FROM public."Contacts"`,
-		`UPDATE public."Whatsapps" SET name = name`,
-		`DELETE FROM public."Whatsapps"`,
+		`SELECT count(*) FROM public."ChannelConnections"`,
+		`SELECT count(*) FROM public.whatsapp_connection_details`,
+		`UPDATE public."ChannelConnections" SET name = name`,
+		`DELETE FROM public."ChannelConnections"`,
 		`UPDATE public."WaVersionSettings" SET mode = mode`,
 		`SELECT count(*) FROM public."InstancePolicies"`,
 		`CREATE TABLE public.intruso (i int)`,

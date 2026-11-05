@@ -37,7 +37,7 @@ func TestSendMessageTextJSON(t *testing.T) {
 
 	// Seed whatsapp + contact + ticket
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
@@ -138,7 +138,7 @@ func TestReactToMessage(t *testing.T) {
 	mc := NewMessageController(pub, nil, nil)
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
@@ -289,7 +289,7 @@ func TestSendMessage_ReplyCarriesQuotedMessage(t *testing.T) {
 	mc := NewMessageController(pub, nil, nil)
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
@@ -390,7 +390,7 @@ func TestListMessages_ReturnsQuotedMessageObject(t *testing.T) {
 	tenantID := uuid.New()
 	mc := NewMessageController(&stubPublisher{}, nil, nil)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	_ = db.Create(&wa).Error
+	_ = models.CreateWhatsapp(db, &wa)
 	contact := models.Contact{Name: "Maria", Number: "5511999999999", TenantID: tenantID}
 	_ = db.Create(&contact).Error
 	ticket := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID}
@@ -436,7 +436,7 @@ func TestListMessages_QuotedFromAnotherTenantIsNotLeaked(t *testing.T) {
 	tenantA, tenantB := uuid.New(), uuid.New()
 	mc := NewMessageController(&stubPublisher{}, nil, nil)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantA, Status: "CONNECTED"}
-	_ = db.Create(&wa).Error
+	_ = models.CreateWhatsapp(db, &wa)
 	contact := models.Contact{Name: "Maria", Number: "5511999999999", TenantID: tenantA}
 	_ = db.Create(&contact).Error
 	ticket := models.Ticket{Status: "open", TenantID: tenantA, ContactID: contact.ID, WhatsappID: wa.ID}
@@ -478,7 +478,7 @@ func TestSendMessage_Reply_EventCarriesTheQuotedMessage(t *testing.T) {
 	mc := NewMessageController(pub, bc, nil)
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
@@ -526,7 +526,7 @@ func TestSendMessage_Reply_OneToOneUsesChatAddressAndQuotedText(t *testing.T) {
 	mc := NewMessageController(pub, nil, nil)
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
 	lid := "217407117332513@lid"

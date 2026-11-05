@@ -94,7 +94,6 @@ func (sc *SessionController) StopSession(c *gin.Context) {
 	// O objeto foi lido ANTES da gravação: sem isto o evento levava o status antigo (CONNECTED) e a tela de Conexões
 	// ficava "conectada" até um Ctrl+F5.
 	session.Status = "DISCONNECTED"
-	session.Qrcode = ""
 
 	if err := sc.sessionService.StopWhatsAppSession(channelSessionToModel(session)); err != nil {
 		utils.RespondWithFriendlyOrInternalError(c, err, "StopWhatsAppSession")
@@ -150,7 +149,6 @@ func (sc *SessionController) RestartAllSessions(c *gin.Context) {
 func channelSessionToModel(s *domain.ChannelSession) models.Whatsapp {
 	return models.Whatsapp{
 		ID:                  s.ID,
-		Qrcode:              s.Qrcode,
 		Status:              s.Status,
 		Name:                s.Name,
 		IsDefault:           s.IsDefault,

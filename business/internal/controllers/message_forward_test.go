@@ -180,7 +180,7 @@ func TestForward_EntreCanaisDiferentesERecusado(t *testing.T) {
 	from := e.newTicket(t, "chat-A")
 	id := e.seedMessage(t, from, "m1", "10", "oi", "", "")
 	wa := models.Whatsapp{Name: "wa", TenantID: e.tenantID, Status: "CONNECTED"}
-	require.NoError(t, e.db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(e.db, &wa))
 	ct := models.Contact{Name: "Zé", Number: "5511999", TenantID: e.tenantID, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
 	require.NoError(t, e.db.Create(&ct).Error)
 
@@ -259,7 +259,7 @@ func TestListTickets_FiltroPorCanalParaDestinoDeEncaminhamento(t *testing.T) {
 	e := newSendEnv(t)
 	tg := e.newTicket(t, "chat-A")
 	wa := models.Whatsapp{Name: "wa", TenantID: e.tenantID, Status: "CONNECTED"}
-	require.NoError(t, e.db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(e.db, &wa))
 	ct := models.Contact{Name: "Zé", Number: "5511999", TenantID: e.tenantID}
 	require.NoError(t, e.db.Create(&ct).Error)
 	require.NoError(t, e.db.Create(&models.Ticket{TenantID: e.tenantID, ContactID: ct.ID, WhatsappID: wa.ID, Status: "open"}).Error)

@@ -56,8 +56,8 @@ func (mc *MessageController) ReactToMessage(c *gin.Context) {
 	}
 
 	var whatsapp models.Whatsapp
-	if err := db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", target.Ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
+	if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).
+		Where("id = ? AND \"tenantId\" = ?", target.Ticket.WhatsappID, tenantID), &whatsapp); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
 		return
 	}

@@ -40,7 +40,7 @@ func (mc *MessageController) SubscribePresence(c *gin.Context) {
 		return
 	}
 	var wa models.Whatsapp
-	if err := db.Session(&gorm.Session{NewDB: true}).Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&wa).Error; err != nil {
+	if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID), &wa); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
 		return
 	}

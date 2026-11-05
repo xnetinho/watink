@@ -155,7 +155,7 @@ func (tc *TicketController) CreateTicket(c *gin.Context) {
 // resposta de erro já foi escrita.
 func (tc *TicketController) resolveConnection(c *gin.Context, q func() *gorm.DB, tenantID uuid.UUID, userID int, requested *int) (int, bool) {
 	var connected []models.Whatsapp
-	if err := q().Where(`"tenantId" = ? AND status = ?`, tenantID, "CONNECTED").Order("id").Find(&connected).Error; err != nil {
+	if err := models.FindWhatsapps(q().Where(`"tenantId" = ? AND status = ?`, tenantID, "CONNECTED").Order("id"), &connected); err != nil {
 		utils.RespondWithInternalError(c, err, "CreateTicket")
 		return 0, false
 	}

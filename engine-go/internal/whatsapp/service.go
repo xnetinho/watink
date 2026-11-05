@@ -163,7 +163,7 @@ func (s *WhatsAppService) defaultPublishEvent(tenantID string, sessionID int, ev
 }
 
 // BuildPostgresDSN monta a conexão do engine. O papel do engine (watink_engine) é dono do schema "whatsmeow" e só tem
-// SELECT em public."Whatsapps"; o search_path o aponta para o schema próprio, onde a biblioteca cria e usa as suas
+// SELECT em public."WaVersionSettings"; o search_path o aponta para o schema próprio, onde a biblioteca cria e usa as suas
 // tabelas (ela não qualifica nomes). DB_SEARCH_PATH vazio mantém o comportamento antigo (public), para testes.
 func BuildPostgresDSN() string {
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",

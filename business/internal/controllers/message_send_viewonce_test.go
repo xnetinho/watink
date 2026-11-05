@@ -54,7 +54,7 @@ func TestSendMessage_ViewOnce(t *testing.T) {
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, nil, nil)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
 	require.NoError(t, db.Create(&contact).Error)
 	ticket := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID}

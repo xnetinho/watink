@@ -139,7 +139,6 @@ func allModels() []interface{} {
 		&models.ActivityMaterial{},
 		&models.ActivityOccurrence{},
 		&models.OutboxEvent{},
-		&models.Whatsapp{},
 		&models.ChannelConnection{},
 		&models.WhatsAppConnectionDetails{},
 		&models.Queue{},

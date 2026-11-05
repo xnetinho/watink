@@ -197,9 +197,8 @@ func (pgc *ProxyGroupController) Delete(c *gin.Context) {
 	}
 	// Detach connections pointing at the group — o grupo deixa de existir, então
 	// 'none' é o único fallback possível (não há pool para herdar).
-	if err := db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
-		Where(`"proxyGroupId" = ? AND "tenantId" = ?`, id, tenantID).
-		Updates(map[string]interface{}{"proxyGroupId": nil, "proxyMode": "none", "proxyId": nil}).Error; err != nil {
+	if err := models.UpdateWhatsappDetailsWhere(db, tenantID, `"proxyGroupId" = ?`, []interface{}{id},
+		map[string]interface{}{"proxyGroupId": nil, "proxyMode": "none", "proxyId": nil}); err != nil {
 		utils.RespondWithInternalError(c, err, "DetachConnectionsFromGroup")
 		return
 	}

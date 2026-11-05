@@ -126,7 +126,7 @@ func TestStream_ChatRoomRespectsTicketVisibility(t *testing.T) {
 	tenant, other := uuid.New(), uuid.New()
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	contact := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&contact).Error)
 	user := models.User{Name: "Ana", Email: "ana@t.io", TenantID: tenant, Alcance: "proprio"}
@@ -139,7 +139,7 @@ func TestStream_ChatRoomRespectsTicketVisibility(t *testing.T) {
 	foreignContact := models.Contact{Name: "F", Number: "5511999990002", TenantID: other}
 	require.NoError(t, db.Create(&foreignContact).Error)
 	foreignWa := models.Whatsapp{Name: "WB", TenantID: other, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&foreignWa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &foreignWa))
 	foreign := models.Ticket{Status: "open", ContactID: foreignContact.ID, WhatsappID: foreignWa.ID, TenantID: other}
 	require.NoError(t, db.Create(&foreign).Error)
 
@@ -162,7 +162,7 @@ func TestStream_TenantScopeSeesAllTicketsOfOwnTenantOnly(t *testing.T) {
 	tenant, other := uuid.New(), uuid.New()
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	contact := models.Contact{Name: "C", Number: "5511999990003", TenantID: tenant}
 	require.NoError(t, db.Create(&contact).Error)
 	tk := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: wa.ID, TenantID: tenant}
@@ -170,7 +170,7 @@ func TestStream_TenantScopeSeesAllTicketsOfOwnTenantOnly(t *testing.T) {
 	fc := models.Contact{Name: "F", Number: "5511999990004", TenantID: other}
 	require.NoError(t, db.Create(&fc).Error)
 	fwa := models.Whatsapp{Name: "WB", TenantID: other, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&fwa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &fwa))
 	ft := models.Ticket{Status: "open", ContactID: fc.ID, WhatsappID: fwa.ID, TenantID: other}
 	require.NoError(t, db.Create(&ft).Error)
 

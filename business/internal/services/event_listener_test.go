@@ -29,7 +29,7 @@ func seedWhatsapp(t *testing.T, db *gorm.DB, id int, tenantID uuid.UUID) {
 		Status:   "CONNECTED",
 		TenantID: tenantID,
 	}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatalf("seedWhatsapp: %v", err)
 	}
 }
@@ -69,7 +69,9 @@ func TestHandleQrCode_UpdatesWhatsapp(t *testing.T) {
 	}
 
 	var wa models.Whatsapp
-	db.First(&wa, 1)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &wa); err != nil {
+		t.Fatal(err)
+	}
 	if wa.Status != "QRCODE" {
 		t.Errorf("expected status QRCODE, got %s", wa.Status)
 	}
@@ -97,7 +99,9 @@ func TestHandleSessionStatus_UpdatesStatus(t *testing.T) {
 	}
 
 	var wa models.Whatsapp
-	db.First(&wa, 2)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 2), &wa); err != nil {
+		t.Fatal(err)
+	}
 	if wa.Status != "DISCONNECTED" {
 		t.Errorf("expected status DISCONNECTED, got %s", wa.Status)
 	}
@@ -130,7 +134,7 @@ func TestHandleSessionStatus_BannedIsolatesProxy(t *testing.T) {
 		t.Fatalf("seed proxy: %v", err)
 	}
 	wa := models.Whatsapp{ID: 3, Name: "s3", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatalf("seed wa: %v", err)
 	}
 
@@ -146,7 +150,9 @@ func TestHandleSessionStatus_BannedIsolatesProxy(t *testing.T) {
 		t.Fatalf("expected proxy isolated after ban, got %q", reloaded.Status)
 	}
 	var wre models.Whatsapp
-	db.First(&wre, 3)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 3), &wre); err != nil {
+		t.Fatal(err)
+	}
 	if wre.Status != "BANNED" {
 		t.Fatalf("expected connection BANNED, got %q", wre.Status)
 	}
@@ -164,7 +170,7 @@ func TestHandleSessionRisk_463IsolatesProxy(t *testing.T) {
 		t.Fatalf("seed proxy: %v", err)
 	}
 	wa := models.Whatsapp{ID: 5, Name: "s5", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatalf("seed wa: %v", err)
 	}
 
@@ -189,7 +195,9 @@ func TestHandleSessionRisk_401DoesNotIsolateProxy(t *testing.T) {
 	proxy := models.Proxy{TenantID: tenantID, Scheme: "http", Host: "h", Port: 8080, Status: "active"}
 	db.Create(&proxy)
 	wa := models.Whatsapp{ID: 6, Name: "s6", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
-	db.Create(&wa)
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
+		t.Fatal(err)
+	}
 
 	el := &EventListener{sessions: sessions, db: db}
 	payload, _ := json.Marshal(SessionRiskPayload{SessionID: 6, Action: "profile.picture", Code: 401, Message: "info query returned status 401: not-authorized"})
@@ -218,7 +226,9 @@ func TestHandleSessionRisk_PersistsLastRiskFields(t *testing.T) {
 	}
 
 	var wa models.Whatsapp
-	db.First(&wa, 7)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 7), &wa); err != nil {
+		t.Fatal(err)
+	}
 	if wa.LastRiskCode != 463 {
 		t.Errorf("LastRiskCode = %d, want 463", wa.LastRiskCode)
 	}
@@ -245,7 +255,9 @@ func TestHandleSessionStatus_DisconnectKeepsProxyActive(t *testing.T) {
 	proxy := models.Proxy{TenantID: tenantID, Scheme: "http", Host: "h", Port: 8080, Status: "active"}
 	db.Create(&proxy)
 	wa := models.Whatsapp{ID: 4, Name: "s4", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
-	db.Create(&wa)
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
+		t.Fatal(err)
+	}
 
 	el := &EventListener{sessions: sessions, db: db}
 	payload, _ := json.Marshal(map[string]string{"sessionId": "4", "status": "DISCONNECTED"})
@@ -274,7 +286,9 @@ func TestHandlePairingCode_UpdatesStatus(t *testing.T) {
 	}
 
 	var wa models.Whatsapp
-	db.First(&wa, 3)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 3), &wa); err != nil {
+		t.Fatal(err)
+	}
 	if wa.Status != "PAIRING" {
 		t.Errorf("expected status PAIRING, got %s", wa.Status)
 	}
@@ -293,7 +307,9 @@ func TestHandlePairingCode_DefaultStatus(t *testing.T) {
 	}
 
 	var wa models.Whatsapp
-	db.First(&wa, 4)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 4), &wa); err != nil {
+		t.Fatal(err)
+	}
 	if wa.Status != "QRCODE" {
 		t.Errorf("expected default status QRCODE, got %s", wa.Status)
 	}

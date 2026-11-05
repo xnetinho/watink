@@ -39,7 +39,7 @@ func newWorld(t *testing.T) *world {
 	w := &world{db: db, tenant: uuid.New(), other: uuid.New(), users: map[string]models.User{}}
 	mkWA := func(tenant uuid.UUID, name string) models.Whatsapp {
 		wa := models.Whatsapp{Name: name + tenant.String(), TenantID: tenant, Status: "CONNECTED"}
-		require.NoError(t, db.Create(&wa).Error)
+		require.NoError(t, models.CreateWhatsapp(db, &wa))
 		return wa
 	}
 	w.waA, w.waB, w.waX = mkWA(w.tenant, "A"), mkWA(w.tenant, "B"), mkWA(w.other, "X")
@@ -48,7 +48,7 @@ func newWorld(t *testing.T) *world {
 	qB := models.Queue{Name: "Fila B", Color: "#222", TenantID: w.tenant}
 	require.NoError(t, db.Create(&qA).Error)
 	require.NoError(t, db.Create(&qB).Error)
-	require.NoError(t, db.Exec(`INSERT INTO whatsapp_queues (whatsapp_id, queue_id) VALUES (?, ?), (?, ?)`, w.waA.ID, qA.ID, w.waB.ID, qB.ID).Error)
+	require.NoError(t, db.Exec(`INSERT INTO channel_connection_queues (channel_connection_id, queue_id) VALUES (?, ?), (?, ?)`, w.waA.ID, qA.ID, w.waB.ID, qB.ID).Error)
 
 	w.users["admin"] = mkUser(t, db, w.tenant, "admin", "tenant", nil)
 	w.users["plataforma"] = mkUser(t, db, w.tenant, "plataforma", "plataforma", nil)

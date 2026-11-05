@@ -68,7 +68,7 @@ func (cc *ChannelConnectionController) ListConnections(c *gin.Context) {
 
 	var conns []models.ChannelConnection
 	writeDB := db.Session(&gorm.Session{NewDB: true})
-	if err := writeDB.Where("\"tenantId\" = ?", tenantID).Find(&conns).Error; err != nil {
+	if err := writeDB.Where("\"tenantId\" = ? AND kind <> ?", tenantID, models.KindWhatsApp).Find(&conns).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "ListChannelConnections")
 		return
 	}
@@ -91,7 +91,7 @@ func (cc *ChannelConnectionController) GetConnection(c *gin.Context) {
 
 	var conn models.ChannelConnection
 	writeDB := db.Session(&gorm.Session{NewDB: true})
-	if err := writeDB.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&conn).Error; err != nil {
+	if err := writeDB.Where("id = ? AND \"tenantId\" = ? AND kind <> ?", id, tenantID, models.KindWhatsApp).First(&conn).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
 			return
@@ -119,6 +119,12 @@ func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.RespondWithBindError(c, err)
+		return
+	}
+
+	// shortcut: o WhatsApp só é criado e lido por /whatsapp até o frontend migrar (fatia 5 da migração); depois esta recusa sai.
+	if input.Kind == models.KindWhatsApp {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "kind whatsapp must be created through /whatsapp"})
 		return
 	}
 
@@ -179,7 +185,7 @@ func (cc *ChannelConnectionController) UpdateConnection(c *gin.Context) {
 
 	var conn models.ChannelConnection
 	writeDB := db.Session(&gorm.Session{NewDB: true})
-	if err := writeDB.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&conn).Error; err != nil {
+	if err := writeDB.Where("id = ? AND \"tenantId\" = ? AND kind <> ?", id, tenantID, models.KindWhatsApp).First(&conn).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
 			return
@@ -233,7 +239,7 @@ func (cc *ChannelConnectionController) DeleteConnection(c *gin.Context) {
 
 	var conn models.ChannelConnection
 	writeDB := db.Session(&gorm.Session{NewDB: true})
-	if err := writeDB.Where("id = ? AND \"tenantId\" = ?", id, tenantID).First(&conn).Error; err != nil {
+	if err := writeDB.Where("id = ? AND \"tenantId\" = ? AND kind <> ?", id, tenantID, models.KindWhatsApp).First(&conn).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
 			return

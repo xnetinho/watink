@@ -39,7 +39,7 @@ func (wp *WebchatPlugin) OnActivate(core sdk.WatinkCore) error {
 		}
 		db = db.Session(&gorm.Session{NewDB: true})
 		var whatsapp models.Whatsapp
-		if err := db.Where(`id = ? AND "tenantId" = ?`, whatsappId, tenantID).First(&whatsapp).Error; err != nil {
+		if err := models.FirstWhatsapp(db.Where(`id = ? AND "tenantId" = ?`, whatsappId, tenantID), &whatsapp); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Webchat not found"})
 			return
 		}
@@ -71,7 +71,7 @@ func (wp *WebchatPlugin) OnActivate(core sdk.WatinkCore) error {
 		}
 
 		var whatsapp models.Whatsapp
-		if err := db.Where(`id = ? AND "tenantId" = ?`, whatsappId, tenantID).First(&whatsapp).Error; err != nil {
+		if err := models.FirstWhatsapp(db.Where(`id = ? AND "tenantId" = ?`, whatsappId, tenantID), &whatsapp); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Webchat not found"})
 			return
 		}

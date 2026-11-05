@@ -142,7 +142,6 @@ func (u *User) CheckPassword(password string) bool {
 // ChannelSession represents a session with a messaging channel (WhatsApp, Telegram, etc.)
 type ChannelSession struct {
 	ID                  int        `json:"id"`
-	Qrcode              string     `json:"qrcode"`
 	Status              string     `json:"status"`
 	Name                string     `json:"name"`
 	IsDefault           bool       `json:"isDefault"`

@@ -15,7 +15,7 @@ func campaignFixture(t *testing.T, db *gorm.DB, connectedStatus string) (models.
 	t.Helper()
 	tenantID := uuid.New()
 	w := models.Whatsapp{TenantID: tenantID, Name: "conn-" + uuid.New().String()[:8], Number: "5511999990000", Status: connectedStatus}
-	require.NoError(t, db.Create(&w).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &w))
 
 	c := models.GroupCampaign{
 		TenantID:          tenantID,

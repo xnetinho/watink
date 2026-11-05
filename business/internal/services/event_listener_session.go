@@ -21,7 +21,6 @@ func (el *EventListener) handleQrCode(ctx context.Context, payload json.RawMessa
 
 	sessionID := getSessionID(p.SessionID)
 	if err := sessions.Update(ctx, &domain.ChannelSession{ID: sessionID, TenantID: tenantID}, map[string]interface{}{
-		"qrcode": p.QrCode,
 		"status": "QRCODE",
 	}); err != nil {
 		log.Printf("Error updating qrcode/status for session %d: %v", sessionID, err)
@@ -63,7 +62,7 @@ func (el *EventListener) handleSessionStatus(ctx context.Context, payload json.R
 	}
 
 	sessionID := getSessionID(p.SessionID)
-	updates := map[string]interface{}{"status": p.Status, "qrcode": ""}
+	updates := map[string]interface{}{"status": p.Status}
 	if p.Number != "" {
 		updates["number"] = p.Number
 	}
@@ -103,8 +102,8 @@ func (el *EventListener) isolateConnectionProxy(ctx context.Context, sessionID i
 		return
 	}
 	var w models.Whatsapp
-	if err := el.db.WithContext(ctx).
-		Where(`id = ? AND "tenantId" = ?`, sessionID, tenantID).First(&w).Error; err != nil {
+	if err := models.FirstWhatsapp(el.db.WithContext(ctx).
+		Where(`id = ? AND "tenantId" = ?`, sessionID, tenantID), &w); err != nil {
 		log.Printf("[EventListener] BANNED: conexão %d não encontrada para isolar proxy: %v", sessionID, err)
 		return
 	}

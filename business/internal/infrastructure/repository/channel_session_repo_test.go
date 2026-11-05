@@ -25,7 +25,7 @@ func seedChannelSession(t *testing.T, db *gorm.DB, tenantID uuid.UUID, name stri
 		Status:   "CONNECTED",
 		TenantID: tenantID,
 	}
-	require.NoError(t, db.Create(w).Error)
+	require.NoError(t, models.CreateWhatsapp(db, w))
 	return w
 }
 
@@ -179,11 +179,11 @@ func TestGORMChannelSessionRepo_ResetDefaultFlag(t *testing.T) {
 
 	// Criar sessão com isDefault=true
 	w := &models.Whatsapp{Name: "Default Session", Status: "CONNECTED", TenantID: tenantA, IsDefault: true}
-	require.NoError(t, db.Create(w).Error)
+	require.NoError(t, models.CreateWhatsapp(db, w))
 
 	// Verificar que está como default
 	var before models.Whatsapp
-	require.NoError(t, db.First(&before, w.ID).Error)
+	require.NoError(t, models.FirstWhatsapp(db.Where("id = ?", w.ID), &before))
 	assert.True(t, before.IsDefault)
 
 	// ResetDefaultFlag
@@ -191,7 +191,7 @@ func TestGORMChannelSessionRepo_ResetDefaultFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	var after models.Whatsapp
-	require.NoError(t, db.First(&after, w.ID).Error)
+	require.NoError(t, models.FirstWhatsapp(db.Where("id = ?", w.ID), &after))
 	assert.False(t, after.IsDefault, "ResetDefaultFlag deve setar isDefault=false")
 }
 
@@ -199,9 +199,6 @@ func TestGORMChannelSessionRepo_DeleteWithRelations(t *testing.T) {
 	db := setupChannelSessionTestDB(t)
 	// Precisamos das tabelas de Ticket, User, Flow e da join table WhatsappQueues
 	require.NoError(t, db.AutoMigrate(&models.Contact{}, &models.Ticket{}, &models.User{}, &models.Flow{}, &models.Queue{}))
-	// Tabela de junção em snake_case (whatsapp_queues), igual ao schema de runtime
-	// criado pelo many2many do GORM e usada pelo DeleteWithRelations via raw Exec.
-	require.NoError(t, db.Exec(`CREATE TABLE IF NOT EXISTS whatsapp_queues (whatsapp_id integer, queue_id integer, PRIMARY KEY (whatsapp_id, queue_id))`).Error)
 
 	tenantA := uuid.New()
 	require.NoError(t, db.Create(&TenantTest{ID: tenantA, Name: "A"}).Error)

@@ -98,8 +98,8 @@ func (qac *QuickAnswerController) Send(c *gin.Context) {
 	commandType, payload := flow.BuildQuickAnswerCommand(qaType, message, contentMap, sessionID, msgID, to)
 
 	var whatsapp models.Whatsapp
-	if err := db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
+	if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).
+		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID), &whatsapp); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
 		return
 	}

@@ -26,7 +26,7 @@ func TestSendMessage_AudioKind(t *testing.T) {
 		pub := &stubPublisher{}
 		mc := NewMessageController(pub, &captureBroadcaster{}, nil)
 		wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
-		require.NoError(t, db.Create(&wa).Error)
+		require.NoError(t, models.CreateWhatsapp(db, &wa))
 		ct := models.Contact{Name: "C", Number: "5511", TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
 		require.NoError(t, db.Create(&ct).Error)
 		tk := models.Ticket{TenantID: tenant, ContactID: ct.ID, WhatsappID: wa.ID, Status: "open"}
@@ -80,7 +80,7 @@ func TestForward_AudioMantemSeEhGravacaoOuArquivo(t *testing.T) {
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, &captureBroadcaster{}, nil)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	mk := func(num string) (models.Contact, models.Ticket) {
 		c := models.Contact{Name: num, Number: num, TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
 		require.NoError(t, db.Create(&c).Error)
@@ -142,7 +142,7 @@ func TestSendMessage_DocumentoEnviaONomeOriginalEEncaminhaComOMesmoNome(t *testi
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, &captureBroadcaster{}, nil)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	mk := func(num string) (models.Contact, models.Ticket) {
 		c := models.Contact{Name: num, Number: num, TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
 		require.NoError(t, db.Create(&c).Error)
@@ -203,7 +203,7 @@ func TestForward_AudioKindEscolhidoPeloOperador(t *testing.T) {
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, &captureBroadcaster{}, nil)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	mk := func(num string) (models.Contact, models.Ticket) {
 		c := models.Contact{Name: num, Number: num, TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
 		require.NoError(t, db.Create(&c).Error)

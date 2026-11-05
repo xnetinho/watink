@@ -49,8 +49,12 @@ func TestProxyDelete_GroupModeStaysFailClosed(t *testing.T) {
 	}
 	wGroup := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "g1", ProxyMode: "group", ProxyGroupID: &grp.ID, ProxyID: &px.ID}
 	wSingle := models.Whatsapp{ID: 2, TenantID: tenantID, Name: "s1", ProxyMode: "single", ProxyID: &px.ID}
-	db.Create(&wGroup)
-	db.Create(&wSingle)
+	if err := models.CreateWhatsapp(db, &wGroup); err != nil {
+		t.Fatal(err)
+	}
+	if err := models.CreateWhatsapp(db, &wSingle); err != nil {
+		t.Fatal(err)
+	}
 
 	c, w := setupProxyCtx(t, db, tenantID, "DELETE", "/proxies/"+strconv.Itoa(px.ID), strconv.Itoa(px.ID))
 	NewProxyController().Delete(c)
@@ -59,8 +63,12 @@ func TestProxyDelete_GroupModeStaysFailClosed(t *testing.T) {
 	}
 
 	var g, s models.Whatsapp
-	db.First(&g, 1)
-	db.First(&s, 2)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &g); err != nil {
+		t.Fatal(err)
+	}
+	if err := models.FirstWhatsapp(db.Where("id = ?", 2), &s); err != nil {
+		t.Fatal(err)
+	}
 	// group: preserva modo+grupo, zera só proxyId → pickGroupProxy re-escolhe (fail-closed)
 	if g.ProxyMode != "group" || g.ProxyGroupID == nil {
 		t.Fatalf("conexão group perdeu o modo (FAIL-OPEN): mode=%q grp=%v", g.ProxyMode, g.ProxyGroupID)
@@ -84,7 +92,9 @@ func TestProxyGroupDelete_PersistsAndDetaches(t *testing.T) {
 	px := models.Proxy{TenantID: tenantID, Scheme: "http", Host: "h", Port: 1, Status: "active", ProxyGroupID: &grp.ID}
 	db.Create(&px)
 	wConn := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "g1", ProxyMode: "group", ProxyGroupID: &grp.ID, ProxyID: &px.ID}
-	db.Create(&wConn)
+	if err := models.CreateWhatsapp(db, &wConn); err != nil {
+		t.Fatal(err)
+	}
 
 	c, w := setupProxyCtx(t, db, tenantID, "DELETE", "/proxy-groups/"+strconv.Itoa(grp.ID), strconv.Itoa(grp.ID))
 	NewProxyGroupController().Delete(c)
@@ -103,7 +113,9 @@ func TestProxyGroupDelete_PersistsAndDetaches(t *testing.T) {
 		t.Fatalf("proxy deveria estar desvinculado")
 	}
 	var cn models.Whatsapp
-	db.First(&cn, 1)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &cn); err != nil {
+		t.Fatal(err)
+	}
 	if cn.ProxyGroupID != nil || cn.ProxyMode != "none" {
 		t.Fatalf("conexão deveria estar desvinculada: grp=%v mode=%q", cn.ProxyGroupID, cn.ProxyMode)
 	}
@@ -116,7 +128,9 @@ func TestConnectionGroupDelete_PersistsAndDetaches(t *testing.T) {
 	cg := models.ConnectionGroup{TenantID: tenantID, Name: "cg"}
 	db.Create(&cg)
 	wConn := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "c1", ConnectionGroupID: &cg.ID}
-	db.Create(&wConn)
+	if err := models.CreateWhatsapp(db, &wConn); err != nil {
+		t.Fatal(err)
+	}
 
 	c, w := setupProxyCtx(t, db, tenantID, "DELETE", "/connection-groups/"+strconv.Itoa(cg.ID), strconv.Itoa(cg.ID))
 	NewConnectionGroupController().Delete(c)
@@ -130,7 +144,9 @@ func TestConnectionGroupDelete_PersistsAndDetaches(t *testing.T) {
 		t.Fatalf("connection group NÃO foi deletado (bug NewDB)")
 	}
 	var cn models.Whatsapp
-	db.First(&cn, 1)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &cn); err != nil {
+		t.Fatal(err)
+	}
 	if cn.ConnectionGroupID != nil {
 		t.Fatalf("conexão deveria estar desvinculada")
 	}

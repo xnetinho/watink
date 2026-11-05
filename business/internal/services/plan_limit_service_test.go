@@ -203,7 +203,7 @@ func seedWhatsapps(t *testing.T, db *gorm.DB, tenantID uuid.UUID, n int) {
 	t.Helper()
 	for i := 0; i < n; i++ {
 		w := models.Whatsapp{Name: "wa-" + uuid.New().String(), TenantID: tenantID}
-		if err := db.Create(&w).Error; err != nil {
+		if err := models.CreateWhatsapp(db, &w); err != nil {
 			t.Fatalf("seed whatsapp: %v", err)
 		}
 	}

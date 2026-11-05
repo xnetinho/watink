@@ -232,9 +232,7 @@ func (p *Provider) pickGroupProxy(ctx context.Context, whatsapp models.Whatsapp)
 		if px.ID == 0 {
 			return fmt.Errorf("nenhum proxy ativo disponível no grupo %d para a conexão %d", group.ID, whatsapp.ID)
 		}
-		return tx.Model(&models.Whatsapp{}).
-			Where(`id = ? AND "tenantId" = ?`, whatsapp.ID, whatsapp.TenantID).
-			Update("proxyId", px.ID).Error
+		return models.UpdateWhatsapp(tx, whatsapp.TenantID, whatsapp.ID, map[string]interface{}{"proxyId": px.ID})
 	})
 	if txErr != nil {
 		return nil, fmt.Errorf("falha ao selecionar/persistir proxy do grupo %d para a conexão %d: %w", group.ID, whatsapp.ID, txErr)

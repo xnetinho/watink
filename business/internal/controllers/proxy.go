@@ -486,15 +486,13 @@ func (pc *ProxyController) Delete(c *gin.Context) {
 	// - group:  proxyId guarda só o pick sticky atual → zerar SÓ proxyId;
 	//   preservar proxyMode='group'+proxyGroupId para o pickGroupProxy re-escolher
 	//   no próximo start. Flipar pra 'none' aqui vazaria o IP do servidor.
-	if err := db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
-		Where(`"proxyId" = ? AND "tenantId" = ? AND "proxyMode" = ?`, id, tenantID, "single").
-		Updates(map[string]interface{}{"proxyId": nil, "proxyMode": "none"}).Error; err != nil {
+	if err := models.UpdateWhatsappDetailsWhere(db, tenantID, `"proxyId" = ? AND "proxyMode" = ?`, []interface{}{id, "single"},
+		map[string]interface{}{"proxyId": nil, "proxyMode": "none"}); err != nil {
 		utils.RespondWithInternalError(c, err, "DetachProxySingle")
 		return
 	}
-	if err := db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
-		Where(`"proxyId" = ? AND "tenantId" = ? AND "proxyMode" = ?`, id, tenantID, "group").
-		Update("proxyId", nil).Error; err != nil {
+	if err := models.UpdateWhatsappDetailsWhere(db, tenantID, `"proxyId" = ? AND "proxyMode" = ?`, []interface{}{id, "group"},
+		map[string]interface{}{"proxyId": nil}); err != nil {
 		utils.RespondWithInternalError(c, err, "DetachProxyGroup")
 		return
 	}
@@ -667,9 +665,8 @@ func (pc *ProxyController) DeleteAll(c *gin.Context) {
 		return
 	}
 	// Detach any connection that referenced a proxy (single or group).
-	if err := db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
-		Where(`"tenantId" = ? AND "proxyMode" <> ?`, tenantID, "none").
-		Updates(map[string]interface{}{"proxyId": nil, "proxyGroupId": nil, "proxyMode": "none"}).Error; err != nil {
+	if err := models.UpdateWhatsappDetailsWhere(db, tenantID, `"proxyMode" <> ?`, []interface{}{"none"},
+		map[string]interface{}{"proxyId": nil, "proxyGroupId": nil, "proxyMode": "none"}); err != nil {
 		utils.RespondWithInternalError(c, err, "DetachAllProxies")
 		return
 	}

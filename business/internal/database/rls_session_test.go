@@ -40,9 +40,8 @@ func TestStartWhatsAppSession_ComRLSReal(t *testing.T) {
 	tenant := uuid.New()
 	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
 	require.NoError(t, err)
-	require.NoError(t, seedRow(admin, "Whatsapps", tenant))
-	var id int
-	require.NoError(t, admin.QueryRow(`SELECT id FROM "Whatsapps" WHERE "tenantId" = $1`, tenant).Scan(&id))
+	id, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
 
 	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
 	require.NoError(t, err)
@@ -55,7 +54,7 @@ func TestStartWhatsAppSession_ComRLSReal(t *testing.T) {
 	assert.Len(t, pub.keys, 1, "o comando session.start precisa chegar ao broker")
 
 	var status string
-	require.NoError(t, admin.QueryRow(`SELECT status FROM "Whatsapps" WHERE id = $1`, id).Scan(&status))
+	require.NoError(t, admin.QueryRow(`SELECT status FROM "ChannelConnections" WHERE id = $1`, id).Scan(&status))
 	assert.Equal(t, "OPENING", status)
 
 }
@@ -67,9 +66,8 @@ func TestHandlePollVote_ComRLSReal(t *testing.T) {
 	tenant := uuid.New()
 	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
 	require.NoError(t, err)
-	require.NoError(t, seedRow(admin, "Whatsapps", tenant))
-	var waID int
-	require.NoError(t, admin.QueryRow(`SELECT id FROM "Whatsapps" WHERE "tenantId" = $1`, tenant).Scan(&waID))
+	waID, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
 	require.NoError(t, seedRow(admin, "Contacts", tenant))
 	var contactID int
 	require.NoError(t, admin.QueryRow(`SELECT id FROM "Contacts" WHERE "tenantId" = $1`, tenant).Scan(&contactID))
@@ -118,8 +116,11 @@ func TestEngineReady_RestauraSessaoComAPoliticaDePresenca(t *testing.T) {
 	tenant := uuid.New()
 	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
 	require.NoError(t, err)
-	require.NoError(t, seedRow(admin, "Whatsapps", tenant))
-	_, err = admin.Exec(`UPDATE "Whatsapps" SET status='CONNECTED', "presencePolicy"='always', "presenceIdleMinutes"=17 WHERE "tenantId"=$1`, tenant)
+	waID, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
+	_, err = admin.Exec(`UPDATE "ChannelConnections" SET status='CONNECTED' WHERE id=$1`, waID)
+	require.NoError(t, err)
+	_, err = admin.Exec(`UPDATE whatsapp_connection_details SET "presencePolicy"='always', "presenceIdleMinutes"=17 WHERE "connectionId"=$1`, waID)
 	require.NoError(t, err)
 
 	router, err := tenantdb.NewRouter(app, system) // restaurar sessões descobre as empresas pelo pool de sistema
@@ -150,15 +151,11 @@ func TestTicketConnectionIdentity_ComRLSReal(t *testing.T) {
 	for _, tn := range []uuid.UUID{a, b} {
 		_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'T','active',now(),now())`, tn)
 		require.NoError(t, err)
-		require.NoError(t, seedRow(admin, "Whatsapps", tn))
 	}
-	_, err := admin.Exec(`UPDATE "Whatsapps" SET name='Conexao A' WHERE "tenantId"=$1`, a)
+	waA, err := seedWhatsapp(admin, a, "Conexao A")
 	require.NoError(t, err)
-	_, err = admin.Exec(`UPDATE "Whatsapps" SET name='Conexao B (segredo)' WHERE "tenantId"=$1`, b)
+	waB, err := seedWhatsapp(admin, b, "Conexao B (segredo)")
 	require.NoError(t, err)
-	var waA, waB int
-	require.NoError(t, admin.QueryRow(`SELECT id FROM "Whatsapps" WHERE "tenantId"=$1`, a).Scan(&waA))
-	require.NoError(t, admin.QueryRow(`SELECT id FROM "Whatsapps" WHERE "tenantId"=$1`, b).Scan(&waB))
 
 	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
 	require.NoError(t, err)
@@ -265,7 +262,8 @@ func TestMessageEdits_ComRLSReal(t *testing.T) {
 	for _, tn := range []uuid.UUID{a, b} {
 		_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'T','active',now(),now())`, tn)
 		require.NoError(t, err)
-		require.NoError(t, seedRow(admin, "Whatsapps", tn))
+		_, err = seedWhatsapp(admin, tn, "W-"+tn.String())
+		require.NoError(t, err)
 		require.NoError(t, seedRow(admin, "Contacts", tn))
 		require.NoError(t, seedRow(admin, "Tickets", tn))
 		var tk int
@@ -317,7 +315,8 @@ func TestMessageReceipts_ComRLSReal(t *testing.T) {
 	for _, tn := range []uuid.UUID{a, b} {
 		_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'T','active',now(),now())`, tn)
 		require.NoError(t, err)
-		require.NoError(t, seedRow(admin, "Whatsapps", tn))
+		_, err = seedWhatsapp(admin, tn, "W-"+tn.String())
+		require.NoError(t, err)
 		require.NoError(t, seedRow(admin, "Contacts", tn))
 		require.NoError(t, seedRow(admin, "Tickets", tn))
 		var tk int

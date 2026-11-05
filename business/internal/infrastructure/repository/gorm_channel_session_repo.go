@@ -27,9 +27,7 @@ func NewGORMChannelSessionRepo(db *gorm.DB) *GORMChannelSessionRepository {
 // Mantém retorno enxuto (sem relations carregadas).
 func (r *GORMChannelSessionRepository) FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*domain.ChannelSession, error) {
 	var m models.Whatsapp
-	err := r.db.WithContext(ctx).
-		Where("id = ? AND \"tenantId\" = ?", id, tenantID).
-		First(&m).Error
+	err := models.FirstWhatsapp(r.db.WithContext(ctx).Where("id = ? AND \"tenantId\" = ?", id, tenantID), &m)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -43,14 +41,14 @@ func (r *GORMChannelSessionRepository) FindByID(ctx context.Context, id int, ten
 // Usado no endpoint de detalhe enriquecido.
 func (r *GORMChannelSessionRepository) FindByIDDetail(ctx context.Context, id int, tenantID uuid.UUID) (*models.Whatsapp, error) {
 	var m models.Whatsapp
-	err := r.db.WithContext(ctx).
-		Preload("Queues").
-		Where("id = ? AND \"tenantId\" = ?", id, tenantID).
-		First(&m).Error
+	err := models.FirstWhatsapp(r.db.WithContext(ctx).Where("id = ? AND \"tenantId\" = ?", id, tenantID), &m)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
+		return nil, err
+	}
+	if err := models.LoadWhatsappQueues(r.db.WithContext(ctx), &m); err != nil {
 		return nil, err
 	}
 	return &m, nil
@@ -59,10 +57,7 @@ func (r *GORMChannelSessionRepository) FindByIDDetail(ctx context.Context, id in
 // FindAll returns all channel sessions under tenantID.
 func (r *GORMChannelSessionRepository) FindAll(ctx context.Context, tenantID uuid.UUID) ([]domain.ChannelSession, error) {
 	var ms []models.Whatsapp
-	err := r.db.WithContext(ctx).
-		Where("\"tenantId\" = ?", tenantID).
-		Find(&ms).Error
-	if err != nil {
+	if err := models.FindWhatsapps(r.db.WithContext(ctx).Where("\"tenantId\" = ?", tenantID).Order("id"), &ms); err != nil {
 		return nil, err
 	}
 	sessions := make([]domain.ChannelSession, len(ms))
@@ -79,7 +74,7 @@ func (r *GORMChannelSessionRepository) FindAll(ctx context.Context, tenantID uui
 // HTTP e o JSON sai com ID=0.
 func (r *GORMChannelSessionRepository) Create(ctx context.Context, session *domain.ChannelSession) error {
 	m := channelSessionDomainToModel(session)
-	if err := r.db.WithContext(ctx).Create(m).Error; err != nil {
+	if err := models.CreateWhatsapp(r.db.WithContext(ctx), m); err != nil {
 		return err
 	}
 	session.ID = m.ID
@@ -90,24 +85,19 @@ func (r *GORMChannelSessionRepository) Create(ctx context.Context, session *doma
 
 // Update applies a partial update on the session identified by session.ID + session.TenantID.
 func (r *GORMChannelSessionRepository) Update(ctx context.Context, session *domain.ChannelSession, fields map[string]interface{}) error {
-	return r.db.WithContext(ctx).
-		Model(&models.Whatsapp{}).
-		Where("id = ? AND \"tenantId\" = ?", session.ID, session.TenantID).
-		Updates(fields).Error
+	return models.UpdateWhatsapp(r.db.WithContext(ctx), session.TenantID, session.ID, fields)
 }
 
 // Delete removes the channel session with the given id under tenantID.
 func (r *GORMChannelSessionRepository) Delete(ctx context.Context, id int, tenantID uuid.UUID) error {
-	return r.db.WithContext(ctx).
-		Where("id = ? AND \"tenantId\" = ?", id, tenantID).
-		Delete(&models.Whatsapp{}).Error
+	return models.DeleteWhatsapp(r.db.WithContext(ctx), tenantID, id)
 }
 
 // ResetDefaultFlag sets isDefault=false for all sessions under tenantID.
 func (r *GORMChannelSessionRepository) ResetDefaultFlag(ctx context.Context, tenantID uuid.UUID) error {
 	return r.db.WithContext(ctx).
-		Model(&models.Whatsapp{}).
-		Where("\"tenantId\" = ?", tenantID).
+		Model(&models.ChannelConnection{}).
+		Where("\"tenantId\" = ? AND kind = ?", tenantID, models.KindWhatsApp).
 		Update("isDefault", false).Error
 }
 
@@ -132,16 +122,7 @@ func (r *GORMChannelSessionRepository) DeleteWithRelations(ctx context.Context, 
 			return err
 		}
 
-		if err := tx.Exec("DELETE FROM whatsapp_queues WHERE whatsapp_id = ?", id).Error; err != nil {
-			return err
-		}
-
-		if err := tx.Where("id = ? AND \"tenantId\" = ?", id, tenantID).
-			Delete(&models.Whatsapp{}).Error; err != nil {
-			return err
-		}
-
-		return nil
+		return models.DeleteWhatsapp(tx, tenantID, id)
 	})
 }
 
@@ -150,7 +131,6 @@ func (r *GORMChannelSessionRepository) DeleteWithRelations(ctx context.Context, 
 func whatsappModelToDomain(m *models.Whatsapp) *domain.ChannelSession {
 	return &domain.ChannelSession{
 		ID:                  m.ID,
-		Qrcode:              m.Qrcode,
 		Status:              m.Status,
 		Name:                m.Name,
 		IsDefault:           m.IsDefault,
@@ -185,7 +165,6 @@ func whatsappModelToDomain(m *models.Whatsapp) *domain.ChannelSession {
 func channelSessionDomainToModel(d *domain.ChannelSession) *models.Whatsapp {
 	return &models.Whatsapp{
 		ID:                  d.ID,
-		Qrcode:              d.Qrcode,
 		Status:              d.Status,
 		Name:                d.Name,
 		IsDefault:           d.IsDefault,

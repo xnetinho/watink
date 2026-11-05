@@ -194,8 +194,8 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 	}
 
 	var whatsapp models.Whatsapp
-	if err := db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID).First(&whatsapp).Error; err != nil {
+	if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).
+		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID), &whatsapp); err != nil {
 		return res, false, &deliverFailure{status: http.StatusNotFound, msg: "Connection not found"}
 	}
 

@@ -86,7 +86,7 @@ func (s *PlanLimitService) CheckLimit(tenantID uuid.UUID, resource string) error
 	case "users":
 		return s.checkCount(tenantID, resource, plan.UsersLimit, &models.User{})
 	case "connections":
-		return s.checkCount(tenantID, resource, plan.ConnectionsLimit, &models.Whatsapp{})
+		return s.checkCount(tenantID, resource, plan.ConnectionsLimit, &models.ChannelConnection{})
 	case "queues":
 		return s.checkCount(tenantID, resource, plan.QueuesLimit, &models.Queue{})
 	}

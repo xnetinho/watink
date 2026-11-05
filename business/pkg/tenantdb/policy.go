@@ -34,7 +34,6 @@ var Children = map[string]Child{
 	"user_setores":              {"userId", "Users", "id"},
 	"user_queues":               {"user_id", "Users", "id"},
 	"channel_connection_queues": {"channel_connection_id", "ChannelConnections", "id"},
-	"whatsapp_queues":           {"whatsapp_id", "Whatsapps", "id"},
 	"whatsapp_connection_details": {"connectionId", "ChannelConnections", "id"},
 }
 

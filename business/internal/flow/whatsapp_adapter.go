@@ -103,8 +103,8 @@ func (a *WhatsAppAdapter) sendInternal(ctx context.Context, msg OutboundMessage)
 	var engine domain.WhatsAppEngine
 	if a.deps.DB != nil && a.deps.Engines != nil {
 		sid, _ := strconv.Atoi(msg.SessionID)
-		if err := a.deps.DB.Session(&gorm.Session{NewDB: true}).
-			Where(`id = ? AND "tenantId" = ?`, sid, msg.TenantID).First(&whatsapp).Error; err == nil {
+		if err := models.FirstWhatsapp(a.deps.DB.Session(&gorm.Session{NewDB: true}).
+			Where(`id = ? AND "tenantId" = ?`, sid, msg.TenantID), &whatsapp); err == nil {
 			engine, _ = a.deps.Engines.EngineFor(whatsapp)
 			if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
 				a.applyHumanPacing(ctx, engine, whatsapp, msg)

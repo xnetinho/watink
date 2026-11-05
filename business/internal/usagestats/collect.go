@@ -39,7 +39,7 @@ func Collect(db *gorm.DB, tenantID uuid.UUID) (TenantUsage, error) {
 	if err := db.Model(&models.User{}).Where(`"tenantId" = ?`, tenantID).Count(&usage.Users).Error; err != nil {
 		return usage, err
 	}
-	if err := db.Model(&models.Whatsapp{}).Where(`"tenantId" = ?`, tenantID).Count(&usage.Connections).Error; err != nil {
+	if err := db.Model(&models.ChannelConnection{}).Where(`"tenantId" = ?`, tenantID).Count(&usage.Connections).Error; err != nil {
 		return usage, err
 	}
 	if err := db.Model(&models.Queue{}).Where(`"tenantId" = ?`, tenantID).Count(&usage.Queues).Error; err != nil {
