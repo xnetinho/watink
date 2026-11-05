@@ -2,16 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"net/http"
-	"strconv"
-	"time"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // DownloadMedia triggers an on-demand download of a pending media message. The
@@ -55,21 +52,17 @@ func (mc *MessageController) DownloadMedia(c *gin.Context) {
 		return
 	}
 
-	command := map[string]interface{}{
-		"id":        uuid.New().String(),
-		"timestamp": time.Now().UnixMilli(),
-		"tenantId":  tenantID.String(),
-		"type":      "media.download",
-		"payload": map[string]interface{}{
-			"sessionId":  msg.Ticket.WhatsappID,
-			"messageId":  msg.ID,
-			"mediaType":  msg.MediaType,
-			"mediaProto": data.MediaProto,
-		},
+	conn, ch, found, cerr := channelOf(db, tenantID, msg.Ticket)
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
+		return
 	}
-
-	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(msg.Ticket.WhatsappID), wbot.CommandMediaDownload)
-	if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
+	downloader, can := ch.(domain.MediaDownloader)
+	if cerr != nil || !can {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "media is not downloadable"})
+		return
+	}
+	if err := downloader.DownloadMedia(c.Request.Context(), &conn, msg.ID, msg.MediaType, data.MediaProto); err != nil {
 		utils.RespondWithInternalError(c, err, "DownloadMedia")
 		return
 	}

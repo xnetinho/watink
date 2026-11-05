@@ -20,6 +20,7 @@ func importRouter(t *testing.T, db *gorm.DB, tenantID uuid.UUID) (*gin.Engine, *
 	gin.SetMode(gin.TestMode)
 	pub := &mockPublisher{}
 	ctrl := NewContactController(&MockContactRepo{db: db}, nil, pub, nil)
+	useWhatsAppChannel(pub)
 	r := gin.New()
 	r.Use(testScopedMiddleware(db, tenantID.String()))
 	r.POST("/contacts/import", ctrl.ImportContacts)

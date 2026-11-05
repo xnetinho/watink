@@ -1,16 +1,14 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // @Summary      Criar contato
@@ -111,12 +109,15 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 	}
 
 	if toPhone && contact.PhoneSync == "pending" {
-		cmd := map[string]interface{}{
-			"id": uuid.New().String(), "timestamp": time.Now().UnixMilli(), "tenantId": tenantID.String(), "type": wbot.CommandContactSave,
-			"payload": map[string]interface{}{"sessionId": conn.Ref.ID, "number": number, "name": name},
+		cconn, ch, found, cerr := channelOfConnection(db, tenantID, conn.Ref.ID)
+		syncer, can := ch.(domain.ContactSyncer)
+		saveErr := cerr
+		if !found || !can {
+			saveErr = fmt.Errorf("channel cannot save contacts")
+		} else if saveErr == nil {
+			saveErr = syncer.SaveContact(c.Request.Context(), &cconn, number, name)
 		}
-		key := wbot.Command(tenantID.String(), strconv.Itoa(conn.Ref.ID), wbot.CommandContactSave)
-		if err := cc.publisher.PublishCommand(key, cmd); err != nil {
+		if err := saveErr; err != nil {
 			contact.PhoneSync, contact.PhoneSyncError = "failed", "publish_failed"
 			_ = cc.contactRepo.Update(c.Request.Context(), contact, map[string]interface{}{"phoneSync": contact.PhoneSync, "phoneSyncError": contact.PhoneSyncError})
 		}

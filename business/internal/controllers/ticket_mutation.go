@@ -1,17 +1,16 @@
 package controllers
 
 import (
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/application/usecases"
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -189,15 +188,17 @@ func (tc *TicketController) RecoverHistory(c *gin.Context) {
 		payload["oldestMsgTimestamp"] = oldest.CreatedAt.Unix()
 	}
 
-	command := map[string]interface{}{
-		"id":        uuid.New().String(),
-		"timestamp": time.Now().UnixMilli(),
-		"tenantId":  tenantID.String(),
-		"type":      "history.recover",
-		"payload":   payload,
+	conn, ch, found, cerr := channelOf(db, tenantID, ticket)
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
+		return
 	}
-	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), wbot.CommandHistoryRecover)
-	if err := tc.publisher.PublishCommand(routingKey, command); err != nil {
+	recoverer, can := ch.(domain.HistoryRecoverer)
+	if cerr != nil || !can {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "history_not_supported"})
+		return
+	}
+	if err := recoverer.RecoverHistory(c.Request.Context(), &conn, payload); err != nil {
 		utils.RespondWithInternalError(c, err, "RecoverHistory")
 		return
 	}

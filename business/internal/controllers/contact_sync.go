@@ -1,17 +1,12 @@
 package controllers
 
 import (
-	"fmt"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // @Summary      Importar contatos do WhatsApp
@@ -47,17 +42,13 @@ func (cc *ContactController) ImportContacts(c *gin.Context) {
 		return
 	}
 
-	command := map[string]interface{}{
-		"id":        uuid.New().String(),
-		"timestamp": time.Now().UnixMilli(),
-		"tenantId":  tenantID.String(),
-		"type":      "contact.import",
-		"payload": map[string]interface{}{
-			"sessionId": conn.Ref.ID,
-		},
+	cconn, ch, found, cerr := channelOfConnection(db, tenantID, conn.Ref.ID)
+	syncer, can := ch.(domain.ContactSyncer)
+	if !found || cerr != nil || !can {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "contact_import_not_supported"})
+		return
 	}
-	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(conn.Ref.ID), wbot.CommandContactImport)
-	if err := cc.publisher.PublishCommand(routingKey, command); err != nil {
+	if err := syncer.ImportContacts(c.Request.Context(), &cconn); err != nil {
 		utils.RespondWithInternalError(c, err, "ImportContacts")
 		return
 	}
@@ -76,7 +67,7 @@ func (cc *ContactController) ImportContacts(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /contacts/{contactId}/sync [post]
 func (cc *ContactController) SyncContact(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Contacts")
+	db, tenantID, ok := auth.GetScoped(c, "Contacts")
 	if !ok {
 		return
 	}
@@ -112,18 +103,13 @@ func (cc *ContactController) SyncContact(c *gin.Context) {
 		return
 	}
 
-	command := map[string]interface{}{
-		"id":        uuid.New().String(),
-		"timestamp": time.Now().UnixMilli(),
-		"tenantId":  tenantID.String(),
-		"type":      "contact.sync",
-		"payload": map[string]interface{}{
-			"sessionId": fmt.Sprintf("%d", session.ID),
-			"number":    contact.Number,
-		},
+	cconn, ch, found, cerr := channelOfConnection(db, tenantID, session.ID)
+	syncer, can := ch.(domain.ContactSyncer)
+	if !found || cerr != nil || !can {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "contact_sync_not_supported"})
+		return
 	}
-	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(session.ID), wbot.CommandContactSync)
-	if err := cc.publisher.PublishCommand(routingKey, command); err != nil {
+	if err := syncer.SyncContact(c.Request.Context(), &cconn, contact.Number); err != nil {
 		utils.RespondWithInternalError(c, err, "SyncContact")
 		return
 	}
