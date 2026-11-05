@@ -39,7 +39,7 @@ Fica para depois (Parte 2): **ler as favoritas dos celulares** e uni-las à bibl
 
 ## Backlog
 
-Ordem acordada: A, B, E, F (C encerrado, D entregue).
+Ordem acordada: A, B, E, F (C encerrado, D entregue). G (múltiplas bibliotecas WhatsApp) anotado em 5/nov/2026, sem ordem definida.
 
 **Entregue / encerrado**
 
@@ -61,3 +61,18 @@ Ordem acordada: A, B, E, F (C encerrado, D entregue).
 2. **B. Enviar mídia como visualização única** (painel de arrastar e soltar, como no WhatsApp Web): hoje só existe a recepção. Falta botão de olho por mídia, campo `viewOnce` no envio e `ViewOnce=true` em `buildMediaMessage`; aproveitar para expor sticker no painel. Decidir antes como a mensagem aparece para nós depois de enviada e se vale para áudio. Risco: o aparelho vinculado pode não ter esse comportamento; validar com a conexão 2 antes de entregar.
 3. **E. Migração `Whatsapps` → `ChannelConnections`.** `models.Whatsapp` em 38 arquivos de produção, `WhatsappID` em 52, tabela `"Whatsapps"` em 21; 63 arquivos de teste e 65 no frontend (`whatsappId`). Fatias verticais, sem coexistência, suíte inteira verde em cada uma. Alto risco de regressão: começa por um desenho das fatias.
 4. **F. Voz** (ver `backlog-voz-transcricao-sintese.md`): transcrição, síntese e chamadas automatizadas pelo flowbuilder; exige estudar os dois repositórios MIT e desacoplar `internal/calls` e `internal/voip`. Primeiro PR: estudo de viabilidade.
+5. **G. Múltiplas bibliotecas de conexão WhatsApp** (anotado a pedido do usuário em 5/nov/2026; nada estudado nem implementado). Hoje a única biblioteca é o `whatsmeow` (Go), usado só no `engine-go`; `business` e `contracts` não o importam. Adicionar:
+   - **zapo** (https://github.com/vinikjkkj/zapo): implementação TypeScript do protocolo do WhatsApp Web, pacote `zapo-js`, Node >= 20.9, API estável desde a 1.0.0 (SemVer). Multi-sessão e alta escala; stores opcionais (SQLite, Redis, Postgres, MySQL, Mongo); mídia opcional via `@zapo-js/media-utils` (precisa de `ffmpeg` e `ffprobe`); acelerador criptográfico opcional em Rust/WASM.
+   - **whatsapp-rust** (https://github.com/oxidezap/whatsapp-rust): biblioteca assíncrona em Rust, crate `whatsapp-rust` (0.7), pareamento por QR e por código, mensagens, mídia, reações, recibos, histórico, grupos, comunidades, canais, status, e chamadas de voz e vídeo (1:1 e em grupo; recurso `voip` opcional). Armazenamento, transporte e runtime substituíveis. Inspirada no `whatsmeow` e no Baileys.
+   - Ambas são clientes **não oficiais**: o README da `whatsapp-rust` avisa que o uso pode violar os Termos da Meta e levar à suspensão da conta. O mesmo risco já vale para o `whatsmeow`.
+
+   **O que já existe no código para apoiar isso:** o `business` fala com o engine por RabbitMQ pelo contrato `contracts/wbot` (comandos `session.start`, `message.send.*`, `media.download`, etc., e eventos `message.received`, `message.ack`, `message.media`, ...), mais a API HTTP interna do engine (grupos, comunidades, versão). Um engine novo, em outra linguagem, entra como outro consumidor desse contrato, sem tocar no `business`. A escolha por conexão já tem base: `Whatsapp.EngineType` (padrão `whatsmeow`) e `WhatsAppSessionService.engineFor`, que acha o provedor registrado para o tipo e falha com `nenhum provedor registrado para engineType ...` se não houver. O `whatsmeow` via `engine-go` é hoje o único provedor registrado.
+
+   **Perguntas a decidir antes de desenhar (não decididas):**
+   1. A escolha da biblioteca é **por conexão** (um número em `whatsmeow`, outro em `zapo`) ou **por instalação**? Por conexão exige o roteamento por `engineType` até o consumidor certo e uma política de qual engine assume cada sessão.
+   2. **Estado de sessão.** Cada biblioteca guarda chaves e sessões no seu formato. Trocar a biblioteca de um número já pareado provavelmente exige **parear de novo** (ler o QR de novo). Não há como migrar a sessão do `whatsmeow`; precisa ser confirmado.
+   3. **Paridade de recursos.** O `whatsmeow` já cobre o que o Watink usa (recibos com horário, edição, visualização única, enquetes, mídia com metadados, figurinhas, chamadas de voz, versão do cliente). Cada recurso novo exigiria conferir se a biblioteca o oferece e como; o que faltar vira "não suportado nesta biblioteca", como já é no Telegram.
+   4. **Operação.** O engine novo é outro binário (Node ou Rust) com outra imagem, outro consumo de memória e outros logs. A conversão de mídia (`ffmpeg`) hoje vive no `engine-go`; decidir se o engine novo reusa o mesmo código ou tem o seu.
+   5. **Teste.** Falta um conjunto de testes do contrato que rode contra **qualquer** engine, para provar a paridade em vez de supô-la. O `wbot_contract_test.go` cobre só a forma das mensagens.
+
+   **Primeiro passo sugerido:** um estudo de viabilidade (como o do item F), por biblioteca, mapeando cada comando e evento do `contracts/wbot` para a API dela e listando o que falta. Sem decidir implementação antes dele.
