@@ -168,9 +168,16 @@ func (wc *WhatsappController) CreateWhatsapp(c *gin.Context) {
 		}
 	}
 
+	queueIDs := input.QueueIDs
 	if err := wc.sessionRepo.Create(c.Request.Context(), &input); err != nil {
 		utils.RespondWithInternalError(c, err, "CreateWhatsapp")
 		return
+	}
+	if len(queueIDs) > 0 {
+		if err := models.SetWhatsappConnectionQueues(db, tenantID, input.ID, queueIDs); err != nil {
+			utils.RespondWithInternalError(c, err, "CreateWhatsappQueues")
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, input)
@@ -285,6 +292,13 @@ func (wc *WhatsappController) UpdateWhatsapp(c *gin.Context) {
 			return
 		}
 		fields["connectionGroupId"] = input.ConnectionGroupID
+	}
+
+	if _, sent := raw["queueIds"]; sent {
+		if err := models.SetWhatsappConnectionQueues(db, tenantID, id, input.QueueIDs); err != nil {
+			utils.RespondWithInternalError(c, err, "UpdateWhatsappQueues")
+			return
+		}
 	}
 
 	if len(fields) == 0 {

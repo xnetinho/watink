@@ -254,3 +254,23 @@ func SetWhatsappQueues(db *gorm.DB, tenantID uuid.UUID, queueID int, whatsappIDs
 			queueID, whatsappIDs, tenantID, KindWhatsApp).Error
 	})
 }
+
+// SetWhatsappConnectionQueues troca as filas de UMA conexão pelas informadas (só filas da mesma empresa).
+func SetWhatsappConnectionQueues(db *gorm.DB, tenantID uuid.UUID, whatsappID int, queueIDs []int) error {
+	return fresh(db).Transaction(func(tx *gorm.DB) error {
+		var owned int64
+		if err := tx.Model(&ChannelConnection{}).Where(`id = ? AND "tenantId" = ? AND kind = ?`, whatsappID, tenantID, KindWhatsApp).Count(&owned).Error; err != nil || owned == 0 {
+			return err
+		}
+		if err := tx.Exec(`DELETE FROM channel_connection_queues WHERE channel_connection_id = ?`, whatsappID).Error; err != nil {
+			return err
+		}
+		if len(queueIDs) == 0 {
+			return nil
+		}
+		return tx.Exec(
+			`INSERT INTO channel_connection_queues (channel_connection_id, queue_id)
+			 SELECT ?, id FROM "Queues" WHERE id IN ? AND "tenantId" = ? ON CONFLICT DO NOTHING`,
+			whatsappID, queueIDs, tenantID).Error
+	})
+}
