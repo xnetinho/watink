@@ -205,6 +205,29 @@ type Channel interface {
 	ParseInbound(ctx context.Context, conn *models.ChannelConnection, raw []byte, headers map[string]string) ([]InboundMessage, error)
 }
 
+// Operações opcionais do canal, além de Send. Cada canal implementa só as que suporta; quem precisa de uma pergunta ao canal
+// com type assertion e responde 422 quando ele não a tem, em vez de fingir que fez.
+
+// Reactor reage a uma mensagem. Reaction vazia remove a reação.
+type Reactor interface {
+	React(ctx context.Context, conn *models.ChannelConnection, to, targetMsgID string, targetFromMe bool, reaction string) error
+}
+
+// Editor edita o texto (ou a legenda) de uma mensagem já enviada.
+type Editor interface {
+	Edit(ctx context.Context, conn *models.ChannelConnection, to, targetMsgID, body, mediaType string) error
+}
+
+// PollVoter vota em uma enquete recebida. Sender é quem a enviou (o segredo da enquete é guardado por ele).
+type PollVoter interface {
+	VotePoll(ctx context.Context, conn *models.ChannelConnection, chat, pollID, pollSender string, pollFromMe bool, options []string) error
+}
+
+// PresenceWatcher passa a receber a presença (online, digitando) de um contato.
+type PresenceWatcher interface {
+	WatchPresence(ctx context.Context, conn *models.ChannelConnection, to string) error
+}
+
 // ChannelRegistry gerencia os adaptadores de canais registrados no sistema.
 type ChannelRegistry struct {
 	mu       sync.RWMutex

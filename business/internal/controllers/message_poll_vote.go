@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -84,8 +84,10 @@ func (mc *MessageController) VotePoll(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "a mensagem não é uma enquete"})
 		return
 	}
-	// Só o WhatsApp vota: o Telegram só entrega a enquete como texto aqui.
-	if target.Ticket.ChannelConnectionID != nil || target.Ticket.WhatsappID == 0 {
+	// Só vota quem o canal deixa: o Telegram só entrega a enquete como texto aqui.
+	conn, ch, found, cerr := channelOf(db, tenantID, target.Ticket)
+	voter, can := ch.(domain.PollVoter)
+	if !found || cerr != nil || !can {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "votar só é possível em enquetes do WhatsApp"})
 		return
 	}
@@ -99,13 +101,6 @@ func (mc *MessageController) VotePoll(c *gin.Context) {
 		return
 	}
 
-	var wa models.Whatsapp
-	if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", target.Ticket.WhatsappID, tenantID), &wa); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
-		return
-	}
-
 	// O whatsmeow guardou o segredo da enquete com o JID com que ela chegou (LID em conversa 1:1; participante em grupo).
 	// O participant gravado pode ser o telefone resolvido, que não acha o segredo: em 1:1 vale o JID do chat.
 	chat := contactJID(target.Ticket.Contact)
@@ -113,19 +108,7 @@ func (mc *MessageController) VotePoll(c *gin.Context) {
 	if target.Ticket.Contact.IsGroup && target.Participant != "" {
 		sender = target.Participant
 	}
-	command := map[string]interface{}{
-		"type": "message.vote.poll",
-		"payload": map[string]interface{}{
-			"sessionId":  target.Ticket.WhatsappID,
-			"chat":       chat,
-			"pollId":     target.ID,
-			"pollSender": sender,
-			"pollFromMe": target.FromMe,
-			"options":    input.Options,
-		},
-	}
-	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(target.Ticket.WhatsappID), wbot.CommandMessagePollVote)
-	if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
+	if err := voter.VotePoll(c.Request.Context(), &conn, chat, target.ID, sender, target.FromMe, input.Options); err != nil {
 		utils.RespondWithInternalError(c, err, "VotePoll")
 		return
 	}

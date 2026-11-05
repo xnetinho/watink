@@ -291,3 +291,47 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 	// Mensagens de entrada do WhatsApp chegam via AMQP/EventListener e são convertidas via MessagePayloadToInboundMessage
 	return nil, nil
 }
+
+// command publica um comando do engine para esta conexão. Falha se o adaptador não tem publisher.
+func (a *Adapter) command(conn *models.ChannelConnection, commandType string, payload map[string]interface{}) error {
+	if a.publisher == nil {
+		return fmt.Errorf("whatsapp: command publisher not configured")
+	}
+	payload["sessionId"] = conn.ID
+	routingKey := wbot.Command(conn.TenantID.String(), strconv.Itoa(conn.ID), commandType)
+	if err := a.publisher.PublishCommand(routingKey, map[string]interface{}{"type": commandType, "payload": payload}); err != nil {
+		return fmt.Errorf("whatsapp %s publish error: %w", commandType, err)
+	}
+	return nil
+}
+
+func newMessageID() string { return "3EB0" + fmt.Sprintf("%016X", time.Now().UnixNano()) }
+
+var (
+	_ domain.Reactor         = (*Adapter)(nil)
+	_ domain.Editor          = (*Adapter)(nil)
+	_ domain.PollVoter       = (*Adapter)(nil)
+	_ domain.PresenceWatcher = (*Adapter)(nil)
+)
+
+func (a *Adapter) React(_ context.Context, conn *models.ChannelConnection, to, targetMsgID string, targetFromMe bool, reaction string) error {
+	return a.command(conn, wbot.CommandMessageReact, map[string]interface{}{
+		"messageId": newMessageID(), "to": to, "targetMsgId": targetMsgID, "targetFromMe": targetFromMe, "reaction": reaction,
+	})
+}
+
+func (a *Adapter) Edit(_ context.Context, conn *models.ChannelConnection, to, targetMsgID, body, mediaType string) error {
+	return a.command(conn, wbot.CommandMessageEdit, map[string]interface{}{
+		"messageId": newMessageID(), "to": to, "targetMsgId": targetMsgID, "body": body, "mediaType": mediaType,
+	})
+}
+
+func (a *Adapter) VotePoll(_ context.Context, conn *models.ChannelConnection, chat, pollID, pollSender string, pollFromMe bool, options []string) error {
+	return a.command(conn, wbot.CommandMessagePollVote, map[string]interface{}{
+		"chat": chat, "pollId": pollID, "pollSender": pollSender, "pollFromMe": pollFromMe, "options": options,
+	})
+}
+
+func (a *Adapter) WatchPresence(_ context.Context, conn *models.ChannelConnection, to string) error {
+	return a.command(conn, wbot.CommandPresenceSubscribe, map[string]interface{}{"to": to})
+}
