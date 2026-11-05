@@ -22,8 +22,16 @@ type ChannelConnection struct {
 	GreetingMessage string    `gorm:"column:greetingMessage" json:"greetingMessage"`
 	FarewellMessage string    `gorm:"column:farewellMessage" json:"farewellMessage"`
 	LastError       string    `gorm:"column:lastError;type:text" json:"lastError,omitempty"`
-	CreatedAt       time.Time `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt       time.Time `gorm:"column:updatedAt" json:"updatedAt"`
+	// Identidade da conta que o canal representa (todo canal tem): o número no WhatsApp, o @usuario no Telegram, o nome de
+	// exibição e a foto. Colunas e não JSON: a tela as lê direto e dá para indexar e consultar.
+	Identifier  string `gorm:"column:identifier;size:150;not null;default:''" json:"identifier"`
+	DisplayName string `gorm:"column:displayName;size:150;not null;default:''" json:"displayName"`
+	AvatarURL   string `gorm:"column:avatarUrl;type:text;not null;default:''" json:"avatarUrl"`
+	// Estado da sessão (todo canal tem).
+	FirstConnectedAt *time.Time `gorm:"column:firstConnectedAt" json:"firstConnectedAt"`
+	LastConnectedAt  *time.Time `gorm:"column:lastConnectedAt" json:"lastConnectedAt"`
+	CreatedAt        time.Time  `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt        time.Time  `gorm:"column:updatedAt" json:"updatedAt"`
 
 	// Relations
 	Queues  []Queue  `gorm:"many2many:channel_connection_queues;" json:"queues,omitempty"`

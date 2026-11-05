@@ -81,14 +81,10 @@ func (wc *WhatsappController) ShowWhatsapp(c *gin.Context) {
 	// Monta resposta enriquecida
 	response := map[string]interface{}{
 		"id":                  whatsappModel.ID,
-		"session":             whatsappModel.Session,
 		"qrcode":              whatsappModel.Qrcode,
 		"status":              whatsappModel.Status,
-		"battery":             whatsappModel.Battery,
-		"plugged":             whatsappModel.Plugged,
 		"name":                whatsappModel.Name,
 		"isDefault":           whatsappModel.IsDefault,
-		"retries":             whatsappModel.Retries,
 		"greetingMessage":     whatsappModel.GreetingMessage,
 		"farewellMessage":     whatsappModel.FarewellMessage,
 		"tenantId":            whatsappModel.TenantID,
@@ -145,14 +141,10 @@ func (wc *WhatsappController) DeleteWhatsapp(c *gin.Context) {
 
 	model := models.Whatsapp{
 		ID:                  whatsapp.ID,
-		Session:             whatsapp.Session,
 		Qrcode:              whatsapp.Qrcode,
 		Status:              whatsapp.Status,
-		Battery:             whatsapp.Battery,
-		Plugged:             whatsapp.Plugged,
 		Name:                whatsapp.Name,
 		IsDefault:           whatsapp.IsDefault,
-		Retries:             whatsapp.Retries,
 		GreetingMessage:     whatsapp.GreetingMessage,
 		FarewellMessage:     whatsapp.FarewellMessage,
 		TenantID:            whatsapp.TenantID,
