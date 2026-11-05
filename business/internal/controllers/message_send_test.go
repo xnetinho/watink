@@ -34,6 +34,7 @@ func TestSendMessageTextJSON(t *testing.T) {
 	tenantID := uuid.New()
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 
 	// Seed whatsapp + contact + ticket
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
@@ -136,6 +137,7 @@ func TestReactToMessage(t *testing.T) {
 	tenantID := uuid.New()
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
@@ -287,6 +289,7 @@ func TestSendMessage_ReplyCarriesQuotedMessage(t *testing.T) {
 	tenantID := uuid.New()
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
@@ -476,6 +479,7 @@ func TestSendMessage_Reply_EventCarriesTheQuotedMessage(t *testing.T) {
 	pub := &stubPublisher{}
 	bc := &captureBroadcaster{}
 	mc := NewMessageController(pub, bc, nil)
+	useWhatsAppChannel(pub)
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
@@ -524,6 +528,7 @@ func TestSendMessage_Reply_OneToOneUsesChatAddressAndQuotedText(t *testing.T) {
 	tenantID := uuid.New()
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {

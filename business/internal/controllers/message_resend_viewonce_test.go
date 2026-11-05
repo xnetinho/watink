@@ -21,6 +21,7 @@ func TestResendMessage_MantemVisualizacaoUnica(t *testing.T) {
 	tenantID := uuid.New()
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}

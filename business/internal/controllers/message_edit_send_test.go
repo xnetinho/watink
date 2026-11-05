@@ -54,6 +54,7 @@ func TestEditMessage(t *testing.T) {
 	pub := &stubPublisher{}
 	bc := &captureBroadcaster{}
 	mc := NewMessageController(pub, bc, nil)
+	useWhatsAppChannel(pub)
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))

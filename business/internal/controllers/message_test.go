@@ -75,6 +75,7 @@ func TestMessageController_ListMessages_ReturnsEnvelope(t *testing.T) {
 
 	pub := &mockPublisher{}
 	ctrl := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 	c, w := setupMessageContext(t, db, tenantID, "GET", fmt.Sprintf("/messages/%d", ticketID), nil)
 	c.Params = gin.Params{{Key: "ticketId", Value: fmt.Sprintf("%d", ticketID)}}
 
@@ -103,6 +104,7 @@ func TestMessageController_ListMessages_FiltersByTenantViaDB(t *testing.T) {
 
 	pub := &mockPublisher{}
 	ctrl := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 	// Use tenantA scope — tenantB message should not appear
 	c, w := setupMessageContext(t, db, tenantA, "GET", fmt.Sprintf("/messages/%d", ticketID), nil)
 	c.Params = gin.Params{{Key: "ticketId", Value: fmt.Sprintf("%d", ticketID)}}
@@ -123,6 +125,7 @@ func TestMessageController_SendMessage_TicketNotFound(t *testing.T) {
 	payload, _ := json.Marshal(map[string]string{"body": "Oi"})
 	pub := &mockPublisher{}
 	ctrl := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 	c, w := setupMessageContext(t, db, tenantID, "POST", "/messages/9999", payload)
 	c.Params = gin.Params{{Key: "ticketId", Value: "9999"}}
 
@@ -140,6 +143,7 @@ func TestMessageController_SendMessage_InvalidTicketID(t *testing.T) {
 	payload, _ := json.Marshal(map[string]string{"body": "Oi"})
 	pub := &mockPublisher{}
 	ctrl := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 	c, w := setupMessageContext(t, db, tenantID, "POST", "/messages/abc", payload)
 	c.Params = gin.Params{{Key: "ticketId", Value: "abc"}}
 
@@ -165,6 +169,7 @@ func TestMessageController_SendMessage_PublishesCommand(t *testing.T) {
 	payload, _ := json.Marshal(map[string]string{"body": "Olá mundo", "mediaType": "chat"})
 	pub := &mockPublisher{}
 	ctrl := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 	c, w := setupMessageContext(t, db, tenantID, "POST", fmt.Sprintf("/messages/%d", ticketID), payload)
 	c.Params = gin.Params{{Key: "ticketId", Value: fmt.Sprintf("%d", ticketID)}}
 
@@ -208,6 +213,7 @@ func TestMessageController_SendMessage_Multipart_SavesMediaAndPublishes(t *testi
 
 	pub := &mockPublisher{}
 	ctrl := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)

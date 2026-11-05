@@ -126,7 +126,10 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 		return domain.SendResult{}, fmt.Errorf("whatsapp: empty destination (externalId/conversationKey)")
 	}
 
-	msgID := msg.ExternalID
+	msgID := msg.StorageID
+	if msgID == "" {
+		msgID = msg.ExternalID
+	}
 	if msgID == "" || msgID == targetJID {
 		msgID = "3EB0" + fmt.Sprintf("%016X", time.Now().UnixNano())
 	}
@@ -143,18 +146,27 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 
 		if msg.QuotedMessageID != "" {
 			payload["quotedMsgId"] = msg.QuotedMessageID
+			payload["quotedJid"] = targetJID
 			if qJID, ok := msg.Metadata["quotedJid"]; ok && qJID != "" {
 				payload["quotedJid"] = qJID
-			} else {
-				payload["quotedJid"] = targetJID
 			}
 			if qBody, ok := msg.Metadata["quotedBody"]; ok && qBody != "" {
 				payload["quotedBody"] = qBody
+			}
+			if q := msg.Quoted; q != nil {
+				payload["quotedBody"] = q.Body
+				if q.Media != nil {
+					payload["quotedMedia"] = q.Media
+				}
+				if q.Participant != "" {
+					payload["quotedJid"] = q.Participant
+				}
 			}
 		}
 
 		if msg.Forward != nil && !msg.Forward.AsNew {
 			payload["forwarded"] = true
+			payload["forwardScore"] = msg.Forward.Score + 1
 		}
 
 		if mentionsStr, ok := msg.Metadata["mentions"]; ok && mentionsStr != "" {
@@ -181,8 +193,19 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 			if mime, ok := msg.Metadata["mimeType"]; ok && mime != "" {
 				payload["mimeType"] = mime
 			}
-			if fn, ok := msg.Metadata["fileName"]; ok && fn != "" {
-				payload["fileName"] = fn
+			fileName := msg.FileName
+			if fileName == "" {
+				fileName = msg.Metadata["fileName"]
+			}
+			if fileName != "" {
+				payload["fileName"] = fileName
+			}
+			if msg.ViewOnce {
+				payload["viewOnce"] = true
+			}
+			if msg.Voice {
+				// O engine converte para OGG/Opus e envia como mensagem de voz.
+				payload["mediaType"] = "voice"
 			}
 			if len(msg.MediaData) > 0 {
 				payload["mediaData"] = base64.StdEncoding.EncodeToString(msg.MediaData)

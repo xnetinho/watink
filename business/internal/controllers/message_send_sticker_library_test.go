@@ -54,6 +54,7 @@ func TestSendMessage_FiguraDaBiblioteca(t *testing.T) {
 	tenantB, _ := libTenant(t, db, "2")
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, nil, nil)
+	useWhatsAppChannel(pub)
 
 	item := models.StickerLibraryItem{TenantID: tenantA, Hash: "h1", MediaUrl: "/public/media/lib.webp"}
 	require.NoError(t, db.Create(&item).Error)

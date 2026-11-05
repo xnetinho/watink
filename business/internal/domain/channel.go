@@ -123,7 +123,17 @@ type OutboundMessage struct {
 	MediaURL        string            `json:"mediaUrl,omitempty"`
 	MediaData       []byte            `json:"-"`
 	QuotedMessageID string            `json:"quotedMessageId,omitempty"`
-	Metadata        map[string]string `json:"metadata,omitempty"`
+	// Quoted traz o que o destinatário precisa ver na citação (quem escreveu, prévia, mídia); canais que não citam com prévia ignoram.
+	Quoted   *QuotedRef        `json:"quoted,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
+	// Opções de apresentação da mídia. Cada canal aplica as que suporta e devolve ErrOptionUnsupported nas que não.
+	Voice    bool   `json:"voice,omitempty"`    // áudio como gravação (PTT)
+	ViewOnce bool   `json:"viewOnce,omitempty"` // foto, vídeo ou áudio de visualização única
+	Sticker  bool   `json:"sticker,omitempty"`  // figurinha (o canal converte)
+	FileName string `json:"fileName,omitempty"` // nome original do anexo
+	// StorageID é o id com que a mensagem será gravada; vazio deixa o canal gerar. O envio já precisa dele ao publicar
+	// (o engine confirma a entrega por esse id).
+	StorageID string `json:"storageId,omitempty"`
 	// Forward pede o encaminhamento nativo de uma mensagem já entregue neste mesmo canal; nil é envio comum.
 	Forward *ForwardRef `json:"forward,omitempty"`
 }
@@ -138,7 +148,19 @@ type ForwardRef struct {
 	ExternalMessageID   string `json:"externalMessageId"`
 	AsNew               bool   `json:"asNew"` // true: copia sem o selo "Encaminhada"
 	SameConnection      bool   `json:"sameConnection"`
+	// Score é o contador "Encaminhada muitas vezes" da original; o canal que o mostra soma um.
+	Score int `json:"score,omitempty"`
 }
+
+// QuotedRef descreve a mensagem citada.
+type QuotedRef struct {
+	Participant string                 `json:"participant,omitempty"` // quem escreveu a citada (obrigatório em grupo)
+	Body        string                 `json:"body,omitempty"`
+	Media       map[string]interface{} `json:"media,omitempty"`
+}
+
+// ErrOptionUnsupported: o canal não aceita uma opção do envio (visualização única, figurinha...) e não pode fingir que sim.
+var ErrOptionUnsupported = errors.New("option not supported by channel")
 
 // StorageMessageID é o id com que a mensagem é gravada em Messages. O id do canal só é único dentro do seu escopo (no
 // Telegram, dentro do chat), então fora do WhatsApp o id inclui canal, conexão e conversa. O WhatsApp mantém o id cru
