@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -55,27 +55,17 @@ func (mc *MessageController) ReactToMessage(c *gin.Context) {
 		return
 	}
 
-	var whatsapp models.Whatsapp
-	if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", target.Ticket.WhatsappID, tenantID), &whatsapp); err != nil {
+	conn, ch, found, err := channelOf(db, tenantID, target.Ticket)
+	if !found {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
 		return
 	}
-
-	command := map[string]interface{}{
-		"type": "message.react",
-		"payload": map[string]interface{}{
-			"sessionId":    target.Ticket.WhatsappID,
-			"messageId":    newWAMessageID(),
-			"to":           contactJID(contact),
-			"targetMsgId":  targetMessageID,
-			"targetFromMe": target.FromMe,
-			"reaction":     input.Reaction,
-		},
+	reactor, can := ch.(domain.Reactor)
+	if err != nil || !can {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "reaction_not_supported"})
+		return
 	}
-
-	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(target.Ticket.WhatsappID), wbot.CommandMessageReact)
-	if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
+	if err := reactor.React(c.Request.Context(), &conn, contactJID(contact), targetMessageID, target.FromMe, input.Reaction); err != nil {
 		utils.RespondWithInternalError(c, err, "ReactToMessage")
 		return
 	}

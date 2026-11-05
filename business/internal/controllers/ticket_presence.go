@@ -2,17 +2,15 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // SubscribePresence pede ao WhatsApp a presença do contato do ticket. A resposta chega depois, pelo evento
@@ -34,14 +32,11 @@ func (mc *MessageController) SubscribePresence(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
 		return
 	}
-	// Só o WhatsApp tem presença; o Telegram não a expõe a bots. Grupo também não.
-	if ticket.ChannelConnectionID != nil || ticket.WhatsappID == 0 || ticket.Contact.IsGroup {
+	// Só quem o canal expõe tem presença (o Telegram não a dá a bots). Grupo também não.
+	conn, ch, found, cerr := channelOf(db, tenantID, ticket)
+	watcher, can := ch.(domain.PresenceWatcher)
+	if !found || cerr != nil || !can || ticket.Contact.IsGroup {
 		c.Status(http.StatusNoContent)
-		return
-	}
-	var wa models.Whatsapp
-	if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID), &wa); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
 		return
 	}
 	// O WhatsApp só avisa quando a presença muda: devolve já o último estado conhecido, e o resto chega pelo evento.
@@ -52,8 +47,7 @@ func (mc *MessageController) SubscribePresence(c *gin.Context) {
 			break
 		}
 	}
-	cmd := map[string]interface{}{"type": "presence.subscribe", "payload": map[string]interface{}{"sessionId": wa.ID, "to": contactJID(ticket.Contact)}}
-	if err := mc.rabbit.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(wa.ID), wbot.CommandPresenceSubscribe), cmd); err != nil {
+	if err := watcher.WatchPresence(c.Request.Context(), &conn, contactJID(ticket.Contact)); err != nil {
 		utils.RespondWithInternalError(c, err, "SubscribePresence")
 		return
 	}

@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -68,8 +68,13 @@ func (mc *MessageController) EditMessage(c *gin.Context) {
 		c.JSON(status, gin.H{"error": code})
 		return
 	}
-	// Só o WhatsApp edita por este comando. Canais da tabela ChannelConnections (Telegram etc.) têm API própria.
-	if src.Ticket.ChannelConnectionID != nil {
+	conn, ch, found, cerr := channelOf(db, tenantID, src.Ticket)
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
+		return
+	}
+	editor, can := ch.(domain.Editor)
+	if cerr != nil || !can {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "edit_not_supported"})
 		return
 	}
@@ -82,19 +87,7 @@ func (mc *MessageController) EditMessage(c *gin.Context) {
 		return
 	}
 
-	command := map[string]interface{}{
-		"type": wbot.CommandMessageEdit,
-		"payload": map[string]interface{}{
-			"sessionId":   src.Ticket.WhatsappID,
-			"messageId":   newWAMessageID(),
-			"to":          contactJID(src.Ticket.Contact),
-			"targetMsgId": src.ID,
-			"body":        body,
-			"mediaType":   src.MediaType,
-		},
-	}
-	routingKey := wbot.Command(tenantID.String(), strconv.Itoa(src.Ticket.WhatsappID), wbot.CommandMessageEdit)
-	if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
+	if err := editor.Edit(c.Request.Context(), &conn, contactJID(src.Ticket.Contact), src.ID, body, src.MediaType); err != nil {
 		utils.RespondWithInternalError(c, err, "EditMessage")
 		return
 	}
