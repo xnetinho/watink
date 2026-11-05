@@ -4,13 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
-
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
@@ -117,189 +114,113 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 		}
 	}
 
-	// Visualização única só existe no WhatsApp. Pedir em outro canal e mandar como mídia comum enganaria o operador (e o
-	// selo da tela diria o contrário do que saiu): recusa com mensagem clara.
-	if in.ViewOnce && ticket.ChannelConnectionID != nil {
+	// Um só caminho: a conexão do ticket (ChannelConnections) decide o canal e o adaptador envia. O ticket do WhatsApp guarda
+	// o id em whatsappId (migração em curso), os demais em channelConnectionId; os dois apontam para ChannelConnections.
+	connID := ticket.WhatsappID
+	if ticket.ChannelConnectionID != nil {
+		connID = *ticket.ChannelConnectionID
+	}
+	var conn models.ChannelConnection
+	if err := db.Session(&gorm.Session{NewDB: true}).
+		Where("id = ? AND \"tenantId\" = ?", connID, tenantID).First(&conn).Error; err != nil {
+		return res, false, &deliverFailure{status: http.StatusNotFound, msg: "Connection not found"}
+	}
+	chAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind))
+	if err != nil {
+		return res, false, &deliverFailure{err: err, where: "SendMessage"}
+	}
+	isWhatsApp := conn.Kind == string(domain.ChannelKindWhatsApp)
+
+	// Opções que só o WhatsApp tem: pedir em outro canal e mandar como mídia comum enganaria o operador (o selo da tela diria
+	// o contrário do que saiu), então recusa com mensagem clara.
+	if in.ViewOnce && !isWhatsApp {
 		return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "view_once_not_supported"}
 	}
-
-	// Figurinha pelo painel idem: nos outros canais ela é outro mecanismo (conjunto de figurinhas) e não seria entregue como tal.
-	if in.Sticker && ticket.ChannelConnectionID != nil {
+	if in.Sticker && !isWhatsApp {
 		return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "sticker_not_supported"}
 	}
 
-	// Se o ticket pertencer a uma ChannelConnection agnóstica registrada, despacha pelo canal (Tarefa 4.2 / ADR 0033)
-	if ticket.ChannelConnectionID != nil {
-		var conn models.ChannelConnection
-		if err := db.Session(&gorm.Session{NewDB: true}).
-			Where("id = ? AND \"tenantId\" = ?", *ticket.ChannelConnectionID, tenantID).
-			First(&conn).Error; err == nil {
-			if chAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind)); err == nil {
-				outMsg := domain.OutboundMessage{
-					ConversationKey: ticket.ConversationKey,
-					ExternalID:      to,
-					Body:            body,
-					MediaType:       mediaType,
-					MediaURL:        mediaURL,
-					QuotedMessageID: quotedExternalID,
-				}
-				if in.Forward != nil {
-					// Encaminhar com selo exige que o canal suporte E que origem e destino sejam a MESMA conexão (o Telegram só
-					// encaminha o que o próprio bot enxerga). A regra vale antes do adaptador para qualquer canal.
-					if !in.Forward.AsNew && (!chAdapter.Capabilities().Forward || !in.Forward.SameConnection) {
-						return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "forward_not_supported"}
-					}
-					outMsg.Forward = &domain.ForwardRef{
-						FromConversationKey: in.Forward.SourceChatKey,
-						ExternalMessageID:   in.Forward.Source.ExternalID,
-						AsNew:               in.Forward.AsNew,
-						SameConnection:      in.Forward.SameConnection,
-					}
-				}
-				sendRes, err := chAdapter.Send(ctx, &conn, outMsg)
-				if errors.Is(err, domain.ErrForwardUnsupported) {
-					return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "forward_not_supported"}
-				}
-				if err != nil {
-					return res, false, &deliverFailure{err: err, where: "SendMessage"}
-				}
-				externalID := sendRes.ExternalMessageID
-				if externalID != "" {
-					messageID = domain.StorageMessageID(domain.ChannelKind(conn.Kind), conn.ID, ticket.ConversationKey, externalID)
-				}
-				msg := models.Message{
-					ID:         messageID,
-					ExternalID: externalID,
-					Body:       body,
-					Ack:        1,
-					MediaType:  mediaType,
-					MediaUrl:   mediaURL,
-					TicketID:   ticket.ID,
-					ContactID:  &contact.ID,
-					FromMe:     true,
-					TenantID:   tenantID,
-					DataJson:   dataJSON,
-				}
-				if quotedID != "" {
-					msg.QuotedMsgID = &quotedID
-				}
-				// Session(NewDB:true): o db carrega filtros acumulados das consultas acima e o GORM os usaria no INSERT.
-				if err := db.Session(&gorm.Session{NewDB: true}).Create(&msg).Error; err != nil {
-					// A mensagem já saiu para o cliente: loga e responde com o que foi enviado, sem fingir que falhou.
-					log.Printf("[SendMessage] mensagem enviada mas não persistida (ticket %d): %v", ticket.ID, err)
-				}
-				return msg, true, nil
-			}
+	outMsg := domain.OutboundMessage{
+		ConversationKey: ticket.ConversationKey,
+		ExternalID:      to,
+		Body:            body,
+		MediaType:       mediaType,
+		MediaURL:        mediaURL,
+		Voice:           in.Voice,
+		ViewOnce:        in.ViewOnce,
+		Sticker:         in.Sticker,
+		FileName:        in.FileName,
+		StorageID:       messageID,
+		Metadata:        map[string]string{},
+	}
+	if mimeType != "" {
+		outMsg.Metadata["mimeType"] = mimeType
+	}
+	// Só cita o que foi validado acima (existe neste ticket e tenant): quotedID zera quando a citada é inválida.
+	if quotedID != "" {
+		outMsg.QuotedMessageID = quotedExternalID
+	}
+	if quotedID != "" && isWhatsApp {
+		outMsg.Quoted = &domain.QuotedRef{Participant: quotedParticipant, Body: quotedBody, Media: quotedMedia}
+	}
+	if in.Forward != nil {
+		// Encaminhar com selo exige que o canal suporte E que origem e destino sejam a MESMA conexão (o Telegram só
+		// encaminha o que o próprio bot enxerga). A regra vale antes do adaptador para qualquer canal.
+		if !in.Forward.AsNew && (!chAdapter.Capabilities().Forward || !in.Forward.SameConnection) {
+			return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "forward_not_supported"}
+		}
+		outMsg.Forward = &domain.ForwardRef{
+			FromConversationKey: in.Forward.SourceChatKey,
+			ExternalMessageID:   in.Forward.Source.ExternalID,
+			AsNew:               in.Forward.AsNew,
+			SameConnection:      in.Forward.SameConnection,
+			Score:               in.Forward.SourceForwarded,
 		}
 	}
-
-	var whatsapp models.Whatsapp
-	if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID), &whatsapp); err != nil {
-		return res, false, &deliverFailure{status: http.StatusNotFound, msg: "Connection not found"}
+	sendRes, err := chAdapter.Send(ctx, &conn, outMsg)
+	if errors.Is(err, domain.ErrForwardUnsupported) {
+		return res, false, &deliverFailure{status: http.StatusUnprocessableEntity, msg: "forward_not_supported"}
+	}
+	if err != nil {
+		return res, false, &deliverFailure{err: err, where: "SendMessage"}
 	}
 
-	if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
-		// Non-AMQP engines are dispatched via domain.WhatsAppEngine
-		// instead of the raw wbot.<tenant>.<session>.<cmd> command below.
-		if mc.engines == nil {
-			return res, false, &deliverFailure{err: fmt.Errorf("no engine resolver configured"), where: "SendMessage"}
-		}
-		engine, err := mc.engines.EngineFor(whatsapp)
-		if err != nil {
-			return res, false, &deliverFailure{err: err, where: "SendMessage"}
-		}
-		// (a API não expõe citação; a resposta sai como mensagem comum.)
-		if mediaURL != "" {
-			_, err = engine.SendMedia(ctx, whatsapp, to, messageID, mediaType, mediaURL, mimeType)
-		} else {
-			_, err = engine.SendText(ctx, whatsapp, to, messageID, body)
-		}
-		if err != nil {
-			return res, false, &deliverFailure{err: err, where: "SendMessage"}
-		}
-	} else {
-		commandType := "message.send.text"
-		if mediaURL != "" {
-			commandType = "message.send.media"
-		}
-
-		payload := map[string]interface{}{
-			"sessionId": ticket.WhatsappID,
-			"messageId": messageID,
-			"to":        to,
-			"ticketId":  ticketID,
-			"body":      body,
-			"mediaType": mediaType,
-			"mediaUrl":  mediaURL,
-			"mimeType":  mimeType,
-		}
-		if in.FileName != "" {
-			payload["fileName"] = in.FileName
-		}
-		if in.ViewOnce {
-			payload["viewOnce"] = true
-		}
-		if in.Voice {
-			// O engine converte para OGG/Opus e envia como mensagem de voz; a mensagem segue gravada como "audio".
-			payload["mediaType"] = "voice"
-		}
-		if quotedID != "" {
-			payload["quotedMsgId"] = quotedID
-			payload["quotedBody"] = quotedBody
-			if quotedMedia != nil {
-				payload["quotedMedia"] = quotedMedia
-			}
-			if quotedParticipant != "" {
-				payload["quotedJid"] = quotedParticipant
-			}
-		}
-		if in.Forward != nil && !in.Forward.AsNew {
-			payload["forwarded"] = true
-			payload["forwardScore"] = in.Forward.SourceForwarded + 1
-		}
-		command := map[string]interface{}{"type": commandType, "payload": payload}
-
-		// The engine dispatches by routing-key segment (wbot.<tenant>.<session>.<cmd>),
-		// so the command type MUST be encoded in the key — not just the body.
-		routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), commandType)
-		if err := mc.rabbit.PublishCommand(routingKey, command); err != nil {
-			return res, false, &deliverFailure{err: err, where: "SendMessage"}
-		}
-	}
-
-	// Persist the outgoing message so it appears in the UI immediately and the
-	// later ack event (event_listener_msg_ack) can find and update it.
-	// Use a clean session for writes — the scoped `db` already carries the tenant
-	// Where clause and a finished SELECT statement, which corrupts the generated
-	// SQL when reused for Create/Updates. NewDB clears accumulated conditions
-	// while keeping the same connection; tenant safety is preserved because the
-	// inserted row and the update filter both set tenantId explicitly.
+	// Escreve sempre com sessão limpa: o db escopado carrega o WHERE de tenant e um SELECT já terminado, o que corrompe o
+	// SQL do INSERT. O tenantId é gravado explicitamente na própria linha.
 	writeDB := db.Session(&gorm.Session{NewDB: true})
 	contactID := ticket.ContactID
 	now := time.Now()
-	outgoing := models.Message{
-		ID:        messageID,
-		Body:      body,
-		Ack:       0,
-		MediaType: mediaType,
-		MediaUrl:  mediaURL,
-		TicketID:  ticketID,
-		FromMe:    true,
-		ContactID: &contactID,
-		TenantID:  tenantID,
-		Reactions: "[]",
-		DataJson:  dataJSON,
-		CreatedAt: now,
-		UpdatedAt: now,
+	if isWhatsApp {
+		// Gravação otimista: a mensagem aparece na hora e o ack do engine (event_listener_msg_ack) a atualiza depois.
+		outgoing := models.Message{
+			ID: messageID, Body: body, Ack: 0, MediaType: mediaType, MediaUrl: mediaURL, TicketID: ticketID, FromMe: true,
+			ContactID: &contactID, TenantID: tenantID, Reactions: "[]", DataJson: dataJSON, CreatedAt: now, UpdatedAt: now,
+		}
+		if quotedID != "" {
+			outgoing.QuotedMsgID = &quotedID
+		}
+		if err := writeDB.Create(&outgoing).Error; err != nil {
+			log.Printf("[SendMessage] persist outgoing message failed (ticket %d): %v", ticketID, err)
+		}
+		return outgoing, false, nil
+	}
+
+	externalID := sendRes.ExternalMessageID
+	if externalID != "" {
+		messageID = domain.StorageMessageID(domain.ChannelKind(conn.Kind), conn.ID, ticket.ConversationKey, externalID)
+	}
+	msg := models.Message{
+		ID: messageID, ExternalID: externalID, Body: body, Ack: 1, MediaType: mediaType, MediaUrl: mediaURL, TicketID: ticket.ID,
+		ContactID: &contact.ID, FromMe: true, TenantID: tenantID, DataJson: dataJSON,
 	}
 	if quotedID != "" {
-		outgoing.QuotedMsgID = &quotedID
+		msg.QuotedMsgID = &quotedID
 	}
-	if err := writeDB.Create(&outgoing).Error; err != nil {
-		log.Printf("[SendMessage] persist outgoing message failed (ticket %d): %v", ticketID, err)
+	if err := writeDB.Create(&msg).Error; err != nil {
+		// A mensagem já saiu para o cliente: loga e responde com o que foi enviado, sem fingir que falhou.
+		log.Printf("[SendMessage] mensagem enviada mas não persistida (ticket %d): %v", ticket.ID, err)
 	}
-	return outgoing, false, nil
+	return msg, true, nil
 }
 
 // announce atualiza a prévia do ticket e avisa a tela em tempo real. O evento é o que o navegador exibe na hora; só a

@@ -25,6 +25,7 @@ func TestSendMessage_AudioKind(t *testing.T) {
 		tenant := uuid.New()
 		pub := &stubPublisher{}
 		mc := NewMessageController(pub, &captureBroadcaster{}, nil)
+		useWhatsAppChannel(pub)
 		wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 		require.NoError(t, models.CreateWhatsapp(db, &wa))
 		ct := models.Contact{Name: "C", Number: "5511", TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
@@ -79,6 +80,7 @@ func TestForward_AudioMantemSeEhGravacaoOuArquivo(t *testing.T) {
 	tenant := uuid.New()
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, &captureBroadcaster{}, nil)
+	useWhatsAppChannel(pub)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	mk := func(num string) (models.Contact, models.Ticket) {
@@ -141,6 +143,7 @@ func TestSendMessage_DocumentoEnviaONomeOriginalEEncaminhaComOMesmoNome(t *testi
 	tenant := uuid.New()
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, &captureBroadcaster{}, nil)
+	useWhatsAppChannel(pub)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	mk := func(num string) (models.Contact, models.Ticket) {
@@ -202,6 +205,7 @@ func TestForward_AudioKindEscolhidoPeloOperador(t *testing.T) {
 	tenant := uuid.New()
 	pub := &stubPublisher{}
 	mc := NewMessageController(pub, &captureBroadcaster{}, nil)
+	useWhatsAppChannel(pub)
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	mk := func(num string) (models.Contact, models.Ticket) {
