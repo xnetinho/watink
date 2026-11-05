@@ -77,9 +77,8 @@ func (r *GORMChannelSessionRepository) Create(ctx context.Context, session *doma
 	if err := models.CreateWhatsapp(r.db.WithContext(ctx), m); err != nil {
 		return err
 	}
-	session.ID = m.ID
-	session.CreatedAt = m.CreatedAt
-	session.UpdatedAt = m.UpdatedAt
+	// m voltou relido do banco: devolve ao chamador também os padrões (engineType, presença, proxyMode).
+	*session = *whatsappModelToDomain(m)
 	return nil
 }
 

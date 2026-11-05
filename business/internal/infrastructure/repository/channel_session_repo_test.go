@@ -45,12 +45,17 @@ func TestGORMChannelSessionRepo_Create_And_FindAll(t *testing.T) {
 	repo := NewGORMChannelSessionRepo(db)
 	ctx := context.Background()
 
-	err := repo.Create(ctx, &domain.ChannelSession{
+	alpha := &domain.ChannelSession{
 		Name:     "Session Alpha",
 		Status:   "DISCONNECTED",
 		TenantID: tenantA,
-	})
+	}
+	err := repo.Create(ctx, alpha)
 	require.NoError(t, err)
+	assert.NotZero(t, alpha.ID)
+	assert.Equal(t, "whatsmeow", alpha.EngineType, "Create devolve os padrões do banco, não zeros")
+	assert.Equal(t, 5, alpha.PresenceIdleMinutes)
+	assert.Equal(t, "none", alpha.ProxyMode)
 
 	err = repo.Create(ctx, &domain.ChannelSession{
 		Name:     "Session Beta",
