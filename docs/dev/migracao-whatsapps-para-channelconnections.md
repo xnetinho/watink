@@ -115,3 +115,36 @@ sentido quando o envio já não o usa.
 - **Recursos recentes** (visualização única, figurinha, GIF) só existem no caminho legado; a fatia 4 pode regredi-los.
 - **O plano marcou como feito o que não estava**: antes de confiar em qualquer outra tarefa `[x]` do `tasks.md`, vale uma
   verificação por amostragem.
+
+## 8. Decisões do dono (5/nov/2026) e plano revisado
+
+**D1. Destino dos ids: repareamento total.** O `lt` é recriado do zero; as conexões WhatsApp ganham ids novos em
+`ChannelConnections` e as duas precisam ler o QR de novo. Sem preocupação com legado, sem cópia de linhas, sem colisão de ids.
+
+**D2. Onde moram os campos da conexão.** Classificados pelo uso real no código:
+
+| Grupo | Campos | Destino |
+|---|---|---|
+| A. Identidade da conta (todo canal tem) | identificador (número no WhatsApp, `@usuario` no Telegram), nome de exibição, foto | **colunas de `ChannelConnections`**: `identifier`, `displayName`, `avatarUrl` |
+| B. Estado da sessão (todo canal tem) | `status`, `lastError`, `isDefault` (já são colunas), `firstConnectedAt`, `lastConnectedAt` | **colunas de `ChannelConnections`** (acrescentar as duas datas) |
+| C. Específico do WhatsApp/biblioteca | `engineType`, `wid`, `keepAlive`, `syncHistory`, `syncPeriod`, proxy (3), risco (4), `presencePolicy`, `presenceIdleMinutes`, `connectionGroupId` | **`whatsapp_connection_details`** (1:1, já existe) |
+| D. Mortos ou temporários | `battery`, `plugged`, `retries`, `session`, `qrcode` | **eliminar**: o engine nunca envia bateria (todos vazios no lt) e o QR já vai por evento SSE, não pelo banco |
+
+`engineType` mora em `whatsapp_connection_details` para que o item G (outras bibliotecas) encaixe sem tocar em
+`ChannelConnections`. O JSON `config` fica só para o que é particular de um canal (modo polling/webhook do Telegram): número e foto
+não vão nele porque não têm tipo nem índice, a tela os lê direto e a regra "o mesmo número não está em duas conexões" exige coluna.
+
+**D3. Todos os recursos passam pelo adaptador agnóstico.** Visualização única, figurinha, GIF, biblioteca de figurinhas, edição,
+recibos. Hoje eles recusam o canal agnóstico com 422; passam a viver no adaptador.
+
+**Plano revisado** (a fatia 3 passa a ser pré-requisito de tirar `whatsappId` dos tickets):
+
+| # | Fatia |
+|---|---|
+| 0 | Corrigir o `tasks.md` (reabrir 3.2, 3.3, 3.4, 3.7, 4.5) e registrar estas decisões |
+| 1 | Esquema novo: colunas agnósticas em `ChannelConnections`, `engineType` e demais em `whatsapp_connection_details`, remover os 5 campos mortos |
+| 2 | Conexão WhatsApp criada, editada e lida pela API agnóstica (`/channels/connections`) |
+| 3 | Recursos de mídia no adaptador agnóstico |
+| 4 | Tickets e dependentes trocam `whatsappId` por `connectionId` |
+| 5 | Frontend |
+| 6 | Remover `Whatsapps`, `whatsapp_queues`, `/whatsapp/*`; recriar o `lt` e reparear |

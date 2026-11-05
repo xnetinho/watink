@@ -32,12 +32,12 @@
 ## 3. Esquema greenfield
 
 - [x] 3.1 Baseline de esquema versionado com ferramenta de migração, substituindo `AutoMigrate` e os DDLs ad-hoc de `database.go`; job de migração com advisory lock; verificar que um banco vazio sobe ao esquema completo e a segunda execução não altera nada
-- [x] 3.2 `ChannelConnections` como única tabela; `whatsapp_connection_details` 1:1 para proxy, `keepAlive`, sync, `wid` e risco; verificar com teste de repositório que uma conexão WhatsApp grava e lê seus detalhes
-- [x] 3.3 `Tickets.connectionId NOT NULL` com FK; remover `whatsappId` e o sentinela `0`; verificar com teste que ticket de qualquer canal grava e consulta por `connectionId`
-- [x] 3.4 Remover `whatsappId` de `Users`, `Flows`, `Assistants`, `CallLogs`, `group_caches`, `group_campaigns`, `group_campaign_targets`, `group_campaign_sends` (um PR por tabela ou grupo coerente); verificar que a busca por `whatsappId` no código de produção retorna zero
+- [ ] 3.2 `ChannelConnections` como única tabela; `whatsapp_connection_details` 1:1 para proxy, `keepAlive`, sync, `wid` e risco; verificar com teste de repositório que uma conexão WhatsApp grava e lê seus detalhes _(reaberta em 5/nov/2026: o repositório de detalhes existe mas nunca é instanciado; ver `docs/dev/migracao-whatsapps-para-channelconnections.md`)_
+- [ ] 3.3 `Tickets.connectionId NOT NULL` com FK; remover `whatsappId` e o sentinela `0`; verificar com teste que ticket de qualquer canal grava e consulta por `connectionId` _(reaberta em 5/nov/2026: `Ticket.WhatsappID` ainda existe; o PR #40 só acrescentou a FK de `ChannelConnectionID`)_
+- [ ] 3.4 Remover `whatsappId` de `Users`, `Flows`, `Assistants`, `CallLogs`, `group_caches`, `group_campaigns`, `group_campaign_targets`, `group_campaign_sends` (um PR por tabela ou grupo coerente); verificar que a busca por `whatsappId` no código de produção retorna zero _(reaberta em 5/nov/2026: as 9 tabelas ainda têm `whatsappId`; o PR #41 acrescentou `channelConnectionId` ao lado)_
 - [x] 3.5 `Messages` com chave primária interna e `UNIQUE (tenantId, connectionId, externalId)`; `ON CONFLICT` usa essa chave; verificar com teste de colisão entre conexões e de reentrega
 - [x] 3.6 Contato por identidade: telefone opcional, `ContactIdentity` como fonte; verificar com teste que dois contatos do Telegram sem telefone coexistem
-- [x] 3.7 Remover `Whatsapps`, `whatsapp_queues` e a rota `/whatsapp/*`; verificar que nenhum SQL ou rota de produção os referencia
+- [ ] 3.7 Remover `Whatsapps`, `whatsapp_queues` e a rota `/whatsapp/*`; verificar que nenhum SQL ou rota de produção os referencia _(reaberta em 5/nov/2026: o PR #45 só marcou a caixa; `Whatsapps`, `whatsapp_queues` e as 13 rotas `/whatsapp/*` existem)_
 
 ## 4. Núcleo de canais
 
@@ -45,7 +45,7 @@
 - [x] 4.2 `MessageDispatchService` com `ReplyPolicy` e `Capabilities`; verificar com teste que excesso de texto e mídia não suportada são recusados com motivo
 - [x] 4.3 `message_send.go` fino chamando o serviço; remover a consulta prematura a conexão; verificar que responder ticket do Telegram envia e persiste
 - [x] 4.4 Respostas rápidas, reações e mídia usam o serviço; verificar com teste por tipo de mensagem
-- [x] 4.5 Adaptador WhatsApp real (conectar, desconectar, enviar com citação, menção e mime, status); verificar com a suíte de contrato e teste de paridade dos cenários de envio atuais
+- [ ] 4.5 Adaptador WhatsApp real (conectar, desconectar, enviar com citação, menção e mime, status); verificar com a suíte de contrato e teste de paridade dos cenários de envio atuais _(reaberta em 5/nov/2026: o adaptador está registrado mas nenhum ticket de WhatsApp o aciona; os recursos de mídia vivem só no caminho legado)_
 - [x] 4.6 Remover os ramos `EngineType != "whatsmeow"` e resíduos do izapia; verificar com busca que a string não existe
 - [x] 4.7 Registro único de canais: eliminar `flow.ChannelRegistry` e `OutboundChannelAdapter`; o FlowBuilder usa o serviço de envio; verificar que um fluxo disparado por ticket do Telegram responde pelo Telegram
 - [x] 4.8 Assistentes, campanhas de grupo e plugins usam o serviço; verificar com teste por consumidor
