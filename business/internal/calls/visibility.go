@@ -23,8 +23,8 @@ func UsersWhoSeeConnection(db *gorm.DB, tenantID uuid.UUID, whatsappID int) ([]m
 	fresh := func() *gorm.DB { return db.Session(&gorm.Session{NewDB: true}) }
 
 	var owned int64
-	if err := fresh().Model(&models.Whatsapp{}).
-		Where(`id = ? AND "tenantId" = ?`, whatsappID, tenantID).Count(&owned).Error; err != nil {
+	if err := fresh().Model(&models.ChannelConnection{}).
+		Where(`id = ? AND "tenantId" = ? AND kind = ?`, whatsappID, tenantID, models.KindWhatsApp).Count(&owned).Error; err != nil {
 		return nil, err
 	}
 	if owned == 0 {
@@ -35,7 +35,7 @@ func UsersWhoSeeConnection(db *gorm.DB, tenantID uuid.UUID, whatsappID int) ([]m
 	err := fresh().Where(
 		`"tenantId" = ? AND ( alcance IN ('tenant','plataforma') `+
 			`OR id IN (SELECT uq.user_id FROM user_queues uq `+
-			`JOIN whatsapp_queues wq ON wq.queue_id = uq.queue_id WHERE wq.whatsapp_id = ?) )`,
+			`JOIN channel_connection_queues wq ON wq.queue_id = uq.queue_id WHERE wq.channel_connection_id = ?) )`,
 		tenantID, whatsappID).
 		Find(&users).Error
 	return users, err

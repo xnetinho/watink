@@ -27,7 +27,7 @@ func (r *GORMSystemRepository) GetTenantConsumption(ctx context.Context) ([]doma
 			(SELECT COUNT(*) FROM "Contacts" c WHERE c."tenantId" = t.id) AS contacts,
 			(SELECT COUNT(*) FROM "Tickets" tk WHERE tk."tenantId" = t.id) AS tickets,
 			(SELECT COUNT(*) FROM "Tickets" tk WHERE tk."tenantId" = t.id AND tk.status = 'open') AS open_tickets,
-			(SELECT COUNT(*) FROM "Whatsapps" w WHERE w."tenantId" = t.id) AS whatsapps
+			(SELECT COUNT(*) FROM "ChannelConnections" w WHERE w."tenantId" = t.id AND w.kind = 'whatsapp') AS whatsapps
 		FROM "Tenants" t
 		ORDER BY tickets DESC, contacts DESC, users DESC
 	`).Scan(&result).Error

@@ -47,7 +47,7 @@ func TestStartWhatsAppSession_ComposesProxyURL(t *testing.T) {
 		t.Fatalf("seed proxy: %v", err)
 	}
 	w := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "s", ProxyMode: "single", ProxyID: &proxy.ID}
-	if err := db.Create(&w).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &w); err != nil {
 		t.Fatalf("seed whatsapp: %v", err)
 	}
 
@@ -70,7 +70,7 @@ func TestStartWhatsAppSession_NoProxy_EmptyURL(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenantID := uuid.New()
 	w := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "s"}
-	if err := db.Create(&w).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &w); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 	pub := &mockCommandPublisher{}
@@ -95,7 +95,7 @@ func TestStartWhatsAppSession_InactiveProxy_FailsClosed(t *testing.T) {
 		t.Fatalf("seed proxy: %v", err)
 	}
 	w := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "s", ProxyMode: "single", ProxyID: &proxy.ID}
-	if err := db.Create(&w).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &w); err != nil {
 		t.Fatalf("seed whatsapp: %v", err)
 	}
 	pub := &mockCommandPublisher{}
@@ -130,7 +130,7 @@ func TestPickGroupProxy_StickyLRU(t *testing.T) {
 		t.Fatalf("seed pB: %v", err)
 	}
 	w := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "s", ProxyMode: "group", ProxyGroupID: &group.ID}
-	if err := db.Create(&w).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &w); err != nil {
 		t.Fatalf("seed w: %v", err)
 	}
 
@@ -144,7 +144,9 @@ func TestPickGroupProxy_StickyLRU(t *testing.T) {
 		t.Fatalf("LRU should pick pA (oldest), got %v", got)
 	}
 	var reloaded models.Whatsapp
-	db.Where("id = ?", w.ID).First(&reloaded)
+	if err := models.FirstWhatsapp(db.Where("id = ?", w.ID), &reloaded); err != nil {
+		t.Fatal(err)
+	}
 	if reloaded.ProxyID == nil || *reloaded.ProxyID != pA.ID {
 		t.Fatalf("sticky proxyId not persisted (want %d): %v", pA.ID, reloaded.ProxyID)
 	}
@@ -165,7 +167,9 @@ func TestPickGroupProxy_Rotate(t *testing.T) {
 	db.Create(&pA)
 	db.Create(&pB)
 	w := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "s", ProxyMode: "group", ProxyGroupID: &group.ID}
-	db.Create(&w)
+	if err := models.CreateWhatsapp(db, &w); err != nil {
+		t.Fatal(err)
+	}
 
 	pub := &mockCommandPublisher{}
 	mockRedis := &mockRedisService{}
@@ -196,7 +200,9 @@ func TestPickGroupProxy_NoActive_FailsClosed(t *testing.T) {
 	p := models.Proxy{TenantID: tenantID, Scheme: "http", Host: "a", Port: 1, Status: "isolated", ProxyGroupID: &group.ID}
 	db.Create(&p)
 	w := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "s", ProxyMode: "group", ProxyGroupID: &group.ID}
-	db.Create(&w)
+	if err := models.CreateWhatsapp(db, &w); err != nil {
+		t.Fatal(err)
+	}
 
 	pub := &mockCommandPublisher{}
 	mockRedis := &mockRedisService{}
@@ -229,9 +235,11 @@ func TestPickGroupProxy_PersistFailure_RollsBackLastUsedAt(t *testing.T) {
 	p := models.Proxy{TenantID: tenantID, Scheme: "http", Host: "a", Port: 1, Status: "active", ProxyGroupID: &group.ID}
 	db.Create(&p)
 	w := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "s", ProxyMode: "group", ProxyGroupID: &group.ID}
-	db.Create(&w)
+	if err := models.CreateWhatsapp(db, &w); err != nil {
+		t.Fatal(err)
+	}
 
-	if err := db.Exec(`ALTER TABLE "Whatsapps" DROP COLUMN "proxyId"`).Error; err != nil {
+	if err := db.Exec(`ALTER TABLE whatsapp_connection_details DROP COLUMN "proxyId"`).Error; err != nil {
 		t.Fatalf("failed to drop column for test setup: %v", err)
 	}
 

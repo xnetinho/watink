@@ -112,7 +112,7 @@ func newTestDBWithWhatsapp(t *testing.T) (*gorm.DB, models.Whatsapp) {
 	db := testutil.NewTestDB(t)
 	tenantID := uuid.New()
 	w := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "test-session"}
-	if err := db.Create(&w).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &w); err != nil {
 		t.Fatalf("failed to seed Whatsapp: %v", err)
 	}
 	return db, w
@@ -188,7 +188,7 @@ func TestStartWhatsAppSession_LockAlreadyAcquired(t *testing.T) {
 func TestStartWhatsAppSession_DBError(t *testing.T) {
 	db, whatsapp := newTestDBWithWhatsapp(t)
 	// Drop the table so the UPDATE fails with a DB error.
-	if err := db.Exec(`DROP TABLE "Whatsapps"`).Error; err != nil {
+	if err := db.Exec(`DROP TABLE whatsapp_connection_details, "ChannelConnections" CASCADE`).Error; err != nil {
 		t.Fatalf("failed to drop table: %v", err)
 	}
 	pub := &mockCommandPublisher{}

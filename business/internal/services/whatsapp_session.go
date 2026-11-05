@@ -108,9 +108,7 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 	previousStatus := whatsapp.Status
 
 	// Update Status — CRITICAL: tenant-scoped
-	if err := db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
-		Where("id = ? AND \"tenantId\" = ?", whatsapp.ID, whatsapp.TenantID).
-		Update("status", "OPENING").Error; err != nil {
+	if err := models.UpdateWhatsapp(db, whatsapp.TenantID, whatsapp.ID, map[string]interface{}{"status": "OPENING"}); err != nil {
 		_ = wss.redisSvc.DelLock(lockKey)
 		return err
 	}
@@ -132,9 +130,7 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 		if revertStatus == "" || revertStatus == "OPENING" || revertStatus == "PAIRING" {
 			revertStatus = "DISCONNECTED"
 		}
-		if updErr := db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
-			Where("id = ? AND \"tenantId\" = ?", whatsapp.ID, whatsapp.TenantID).
-			Update("status", revertStatus).Error; updErr == nil {
+		if updErr := models.UpdateWhatsapp(db, whatsapp.TenantID, whatsapp.ID, map[string]interface{}{"status": revertStatus}); updErr == nil {
 			whatsapp.Status = revertStatus
 			wss.broadcast.EmitToTenantRoom(whatsapp.TenantID.String(), "whatsappSession", map[string]interface{}{
 				"action":  "update",

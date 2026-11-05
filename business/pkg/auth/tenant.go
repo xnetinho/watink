@@ -62,14 +62,14 @@ func GetScopedDB(c *gin.Context, table string) *gorm.DB {
 	// Visibility for agents (non-admin): a ticket is visible when it is assigned to
 	// the user, OR its queue is one of the user's queues, OR it arrived on a channel
 	// linked to one of the user's queues (covers unassigned/pending tickets).
-	// NOTE: join tables user_queues / whatsapp_queues use snake_case columns.
+	// NOTE: join tables user_queues / channel_connection_queues use snake_case columns.
 	switch table {
 	case "Tickets":
 		return db.Where(
 			"\"tenantId\" = ? AND ( "+
 				"\"userId\" = ? "+
 				"OR \"queueId\" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) "+
-				"OR \"whatsappId\" IN (SELECT wq.whatsapp_id FROM whatsapp_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?)) "+
+				"OR \"whatsappId\" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?)) "+
 				")",
 			tenantID, userID, userID, userID)
 	case "Contacts":
@@ -79,7 +79,7 @@ func GetScopedDB(c *gin.Context, table string) *gorm.DB {
 				"OR id IN (SELECT \"contactId\" FROM \"Tickets\" WHERE "+
 				"\"userId\" = ? "+
 				"OR \"queueId\" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) "+
-				"OR \"whatsappId\" IN (SELECT wq.whatsapp_id FROM whatsapp_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?))) "+
+				"OR \"whatsappId\" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?))) "+
 				")",
 			tenantID, userID, userID, userID, userID)
 	default:

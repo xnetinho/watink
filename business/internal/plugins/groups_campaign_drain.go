@@ -90,7 +90,7 @@ func pickDueSends(ctx context.Context, db *gorm.DB) ([]models.GroupCampaignSend,
 	err := db.WithContext(ctx).Raw(`
 		SELECT DISTINCT ON (s."whatsappId") s.*
 		  FROM "group_campaign_sends" s
-		  JOIN "Whatsapps" w ON w.id = s."whatsappId"
+		  JOIN "ChannelConnections" w ON w.id = s."whatsappId" AND w.kind = 'whatsapp'
 		  JOIN "group_campaigns" c ON c.id = s."campaignId"
 		 WHERE s.status = ? AND s."scheduledAt" <= ? AND w.status = ? AND c.status = ?
 		 ORDER BY s."whatsappId", s."scheduledAt" ASC

@@ -182,7 +182,7 @@ func TestGroupsPlugin_ListGroups_501WhenEngineIsNotGroupEngine(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
 	whatsapp := models.Whatsapp{TenantID: tenantID, Name: "conn-1"}
-	require.NoError(t, db.Create(&whatsapp).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 
 	svc := &groupsService{db: db, resolver: &fakeResolver{engine: nonGroupEngine{}}, throttle: newGroupsThrottle()}
 
@@ -234,7 +234,7 @@ func TestGroupsPlugin_ListGroups_HappyPath(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
 	whatsapp := models.Whatsapp{TenantID: tenantID, Name: "conn-1"}
-	require.NoError(t, db.Create(&whatsapp).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 
 	engine := &fakeGroupEngine{groups: []domain.GroupInfo{{JID: "120363xxx@g.us", Subject: "Test"}}}
 	svc := &groupsService{db: db, resolver: &fakeResolver{engine: engine}, throttle: newGroupsThrottle()}
@@ -260,7 +260,7 @@ func TestGroupsPlugin_ListGroups_404ForOtherTenantsConnection(t *testing.T) {
 	ownerTenant := uuid.New()
 	callerTenant := uuid.New()
 	whatsapp := models.Whatsapp{TenantID: ownerTenant, Name: "conn-1"}
-	require.NoError(t, db.Create(&whatsapp).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 
 	svc := &groupsService{db: db, resolver: &fakeResolver{engine: &fakeGroupEngine{}}, throttle: newGroupsThrottle()}
 

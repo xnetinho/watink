@@ -213,7 +213,7 @@ func TestContactController_CreateContact_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db, tenantID := setupContactTestDB(t)
 	wa := models.Whatsapp{Name: "Comercial", Status: "CONNECTED", TenantID: tenantID}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	payload, _ := json.Marshal(map[string]interface{}{
 		"name":         "Carlos",
@@ -241,7 +241,7 @@ func TestContactController_CreateContact_SemConexaoOuDeOutraEmpresaRecusa(t *tes
 	gin.SetMode(gin.TestMode)
 	db, tenantID := setupContactTestDB(t)
 	alheia := models.Whatsapp{Name: "Alheia", Status: "CONNECTED", TenantID: uuid.New()}
-	require.NoError(t, db.Create(&alheia).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &alheia))
 	router := newContactRouter(db, tenantID.String())
 
 	for name, body := range map[string]map[string]interface{}{

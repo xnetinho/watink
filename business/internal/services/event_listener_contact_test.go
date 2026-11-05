@@ -21,7 +21,7 @@ func TestSyncConnectionProfilePic_UpdatesMatchingConnection(t *testing.T) {
 	db, sessions, _ := setupEventListenerRepos(t)
 	tenantID := uuid.New()
 	wa := models.Whatsapp{ID: 3, Name: "zap-4863", Number: "558597964683", TenantID: tenantID}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatalf("seed whatsapp: %v", err)
 	}
 
@@ -37,7 +37,7 @@ func TestSyncConnectionProfilePic_UpdatesMatchingConnection(t *testing.T) {
 	}
 
 	var reloaded models.Whatsapp
-	if err := db.First(&reloaded, 3).Error; err != nil {
+	if err := models.FirstWhatsapp(db.Where("id = ?", 3), &reloaded); err != nil {
 		t.Fatalf("reload: %v", err)
 	}
 	if reloaded.ProfilePicUrl != "https://pps.whatsapp.net/v/photo.jpg" {
@@ -51,7 +51,7 @@ func TestSyncConnectionProfilePic_NoMatchingConnection_NoOp(t *testing.T) {
 	db, sessions, _ := setupEventListenerRepos(t)
 	tenantID := uuid.New()
 	wa := models.Whatsapp{ID: 1, Name: "zap-0991", Number: "558598490991", TenantID: tenantID}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatalf("seed whatsapp: %v", err)
 	}
 
@@ -66,7 +66,9 @@ func TestSyncConnectionProfilePic_NoMatchingConnection_NoOp(t *testing.T) {
 	}
 
 	var reloaded models.Whatsapp
-	db.First(&reloaded, 1)
+	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &reloaded); err != nil {
+		t.Fatal(err)
+	}
 	if reloaded.ProfilePicUrl != "" {
 		t.Fatalf("conexão não-relacionada não deveria ter sido tocada, got %q", reloaded.ProfilePicUrl)
 	}

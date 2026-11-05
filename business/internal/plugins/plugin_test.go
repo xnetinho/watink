@@ -127,7 +127,9 @@ func TestWebchatPlugin_GET_ReturnsWhatsAppConfig(t *testing.T) {
 		FarewellMessage: "Até logo!",
 		TenantID:        tenantID,
 	}
-	db.Create(&whatsapp)
+	if err := models.CreateWhatsapp(db, &whatsapp); err != nil {
+		t.Fatal(err)
+	}
 
 	mockCore := new(MockWatinkCore)
 	mockCore.On("GetDB").Return(db)
@@ -188,7 +190,9 @@ func TestWebchatPlugin_POST_CreatesTicketAndContact(t *testing.T) {
 		FarewellMessage: "Bye",
 		TenantID:        tenantID,
 	}
-	db.Create(&whatsapp)
+	if err := models.CreateWhatsapp(db, &whatsapp); err != nil {
+		t.Fatal(err)
+	}
 
 	mockCore := new(MockWatinkCore)
 	mockCore.On("GetDB").Return(db)
@@ -241,7 +245,9 @@ func TestWebchatPlugin_OutraEmpresaNaoAlcancaOCanal(t *testing.T) {
 	db := setupPluginTestDB(t)
 	dono, intruso := uuid.New(), uuid.New()
 	whatsapp := models.Whatsapp{Name: "Canal do dono", TenantID: dono}
-	db.Create(&whatsapp)
+	if err := models.CreateWhatsapp(db, &whatsapp); err != nil {
+		t.Fatal(err)
+	}
 
 	mockCore := new(MockWatinkCore)
 	mockCore.On("GetDB").Return(db)

@@ -153,7 +153,8 @@ func TestMessageController_SendMessage_PublishesCommand(t *testing.T) {
 	db := setupMessageTestDB(t)
 	tenantID := uuid.New()
 
-	db.Exec(`INSERT INTO "Whatsapps" (id, name, "tenantId") VALUES (?,?,?)`, 42, "conn-42", tenantID)
+	db.Exec(`INSERT INTO "ChannelConnections" (id, name, kind, "tenantId") VALUES (?,?,'whatsapp',?)`, 42, "conn-42", tenantID)
+	db.Exec(`INSERT INTO whatsapp_connection_details ("connectionId") VALUES (42)`)
 	db.Exec(`INSERT INTO "Contacts" (name, number, "isGroup", "tenantId") VALUES (?,?,?,?)`, "Fulano", "5511999998888", false, tenantID)
 	var contactID int
 	db.Raw(`SELECT id FROM "Contacts" WHERE "tenantId" = ?`, tenantID).Scan(&contactID)
@@ -189,7 +190,8 @@ func TestMessageController_SendMessage_Multipart_SavesMediaAndPublishes(t *testi
 	db := setupMessageTestDB(t)
 	tenantID := uuid.New()
 
-	db.Exec(`INSERT INTO "Whatsapps" (id, name, "tenantId") VALUES (?,?,?)`, 42, "conn-42", tenantID)
+	db.Exec(`INSERT INTO "ChannelConnections" (id, name, kind, "tenantId") VALUES (?,?,'whatsapp',?)`, 42, "conn-42", tenantID)
+	db.Exec(`INSERT INTO whatsapp_connection_details ("connectionId") VALUES (42)`)
 	db.Exec(`INSERT INTO "Contacts" (name, number, "isGroup", "tenantId") VALUES (?,?,?,?)`, "Fulano", "5511999998888", false, tenantID)
 	var contactID int
 	db.Raw(`SELECT id FROM "Contacts" WHERE "tenantId" = ?`, tenantID).Scan(&contactID)

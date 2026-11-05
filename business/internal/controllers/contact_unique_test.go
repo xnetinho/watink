@@ -35,7 +35,7 @@ func contactRouter(t *testing.T, db *gorm.DB, tenantID uuid.UUID) *gin.Engine {
 func conn(t *testing.T, db *gorm.DB, tenant uuid.UUID, name string) int {
 	t.Helper()
 	w := models.Whatsapp{Name: name, Status: "CONNECTED", TenantID: tenant}
-	require.NoError(t, db.Create(&w).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &w))
 	return w.ID
 }
 

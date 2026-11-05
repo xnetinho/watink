@@ -45,9 +45,9 @@ func (cgc *ConnectionGroupController) List(c *gin.Context) {
 		Total             int64
 	}
 	var counts []countRow
-	db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
+	db.Session(&gorm.Session{NewDB: true}).Model(&models.WhatsAppConnectionDetails{}).
 		Select(`"connectionGroupId" as connection_group_id, COUNT(*) as total`).
-		Where(`"tenantId" = ? AND "connectionGroupId" IS NOT NULL`, tenantID).
+		Where(`"connectionId" IN (?) AND "connectionGroupId" IS NOT NULL`, models.TenantWhatsappIDs(db, tenantID)).
 		Group(`"connectionGroupId"`).
 		Scan(&counts)
 	byGroup := make(map[int]int64, len(counts))
@@ -156,9 +156,8 @@ func (cgc *ConnectionGroupController) Delete(c *gin.Context) {
 	}
 	id, _ := strconv.Atoi(c.Param("id"))
 	// Session(NewDB:true) em cada escrita (mesmo motivo do proxy_group).
-	if err := db.Session(&gorm.Session{NewDB: true}).Model(&models.Whatsapp{}).
-		Where(`"connectionGroupId" = ? AND "tenantId" = ?`, id, tenantID).
-		Update("connectionGroupId", nil).Error; err != nil {
+	if err := models.UpdateWhatsappDetailsWhere(db, tenantID, `"connectionGroupId" = ?`, []interface{}{id},
+		map[string]interface{}{"connectionGroupId": nil}); err != nil {
 		utils.RespondWithInternalError(c, err, "DetachConnectionsFromGroup")
 		return
 	}

@@ -212,7 +212,7 @@ func TestSendOne_PublishFailureMarksMessageUndelivered(t *testing.T) {
 func TestSendOne_NonWhatsmeowEngineRenamesMessageToRealID(t *testing.T) {
 	db := setupPluginTestDB(t)
 	w, c := campaignFixture(t, db, "CONNECTED")
-	require.NoError(t, db.Model(&w).Update("engineType", "custom-engine").Error)
+	require.NoError(t, models.UpdateWhatsapp(db, w.TenantID, w.ID, map[string]interface{}{"engineType": "custom-engine"}))
 	run := runWithSnapshot(t, db, c, []variantSnapshotEntry{{ID: 1, Type: "text", Message: "oi"}})
 	send := sendFixtureWithVariant(t, db, w, c, run, "120363000000000014@g.us", 0)
 

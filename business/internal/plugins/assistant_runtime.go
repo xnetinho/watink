@@ -230,7 +230,7 @@ func (r *AssistantRuntime) isMentioned(a models.Assistant, mentionedJIDs []strin
 		return false
 	}
 	var wa models.Whatsapp
-	if err := r.db.Select("number").Where(`id = ? AND "tenantId" = ?`, *a.WhatsAppID, a.TenantID).First(&wa).Error; err != nil {
+	if err := models.FirstWhatsapp(r.db.Where(`id = ? AND "tenantId" = ?`, *a.WhatsAppID, a.TenantID), &wa); err != nil {
 		return false
 	}
 	number := strings.TrimSpace(wa.Number)

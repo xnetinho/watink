@@ -64,7 +64,7 @@ func newCallWorld(t *testing.T) *callWorld {
 	w.svc = calls.NewService(db, repository.NewGORMContactRepo(db), repository.NewGORMTicketRepo(db),
 		repository.NewGORMQueueRepo(db), w.pub, nil, nil)
 	w.wa = models.Whatsapp{Name: "WA" + w.tenant.String(), TenantID: w.tenant, Status: "CONNECTED", ProxyMode: "none"}
-	require.NoError(t, db.Create(&w.wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &w.wa))
 	contact := models.Contact{Name: "Cliente", Number: "5511999991111", TenantID: w.tenant}
 	require.NoError(t, db.Create(&contact).Error)
 	w.ticket = models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: w.wa.ID, TenantID: w.tenant}
@@ -192,13 +192,13 @@ func TestPlaceCall_RejectedCases(t *testing.T) {
 	assert.Equal(t, "NOT_INDIVIDUAL", code(res), "grupo/comunidade/canal não liga")
 	require.NoError(t, w.db.Model(&models.Ticket{}).Where("id = ?", w.ticket.ID).Update("isGroup", false).Error)
 
-	require.NoError(t, w.db.Model(&models.Whatsapp{}).Where("id = ?", w.wa.ID).Update("status", "DISCONNECTED").Error)
+	require.NoError(t, models.UpdateWhatsapp(w.db, w.wa.TenantID, w.wa.ID, map[string]interface{}{"status": "DISCONNECTED"}))
 	res = do(r, "POST", "/calls", map[string]interface{}{"ticketId": w.ticket.ID})
 	assert.Equal(t, http.StatusUnprocessableEntity, res.Code)
 	assert.Equal(t, "NOT_CONNECTED", code(res))
-	require.NoError(t, w.db.Model(&models.Whatsapp{}).Where("id = ?", w.wa.ID).Update("status", "CONNECTED").Error)
+	require.NoError(t, models.UpdateWhatsapp(w.db, w.wa.TenantID, w.wa.ID, map[string]interface{}{"status": "CONNECTED"}))
 
-	require.NoError(t, w.db.Model(&models.Whatsapp{}).Where("id = ?", w.wa.ID).Update("proxyMode", "single").Error)
+	require.NoError(t, models.UpdateWhatsapp(w.db, w.wa.TenantID, w.wa.ID, map[string]interface{}{"proxyMode": "single"}))
 	res = do(r, "POST", "/calls", map[string]interface{}{"ticketId": w.ticket.ID})
 	assert.Equal(t, http.StatusUnprocessableEntity, res.Code)
 	assert.Equal(t, "PROXY_BLOCKED", code(res), "conexão com proxy nunca liga")
@@ -209,7 +209,7 @@ func TestPlaceCall_RejectedCases(t *testing.T) {
 func TestPlaceCall_ProxyViaProxyIDAndGroupAlsoBlocks(t *testing.T) {
 	w := newCallWorld(t)
 	r := w.router(w.user(t, "ligador", "tenant", w.tenant, "place"))
-	require.NoError(t, w.db.Model(&models.Whatsapp{}).Where("id = ?", w.wa.ID).Updates(map[string]interface{}{"proxyMode": "none", "proxyGroupId": 3}).Error)
+	require.NoError(t, models.UpdateWhatsapp(w.db, w.wa.TenantID, w.wa.ID, map[string]interface{}{"proxyMode": "none", "proxyGroupId": 3}))
 	res := do(r, "POST", "/calls", map[string]interface{}{"ticketId": w.ticket.ID})
 	assert.Equal(t, "PROXY_BLOCKED", code(res), "grupo de proxy configurado (mesmo sem pick atual) bloqueia: fail-closed")
 }
@@ -244,7 +244,7 @@ func TestCallHistory_TenantAndOperatorIsolation(t *testing.T) {
 	mkLog(w.tenant, "L-MINE", &w.ticket.ID, w.wa.ID)
 	mkLog(w.tenant, "L-OTHERS", &tk2.ID, w.wa.ID)
 	foreignWA := models.Whatsapp{Name: "F" + w.other.String(), TenantID: w.other, Status: "CONNECTED"}
-	require.NoError(t, w.db.Create(&foreignWA).Error)
+	require.NoError(t, models.CreateWhatsapp(w.db, &foreignWA))
 	mkLog(w.other, "L-FOREIGN", nil, foreignWA.ID)
 
 	agent := w.user(t, "agente", "proprio", w.tenant, "read")

@@ -36,7 +36,7 @@ func TestChannelTicketFoundation_ParityAndIndexes(t *testing.T) {
 		TenantID: tenantID,
 		Status:   "CONNECTED",
 	}
-	require.NoError(t, db.Create(&whatsapp).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 
 	contact := models.Contact{
 		Name:     "Contato Teste",

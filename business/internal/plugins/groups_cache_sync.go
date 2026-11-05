@@ -61,7 +61,7 @@ func syncAllGroupsCaches(ctx context.Context, db *gorm.DB, resolver domain.Whats
 	if err := db.WithContext(ctx).
 		Table(`"PluginInstallations" AS pi`).
 		Select(`pi."tenantId" AS tenant_id, w.id AS whatsapp_id`).
-		Joins(`JOIN "Whatsapps" AS w ON w."tenantId" = pi."tenantId"`).
+		Joins(`JOIN "ChannelConnections" AS w ON w."tenantId" = pi."tenantId" AND w.kind = 'whatsapp'`).
 		Where(`pi."pluginId" = ? AND pi.active = ? AND w.status = ?`, "groups", true, "CONNECTED").
 		Find(&targets).Error; err != nil {
 		log.Printf("[groups] cache sync: falha ao listar conexões: %v", err)
@@ -95,7 +95,7 @@ func syncOneGroupsCache(ctx context.Context, db *gorm.DB, resolver domain.WhatsA
 	// Etapa 1 (curta, escopo da empresa): carrega a conexão.
 	var w models.Whatsapp
 	if err := tenantdb.Do(ctx, db, t.TenantID, func(tx *gorm.DB) error {
-		return tx.Where(`id = ? AND "tenantId" = ?`, t.WhatsappID, t.TenantID).First(&w).Error
+		return models.FirstWhatsapp(tx.Where(`id = ? AND "tenantId" = ?`, t.WhatsappID, t.TenantID), &w)
 	}); err != nil {
 		return
 	}

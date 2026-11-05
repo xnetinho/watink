@@ -38,7 +38,7 @@ func newStickerEnv(t *testing.T) stickerEnv {
 	tenant := uuid.New()
 	require.NoError(t, db.Create(&models.Tenant{ID: tenant, Name: "T"}).Error)
 	wa := models.Whatsapp{Name: "W", TenantID: tenant, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
 	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open"}
@@ -181,7 +181,7 @@ func TestStickerLibrary_MesmaFigurinhaEmEmpresasDiferentesNaoColide(t *testing.T
 	other := uuid.New()
 	require.NoError(t, e.db.Create(&models.Tenant{ID: other, Name: "Outra"}).Error)
 	wa2 := models.Whatsapp{Name: "W2", TenantID: other, Status: "CONNECTED"}
-	require.NoError(t, e.db.Create(&wa2).Error)
+	require.NoError(t, models.CreateWhatsapp(e.db, &wa2))
 	ct2 := models.Contact{Name: "C2", Number: "5511999990002", TenantID: other}
 	require.NoError(t, e.db.Create(&ct2).Error)
 	tk2 := models.Ticket{ContactID: ct2.ID, WhatsappID: wa2.ID, TenantID: other, Status: "open"}
@@ -232,7 +232,7 @@ func TestStickerLibrary_AlreadySavedEhPorEmpresa(t *testing.T) {
 	other := uuid.New()
 	require.NoError(t, e.db.Create(&models.Tenant{ID: other, Name: "Outra"}).Error)
 	wa := models.Whatsapp{Name: "W2", TenantID: other, Status: "CONNECTED"}
-	require.NoError(t, e.db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(e.db, &wa))
 	ct := models.Contact{Name: "C2", Number: "5511999990002", TenantID: other}
 	require.NoError(t, e.db.Create(&ct).Error)
 	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: other, Status: "open"}

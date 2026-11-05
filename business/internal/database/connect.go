@@ -185,7 +185,7 @@ func RunMigrations() error {
 	if err := tenantdb.ApplyPoliciesLocked(ctx, admin); err != nil {
 		return fmt.Errorf("políticas RLS: %w", err)
 	}
-	// O papel do engine precisa do GRANT em Whatsapps, então nasce depois do esquema.
+	// O papel do engine precisa do GRANT em WaVersionSettings, então nasce depois do esquema.
 	if enginePass != "" {
 		if err := ensureEngineRole(ctx, admin, enginePass); err != nil {
 			return err
@@ -228,7 +228,7 @@ func ensureRoles(ctx context.Context, admin *sql.DB, appPass, sysPass string) er
 }
 
 // RoleEngine é o papel do engine do WhatsApp (ADR 0034, D10): dono do schema "whatsmeow" (onde a biblioteca guarda chaves
-// e sessões) e SELECT apenas em Whatsapps (reinício de sessões) e WaVersionSettings (versão do cliente WhatsApp, global).
+// e sessões) e SELECT apenas em WaVersionSettings (versão do cliente WhatsApp, global).
 // Não lê nenhuma outra tabela do negócio.
 const RoleEngine = "watink_engine"
 
@@ -247,7 +247,7 @@ func ensureEngineRole(ctx context.Context, admin *sql.DB, pass string) error {
 		fmt.Sprintf(`CREATE SCHEMA IF NOT EXISTS whatsmeow AUTHORIZATION %s`, name),
 		fmt.Sprintf(`ALTER SCHEMA whatsmeow OWNER TO %s`, name),
 		fmt.Sprintf(`GRANT USAGE ON SCHEMA public TO %s`, name),
-		fmt.Sprintf(`GRANT SELECT ON public."Whatsapps", public."WaVersionSettings" TO %s`, name),
+		fmt.Sprintf(`GRANT SELECT ON public."WaVersionSettings" TO %s`, name),
 		fmt.Sprintf(`ALTER ROLE %s SET search_path = whatsmeow`, name),
 	} {
 		if _, err := admin.ExecContext(ctx, q); err != nil {

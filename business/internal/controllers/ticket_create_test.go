@@ -59,7 +59,7 @@ func seedCreateTicketBase(t *testing.T, db *gorm.DB, tenantID uuid.UUID) (models
 func seedConnection(t *testing.T, db *gorm.DB, tenantID uuid.UUID, name, status string) models.Whatsapp {
 	t.Helper()
 	wa := models.Whatsapp{Name: name + "-" + uuid.NewString()[:6], TenantID: tenantID, Status: status}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
 	return wa

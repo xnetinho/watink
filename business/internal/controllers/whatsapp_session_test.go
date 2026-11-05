@@ -218,7 +218,7 @@ func TestSessionController_StopSession_EventoCarregaOStatusNovo(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	tenantID := uuid.New()
 	db := newSessionTestDB(t)
-	sess := &domain.ChannelSession{ID: 1, Name: "zap", TenantID: tenantID, EngineType: "whatsmeow", Status: "CONNECTED", Qrcode: "old"}
+	sess := &domain.ChannelSession{ID: 1, Name: "zap", TenantID: tenantID, EngineType: "whatsmeow", Status: "CONNECTED"}
 	bc := &tenantEventCapture{}
 	wss := services.NewWhatsAppSessionService(db, noopCommandPublisher{}, busyLockRedis{}, bc)
 	ctrl := NewSessionController(&mockChannelSessionRepo{session: sess}, bc, wss)
@@ -230,15 +230,14 @@ func TestSessionController_StopSession_EventoCarregaOStatusNovo(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	assert.NotEmpty(t, bc.events)
 	for _, e := range bc.events {
-		var st, qr string
+		var st string
 		switch s := e["session"].(type) {
 		case *domain.ChannelSession:
-			st, qr = s.Status, s.Qrcode
+			st = s.Status
 		}
 		if c, ok := e["connection"].(*domain.ChannelSession); ok {
-			st, qr = c.Status, c.Qrcode
+			st = c.Status
 		}
 		assert.Equal(t, "DISCONNECTED", st, "evento %v", e["event"])
-		assert.Empty(t, qr)
 	}
 }

@@ -21,14 +21,14 @@ func NewGORMQueueRepo(db *gorm.DB) *GORMQueueRepository {
 }
 
 // FindQueueIDsByChannel returns the queue IDs linked to the given channel via the
-// whatsapp_queues join table. The join table uses snake_case columns
-// (whatsapp_id, queue_id) created by GORM's many2many default naming.
+// channel_connection_queues join table. The join table uses snake_case columns
+// (channel_connection_id, queue_id) created by GORM's many2many default naming.
 func (r *GORMQueueRepository) FindQueueIDsByChannel(ctx context.Context, channelID int, tenantID uuid.UUID) ([]int, error) {
 	var ids []int
 	err := r.db.WithContext(ctx).
-		Table("whatsapp_queues AS wq").
+		Table("channel_connection_queues AS wq").
 		Joins(`JOIN "Queues" q ON q.id = wq.queue_id`).
-		Where(`wq.whatsapp_id = ? AND q."tenantId" = ?`, channelID, tenantID).
+		Where(`wq.channel_connection_id = ? AND q."tenantId" = ?`, channelID, tenantID).
 		Pluck("wq.queue_id", &ids).Error
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (r *GORMQueueRepository) FindByIDWithAssociations(ctx context.Context, id i
 	var m models.Queue
 	err := r.db.WithContext(ctx).
 		Where("id = ? AND \"tenantId\" = ?", id, tenantID).
-		Preload("Whatsapps").
+		Preload("ChannelConnections").
 		First(&m).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -84,7 +84,7 @@ func (r *GORMQueueRepository) FindAllWithAssociations(ctx context.Context, tenan
 	var m []models.Queue
 	err := r.db.WithContext(ctx).
 		Where("\"tenantId\" = ?", tenantID).
-		Preload("Whatsapps").
+		Preload("ChannelConnections").
 		Order("COALESCE(\"parentId\", id), \"parentId\" IS NOT NULL, name ASC").
 		Find(&m).Error
 	if err != nil {
@@ -107,16 +107,7 @@ func (r *GORMQueueRepository) Create(ctx context.Context, queue *domain.Queue, w
 		// Update domain ID after creation
 		queue.ID = m.ID
 
-		if len(whatsappIDs) > 0 {
-			var whatsapps []models.Whatsapp
-			if err := tx.Where("id IN ? AND \"tenantId\" = ?", whatsappIDs, queue.TenantID).Find(&whatsapps).Error; err != nil {
-				return err
-			}
-			if err := tx.Model(m).Association("Whatsapps").Replace(&whatsapps); err != nil {
-				return err
-			}
-		}
-		return nil
+		return models.SetWhatsappQueues(tx, queue.TenantID, m.ID, whatsappIDs)
 	})
 }
 
@@ -128,18 +119,7 @@ func (r *GORMQueueRepository) Update(ctx context.Context, queue *domain.Queue, f
 			return err
 		}
 
-		// Update Whatsapps association
-		var whatsapps []models.Whatsapp
-		if len(whatsappIDs) > 0 {
-			if err := tx.Where("id IN ? AND \"tenantId\" = ?", whatsappIDs, queue.TenantID).Find(&whatsapps).Error; err != nil {
-				return err
-			}
-		}
-		if err := tx.Model(m).Association("Whatsapps").Replace(&whatsapps); err != nil {
-			return err
-		}
-
-		return nil
+		return models.SetWhatsappQueues(tx, queue.TenantID, m.ID, whatsappIDs)
 	})
 }
 
@@ -174,12 +154,15 @@ func queueModelToDomain(m *models.Queue) *domain.Queue {
 func queueModelWithAssocToDomain(m *models.Queue) *domain.Queue {
 	d := queueModelToDomain(m)
 	// Map associated Whatsapp sessions to domain ChannelSession references
-	for _, w := range m.Whatsapps {
+	for _, c := range m.ChannelConnections {
+		if c.Kind != models.KindWhatsApp {
+			continue
+		}
 		d.Whatsapps = append(d.Whatsapps, domain.QueueWhatsapp{
-			ID:     w.ID,
-			Name:   w.Name,
-			Status: w.Status,
-			Number: w.Number,
+			ID:     c.ID,
+			Name:   c.Name,
+			Status: c.Status,
+			Number: c.Identifier,
 		})
 	}
 	return d

@@ -59,7 +59,7 @@ func TestUpdateTicket(t *testing.T) {
 
 	// Seed whatsapp + contact + ticket
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
@@ -136,7 +136,7 @@ func TestUpdateTicket_ResetsUnreadMessages(t *testing.T) {
 	tc := NewTicketController(updateUC, nil, &stubMessageRepo{}, &stubPublisher{})
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	_ = db.Create(&wa).Error
+	_ = models.CreateWhatsapp(db, &wa)
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
 	_ = db.Create(&contact).Error
 	mine := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID, UnreadMessages: 5}
@@ -209,7 +209,7 @@ func TestDeleteTicket(t *testing.T) {
 	tc := NewTicketController(updateUC, nil, &stubMessageRepo{}, &stubPublisher{})
 
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
@@ -292,7 +292,7 @@ func TestRecoverHistory(t *testing.T) {
 
 	// Seed whatsapp + contact with number + ticket
 	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
-	if err := db.Create(&wa).Error; err != nil {
+	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}

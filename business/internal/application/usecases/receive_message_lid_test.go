@@ -38,7 +38,7 @@ func TestReceiveMessage_LIDReplyJoinsTheAgendaContactAndItsTicket(t *testing.T) 
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
 	wa := models.Whatsapp{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	agenda := models.Contact{Name: "Fulano da Agenda", Number: "558382341576", TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
 	require.NoError(t, db.Create(&agenda).Error)
@@ -77,7 +77,7 @@ func TestReceiveMessage_LIDWithoutResolvedPhoneStillCreatesLIDContact(t *testing
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
 	wa := models.Whatsapp{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	res, err := newLIDReceiveUC(db).Execute(context.Background(), ReceiveMessageInput{
 		ID: "WAMID-2", From: "999888777@lid", Body: "olá", Type: "chat", PushName: "Anônimo",
@@ -93,7 +93,7 @@ func TestReceiveMessage_PlainPhoneMessageIsUnaffected(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
 	wa := models.Whatsapp{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
-	require.NoError(t, db.Create(&wa).Error)
+	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	uc := newLIDReceiveUC(db)
 	in := ReceiveMessageInput{ID: "A", From: "5511988887777@s.whatsapp.net", Body: "oi", Type: "chat", SessionID: wa.ID, TenantID: tenant}
