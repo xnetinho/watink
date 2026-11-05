@@ -7,10 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
-	"github.com/alltomatos/watinkdev/business/internal/models"
+	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
+	"github.com/alltomatos/watinkdev/business/internal/domain"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 )
 
 type fakePublisher struct {
@@ -108,6 +112,8 @@ func newRig(t *testing.T) *rig {
 	t.Helper()
 	w := newWorld(t)
 	r := &rig{world: w, pub: &fakePublisher{}, bc: &fakeBroadcaster{}, pres: fakePresence{online: map[string]bool{}}}
+	// Os comandos de chamada saem pelo adaptador do canal (registro global); aqui ele publica no fake que os testes leem.
+	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(nil, r.pub))
 	r.svc = NewService(w.db, repository.NewGORMContactRepo(w.db), repository.NewGORMTicketRepo(w.db),
 		repository.NewGORMQueueRepo(w.db), r.pub, r.bc, r.pres)
 	r.svc.now = func() time.Time { return time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC) }

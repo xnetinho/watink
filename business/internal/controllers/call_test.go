@@ -63,6 +63,7 @@ func newCallWorld(t *testing.T) *callWorld {
 	w := &callWorld{db: db, tenant: uuid.New(), other: uuid.New(), pub: &callPub{}, cargos: map[string]int{}}
 	w.svc = calls.NewService(db, repository.NewGORMContactRepo(db), repository.NewGORMTicketRepo(db),
 		repository.NewGORMQueueRepo(db), w.pub, nil, nil)
+	useWhatsAppChannel(w.pub)
 	w.wa = models.Whatsapp{Name: "WA" + w.tenant.String(), TenantID: w.tenant, Status: "CONNECTED", ProxyMode: "none"}
 	require.NoError(t, models.CreateWhatsapp(db, &w.wa))
 	contact := models.Contact{Name: "Cliente", Number: "5511999991111", TenantID: w.tenant}

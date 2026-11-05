@@ -5,15 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
+
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/aiclient"
 	"github.com/alltomatos/watinkdev/business/pkg/cryptobox"
-	"github.com/google/uuid"
 )
 
 // mediaDownloadTimeout bounds how long executePersona waits for engine-go to
@@ -113,17 +114,20 @@ func (r *AssistantRuntime) downloadInboundAudio(ctx context.Context, st *flow.Ex
 		return nil, "", fmt.Errorf("mensagem de áudio sem proto de mídia (não é baixável)")
 	}
 
-	command := map[string]interface{}{
-		"type": "media.download",
-		"payload": map[string]interface{}{
-			"sessionId":  st.Ticket.WhatsappID,
-			"messageId":  st.MessageID,
-			"mediaType":  st.MediaType,
-			"mediaProto": data.MediaProto,
-		},
+	var conn models.ChannelConnection
+	connID := st.Ticket.WhatsappID
+	if st.Ticket.ChannelConnectionID != nil {
+		connID = *st.Ticket.ChannelConnectionID
 	}
-	routingKey := wbot.Command(st.TenantID.String(), strconv.Itoa(st.Ticket.WhatsappID), wbot.CommandMediaDownload)
-	if err := r.publisher.PublishCommand(routingKey, command); err != nil {
+	if err := r.db.Where(`id = ? AND "tenantId" = ?`, connID, st.TenantID).First(&conn).Error; err != nil {
+		return nil, "", fmt.Errorf("conexão do áudio não encontrada: %w", err)
+	}
+	ch, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind))
+	downloader, can := ch.(domain.MediaDownloader)
+	if err != nil || !can {
+		return nil, "", fmt.Errorf("o canal desta conversa não baixa mídia")
+	}
+	if err := downloader.DownloadMedia(ctx, &conn, st.MessageID, st.MediaType, data.MediaProto); err != nil {
 		return nil, "", fmt.Errorf("falha ao solicitar download do áudio: %w", err)
 	}
 

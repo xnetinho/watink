@@ -4,21 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"strconv"
-	"time"
+
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
+
+	"github.com/google/uuid"
+	amqp "github.com/streadway/amqp"
+	"gorm.io/gorm"
 
 	"github.com/alltomatos/watinkdev/business/internal/application/usecases"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
 	"github.com/alltomatos/watinkdev/business/internal/mediawait"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/plugins"
 	"github.com/alltomatos/watinkdev/business/pkg/safego"
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
-	"github.com/google/uuid"
-	amqp "github.com/streadway/amqp"
-	"gorm.io/gorm"
 )
 
 type EventListener struct {
@@ -287,11 +289,7 @@ func (el *EventListener) processMessage(ctx context.Context, p MessagePayload, r
 	// Mídia pequena baixa sozinha pelo mesmo comando do botão; ao terminar, o handler de message.media troca o
 	// "pendente" pela mídia real. Falha aqui não derruba o recebimento: a mensagem fica com o botão manual.
 	if el.publisher != nil && shouldAutoDownload(p.Type, p.FileLength, autoDownloadMaxBytes(), p.MediaProto != "") {
-		cmd := map[string]interface{}{
-			"id": uuid.New().String(), "timestamp": time.Now().UnixMilli(), "tenantId": tenantID.String(), "type": "media.download",
-			"payload": map[string]interface{}{"sessionId": sessionID, "messageId": result.Message.ID, "mediaType": p.Type, "mediaProto": p.MediaProto},
-		}
-		if err := el.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(sessionID), wbot.CommandMediaDownload), cmd); err != nil {
+		if err := el.autoDownload(ctx, tenantID, sessionID, result.Message.ID, p.Type, p.MediaProto); err != nil {
 			log.Printf("[EventListener] auto-download da mídia %s falhou ao enfileirar: %v", result.Message.ID, err)
 		}
 	}
@@ -370,4 +368,22 @@ func (el *EventListener) handleEngineReady(ctx context.Context) error {
 		tenantDone()
 	}
 	return nil
+}
+
+// autoDownload pede ao canal da conexão o download da mídia recebida. Usa o mesmo caminho do botão da tela.
+func (el *EventListener) autoDownload(ctx context.Context, tenantID uuid.UUID, connectionID int, messageID, mediaType, proto string) error {
+	var conn models.ChannelConnection
+	if err := el.db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).
+		Where(`id = ? AND "tenantId" = ?`, connectionID, tenantID).First(&conn).Error; err != nil {
+		return err
+	}
+	ch, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind))
+	if err != nil {
+		return err
+	}
+	d, ok := ch.(domain.MediaDownloader)
+	if !ok {
+		return nil
+	}
+	return d.DownloadMedia(ctx, &conn, messageID, mediaType, proto)
 }

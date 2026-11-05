@@ -3,14 +3,16 @@ package flow
 import (
 	"context"
 	"fmt"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"strconv"
 	"time"
 
+	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
+
+	"gorm.io/gorm"
+
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
-	"gorm.io/gorm"
 )
 
 // dedupTTL is the idempotency window for an outbound send (mirrors the
@@ -94,21 +96,24 @@ func (a *WhatsAppAdapter) sendInternal(ctx context.Context, msg OutboundMessage)
 		}
 	}
 
-	// Resolve a conexão/engine cedo — usada tanto para desviar engines
-	// não-AMQP quanto para o "digitando..." abaixo, que vale para
-	// QUALQUER engine (whatsmeow via AMQP inclusive), não só as não-AMQP.
-	// Só quando deps são injetadas (call sites que não precisam mantêm o
-	// comportamento AMQP-only original).
+	// Resolve a conexão (ChannelConnections) e o canal cedo: a publicação final e o "digitando..." passam por ele. Só quando
+	// as deps são injetadas; call sites que não as injetam publicam direto, como no FASE 1.
+	var conn models.ChannelConnection
+	var sender domain.RichSender
 	var whatsapp models.Whatsapp
 	var engine domain.WhatsAppEngine
-	if a.deps.DB != nil && a.deps.Engines != nil {
+	if a.deps.DB != nil {
 		sid, _ := strconv.Atoi(msg.SessionID)
-		if err := models.FirstWhatsapp(a.deps.DB.Session(&gorm.Session{NewDB: true}).
-			Where(`id = ? AND "tenantId" = ?`, sid, msg.TenantID), &whatsapp); err == nil {
-			engine, _ = a.deps.Engines.EngineFor(whatsapp)
-			if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
-				a.applyHumanPacing(ctx, engine, whatsapp, msg)
-				return a.sendViaEngine(ctx, whatsapp, msg)
+		if err := a.deps.DB.Session(&gorm.Session{NewDB: true}).
+			Where(`id = ? AND "tenantId" = ?`, sid, msg.TenantID).First(&conn).Error; err == nil {
+			if ch, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind)); err == nil {
+				sender, _ = ch.(domain.RichSender)
+			}
+		}
+		if a.deps.Engines != nil {
+			if err := models.FirstWhatsapp(a.deps.DB.Session(&gorm.Session{NewDB: true}).
+				Where(`id = ? AND "tenantId" = ?`, sid, msg.TenantID), &whatsapp); err == nil {
+				engine, _ = a.deps.Engines.EngineFor(whatsapp)
 			}
 		}
 	}
@@ -120,9 +125,7 @@ func (a *WhatsAppAdapter) sendInternal(ctx context.Context, msg OutboundMessage)
 	// sessionId/messageId/to, so pass it through verbatim.
 	if ct, ok := msg.Meta["commandType"].(string); ok && ct != "" {
 		payload, _ := msg.Meta["payload"].(map[string]interface{})
-		command := map[string]interface{}{"type": ct, "payload": payload}
-		routingKey := wbot.Command(msg.TenantID.String(), msg.SessionID, ct)
-		if err := a.rabbit.PublishCommand(routingKey, command); err != nil {
+		if err := a.publish(ctx, sender, &conn, msg, ct, payload); err != nil {
 			if a.redis != nil && msg.EnvID != "" {
 				if delErr := a.redis.DelLock("wbot:msg:" + msg.EnvID); delErr != nil {
 					log.Printf("[WhatsAppAdapter] dedup lock release after publish failure failed (env=%s): %v", msg.EnvID, delErr)
@@ -165,24 +168,17 @@ func (a *WhatsAppAdapter) sendInternal(ctx context.Context, msg OutboundMessage)
 	// silently mis-routing.
 	sid, _ := strconv.Atoi(msg.SessionID)
 
-	command := map[string]interface{}{
-		"type": commandType,
-		"payload": map[string]interface{}{
-			"sessionId": sid,
-			"messageId": messageID,
-			"to":        msg.To,
-			"body":      msg.Body,
-			"mediaType": mediaType,
-			"mediaUrl":  mediaURL,
-			"mediaData": mediaData,
-			"mimeType":  mimeType,
-		},
+	payload := map[string]interface{}{
+		"sessionId": sid,
+		"messageId": messageID,
+		"to":        msg.To,
+		"body":      msg.Body,
+		"mediaType": mediaType,
+		"mediaUrl":  mediaURL,
+		"mediaData": mediaData,
+		"mimeType":  mimeType,
 	}
-
-	// The engine dispatches by routing-key segment; the command type MUST be in
-	// the key, not just the body. SessionID is the chip (Ticket.WhatsappID).
-	routingKey := wbot.Command(msg.TenantID.String(), msg.SessionID, commandType)
-	if err := a.rabbit.PublishCommand(routingKey, command); err != nil {
+	if err := a.publish(ctx, sender, &conn, msg, commandType, payload); err != nil {
 		// Publish failed AFTER we took the dedup lock. If we leave the lock held,
 		// the AMQP redelivery (retry of this same outbound) hits the retained lock
 		// and no-ops silently → the message is lost for the full 24h TTL. Release
@@ -217,72 +213,14 @@ func (a *WhatsAppAdapter) applyHumanPacing(ctx context.Context, engine domain.Wh
 	time.Sleep(humanTypingDelay(len(msg.Body)))
 }
 
-// sendViaEngine dispatches a text/media/rich send through the connection's
-// domain.WhatsAppEngine (future non-AMQP engines). Rich sends
-// (quickAnswerExecutor stuffs qaType/qaContent/qaMessage into Meta alongside
-// the AMQP-shaped commandType/payload — see executor_quickanswer.go) go
-// through RichMessageEngine when the engine implements it; otherwise they
-// fail loudly rather than silently no-op.
-// sendViaEngine returns the EFFECTIVE WhatsApp message id -- for any engine
-// that assigns its own id server-side this can differ from the requested
-// messageID; callers that persist a Message row keyed by their own EnvID
-// need this real value for reply correlation to work (see
-// SendReportingID's doc comment).
-func (a *WhatsAppAdapter) sendViaEngine(ctx context.Context, whatsapp models.Whatsapp, msg OutboundMessage) (string, error) {
-	engine, err := a.deps.Engines.EngineFor(whatsapp)
-	if err != nil {
-		a.releaseLock(msg.EnvID)
-		return "", fmt.Errorf("whatsapp adapter: resolve engine: %w", err)
+// publish entrega o comando pelo canal da conexão quando ele sabe enviar mensagem rica; sem canal resolvido (call sites sem deps)
+// publica direto no engine, como antes. O comando precisa levar o tipo na routing key: o engine despacha por ela.
+func (a *WhatsAppAdapter) publish(ctx context.Context, sender domain.RichSender, conn *models.ChannelConnection, msg OutboundMessage, commandType string, payload map[string]interface{}) error {
+	if sender != nil {
+		return sender.SendRich(ctx, conn, commandType, payload)
 	}
-
-	// qaType is only set (by executor_quickanswer.go) for sends that originate
-	// from a QuickAnswers node. text/media quick answers fall through to the
-	// plain body/mediaUrl path below unchanged; everything else needs
-	// RichMessageEngine.
-	qaType, _ := msg.Meta["qaType"].(string)
-	if qaType != "" && qaType != "text" && qaType != "media" {
-		richEngine, ok := engine.(domain.RichMessageEngine)
-		if !ok {
-			a.releaseLock(msg.EnvID)
-			return "", fmt.Errorf("whatsapp adapter: resposta rápida do tipo %q não suportada no engine %q", qaType, whatsapp.EngineType)
-		}
-		contentMap, _ := msg.Meta["qaContent"].(map[string]interface{})
-		req := BuildRichMessageRequest(qaType, metaString(msg.Meta, "qaMessage"), contentMap)
-		messageID := metaString(msg.Meta, "messageId")
-		if messageID == "" {
-			messageID = msg.EnvID
-		}
-		effectiveID, err := richEngine.SendInteractive(ctx, whatsapp, msg.To, messageID, req)
-		if err != nil {
-			a.releaseLock(msg.EnvID)
-			return "", fmt.Errorf("whatsapp adapter: engine send: %w", err)
-		}
-		if effectiveID == "" {
-			effectiveID = messageID
-		}
-		return effectiveID, nil
-	}
-
-	mediaURL := metaString(msg.Meta, "mediaUrl")
-	messageID := metaString(msg.Meta, "messageId")
-	if messageID == "" {
-		messageID = msg.EnvID
-	}
-
-	var effectiveID string
-	if mediaURL != "" {
-		effectiveID, err = engine.SendMedia(ctx, whatsapp, msg.To, messageID, metaString(msg.Meta, "mediaType"), mediaURL, metaString(msg.Meta, "mimeType"))
-	} else {
-		effectiveID, err = engine.SendText(ctx, whatsapp, msg.To, messageID, msg.Body)
-	}
-	if err != nil {
-		a.releaseLock(msg.EnvID)
-		return "", fmt.Errorf("whatsapp adapter: engine send: %w", err)
-	}
-	if effectiveID == "" {
-		effectiveID = messageID
-	}
-	return effectiveID, nil
+	routingKey := wbot.Command(msg.TenantID.String(), msg.SessionID, commandType)
+	return a.rabbit.PublishCommand(routingKey, map[string]interface{}{"type": commandType, "payload": payload})
 }
 
 // releaseLock best-effort releases the dedup lock so a retry after a failed
