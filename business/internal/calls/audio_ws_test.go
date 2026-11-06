@@ -12,9 +12,14 @@ import (
 	"testing"
 	"time"
 
+	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
+
 	"github.com/coder/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 )
 
 // fakeEngine é um servidor WebSocket que imita o endpoint interno do engine.
@@ -84,8 +89,14 @@ func (f *fakeEngine) audio() [][]byte {
 
 // browserEndpoint expõe ServeAudio como o handler HTTP faria, para o teste abrir
 // um WebSocket "de navegador" de verdade.
-func browserEndpoint(t *testing.T, r *rig, a *Audio, dial EngineDialer, userID int, callID string) (*websocket.Conn, *http.Response, error) {
+// useMedia registra o adaptador do WhatsApp apontando o fluxo de mídia das chamadas para o engine falso do teste.
+func useMedia(r *rig, base string) {
+	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(nil, r.pub, whatsappChannel.CallMediaBase(base)))
+}
+
+func browserEndpoint(t *testing.T, r *rig, a *Audio, mediaBase string, userID int, callID string) (*websocket.Conn, *http.Response, error) {
 	t.Helper()
+	useMedia(r, mediaBase)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if err := r.svc.AuthorizeAudio(context.Background(), r.tenant, userID, callID); err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
@@ -95,7 +106,7 @@ func browserEndpoint(t *testing.T, r *rig, a *Audio, dial EngineDialer, userID i
 		if err != nil {
 			return
 		}
-		r.svc.ServeAudio(req.Context(), a, dial, c, r.tenant, userID, callID)
+		r.svc.ServeAudio(req.Context(), a, c, r.tenant, userID, callID)
 	}))
 	t.Cleanup(srv.Close)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -119,7 +130,7 @@ func TestServeAudio_BytesArriveIntactBothWays(t *testing.T) {
 	eng := newFakeEngine(t)
 	a := NewAudio()
 
-	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-1")
+	browser, _, err := browserEndpoint(t, r, a, eng.base(), uid, "AU-1")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
@@ -147,7 +158,7 @@ func TestServeAudio_TelemetryGoesToHandlingOperatorOnly(t *testing.T) {
 	uid := answeredCall(t, r, "AU-2")
 	eng := newFakeEngine(t)
 	a := NewAudio()
-	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-2")
+	browser, _, err := browserEndpoint(t, r, a, eng.base(), uid, "AU-2")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
@@ -183,12 +194,12 @@ func TestServeAudio_SecondBrowserIsRejected(t *testing.T) {
 	uid := answeredCall(t, r, "AU-5")
 	eng := newFakeEngine(t)
 	a := NewAudio()
-	first, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-5")
+	first, _, err := browserEndpoint(t, r, a, eng.base(), uid, "AU-5")
 	require.NoError(t, err)
 	defer func() { _ = first.CloseNow() }()
 	<-eng.conn
 
-	second, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-5")
+	second, _, err := browserEndpoint(t, r, a, eng.base(), uid, "AU-5")
 	require.NoError(t, err)
 	defer func() { _ = second.CloseNow() }()
 	rctx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -203,8 +214,7 @@ func TestServeAudio_EngineUnavailableClosesAndEndsCall(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "AU-6")
 	a := NewAudio()
-	bad := NewEngineDialer("ws://127.0.0.1:1")
-	browser, _, err := browserEndpoint(t, r, a, bad, uid, "AU-6")
+	browser, _, err := browserEndpoint(t, r, a, "ws://127.0.0.1:1", uid, "AU-6")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	rctx, cancel := context.WithTimeout(ctx, 3*time.Second)
@@ -220,11 +230,6 @@ func TestServeAudio_EngineUnavailableClosesAndEndsCall(t *testing.T) {
 	assert.Eventually(t, func() bool { return a.Count() == 0 }, 2*time.Second, 10*time.Millisecond, "nenhuma ponte vaza")
 }
 
-func TestEngineDialer_WithoutAddressFailsWithClearError(t *testing.T) {
-	_, err := NewEngineDialer("")(ctx, "X")
-	assert.ErrorIs(t, err, ErrAudioNotConfigured)
-}
-
 // 7.5 (integração): o navegador cai e não volta → a chamada é encerrada.
 func TestServeAudio_BrowserDropEndsCallAfterGrace(t *testing.T) {
 	r := newRig(t)
@@ -232,7 +237,7 @@ func TestServeAudio_BrowserDropEndsCallAfterGrace(t *testing.T) {
 	eng := newFakeEngine(t)
 	a := NewAudio()
 	a.dropTO = 80 * time.Millisecond
-	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-7")
+	browser, _, err := browserEndpoint(t, r, a, eng.base(), uid, "AU-7")
 	require.NoError(t, err)
 	<-eng.conn
 	_ = browser.CloseNow()
@@ -252,7 +257,7 @@ func TestServeAudio_SlowBrowserNeverBlocksEngineAndQueueStaysBounded(t *testing.
 	eng := newFakeEngine(t)
 	a := NewAudio()
 
-	browser, _, err := browserEndpoint(t, r, a, NewEngineDialer(eng.base()), uid, "AU-8")
+	browser, _, err := browserEndpoint(t, r, a, eng.base(), uid, "AU-8")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
@@ -300,7 +305,7 @@ func TestServeAudio_VideoFromEngineReachesBrowserUnchanged(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "VID-1")
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "VID-1")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "VID-1")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
@@ -329,7 +334,7 @@ func TestServeAudio_VideoNeverReachesTheAudioRecorder(t *testing.T) {
 	uid := answeredCall(t, r, "VID-2")
 	require.NoError(t, r.svc.HandleState(ctx, r.tenant, stateEvent("VID-2", "active")))
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "VID-2")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "VID-2")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
@@ -359,7 +364,7 @@ func TestServeAudio_VideoFromBrowserIsNotForwardedAsAudio(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "VID-3")
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "VID-3")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "VID-3")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -378,7 +383,7 @@ func TestServeAudio_CameraFrameReachesEngineIntact(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "CAM-1")
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "CAM-1")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "CAM-1")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -426,7 +431,7 @@ func TestServeAudio_CameraCommandIsSanitizedAndForwarded(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "CAM-4")
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "CAM-4")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "CAM-4")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -456,7 +461,7 @@ func TestServeAudio_KeyframeRequestGoesToBrowser(t *testing.T) {
 	r := newRig(t)
 	uid := answeredCall(t, r, "CAM-5")
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "CAM-5")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "CAM-5")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	engConn := <-eng.conn
@@ -468,4 +473,14 @@ func TestServeAudio_KeyframeRequestGoesToBrowser(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, websocket.MessageText, typ)
 	assert.JSONEq(t, `{"type":"keyframe"}`, string(msg))
+}
+
+// Sem o endereço do fluxo de mídia o adaptador recusa com um erro claro, em vez de discar para lugar nenhum.
+func TestOpenCallMedia_SemEnderecoFalhaComErroClaro(t *testing.T) {
+	r := newRig(t)
+	useMedia(r, "")
+	ch, err := domain.DefaultChannelRegistry().Get(domain.ChannelKindWhatsApp)
+	require.NoError(t, err)
+	_, err = ch.(domain.CallMedia).OpenCallMedia(ctx, &models.ChannelConnection{}, "X")
+	assert.ErrorIs(t, err, whatsappChannel.ErrCallMediaNotConfigured)
 }

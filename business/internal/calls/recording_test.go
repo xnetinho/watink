@@ -10,12 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alltomatos/watinkdev/business/internal/models"
-	"github.com/alltomatos/watinkdev/business/internal/recording"
 	"github.com/coder/websocket"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/internal/recording"
 )
 
 type memStore struct {
@@ -242,7 +243,7 @@ func TestServeAudio_AutoModeStartsRecordingOnActive(t *testing.T) {
 	uid := answeredCall(t, r, "AUTO-1")
 	eng := newFakeEngine(t)
 
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-1")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "AUTO-1")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -268,7 +269,7 @@ func TestAutoRecording_Incoming_StartsOnActiveNotOnAccept(t *testing.T) {
 	uid := answeredCall(t, r, "IN-ACT")
 	eng := newFakeEngine(t)
 
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-ACT")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "IN-ACT")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -289,7 +290,7 @@ func TestAutoRecording_Incoming_MediaNeverConnectsLeavesNoRecording(t *testing.T
 	r.setMode(t, "auto")
 	uid := answeredCall(t, r, "IN-NOMEDIA")
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-NOMEDIA")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "IN-NOMEDIA")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -316,7 +317,7 @@ func TestAutoRecording_ActiveBeforeBrowserAudioStillRecords(t *testing.T) {
 	assert.Equal(t, recording.StatusRecording, r.log(t, "IN-EARLY").RecordingStatus)
 
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-EARLY")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "IN-EARLY")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -336,7 +337,7 @@ func TestAutoRecording_ReconnectingAudioKeepsRecording(t *testing.T) {
 	require.True(t, r.svc.Recording().Active(r.tenant, "IN-RECON"))
 
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "IN-RECON")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "IN-RECON")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -356,7 +357,7 @@ func TestServeAudio_AutoMode_OutgoingStillRingingDoesNotRecord(t *testing.T) {
 	uid := r.users["da_fila_A"].ID
 	eng := newFakeEngine(t)
 
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-RING")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "AUTO-RING")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -375,7 +376,7 @@ func TestServeAudio_AutoMode_OutgoingStartsRecordingWhenAnswered(t *testing.T) {
 	uid := r.users["da_fila_A"].ID
 	eng := newFakeEngine(t)
 
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-ANS")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "AUTO-ANS")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -396,7 +397,7 @@ func TestServeAudio_AutoMode_OutgoingNeverAnsweredLeavesNoRecording(t *testing.T
 	placeOutgoing(t, r, "AUTO-NONE")
 	uid := r.users["da_fila_A"].ID
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-NONE")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "AUTO-NONE")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -417,7 +418,7 @@ func TestServeAudio_OffModeConnectingAudioDoesNotRecord(t *testing.T) {
 	r.withRecording(t, newMemStore())
 	uid := answeredCall(t, r, "AUTO-2")
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-2")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "AUTO-2")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn
@@ -432,7 +433,7 @@ func TestServeAudio_AutoModeWithoutS3RecordsNothingAndCallContinues(t *testing.T
 	r.setMode(t, "auto")
 	uid := answeredCall(t, r, "AUTO-3")
 	eng := newFakeEngine(t)
-	browser, _, err := browserEndpoint(t, r, NewAudio(), NewEngineDialer(eng.base()), uid, "AUTO-3")
+	browser, _, err := browserEndpoint(t, r, NewAudio(), eng.base(), uid, "AUTO-3")
 	require.NoError(t, err)
 	defer func() { _ = browser.CloseNow() }()
 	<-eng.conn

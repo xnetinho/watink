@@ -59,7 +59,7 @@ func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, tic
 	if err := s.fresh(ctx).Create(l).Error; err != nil {
 		return nil, err
 	}
-	if err := s.command(tenantID, connID, "call.start", map[string]interface{}{"callId": callID, "to": peer}); err != nil {
+	if err := s.command(ctx, tenantID, connID, "call.start", map[string]interface{}{"callId": callID, "to": peer}); err != nil {
 		end := s.now()
 		s.fresh(ctx).Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
 			Updates(map[string]interface{}{"status": StatusFailed, "endReason": "failed", "endedAt": end})

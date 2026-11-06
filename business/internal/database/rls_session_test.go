@@ -5,20 +5,25 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"testing"
 	"time"
 
-	"github.com/alltomatos/watinkdev/business/internal/domain"
-	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
-	"github.com/alltomatos/watinkdev/business/internal/models"
-	"github.com/alltomatos/watinkdev/business/internal/services"
-	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
+	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/alltomatos/watinkdev/business/internal/calls"
+	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
+	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/internal/services"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 )
 
 type rlsFakeRedis struct{ domain.RedisService }
@@ -346,4 +351,122 @@ func TestMessageReceipts_ComRLSReal(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
+}
+
+// Regressão achada no celular: a chamada recebida ficava "perdida" (no_operator) porque a elegibilidade lia ChannelConnections e
+// Users com o pool global, sem escopo de empresa, e o RLS recusava as duas leituras. Banco migrado de verdade, papel sem BYPASSRLS.
+// Um operador online na sala da chamada precisa aparecer como elegível.
+func TestCallEligible_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	waID, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
+	require.NoError(t, seedRow(admin, "Users", tenant))
+	_, err = admin.Exec(`UPDATE "Users" SET alcance = 'tenant' WHERE "tenantId" = $1`, tenant)
+	require.NoError(t, err)
+	var uid int
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "Users" WHERE "tenantId" = $1`, tenant).Scan(&uid))
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+	online := onlineRoom{calls.UserRoom(tenant, uid): true}
+	svc := calls.NewService(gdb, nil, nil, nil, nil, nil, online)
+
+	// Sem escopo de empresa o banco recusa, que é o que o pool global fazia.
+	_, err = calls.UsersWhoSeeConnection(gdb, tenant, waID)
+	require.Error(t, err)
+
+	err = tenantdb.WithTenant(context.Background(), gdb, tenant, func(ctx context.Context) error {
+		got, e := svc.Eligible(ctx, tenant, waID, func(id int) bool { return svc.CanForTest(ctx, tenant, id, "receive") })
+		require.NoError(t, e)
+		require.Len(t, got, 1, "o operador online que enxerga a conexão e tem permissão toca")
+		assert.Equal(t, uid, got[0].ID)
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+type onlineRoom map[string]bool
+
+func (o onlineRoom) HasSubscribers(room string) bool { return o[room] }
+
+type capturePub struct{ keys []string }
+
+func (c *capturePub) PublishCommand(key string, _ interface{}) error {
+	c.keys = append(c.keys, key)
+	return nil
+}
+
+// Regressão achada ligando do celular (3a tentativa): com a elegibilidade corrigida, o call.ready ao engine ainda lia a conexão
+// com o pool global e a chamada falhava. Ponta a ponta com RLS real: call.incoming, operador online, call.ready publicado.
+func TestHandleIncomingCall_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	waID, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
+	require.NoError(t, seedRow(admin, "Users", tenant))
+	_, err = admin.Exec(`UPDATE "Users" SET alcance = 'tenant' WHERE "tenantId" = $1`, tenant)
+	require.NoError(t, err)
+	var uid int
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "Users" WHERE "tenantId" = $1`, tenant).Scan(&uid))
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+	pub := &capturePub{}
+	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(nil, pub))
+	online := onlineRoom{calls.UserRoom(tenant, uid): true}
+	svc := calls.NewService(gdb, repository.NewGORMContactRepo(gdb), repository.NewGORMTicketRepo(gdb), repository.NewGORMQueueRepo(gdb), pub, nil, online)
+
+	ev, _ := json.Marshal(map[string]string{"callId": "RLS-CALL-1", "sessionId": strconv.Itoa(waID), "peer": "5511999990010@s.whatsapp.net", "callerPn": "5511999990010"})
+	err = tenantdb.WithTenant(context.Background(), gdb, tenant, func(ctx context.Context) error {
+		return svc.HandleIncoming(ctx, tenant, ev)
+	})
+	require.NoError(t, err)
+
+	require.Len(t, pub.keys, 1, "o call.ready precisa chegar ao engine")
+	assert.Contains(t, pub.keys[0], "."+strconv.Itoa(waID)+".call.ready")
+	var status string
+	require.NoError(t, admin.QueryRow(`SELECT status FROM "CallLogs" WHERE "callId" = 'RLS-CALL-1'`).Scan(&status))
+	assert.Equal(t, "ringing", status, "a chamada toca em vez de ficar perdida")
+}
+
+type roomRecorder struct{ rooms []string }
+
+func (r *roomRecorder) EmitToRoom(_, room, event string, _ interface{}) {
+	r.rooms = append(r.rooms, room+"|"+event)
+}
+func (r *roomRecorder) EmitToTenantRoom(string, string, interface{}) {}
+func (r *roomRecorder) EmitToNamespace(string, string, interface{})  {}
+
+// Regressão achada no celular: a medição de qualidade que o engine manda pelo WebSocket de mídia chegava ao business sem escopo
+// de empresa (o WebSocket dura a chamada inteira e não o carrega), e a leitura da chamada era recusada a cada segundo.
+// Banco migrado de verdade, papel sem BYPASSRLS: a medição precisa chegar ao operador que assumiu a chamada.
+func TestCallTelemetry_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	waID, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
+	require.NoError(t, seedRow(admin, "Users", tenant))
+	var uid int
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "Users" WHERE "tenantId" = $1`, tenant).Scan(&uid))
+	require.NoError(t, seedRow(admin, "CallLogs", tenant))
+	_, err = admin.Exec(`UPDATE "CallLogs" SET "callId" = 'TEL-1', "whatsappId" = $2, "handledByUserId" = $3, "endedAt" = NULL, status = 'active' WHERE "tenantId" = $1`, tenant, waID, uid)
+	require.NoError(t, err)
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+	rec := &roomRecorder{}
+	svc := calls.NewService(gdb, nil, nil, nil, nil, rec, nil)
+
+	raw, _ := json.Marshal(map[string]interface{}{"type": "quality", "callId": "TEL-1", "lossPct": 1.5, "jitterMs": 12})
+	// Como o ServeAudio chama: com o contexto do WebSocket, que não tem escopo de empresa.
+	svc.TelemetryForTest(context.Background(), tenant, raw)
+
+	assert.Equal(t, []string{calls.UserRoom(tenant, uid) + "|call.quality"}, rec.rooms, "a medição chega só ao operador da chamada")
 }

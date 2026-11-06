@@ -96,8 +96,9 @@ func (s *Service) fresh(ctx context.Context) *gorm.DB {
 // Eligible devolve os usuários que devem tocar para uma chamada na conexão:
 // enxergam a conexão, têm calls:receive, estão online e não pausaram. Sem o
 // db do contexto HTTP, a checagem de permissão usa o cadastro do usuário.
-func (s *Service) Eligible(tenantID uuid.UUID, whatsappID int, hasPerm func(userID int) bool) ([]models.User, error) {
-	candidates, err := UsersWhoSeeConnection(s.db, tenantID, whatsappID)
+func (s *Service) Eligible(ctx context.Context, tenantID uuid.UUID, whatsappID int, hasPerm func(userID int) bool) ([]models.User, error) {
+	// s.fresh herda o escopo de empresa do ctx (RLS, ADR 0034); o pool global recusa a leitura de ChannelConnections.
+	candidates, err := UsersWhoSeeConnection(s.fresh(ctx), tenantID, whatsappID)
 	if err != nil {
 		return nil, err
 	}
@@ -118,4 +119,15 @@ func (s *Service) Eligible(tenantID uuid.UUID, whatsappID int, hasPerm func(user
 func peerNumber(jid string) string {
 	base := strings.Split(jid, "@")[0]
 	return strings.Split(base, ":")[0]
+}
+
+// shortcut: acessor só para teste, para o teste de RLS real viver em outro pacote; sai se esse teste for movido para calls.
+// CanForTest expõe a checagem de permissão de chamada para testes de integração com RLS real em outros pacotes.
+func (s *Service) CanForTest(ctx context.Context, tenantID uuid.UUID, userID int, action string) bool {
+	return s.userCan(ctx, tenantID, userID, action)
+}
+
+// TelemetryForTest expõe o tratamento da telemetria do WebSocket de mídia para o teste de RLS real em outro pacote.
+func (s *Service) TelemetryForTest(ctx context.Context, tenantID uuid.UUID, raw []byte) {
+	s.handleTelemetry(ctx, tenantID, raw)
 }

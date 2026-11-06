@@ -223,9 +223,9 @@ func TestEligible_AllConditions(t *testing.T) {
 		r.grant(t, n, "receive")
 	}
 	r.online("admin", "da_fila_A", "da_fila_B", "sem_nada", "setor_fila_A")
-	can := func(id int) bool { return r.svc.userCan(r.tenant, id, "receive") }
+	can := func(id int) bool { return r.svc.userCan(ctx, r.tenant, id, "receive") }
 
-	users, err := r.svc.Eligible(r.tenant, r.waA.ID, can)
+	users, err := r.svc.Eligible(ctx, r.tenant, r.waA.ID, can)
 	require.NoError(t, err)
 	got := idsOf(users)
 	assert.ElementsMatch(t, []int{r.users["admin"].ID, r.users["da_fila_A"].ID, r.users["setor_fila_A"].ID}, got,
@@ -235,12 +235,12 @@ func TestEligible_AllConditions(t *testing.T) {
 	assert.NotContains(t, got, r.users["de_outra_empresa"].ID, "de outra empresa")
 
 	r.svc.SetPaused(r.tenant, r.users["da_fila_A"].ID, true)
-	users, _ = r.svc.Eligible(r.tenant, r.waA.ID, can)
+	users, _ = r.svc.Eligible(ctx, r.tenant, r.waA.ID, can)
 	assert.NotContains(t, idsOf(users), r.users["da_fila_A"].ID, "pausado não toca")
 	assert.Contains(t, idsOf(users), r.users["setor_fila_A"].ID, "os demais seguem tocando")
 
 	r.svc.SetPaused(r.tenant, r.users["da_fila_A"].ID, false)
-	users, _ = r.svc.Eligible(r.tenant, r.waA.ID, can)
+	users, _ = r.svc.Eligible(ctx, r.tenant, r.waA.ID, can)
 	assert.Contains(t, idsOf(users), r.users["da_fila_A"].ID, "despausar volta a tocar")
 }
 
@@ -248,15 +248,15 @@ func TestEligible_WithoutPermissionOrOfflineIsExcluded(t *testing.T) {
 	r := newRig(t)
 	r.grant(t, "da_fila_A", "receive")
 	r.online("da_fila_A", "setor_fila_A")
-	can := func(id int) bool { return r.svc.userCan(r.tenant, id, "receive") }
-	users, err := r.svc.Eligible(r.tenant, r.waA.ID, can)
+	can := func(id int) bool { return r.svc.userCan(ctx, r.tenant, id, "receive") }
+	users, err := r.svc.Eligible(ctx, r.tenant, r.waA.ID, can)
 	require.NoError(t, err)
 	assert.NotContains(t, idsOf(users), r.users["setor_fila_A"].ID, "online mas sem calls:receive não toca")
 
 	for k := range r.pres.online {
 		delete(r.pres.online, k)
 	}
-	users, _ = r.svc.Eligible(r.tenant, r.waA.ID, can)
+	users, _ = r.svc.Eligible(ctx, r.tenant, r.waA.ID, can)
 	assert.Empty(t, users, "ninguém online → ninguém elegível")
 }
 

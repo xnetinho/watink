@@ -14,15 +14,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
-	"github.com/alltomatos/watinkdev/business/internal/models"
-	"github.com/alltomatos/watinkdev/business/internal/recording"
-	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/coder/websocket"
 	gomp3 "github.com/hajimehoshi/go-mp3"
 	"github.com/streadway/amqp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
+	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/internal/recording"
+	"github.com/alltomatos/watinkdev/business/internal/services"
 )
 
 // Teste de fluxo completo SEM WhatsApp (tarefa 10.3), com RabbitMQ e Postgres REAIS:
@@ -147,7 +148,7 @@ func TestE2E_FullCallFlowOverRealRabbitMQ(t *testing.T) {
 	defer engineSrv.Close()
 
 	audio := NewAudio()
-	dial := NewEngineDialer("ws" + strings.TrimPrefix(engineSrv.URL, "http"))
+	useMedia(r, "ws"+strings.TrimPrefix(engineSrv.URL, "http"))
 	browserSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if err := svc.AuthorizeAudio(context.Background(), r.tenant, uid, callID); err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
@@ -157,7 +158,7 @@ func TestE2E_FullCallFlowOverRealRabbitMQ(t *testing.T) {
 		if err != nil {
 			return
 		}
-		svc.ServeAudio(req.Context(), audio, dial, c, r.tenant, uid, callID)
+		svc.ServeAudio(req.Context(), audio, c, r.tenant, uid, callID)
 	}))
 	defer browserSrv.Close()
 	dctx, cancel := context.WithTimeout(ctx, 20*time.Second)

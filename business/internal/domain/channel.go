@@ -258,6 +258,21 @@ type CallControl interface {
 	CallCommand(ctx context.Context, conn *models.ChannelConnection, command string, payload map[string]interface{}) error
 }
 
+// CallMedia abre o fluxo de áudio e vídeo de uma chamada em curso: um WebSocket interno entre o business e o canal, por onde passam
+// os quadros de mídia, a telemetria e os comandos de câmera. Quem o chama (calls.ServeAudio) só conhece o resultado; a origem
+// do WebSocket (engine do WhatsApp hoje) é detalhe do canal.
+type CallMedia interface {
+	OpenCallMedia(ctx context.Context, conn *models.ChannelConnection, callID string) (CallMediaStream, error)
+}
+
+// CallMediaStream é o fluxo aberto. Mensagem binária é mídia; texto é controle (telemetria, câmera, quadro-chave).
+type CallMediaStream interface {
+	Read(ctx context.Context) (binary bool, data []byte, err error)
+	Write(ctx context.Context, binary bool, data []byte) error
+	SetReadLimit(n int64)
+	Close() error
+}
+
 // ChannelRegistry gerencia os adaptadores de canais registrados no sistema.
 type ChannelRegistry struct {
 	mu       sync.RWMutex

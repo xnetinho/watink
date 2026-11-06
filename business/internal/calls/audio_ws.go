@@ -5,45 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"net/http"
-	"os"
 	"time"
 
+	"github.com/coder/websocket"
+	"github.com/google/uuid"
+
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/safego"
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
-	"github.com/coder/websocket"
-	"github.com/google/uuid"
 )
-
-// EngineDialer abre o WebSocket interno de áudio do engine para uma chamada.
-type EngineDialer func(ctx context.Context, callID string) (*websocket.Conn, error)
-
-// NewEngineDialer devolve o discador de produção: base é "ws://engine:8085", montada de
-// ENGINE_HOST. Se CALLS_API_TOKEN ou INTERNAL_TOKEN estiver configurado, envia o cabeçalho
-// X-Internal-Token para autenticação mútua interna. Sem base não há áudio.
-func NewEngineDialer(base string) EngineDialer {
-	return func(ctx context.Context, callID string) (*websocket.Conn, error) {
-		if base == "" {
-			return nil, ErrAudioNotConfigured
-		}
-		opts := &websocket.DialOptions{}
-		token := os.Getenv("CALLS_API_TOKEN")
-		if token == "" {
-			token = os.Getenv("INTERNAL_TOKEN")
-		}
-		if token != "" {
-			opts.HTTPHeader = http.Header{
-				"X-Internal-Token": []string{token},
-			}
-		}
-		c, _, err := websocket.Dial(ctx, base+"/calls/"+callID+"/audio", opts)
-		return c, err
-	}
-}
-
-// ErrAudioNotConfigured: o business não sabe onde está o canal de áudio do engine.
-var ErrAudioNotConfigured = errors.New("canal de áudio das chamadas não configurado (defina ENGINE_HOST no business)")
 
 // maxVideoMessage é o maior quadro aceito do navegador: um quadro-chave de 640x480 a 600 kbps passa de 64 KB
 // com folga em cenas com movimento.
@@ -113,7 +84,7 @@ func (s *Service) AuthorizeAudio(ctx context.Context, tenantID uuid.UUID, userID
 // ServeAudio liga o WebSocket do navegador (já aceito) ao do engine até um dos
 // lados cair ou a chamada acabar. Quando o navegador cai, arma o watchdog: sem
 // voltar em DropGrace a chamada é encerrada (o engine desconecta o contato).
-func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, browser *websocket.Conn, tenantID uuid.UUID, userID int, callID string) {
+func (s *Service) ServeAudio(ctx context.Context, a *Audio, browser *websocket.Conn, tenantID uuid.UUID, userID int, callID string) {
 	defer func() { _ = browser.CloseNow() }()
 	br, err := a.Open(callID)
 	if err != nil {
@@ -131,7 +102,7 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 		br.Tap = func(fromOperator bool, frame []byte) { s.rec.Feed(tenantID, callID, fromOperator, frame) }
 	}
 
-	eng, err := dial(ctx, callID)
+	eng, err := s.openMedia(ctx, tenantID, callID)
 	if err != nil {
 		slog.Error("canal de áudio do engine indisponível: a chamada será encerrada",
 			"callId", callID, "tenantId", tenantID, "err", err)
@@ -141,7 +112,7 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 		})
 		return
 	}
-	defer func() { _ = eng.CloseNow() }()
+	defer func() { _ = eng.Close() }()
 	eng.SetReadLimit(1 << 20)
 	browser.SetReadLimit(maxVideoMessage)
 
@@ -162,7 +133,7 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 				if c, ok := parseCameraCommand(data); ok {
 					raw, _ := json.Marshal(c)
 					wctx, wc := context.WithTimeout(rctx, 2*time.Second)
-					_ = eng.Write(wctx, websocket.MessageText, raw)
+					_ = eng.Write(wctx, false, raw)
 					wc()
 				}
 			}
@@ -171,27 +142,26 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 	safego.Go("calls.engineToBrowser", func() { // engine → navegador (áudio) e → business (telemetria)
 		defer cancel()
 		for {
-			typ, data, err := eng.Read(rctx)
+			binary, data, err := eng.Read(rctx)
 			if err != nil {
 				return
 			}
-			switch typ {
-			case websocket.MessageBinary:
+			if binary {
 				br.FromEngine(data)
-			case websocket.MessageText:
-				if isKeyframeRequest(data) {
-					wctx, wc := context.WithTimeout(rctx, 2*time.Second)
-					_ = browser.Write(wctx, websocket.MessageText, data)
-					wc()
-					continue
-				}
-				s.handleTelemetry(ctx, tenantID, data)
+				continue
 			}
+			if isKeyframeRequest(data) {
+				wctx, wc := context.WithTimeout(rctx, 2*time.Second)
+				_ = browser.Write(wctx, websocket.MessageText, data)
+				wc()
+				continue
+			}
+			s.handleTelemetry(ctx, tenantID, data)
 		}
 	})
 	safego.Go("calls.pumpToEngine", func() { pump(rctx, cancel, br.ToEngine, eng) })
 	safego.Go("calls.pumpVideoToEngine", func() { pump(rctx, cancel, br.VideoToEngine, eng) })
-	safego.Go("calls.pumpToBrowser", func() { pump(rctx, cancel, br.ToBrowser, browser) })
+	safego.Go("calls.pumpToBrowser", func() { pump(rctx, cancel, br.ToBrowser, browserSink{browser}) })
 
 	<-rctx.Done()
 	if !a.Active(callID) {
@@ -217,14 +187,16 @@ func (s *Service) ServeAudio(ctx context.Context, a *Audio, dial EngineDialer, b
 	})
 }
 
-func pump(ctx context.Context, cancel context.CancelFunc, from *Pipe, to *websocket.Conn) {
+func pump(ctx context.Context, cancel context.CancelFunc, from *Pipe, to interface {
+	Write(ctx context.Context, binary bool, data []byte) error
+}) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case f := <-from.Out():
 			wctx, c := context.WithTimeout(ctx, 2*time.Second)
-			err := to.Write(wctx, websocket.MessageBinary, f)
+			err := to.Write(wctx, true, f)
 			c()
 			if err != nil {
 				cancel()
@@ -241,5 +213,50 @@ func (s *Service) handleTelemetry(ctx context.Context, tenantID uuid.UUID, raw [
 	if json.Unmarshal(raw, &t) != nil || t.Type != "quality" || t.CallID == "" {
 		return
 	}
-	_ = s.HandleQuality(ctx, tenantID, raw)
+	// O WebSocket dura a chamada inteira e não carrega escopo de empresa (RLS, ADR 0034, D4): cada medição abre o seu, curto.
+	_ = tenantdb.WithTenant(ctx, s.db, tenantID, func(c context.Context) error {
+		return s.HandleQuality(c, tenantID, raw)
+	})
+}
+
+// browserSink adapta o WebSocket do navegador à mesma forma de escrita do fluxo do canal.
+type browserSink struct{ c *websocket.Conn }
+
+func (b browserSink) Write(ctx context.Context, binary bool, data []byte) error {
+	typ := websocket.MessageText
+	if binary {
+		typ = websocket.MessageBinary
+	}
+	return b.c.Write(ctx, typ, data)
+}
+
+// ErrNoMediaChannel: o canal da chamada não oferece fluxo de mídia.
+var ErrNoMediaChannel = errors.New("o canal desta chamada não tem fluxo de mídia")
+
+// openMedia resolve a conexão da chamada e pede ao canal o fluxo de mídia dela.
+func (s *Service) openMedia(ctx context.Context, tenantID uuid.UUID, callID string) (domain.CallMediaStream, error) {
+	var conn models.ChannelConnection
+	var connID int
+	if err := tenantdb.WithTenant(ctx, s.db, tenantID, func(c context.Context) error {
+		l, err := s.load(c, tenantID, callID)
+		if err != nil {
+			return err
+		}
+		connID = l.WhatsappID
+		if l.ChannelConnectionID > 0 {
+			connID = l.ChannelConnectionID
+		}
+		return s.fresh(c).Where(`id = ? AND "tenantId" = ?`, connID, tenantID).First(&conn).Error
+	}); err != nil {
+		return nil, err
+	}
+	ch, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind))
+	if err != nil {
+		return nil, err
+	}
+	m, ok := ch.(domain.CallMedia)
+	if !ok {
+		return nil, ErrNoMediaChannel
+	}
+	return m.OpenCallMedia(ctx, &conn, callID)
 }

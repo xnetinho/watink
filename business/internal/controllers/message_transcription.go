@@ -100,7 +100,7 @@ func (mc *MessageController) TranscribeAudio(c *gin.Context) {
 		return
 	}
 
-	audio, mimeType, err := mc.resolveAudioBytes(c.Request.Context(), &msg, tenantID)
+	audio, mimeType, err := mc.resolveAudioBytes(c.Request.Context(), db, &msg, tenantID)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return
@@ -148,7 +148,7 @@ func (mc *MessageController) settingValue(tenantID uuid.UUID, key string) (strin
 // round-trip. Otherwise it falls back to the same on-demand download the
 // "baixar"/assistant-audio paths use: publish media.download and block on
 // mediawait.Waiter for the correlated result.
-func (mc *MessageController) resolveAudioBytes(ctx context.Context, msg *models.Message, tenantID uuid.UUID) ([]byte, string, error) {
+func (mc *MessageController) resolveAudioBytes(ctx context.Context, db *gorm.DB, msg *models.Message, tenantID uuid.UUID) ([]byte, string, error) {
 	var data struct {
 		Mimetype   string `json:"mimetype"`
 		MediaProto string `json:"mediaProto"`
@@ -168,7 +168,8 @@ func (mc *MessageController) resolveAudioBytes(ctx context.Context, msg *models.
 		return nil, "", fmt.Errorf("ticket não encontrado para esta mensagem")
 	}
 
-	conn, ch, found, cerr := channelOf(mc.db, tenantID, msg.Ticket)
+	// db é o handle escopado do request: ChannelConnections tem RLS e o pool global (mc.db) seria recusado.
+	conn, ch, found, cerr := channelOf(db, tenantID, msg.Ticket)
 	downloader, can := ch.(domain.MediaDownloader)
 	if !found || cerr != nil || !can {
 		return nil, "", fmt.Errorf("o canal desta conversa não baixa mídia")
