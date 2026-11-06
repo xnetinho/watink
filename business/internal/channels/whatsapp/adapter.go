@@ -360,3 +360,13 @@ func (a *Adapter) SyncContact(_ context.Context, conn *models.ChannelConnection,
 func (a *Adapter) SaveContact(_ context.Context, conn *models.ChannelConnection, number, name string) error {
 	return a.command(conn, wbot.CommandContactSave, map[string]interface{}{"number": number, "name": name})
 }
+
+// SendRich publica o comando rico como o chamador o montou. O sessionId é sempre o desta conexão (o engine o decodifica como
+// inteiro), nunca o que veio no payload.
+func (a *Adapter) SendRich(_ context.Context, conn *models.ChannelConnection, command string, payload map[string]interface{}) error {
+	return a.command(conn, command, payload)
+}
+
+func (a *Adapter) CallCommand(_ context.Context, conn *models.ChannelConnection, command string, payload map[string]interface{}) error {
+	return a.command(conn, command, payload)
+}

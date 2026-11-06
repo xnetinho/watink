@@ -246,6 +246,18 @@ type ContactSyncer interface {
 	SaveContact(ctx context.Context, conn *models.ChannelConnection, number, name string) error
 }
 
+// RichSender envia uma mensagem rica (botões, lista, enquete, carrossel, PIX, mídia com legenda) já montada por quem conhece
+// o conteúdo: quickAnswer e flow builder. Command e Payload seguem o formato do canal (no WhatsApp, o comando do engine). O canal
+// que não a tem recusa, e quem pediu responde 422.
+type RichSender interface {
+	SendRich(ctx context.Context, conn *models.ChannelConnection, command string, payload map[string]interface{}) error
+}
+
+// CallControl controla uma chamada de voz do canal (atender, recusar, encerrar, iniciar, liberar o áudio).
+type CallControl interface {
+	CallCommand(ctx context.Context, conn *models.ChannelConnection, command string, payload map[string]interface{}) error
+}
+
 // ChannelRegistry gerencia os adaptadores de canais registrados no sistema.
 type ChannelRegistry struct {
 	mu       sync.RWMutex

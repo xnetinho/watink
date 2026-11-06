@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,13 +14,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/sdk"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type PluginManager struct {
@@ -166,48 +167,37 @@ func (c *coreImpl) SendTicketMessage(tenantID uuid.UUID, ticketID int, body stri
 	var externalID string
 	to := pluginContactJID(ticket.Contact)
 
+	connID := ticket.WhatsappID
 	if ticket.ChannelConnectionID != nil {
-		var conn models.ChannelConnection
-		if err := c.db.Session(&gorm.Session{NewDB: true}).
-			Where(`id = ? AND "tenantId" = ?`, *ticket.ChannelConnectionID, tenantID).
-			First(&conn).Error; err == nil {
-			if chAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind)); err == nil {
-				targetAddr, _ := chAdapter.ResolveAddress(context.Background(), &conn, &ticket.Contact)
-				if targetAddr == "" {
-					targetAddr = to
-				}
-				outMsg := domain.OutboundMessage{
-					ConversationKey: ticket.ConversationKey,
-					ExternalID:      targetAddr,
-					Body:            body,
-				}
-				sendRes, err := chAdapter.Send(context.Background(), &conn, outMsg)
-				if err != nil {
-					return err
-				}
-				externalID = sendRes.ExternalMessageID
-				if externalID != "" {
-					messageID = domain.StorageMessageID(domain.ChannelKind(conn.Kind), conn.ID, ticket.ConversationKey, externalID)
-				}
-			}
-		}
-	} else {
-		if c.rabbit == nil {
-			return errors.New("command publisher not configured")
-		}
-		command := map[string]interface{}{
-			"type": "message.send.text",
-			"payload": map[string]interface{}{
-				"sessionId": ticket.WhatsappID,
-				"messageId": messageID,
-				"to":        to,
-				"ticketId":  ticketID,
-				"body":      body,
-			},
-		}
-		routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), wbot.CommandMessageText)
-		if err := c.rabbit.PublishCommand(routingKey, command); err != nil {
-			return err
+		connID = *ticket.ChannelConnectionID
+	}
+	var conn models.ChannelConnection
+	if err := c.db.Session(&gorm.Session{NewDB: true}).
+		Where(`id = ? AND "tenantId" = ?`, connID, tenantID).First(&conn).Error; err != nil {
+		return fmt.Errorf("conexão do ticket não encontrada: %w", err)
+	}
+	chAdapter, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind))
+	if err != nil {
+		return err
+	}
+	targetAddr, _ := chAdapter.ResolveAddress(context.Background(), &conn, &ticket.Contact)
+	if targetAddr == "" {
+		targetAddr = to
+	}
+	sendRes, err := chAdapter.Send(context.Background(), &conn, domain.OutboundMessage{
+		ConversationKey: ticket.ConversationKey,
+		ExternalID:      targetAddr,
+		Body:            body,
+		StorageID:       messageID,
+	})
+	if err != nil {
+		return err
+	}
+	// Só canais que não são o WhatsApp devolvem um id próprio; o do WhatsApp é o que geramos (o engine confirma por ele).
+	if conn.Kind != string(domain.ChannelKindWhatsApp) {
+		externalID = sendRes.ExternalMessageID
+		if externalID != "" {
+			messageID = domain.StorageMessageID(domain.ChannelKind(conn.Kind), conn.ID, ticket.ConversationKey, externalID)
 		}
 	}
 

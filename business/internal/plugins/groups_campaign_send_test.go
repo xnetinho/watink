@@ -8,33 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alltomatos/watinkdev/business/internal/domain"
-	"github.com/alltomatos/watinkdev/business/internal/flow"
-	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+
+	"github.com/alltomatos/watinkdev/business/internal/flow"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 )
-
-// ownIDEngine is a fake domain.WhatsAppEngine that assigns its OWN message
-// id, ignoring whatever the caller requested -- reproduces a non-whatsmeow
-// engine's server-generated message_id behavior without depending on a
-// real HTTP client.
-type ownIDEngine struct {
-	nonGroupEngine
-	assignedID string
-}
-
-func (e *ownIDEngine) SendText(ctx context.Context, w models.Whatsapp, to, messageID, body string) (string, error) {
-	return e.assignedID, nil
-}
-func (e *ownIDEngine) SendMedia(ctx context.Context, w models.Whatsapp, to, messageID, mediaType, mediaURL, mimeType string) (string, error) {
-	return e.assignedID, nil
-}
-
-var _ domain.WhatsAppEngine = (*ownIDEngine)(nil)
 
 // --- local mocks (no globals; per ADR 0006 test policy) ---
 
@@ -201,44 +183,6 @@ func TestSendOne_PublishFailureMarksMessageUndelivered(t *testing.T) {
 	var msg models.Message
 	require.NoError(t, db.Where(`id = ?`, send.EnvID).First(&msg).Error)
 	assert.True(t, msg.IsDeleted, "mensagem não confirmada no publish deve ficar soft-deleted")
-}
-
-// TestSendOne_NonWhatsmeowEngineRenamesMessageToRealID covers a non-whatsmeow
-// domain.WhatsAppEngine that assigns its OWN message id (never the one we
-// requested), so sendOne must rename the just-persisted Message row (and
-// GroupCampaignSend.MessageID) to that real id -- otherwise a later reply
-// citing the message can never be found by QuotedMsgID (issue #598's
-// correlation query matches on GroupCampaignSend.MessageID).
-func TestSendOne_NonWhatsmeowEngineRenamesMessageToRealID(t *testing.T) {
-	db := setupPluginTestDB(t)
-	w, c := campaignFixture(t, db, "CONNECTED")
-	require.NoError(t, models.UpdateWhatsapp(db, w.TenantID, w.ID, map[string]interface{}{"engineType": "custom-engine"}))
-	run := runWithSnapshot(t, db, c, []variantSnapshotEntry{{ID: 1, Type: "text", Message: "oi"}})
-	send := sendFixtureWithVariant(t, db, w, c, run, "120363000000000014@g.us", 0)
-
-	realID := "custom-engine-real-id-xyz"
-	pub := &sendFakePublisher{}
-	adapter := flow.NewWhatsAppAdapter(pub, newSendFakeRedis(), flow.WhatsAppAdapterDeps{
-		DB:      db,
-		Engines: &fakeResolver{engine: &ownIDEngine{assignedID: realID}},
-	})
-
-	err := sendOne(context.Background(), db, nil, adapter, send)
-	require.NoError(t, err)
-
-	assert.Empty(t, pub.calls, "engine não-AMQP nunca deve publicar no rabbit")
-
-	var byEnvID models.Message
-	err = db.Where(`id = ?`, send.EnvID).First(&byEnvID).Error
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound, "a linha com o EnvID original não deve mais existir -- foi renomeada")
-
-	var byRealID models.Message
-	require.NoError(t, db.Where(`id = ?`, realID).First(&byRealID).Error)
-	assert.True(t, byRealID.FromMe)
-
-	var updatedSend models.GroupCampaignSend
-	require.NoError(t, db.First(&updatedSend, send.ID).Error)
-	assert.Equal(t, realID, updatedSend.MessageID, "GroupCampaignSend.MessageID deve ser o id real, não o EnvID")
 }
 
 func TestSendOne_NilAdapterFailsClosed(t *testing.T) {

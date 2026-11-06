@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
-	"github.com/google/uuid"
-	"gorm.io/gorm/clause"
-	"strconv"
-	"strings"
 )
 
 // Estados do registro da chamada.
@@ -186,12 +188,23 @@ func (s *Service) userCan(tenantID uuid.UUID, userID int, action string) bool {
 	return auth.UserHasPermission(s.db, userID, tenantID, "calls", action)
 }
 
-func (s *Service) command(tenantID uuid.UUID, whatsappID int, cmd string, payload map[string]interface{}) error {
-	body := map[string]interface{}{
-		"id": uuid.New().String(), "timestamp": s.now().UnixMilli(),
-		"tenantId": tenantID.String(), "type": cmd, "payload": payload,
+// command pede ao canal da conexão que execute a operação de chamada (call.accept, call.reject, call.end, call.start,
+// call.ready). O canal precisa saber controlar chamadas; senão a chamada é recusada em vez de ficar no ar.
+func (s *Service) command(tenantID uuid.UUID, connectionID int, cmd string, payload map[string]interface{}) error {
+	var conn models.ChannelConnection
+	if err := s.db.Session(&gorm.Session{NewDB: true}).
+		Where(`id = ? AND "tenantId" = ?`, connectionID, tenantID).First(&conn).Error; err != nil {
+		return fmt.Errorf("conexão %d não encontrada: %w", connectionID, err)
 	}
-	return s.publisher.PublishCommand(wbot.Command(tenantID.String(), strconv.Itoa(whatsappID), cmd), body)
+	ch, err := domain.DefaultChannelRegistry().Get(domain.ChannelKind(conn.Kind))
+	if err != nil {
+		return err
+	}
+	cc, ok := ch.(domain.CallControl)
+	if !ok {
+		return fmt.Errorf("o canal %q não faz chamadas", conn.Kind)
+	}
+	return cc.CallCommand(context.Background(), &conn, cmd, payload)
 }
 
 func (s *Service) callPayload(l *models.CallLog, c *domain.Contact, t *domain.Ticket) map[string]interface{} {

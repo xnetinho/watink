@@ -2,19 +2,18 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
-	wbot "github.com/alltomatos/watinkdev/contracts/wbot"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // Send envia uma resposta rápida em um ticket aberto.
@@ -93,64 +92,28 @@ func (qac *QuickAnswerController) Send(c *gin.Context) {
 		qaType = "text"
 	}
 
-	sessionID := ticket.WhatsappID
+	sessionID := connectionIDOf(ticket)
 	msgID := newWAMessageID()
 	commandType, payload := flow.BuildQuickAnswerCommand(qaType, message, contentMap, sessionID, msgID, to)
 
-	var whatsapp models.Whatsapp
-	if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).
-		Where("id = ? AND \"tenantId\" = ?", ticket.WhatsappID, tenantID), &whatsapp); err != nil {
+	conn, ch, found, cerr := channelOf(db, tenantID, ticket)
+	if !found {
 		c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
 		return
 	}
-
-	if whatsapp.EngineType != "" && whatsapp.EngineType != "whatsmeow" {
-		if qac.engines == nil {
-			utils.RespondWithInternalError(c, fmt.Errorf("no engine resolver configured"), "SendQuickAnswer")
-			return
-		}
-		engine, err := qac.engines.EngineFor(whatsapp)
-		if err != nil {
-			utils.RespondWithInternalError(c, err, "SendQuickAnswer")
-			return
-		}
-		switch commandType {
-		case "message.send.text":
-			body, _ := payload["body"].(string)
-			_, err = engine.SendText(c.Request.Context(), whatsapp, to, msgID, body)
-		case "message.send.media":
-			mediaURL, _ := payload["mediaUrl"].(string)
-			mediaType, _ := payload["mediaType"].(string)
-			mimeType, _ := payload["mimeType"].(string)
-			_, err = engine.SendMedia(c.Request.Context(), whatsapp, to, msgID, mediaType, mediaURL, mimeType)
-		default:
-			richEngine, ok := engine.(domain.RichMessageEngine)
-			if !ok {
-				err = fmt.Errorf("resposta rápida do tipo %q não suportada no engine %q", qaType, whatsapp.EngineType)
-				break
-			}
-			req := flow.BuildRichMessageRequest(qaType, message, contentMap)
-			_, err = richEngine.SendInteractive(c.Request.Context(), whatsapp, to, msgID, req)
-		}
-		if err != nil {
-			utils.RespondWithInternalError(c, err, "SendQuickAnswer")
-			return
-		}
-	} else {
-		command := map[string]interface{}{
-			"type":    commandType,
-			"payload": payload,
-		}
-
-		routingKey := wbot.Command(tenantID.String(), strconv.Itoa(ticket.WhatsappID), commandType)
-		if err := qac.rabbit.PublishCommand(routingKey, command); err != nil {
-			utils.RespondWithInternalError(c, err, "SendQuickAnswer")
-			return
-		}
+	sender, can := ch.(domain.RichSender)
+	if cerr != nil || !can {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "quick_answer_not_supported"})
+		return
+	}
+	if err := sender.SendRich(c.Request.Context(), &conn, commandType, payload); err != nil {
+		utils.RespondWithInternalError(c, err, "SendQuickAnswer")
+		return
 	}
 
 	// Persist outgoing message so it appears in the UI and ack events can find it.
-	writeDB := qac.db.Session(&gorm.Session{NewDB: true})
+	// db é o handle escopado da empresa do request (RLS); qac.db é o pool global e o banco recusa a gravação sem escopo.
+	writeDB := db.Session(&gorm.Session{NewDB: true})
 	contactID := ticket.ContactID
 	now := time.Now()
 
@@ -172,6 +135,24 @@ func (qac *QuickAnswerController) Send(c *gin.Context) {
 	}
 	if len(contentMap) > 0 {
 		msgData["content"] = contentMap
+	}
+	// Enquete: o cartão da tela e o tratamento de voto leem as opções em rich (a mesma forma da enquete recebida). Sem isso o
+	// voto do contato era ignorado e o cartão não mostrava a contagem.
+	if qaType == "poll" {
+		msgMediaType = "poll"
+		var options []string
+		if raw, ok := contentMap["options"].([]interface{}); ok {
+			for _, o := range raw {
+				if str, ok := o.(string); ok {
+					options = append(options, str)
+				}
+			}
+		}
+		selectable := 1
+		if ms, ok := contentMap["maxSelections"].(float64); ok && ms >= 1 {
+			selectable = int(ms)
+		}
+		msgData["rich"] = map[string]interface{}{"options": options, "selectable": selectable, "question": contentMap["question"]}
 	}
 	msgDataJSON, _ := json.Marshal(msgData)
 
