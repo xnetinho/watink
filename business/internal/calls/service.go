@@ -126,3 +126,8 @@ func peerNumber(jid string) string {
 func (s *Service) CanForTest(ctx context.Context, tenantID uuid.UUID, userID int, action string) bool {
 	return s.userCan(ctx, tenantID, userID, action)
 }
+
+// TelemetryForTest expõe o tratamento da telemetria do WebSocket de mídia para o teste de RLS real em outro pacote.
+func (s *Service) TelemetryForTest(ctx context.Context, tenantID uuid.UUID, raw []byte) {
+	s.handleTelemetry(ctx, tenantID, raw)
+}

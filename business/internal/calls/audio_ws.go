@@ -213,7 +213,10 @@ func (s *Service) handleTelemetry(ctx context.Context, tenantID uuid.UUID, raw [
 	if json.Unmarshal(raw, &t) != nil || t.Type != "quality" || t.CallID == "" {
 		return
 	}
-	_ = s.HandleQuality(ctx, tenantID, raw)
+	// O WebSocket dura a chamada inteira e não carrega escopo de empresa (RLS, ADR 0034, D4): cada medição abre o seu, curto.
+	_ = tenantdb.WithTenant(ctx, s.db, tenantID, func(c context.Context) error {
+		return s.HandleQuality(c, tenantID, raw)
+	})
 }
 
 // browserSink adapta o WebSocket do navegador à mesma forma de escrita do fluxo do canal.

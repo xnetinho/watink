@@ -433,3 +433,40 @@ func TestHandleIncomingCall_ComRLSReal(t *testing.T) {
 	require.NoError(t, admin.QueryRow(`SELECT status FROM "CallLogs" WHERE "callId" = 'RLS-CALL-1'`).Scan(&status))
 	assert.Equal(t, "ringing", status, "a chamada toca em vez de ficar perdida")
 }
+
+type roomRecorder struct{ rooms []string }
+
+func (r *roomRecorder) EmitToRoom(_, room, event string, _ interface{}) {
+	r.rooms = append(r.rooms, room+"|"+event)
+}
+func (r *roomRecorder) EmitToTenantRoom(string, string, interface{}) {}
+func (r *roomRecorder) EmitToNamespace(string, string, interface{})  {}
+
+// Regressão achada no celular: a medição de qualidade que o engine manda pelo WebSocket de mídia chegava ao business sem escopo
+// de empresa (o WebSocket dura a chamada inteira e não o carrega), e a leitura da chamada era recusada a cada segundo.
+// Banco migrado de verdade, papel sem BYPASSRLS: a medição precisa chegar ao operador que assumiu a chamada.
+func TestCallTelemetry_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	waID, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
+	require.NoError(t, seedRow(admin, "Users", tenant))
+	var uid int
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "Users" WHERE "tenantId" = $1`, tenant).Scan(&uid))
+	require.NoError(t, seedRow(admin, "CallLogs", tenant))
+	_, err = admin.Exec(`UPDATE "CallLogs" SET "callId" = 'TEL-1', "whatsappId" = $2, "handledByUserId" = $3, "endedAt" = NULL, status = 'active' WHERE "tenantId" = $1`, tenant, waID, uid)
+	require.NoError(t, err)
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+	rec := &roomRecorder{}
+	svc := calls.NewService(gdb, nil, nil, nil, nil, rec, nil)
+
+	raw, _ := json.Marshal(map[string]interface{}{"type": "quality", "callId": "TEL-1", "lossPct": 1.5, "jitterMs": 12})
+	// Como o ServeAudio chama: com o contexto do WebSocket, que não tem escopo de empresa.
+	svc.TelemetryForTest(context.Background(), tenant, raw)
+
+	assert.Equal(t, []string{calls.UserRoom(tenant, uid) + "|call.quality"}, rec.rooms, "a medição chega só ao operador da chamada")
+}
