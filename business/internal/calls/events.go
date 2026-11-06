@@ -166,7 +166,7 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 		return nil
 	}
 
-	hasPerm := func(userID int) bool { return s.userCan(tenantID, userID, "receive") }
+	hasPerm := func(userID int) bool { return s.userCan(ctx, tenantID, userID, "receive") }
 	users, err := s.Eligible(ctx, tenantID, waID, hasPerm)
 	if err != nil {
 		return err
@@ -184,8 +184,10 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 	return nil
 }
 
-func (s *Service) userCan(tenantID uuid.UUID, userID int, action string) bool {
-	return auth.UserHasPermission(s.db, userID, tenantID, "calls", action)
+// userCan consulta Users e as permissões do cargo, que têm RLS: o handle precisa herdar o escopo de empresa do ctx. Com o pool
+// global a leitura era recusada e a função respondia "sem permissão" para todo mundo, então nenhuma chamada tocava.
+func (s *Service) userCan(ctx context.Context, tenantID uuid.UUID, userID int, action string) bool {
+	return auth.UserHasPermission(s.fresh(ctx), userID, tenantID, "calls", action)
 }
 
 // command pede ao canal da conexão que execute a operação de chamada (call.accept, call.reject, call.end, call.start,

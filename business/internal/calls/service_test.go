@@ -223,7 +223,7 @@ func TestEligible_AllConditions(t *testing.T) {
 		r.grant(t, n, "receive")
 	}
 	r.online("admin", "da_fila_A", "da_fila_B", "sem_nada", "setor_fila_A")
-	can := func(id int) bool { return r.svc.userCan(r.tenant, id, "receive") }
+	can := func(id int) bool { return r.svc.userCan(ctx, r.tenant, id, "receive") }
 
 	users, err := r.svc.Eligible(ctx, r.tenant, r.waA.ID, can)
 	require.NoError(t, err)
@@ -248,7 +248,7 @@ func TestEligible_WithoutPermissionOrOfflineIsExcluded(t *testing.T) {
 	r := newRig(t)
 	r.grant(t, "da_fila_A", "receive")
 	r.online("da_fila_A", "setor_fila_A")
-	can := func(id int) bool { return r.svc.userCan(r.tenant, id, "receive") }
+	can := func(id int) bool { return r.svc.userCan(ctx, r.tenant, id, "receive") }
 	users, err := r.svc.Eligible(ctx, r.tenant, r.waA.ID, can)
 	require.NoError(t, err)
 	assert.NotContains(t, idsOf(users), r.users["setor_fila_A"].ID, "online mas sem calls:receive não toca")

@@ -349,8 +349,9 @@ func TestMessageReceipts_ComRLSReal(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Regressão achada no celular: a chamada recebida ficava "perdida" (no_operator) porque a elegibilidade lia ChannelConnections
-// com o pool global, sem escopo de empresa, e o RLS recusava. Banco migrado de verdade, papel sem BYPASSRLS.
+// Regressão achada no celular: a chamada recebida ficava "perdida" (no_operator) porque a elegibilidade lia ChannelConnections e
+// Users com o pool global, sem escopo de empresa, e o RLS recusava as duas leituras. Banco migrado de verdade, papel sem BYPASSRLS.
+// Um operador online na sala da chamada precisa aparecer como elegível.
 func TestCallEligible_ComRLSReal(t *testing.T) {
 	admin, app, _, _ := migratedDB(t)
 	tenant := uuid.New()
@@ -361,28 +362,28 @@ func TestCallEligible_ComRLSReal(t *testing.T) {
 	require.NoError(t, seedRow(admin, "Users", tenant))
 	_, err = admin.Exec(`UPDATE "Users" SET alcance = 'tenant' WHERE "tenantId" = $1`, tenant)
 	require.NoError(t, err)
+	var uid int
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "Users" WHERE "tenantId" = $1`, tenant).Scan(&uid))
 
 	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
 	require.NoError(t, err)
-	svc := calls.NewService(gdb, nil, nil, nil, nil, nil, nil)
-	can := func(int) bool { return true }
+	online := onlineRoom{calls.UserRoom(tenant, uid): true}
+	svc := calls.NewService(gdb, nil, nil, nil, nil, nil, online)
 
 	// Sem escopo de empresa o banco recusa, que é o que o pool global fazia.
 	_, err = calls.UsersWhoSeeConnection(gdb, tenant, waID)
 	require.Error(t, err)
 
 	err = tenantdb.WithTenant(context.Background(), gdb, tenant, func(ctx context.Context) error {
-		got, e := svc.Eligible(ctx, tenant, waID, can)
+		got, e := svc.Eligible(ctx, tenant, waID, func(id int) bool { return svc.CanForTest(ctx, tenant, id, "receive") })
 		require.NoError(t, e)
-		// Ninguém assina a sala da chamada neste teste, então ninguém está online: o que importa é que a leitura funcionou.
-		assert.Empty(t, got)
-		cands, e2 := calls.UsersWhoSeeConnection(svcDB(ctx, gdb), tenant, waID)
-		require.NoError(t, e2)
-		assert.Len(t, cands, 1, "o administrador do tenant enxerga a conexão")
+		require.Len(t, got, 1, "o operador online que enxerga a conexão e tem permissão toca")
+		assert.Equal(t, uid, got[0].ID)
 		return nil
 	})
 	require.NoError(t, err)
 }
 
-// svcDB devolve um handle que herda o escopo de empresa do ctx, como Service.fresh faz.
-func svcDB(ctx context.Context, db *gorm.DB) *gorm.DB { return db.WithContext(ctx).Session(&gorm.Session{NewDB: true}) }
+type onlineRoom map[string]bool
+
+func (o onlineRoom) HasSubscribers(room string) bool { return o[room] }

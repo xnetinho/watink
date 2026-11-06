@@ -120,3 +120,9 @@ func peerNumber(jid string) string {
 	base := strings.Split(jid, "@")[0]
 	return strings.Split(base, ":")[0]
 }
+
+// shortcut: acessor só para teste, para o teste de RLS real viver em outro pacote; sai se esse teste for movido para calls.
+// CanForTest expõe a checagem de permissão de chamada para testes de integração com RLS real em outros pacotes.
+func (s *Service) CanForTest(ctx context.Context, tenantID uuid.UUID, userID int, action string) bool {
+	return s.userCan(ctx, tenantID, userID, action)
+}
