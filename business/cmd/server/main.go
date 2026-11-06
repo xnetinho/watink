@@ -30,6 +30,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	otelgin "go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
 	_ "github.com/alltomatos/watinkdev/business/docs"
 	"github.com/alltomatos/watinkdev/business/internal/application"
 	"github.com/alltomatos/watinkdev/business/internal/calls"
@@ -45,12 +49,8 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/internal/web"
-	"github.com/alltomatos/watinkdev/business/pkg/engineaddr"
 	"github.com/alltomatos/watinkdev/business/pkg/s3store"
 	"github.com/alltomatos/watinkdev/business/pkg/safego"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-	otelgin "go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 var (
@@ -207,8 +207,7 @@ func main() {
 	// IsAuth: o navegador não manda Authorization num WebSocket; o controller
 	// valida o token da query, a permissão e a posse da chamada. O endereço do canal
 	// do engine vem só de ENGINE_HOST; sem ele nenhuma chamada tem áudio.
-	callAudioController := controllers.NewCallAudioController(container.Calls, calls.NewAudio(),
-		calls.NewEngineDialer(engineaddr.CallsAudioURL()), database.DB)
+	callAudioController := controllers.NewCallAudioController(container.Calls, calls.NewAudio(), database.DB)
 	r.GET("/api/v1/calls/:id/audio", callAudioController.Stream)
 
 	readinessHandler := func(c *gin.Context) {

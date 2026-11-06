@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
 	"github.com/alltomatos/watinkdev/business/internal/application"
 	telegramChannel "github.com/alltomatos/watinkdev/business/internal/channels/telegram"
 	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
@@ -18,9 +21,8 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/saasclient"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
+	"github.com/alltomatos/watinkdev/business/pkg/engineaddr"
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // resumeTelegramPolling recria os workers de polling das conexões já conectadas
@@ -139,7 +141,8 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		flowRuntime,
 	)
 	channelWebhookController := controllers.NewChannelWebhookController(container.DB, channelInboundSvc)
-	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService, rabbitMQ))
+	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(container.SessionService, rabbitMQ,
+		whatsappChannel.CallMediaBase(engineaddr.CallsAudioURL())))
 	// Polling entrega as mensagens pelo mesmo pipeline de entrada do webhook.
 	// Cada mensagem roda no escopo da empresa dela (RLS, ADR 0034), em escopo próprio: o polling é uma goroutine longa.
 	channelInboundHandler := func(ctx context.Context, msg domain.InboundMessage) error {

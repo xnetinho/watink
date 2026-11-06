@@ -8,14 +8,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alltomatos/watinkdev/business/internal/calls"
-	"github.com/alltomatos/watinkdev/business/pkg/auth"
-	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 	"github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/alltomatos/watinkdev/business/internal/calls"
+	"github.com/alltomatos/watinkdev/business/pkg/auth"
+	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
 )
 
 // CallAudioController serve o WebSocket de áudio do navegador. Fica FORA do grupo
@@ -25,12 +26,11 @@ import (
 type CallAudioController struct {
 	svc   *calls.Service
 	audio *calls.Audio
-	dial  calls.EngineDialer
 	db    *gorm.DB
 }
 
-func NewCallAudioController(svc *calls.Service, audio *calls.Audio, dial calls.EngineDialer, db *gorm.DB) *CallAudioController {
-	return &CallAudioController{svc: svc, audio: audio, dial: dial, db: db}
+func NewCallAudioController(svc *calls.Service, audio *calls.Audio, db *gorm.DB) *CallAudioController {
+	return &CallAudioController{svc: svc, audio: audio, db: db}
 }
 
 type audioIdentity struct {
@@ -119,7 +119,7 @@ func (ca *CallAudioController) Stream(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	ca.svc.ServeAudio(c.Request.Context(), ca.audio, ca.dial, conn, id.tenantID, id.userID, callID)
+	ca.svc.ServeAudio(c.Request.Context(), ca.audio, conn, id.tenantID, id.userID, callID)
 }
 
 // audioOriginPatterns limita as origens aceitas no handshake. Sem configuração a

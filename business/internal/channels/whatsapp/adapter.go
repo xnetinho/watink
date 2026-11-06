@@ -3,10 +3,15 @@ package whatsapp
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/coder/websocket"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
@@ -26,7 +31,11 @@ type Adapter struct {
 	engineResolver domain.WhatsAppEngineResolver
 	sessionManager SessionManager
 	publisher      domain.CommandPublisher
+	callMediaBase  string
 }
+
+// CallMediaBase é o endereço do WebSocket interno de mídia das chamadas no engine (ex.: "ws://engine:8085").
+type CallMediaBase string
 
 // NewAdapter instancia o adaptador WhatsApp. Aceita opcionalmente um SessionManager e um CommandPublisher.
 func NewAdapter(resolver domain.WhatsAppEngineResolver, options ...interface{}) *Adapter {
@@ -39,6 +48,8 @@ func NewAdapter(resolver domain.WhatsAppEngineResolver, options ...interface{}) 
 			a.sessionManager = v
 		case domain.CommandPublisher:
 			a.publisher = v
+		case CallMediaBase:
+			a.callMediaBase = string(v)
 		}
 	}
 	if a.sessionManager == nil {
@@ -370,3 +381,45 @@ func (a *Adapter) SendRich(_ context.Context, conn *models.ChannelConnection, co
 func (a *Adapter) CallCommand(_ context.Context, conn *models.ChannelConnection, command string, payload map[string]interface{}) error {
 	return a.command(conn, command, payload)
 }
+
+// ErrCallMediaNotConfigured: o business não sabe onde está o canal de mídia das chamadas do engine.
+var ErrCallMediaNotConfigured = errors.New("canal de áudio das chamadas não configurado (defina ENGINE_HOST no business)")
+
+// OpenCallMedia abre o WebSocket de mídia da chamada no engine. Se CALLS_API_TOKEN ou INTERNAL_TOKEN estiver configurado, envia o
+// cabeçalho X-Internal-Token para autenticação mútua interna.
+func (a *Adapter) OpenCallMedia(ctx context.Context, _ *models.ChannelConnection, callID string) (domain.CallMediaStream, error) {
+	if a.callMediaBase == "" {
+		return nil, ErrCallMediaNotConfigured
+	}
+	opts := &websocket.DialOptions{}
+	token := os.Getenv("CALLS_API_TOKEN")
+	if token == "" {
+		token = os.Getenv("INTERNAL_TOKEN")
+	}
+	if token != "" {
+		opts.HTTPHeader = http.Header{"X-Internal-Token": []string{token}}
+	}
+	c, _, err := websocket.Dial(ctx, a.callMediaBase+"/calls/"+callID+"/audio", opts)
+	if err != nil {
+		return nil, err
+	}
+	return &wsStream{c: c}, nil
+}
+
+type wsStream struct{ c *websocket.Conn }
+
+func (w *wsStream) Read(ctx context.Context) (bool, []byte, error) {
+	typ, data, err := w.c.Read(ctx)
+	return typ == websocket.MessageBinary, data, err
+}
+
+func (w *wsStream) Write(ctx context.Context, binary bool, data []byte) error {
+	typ := websocket.MessageText
+	if binary {
+		typ = websocket.MessageBinary
+	}
+	return w.c.Write(ctx, typ, data)
+}
+
+func (w *wsStream) SetReadLimit(n int64) { w.c.SetReadLimit(n) }
+func (w *wsStream) Close() error         { return w.c.CloseNow() }
