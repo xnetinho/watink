@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -174,7 +173,7 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 	if len(users) == 0 {
 		return s.markMissed(ctx, tenantID, l, "no_operator")
 	}
-	if err := s.command(tenantID, waID, "call.ready", map[string]interface{}{"callId": ev.CallID}); err != nil {
+	if err := s.command(ctx, tenantID, waID, "call.ready", map[string]interface{}{"callId": ev.CallID}); err != nil {
 		return err
 	}
 	payload := s.callPayload(l, contact, ticket)
@@ -192,9 +191,10 @@ func (s *Service) userCan(ctx context.Context, tenantID uuid.UUID, userID int, a
 
 // command pede ao canal da conexão que execute a operação de chamada (call.accept, call.reject, call.end, call.start,
 // call.ready). O canal precisa saber controlar chamadas; senão a chamada é recusada em vez de ficar no ar.
-func (s *Service) command(tenantID uuid.UUID, connectionID int, cmd string, payload map[string]interface{}) error {
+func (s *Service) command(ctx context.Context, tenantID uuid.UUID, connectionID int, cmd string, payload map[string]interface{}) error {
 	var conn models.ChannelConnection
-	if err := s.db.Session(&gorm.Session{NewDB: true}).
+	// s.fresh herda o escopo de empresa do ctx (RLS); o pool global recusa a leitura de ChannelConnections.
+	if err := s.fresh(ctx).
 		Where(`id = ? AND "tenantId" = ?`, connectionID, tenantID).First(&conn).Error; err != nil {
 		return fmt.Errorf("conexão %d não encontrada: %w", connectionID, err)
 	}
@@ -206,7 +206,7 @@ func (s *Service) command(tenantID uuid.UUID, connectionID int, cmd string, payl
 	if !ok {
 		return fmt.Errorf("o canal %q não faz chamadas", conn.Kind)
 	}
-	return cc.CallCommand(context.Background(), &conn, cmd, payload)
+	return cc.CallCommand(ctx, &conn, cmd, payload)
 }
 
 func (s *Service) callPayload(l *models.CallLog, c *domain.Contact, t *domain.Ticket) map[string]interface{} {

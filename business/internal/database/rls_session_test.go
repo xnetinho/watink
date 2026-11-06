@@ -5,8 +5,18 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"testing"
 	"time"
+
+	whatsappChannel "github.com/alltomatos/watinkdev/business/internal/channels/whatsapp"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -14,12 +24,6 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/pkg/tenantdb"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type rlsFakeRedis struct{ domain.RedisService }
@@ -387,3 +391,45 @@ func TestCallEligible_ComRLSReal(t *testing.T) {
 type onlineRoom map[string]bool
 
 func (o onlineRoom) HasSubscribers(room string) bool { return o[room] }
+
+type capturePub struct{ keys []string }
+
+func (c *capturePub) PublishCommand(key string, _ interface{}) error {
+	c.keys = append(c.keys, key)
+	return nil
+}
+
+// Regressão achada ligando do celular (3a tentativa): com a elegibilidade corrigida, o call.ready ao engine ainda lia a conexão
+// com o pool global e a chamada falhava. Ponta a ponta com RLS real: call.incoming, operador online, call.ready publicado.
+func TestHandleIncomingCall_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	waID, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
+	require.NoError(t, seedRow(admin, "Users", tenant))
+	_, err = admin.Exec(`UPDATE "Users" SET alcance = 'tenant' WHERE "tenantId" = $1`, tenant)
+	require.NoError(t, err)
+	var uid int
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "Users" WHERE "tenantId" = $1`, tenant).Scan(&uid))
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+	pub := &capturePub{}
+	domain.DefaultChannelRegistry().Register(whatsappChannel.NewAdapter(nil, pub))
+	online := onlineRoom{calls.UserRoom(tenant, uid): true}
+	svc := calls.NewService(gdb, repository.NewGORMContactRepo(gdb), repository.NewGORMTicketRepo(gdb), repository.NewGORMQueueRepo(gdb), pub, nil, online)
+
+	ev, _ := json.Marshal(map[string]string{"callId": "RLS-CALL-1", "sessionId": strconv.Itoa(waID), "peer": "5511999990010@s.whatsapp.net", "callerPn": "5511999990010"})
+	err = tenantdb.WithTenant(context.Background(), gdb, tenant, func(ctx context.Context) error {
+		return svc.HandleIncoming(ctx, tenant, ev)
+	})
+	require.NoError(t, err)
+
+	require.Len(t, pub.keys, 1, "o call.ready precisa chegar ao engine")
+	assert.Contains(t, pub.keys[0], "."+strconv.Itoa(waID)+".call.ready")
+	var status string
+	require.NoError(t, admin.QueryRow(`SELECT status FROM "CallLogs" WHERE "callId" = 'RLS-CALL-1'`).Scan(&status))
+	assert.Equal(t, "ringing", status, "a chamada toca em vez de ficar perdida")
+}

@@ -67,7 +67,7 @@ func (s *Service) Accept(ctx context.Context, tenantID uuid.UUID, userID int, ca
 	if l.ChannelConnectionID > 0 {
 		connID = l.ChannelConnectionID
 	}
-	if err := s.command(tenantID, connID, "call.accept", map[string]interface{}{"callId": callID}); err != nil {
+	if err := s.command(ctx, tenantID, connID, "call.accept", map[string]interface{}{"callId": callID}); err != nil {
 		s.fresh(ctx).Model(&models.CallLog{}).
 			Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
 			Updates(map[string]interface{}{"handledByUserId": nil, "answeredAt": nil})
@@ -102,7 +102,7 @@ func (s *Service) Reject(ctx context.Context, tenantID uuid.UUID, userID int, ca
 	if l.ChannelConnectionID > 0 {
 		connID = l.ChannelConnectionID
 	}
-	if err := s.command(tenantID, connID, "call.reject", map[string]interface{}{"callId": callID}); err != nil {
+	if err := s.command(ctx, tenantID, connID, "call.reject", map[string]interface{}{"callId": callID}); err != nil {
 		return fmt.Errorf("falha ao recusar: %w", err)
 	}
 	l.Status, l.EndReason, l.EndedAt = StatusRejected, "declined", &now
@@ -124,7 +124,7 @@ func (s *Service) End(ctx context.Context, tenantID uuid.UUID, userID int, callI
 	if l.ChannelConnectionID > 0 {
 		connID = l.ChannelConnectionID
 	}
-	return s.command(tenantID, connID, "call.end", map[string]interface{}{"callId": callID})
+	return s.command(ctx, tenantID, connID, "call.end", map[string]interface{}{"callId": callID})
 }
 
 // HandleState trata call.state: a chamada conectou (active).
