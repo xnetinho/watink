@@ -167,7 +167,7 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 	}
 
 	hasPerm := func(userID int) bool { return s.userCan(tenantID, userID, "receive") }
-	users, err := s.Eligible(tenantID, waID, hasPerm)
+	users, err := s.Eligible(ctx, tenantID, waID, hasPerm)
 	if err != nil {
 		return err
 	}

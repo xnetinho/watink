@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alltomatos/watinkdev/business/internal/calls"
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
 	"github.com/alltomatos/watinkdev/business/internal/models"
@@ -347,3 +348,41 @@ func TestMessageReceipts_ComRLSReal(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+// Regressão achada no celular: a chamada recebida ficava "perdida" (no_operator) porque a elegibilidade lia ChannelConnections
+// com o pool global, sem escopo de empresa, e o RLS recusava. Banco migrado de verdade, papel sem BYPASSRLS.
+func TestCallEligible_ComRLSReal(t *testing.T) {
+	admin, app, _, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	waID, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
+	require.NoError(t, seedRow(admin, "Users", tenant))
+	_, err = admin.Exec(`UPDATE "Users" SET alcance = 'tenant' WHERE "tenantId" = $1`, tenant)
+	require.NoError(t, err)
+
+	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
+	require.NoError(t, err)
+	svc := calls.NewService(gdb, nil, nil, nil, nil, nil, nil)
+	can := func(int) bool { return true }
+
+	// Sem escopo de empresa o banco recusa, que é o que o pool global fazia.
+	_, err = calls.UsersWhoSeeConnection(gdb, tenant, waID)
+	require.Error(t, err)
+
+	err = tenantdb.WithTenant(context.Background(), gdb, tenant, func(ctx context.Context) error {
+		got, e := svc.Eligible(ctx, tenant, waID, can)
+		require.NoError(t, e)
+		// Ninguém assina a sala da chamada neste teste, então ninguém está online: o que importa é que a leitura funcionou.
+		assert.Empty(t, got)
+		cands, e2 := calls.UsersWhoSeeConnection(svcDB(ctx, gdb), tenant, waID)
+		require.NoError(t, e2)
+		assert.Len(t, cands, 1, "o administrador do tenant enxerga a conexão")
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+// svcDB devolve um handle que herda o escopo de empresa do ctx, como Service.fresh faz.
+func svcDB(ctx context.Context, db *gorm.DB) *gorm.DB { return db.WithContext(ctx).Session(&gorm.Session{NewDB: true}) }
