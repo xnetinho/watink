@@ -15,6 +15,7 @@ import { Trash2, Reply, Forward, Pencil, Info, Sticker } from "lucide-react";
 import ForwardMessageDialog from "../ForwardMessageDialog";
 import { canForward, voiceOf } from "../../lib/messages/forward";
 import { canEdit } from "../../lib/messages/edit";
+import { canReact } from "../../lib/messages/react";
 import EditMessageDialog from "../EditMessageDialog";
 import MessageReceiptsDialog from "../MessagesList/components/MessageReceiptsDialog";
 import { canShowReceipts } from "../../lib/messages/receipts";
@@ -190,6 +191,7 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
           data-testid="message-options-content"
           data-side-pref={message.fromMe ? "left" : "right"}
         >
+          {canReact(message) && (
           <div className="flex items-center justify-between gap-0.5 px-1 py-1">
             {QUICK_REACTIONS.map((emoji) => (
               <button
@@ -203,6 +205,7 @@ const MessageOptionsMenu: React.FC<MessageOptionsMenuProps> = ({
               </button>
             ))}
           </div>
+          )}
           {message.fromMe && (
             <DropdownMenuItem
               className="gap-2 text-destructive focus:text-destructive"

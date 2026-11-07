@@ -211,6 +211,25 @@ func TestReactToMessage(t *testing.T) {
 		}
 	})
 
+	t.Run("registro de chamada não aceita reação (422) e nada vai ao engine", func(t *testing.T) {
+		call := models.Message{ID: "call:X1", Body: "Chamada de voz perdida", TicketID: ticket.ID, TenantID: tenantID, MediaType: "call", Reactions: "[]"}
+		if err := db.Create(&call).Error; err != nil {
+			t.Fatal(err)
+		}
+		before := len(pub.calls)
+		body, _ := json.Marshal(map[string]string{"reaction": "👍"})
+		req := httptest.NewRequest(http.MethodPost, "/message/call:X1/react", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		res := httptest.NewRecorder()
+		r.ServeHTTP(res, req)
+		if res.Code != http.StatusUnprocessableEntity {
+			t.Fatalf("expected 422, got %d — %s", res.Code, res.Body.String())
+		}
+		if len(pub.calls) != before {
+			t.Fatal("nenhum comando pode ir ao engine para reação em chamada")
+		}
+	})
+
 	t.Run("message not found returns 404", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]string{"reaction": "👍"})
 		req := httptest.NewRequest(http.MethodPost, "/message/DOES-NOT-EXIST/react", bytes.NewReader(body))

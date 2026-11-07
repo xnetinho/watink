@@ -40,6 +40,13 @@ describe("MessageOptionsMenu — reações rápidas", () => {
     );
     expect(handleClose).toHaveBeenCalled();
   });
+
+  // O registro de chamada é mensagem de sistema do Watink: não existe no WhatsApp e não recebe reação.
+  it("registro de chamada NÃO oferece reações, mas segue oferecendo as outras ações", () => {
+    render(<MessageOptionsMenu message={{ id: "call:ABC", fromMe: false, mediaType: "call" }} menuOpen handleClose={vi.fn()} anchorEl={null} />);
+    expect(screen.queryByLabelText("Reagir com 👍")).toBeNull();
+    expect(screen.getByText("Responder")).toBeInTheDocument();
+  });
 });
 
 describe("MessageOptionsMenu — alinhamento do popup", () => {

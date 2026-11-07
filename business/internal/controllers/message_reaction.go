@@ -49,6 +49,11 @@ func (mc *MessageController) ReactToMessage(c *gin.Context) {
 		return
 	}
 
+	if target.MediaType == "call" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "reaction_not_supported"})
+		return
+	}
+
 	contact := target.Ticket.Contact
 	if contact.ID == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Contact not found"})
