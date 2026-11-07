@@ -58,7 +58,7 @@ func (wc *WhatsappController) StatsWhatsapp(c *gin.Context) {
 	// between the two queries. Tenant scoping is applied explicitly.
 	var ticketsCount int64
 	if err := db.Session(&gorm.Session{}).Model(&models.Ticket{}).
-		Where("\"tenantId\" = ? AND \"whatsappId\" = ?", tenantID, id).
+		Where("\"tenantId\" = ? AND \"channelConnectionId\" = ?", tenantID, id).
 		Count(&ticketsCount).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "StatsWhatsapp.tickets")
 		return
@@ -68,7 +68,7 @@ func (wc *WhatsappController) StatsWhatsapp(c *gin.Context) {
 	var messagesToday int64
 	if err := db.Session(&gorm.Session{}).Model(&models.Message{}).
 		Joins("JOIN \"Tickets\" t ON t.id = \"Messages\".\"ticketId\"").
-		Where("t.\"whatsappId\" = ? AND \"Messages\".\"tenantId\" = ? AND \"Messages\".\"createdAt\" >= ?", id, tenantID, startOfDay).
+		Where("t.\"channelConnectionId\" = ? AND \"Messages\".\"tenantId\" = ? AND \"Messages\".\"createdAt\" >= ?", id, tenantID, startOfDay).
 		Count(&messagesToday).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "StatsWhatsapp.messagesToday")
 		return
