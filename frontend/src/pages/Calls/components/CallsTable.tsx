@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PhoneIncoming, PhoneOutgoing, Play, Trash2 } from "lucide-react";
+import { PhoneIncoming, PhoneOutgoing, Play, Trash2, Video } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
@@ -84,6 +84,7 @@ export const CallsTable: React.FC<Props> = ({ rows, loading, error, onRetry, can
         <span className="inline-flex items-center gap-1.5 text-sm">
           {r.direction === "outgoing" ? <PhoneOutgoing className="h-4 w-4" /> : <PhoneIncoming className="h-4 w-4" />}
           {r.direction === "outgoing" ? t("calls.history.directionOutgoing") : t("calls.history.directionIncoming")}
+          {r.media === "video" && <Video className="h-4 w-4" aria-label={t("calls.history.video")} data-testid="history-video" />}
         </span>
       ),
     },

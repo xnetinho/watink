@@ -60,6 +60,8 @@ const messages = {
         },
         place: {
           button: "Llamar",
+          videoButton: "Videollamada",
+          videoUnsupported: "Su navegador no envía video. Use Chrome, Edge o Brave para hacer videollamadas.",
           disconnected: "La conexión debe estar conectada para llamar.",
           proxy: "Las conexiones con proxy no pueden hacer llamadas de voz.",
           notIndividual: "Solo se puede llamar en conversaciones individuales.",
@@ -106,6 +108,7 @@ const messages = {
         history: {
           title: "Historial de llamadas",
           empty: "No hay llamadas registradas.",
+          video: "Videollamada",
           direction: "Dirección",
           directionIncoming: "Recibida",
           directionOutgoing: "Realizada",

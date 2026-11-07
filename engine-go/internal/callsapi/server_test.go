@@ -47,7 +47,7 @@ func (h *fakeHandle) SendPreaccept(context.Context) error                       
 func (h *fakeHandle) Accept(context.Context, string) error                       { return nil }
 func (h *fakeHandle) Reject(context.Context, string) error                       { return nil }
 func (h *fakeHandle) End(context.Context, string) error                          { return nil }
-func (h *fakeHandle) Start(context.Context, string, types.JID) error             { return nil }
+func (h *fakeHandle) Start(context.Context, string, types.JID, bool) error       { return nil }
 func (h *fakeHandle) Abandon(string)                                             {}
 func (h *fakeHandle) SetMedia(k calls.MediaHooks)                                { h.media = k }
 func (h *fakeHandle) FeedPCM(p []float32)                                        { h.fed <- len(p) }

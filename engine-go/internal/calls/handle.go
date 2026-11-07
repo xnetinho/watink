@@ -67,8 +67,8 @@ func (h *managerHandle) Reject(ctx context.Context, callID string) error {
 func (h *managerHandle) End(ctx context.Context, reason string) error {
 	return h.m.EndCall(ctx, core.EndCallReason(reason))
 }
-func (h *managerHandle) Start(ctx context.Context, callID string, peer types.JID) error {
-	return h.m.StartCall(ctx, callID, peer, false)
+func (h *managerHandle) Start(ctx context.Context, callID string, peer types.JID, video bool) error {
+	return h.m.StartCall(ctx, callID, peer, video)
 }
 func (h *managerHandle) SetMedia(k MediaHooks) {
 	h.m.OnPeerAudio = k.OnPeerPCM

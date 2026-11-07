@@ -61,7 +61,7 @@ Navegador ──WSS PCM──► business ──WS interno──► engine ─�
 - Não confundir com `Campaign`/`CampaignRecipient` (FlowBuilder) nem com plugin: não há `PluginInstallations` aqui.
 
 ## Eventos AMQP (`wbot.<tenant>.<sessionId>.<tipo>`)
-- **Comandos** (`engine.go.calls`): `call.ready`, `call.accept`, `call.reject`, `call.end`, `call.start`.
+- **Comandos** (`engine.go.calls`): `call.ready`, `call.accept`, `call.reject`, `call.end`, `call.start` (payload `{callId, to, video}`; `video=true` origina uma videochamada).
 - **Eventos** (`api.events.calls.go`): `call.incoming`, `call.state`, `call.ended`, `call.missed`,
   `call.quality`, `call.reset`. Motivos de fim: `user_ended`, `declined`, `timeout`, `busy`, `cancelled`,
   `failed`, `no_operator`, `proxy_blocked`, `unsupported_type`, `accepted_elsewhere`, `interrupted`, `media_timeout`.

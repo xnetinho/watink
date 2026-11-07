@@ -47,6 +47,12 @@ describe("página Chamadas", () => {
     expect(screen.getByText("4,3")).toBeInTheDocument();
   });
 
+  it("videochamada aparece no histórico com o ícone de vídeo; chamada de voz não", async () => {
+    get.mockResolvedValue({ data: { calls: [row({ id: 1, media: "video" }), row({ id: 2, callId: "C2", media: "audio" }), row({ id: 3, callId: "C3" })], total: 3 } });
+    renderPage(["calls:read"]);
+    await waitFor(() => expect(screen.getAllByTestId("history-video")).toHaveLength(1));
+  });
+
   it("lista vazia mostra o estado vazio", async () => {
     get.mockResolvedValue({ data: { calls: [], total: 0 } });
     renderPage(["calls:read"]);

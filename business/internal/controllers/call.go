@@ -61,6 +61,8 @@ func hasProxy(w *models.WhatsAppView) bool {
 
 type placeCallRequest struct {
 	TicketID int `json:"ticketId" binding:"required"`
+	// Video origina uma videochamada em vez de uma chamada de voz.
+	Video bool `json:"video"`
 }
 
 // Place godoc
@@ -116,7 +118,7 @@ func (cc *CallController) Place(c *gin.Context) {
 		return
 	}
 
-	log, err := cc.svc.Place(c.Request.Context(), tenantID, userID, &ticket, &ticket.Contact)
+	log, err := cc.svc.Place(c.Request.Context(), tenantID, userID, &ticket, &ticket.Contact, req.Video)
 	if err != nil {
 		respondCallError(c, err)
 		return

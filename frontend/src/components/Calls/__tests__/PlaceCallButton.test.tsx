@@ -43,6 +43,7 @@ describe("PlaceCallButton", () => {
     expect(b).toHaveAttribute("data-block", "");
     fireEvent.click(b);
     expect(ctx.place).toHaveBeenCalledWith(5);
+    expect(ctx.place).not.toHaveBeenCalledWith(5, true);
   });
 
   it("conexão desconectada: desabilitado, com o motivo", () => {
@@ -72,5 +73,47 @@ describe("PlaceCallButton", () => {
   it("chamada já encerrada (painel ainda aberto) não bloqueia nova ligação", () => {
     renderBtn({ id: 5, connectionId: 1 }, [wa()], { active: baseCall({ phase: "ended" }) });
     expect(screen.getByTestId("place-call")).toBeEnabled();
+  });
+
+  describe("videochamada", () => {
+    it("habilitado e liga com vídeo; o telefone continua sem vídeo", () => {
+      const ctx = renderBtn({ id: 5, connectionId: 1 }, [wa()]);
+      const v = screen.getByTestId("place-video-call");
+      expect(v).toBeEnabled();
+      expect(v).toHaveAttribute("data-block", "");
+      fireEvent.click(v);
+      expect(ctx.place).toHaveBeenCalledTimes(1);
+      expect(ctx.place).toHaveBeenCalledWith(5, true);
+    });
+
+    it("fica ao lado do telefone, depois dele", () => {
+      renderBtn({ id: 5, connectionId: 1 }, [wa()]);
+      const phone = screen.getByTestId("place-call");
+      const video = screen.getByTestId("place-video-call");
+      expect(phone.compareDocumentPosition(video) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("navegador sem suporte a enviar vídeo: só o vídeo fica desabilitado", () => {
+      renderBtn({ id: 5, connectionId: 1 }, [wa()], { canSendVideo: false });
+      expect(screen.getByTestId("place-video-call")).toBeDisabled();
+      expect(screen.getByTestId("place-video-call")).toHaveAttribute("data-block", "video-unsupported");
+      expect(screen.getByTestId("place-call")).toBeEnabled();
+    });
+
+    it("bloqueado como o telefone (proxy, desconectado, em chamada)", () => {
+      renderBtn({ id: 5, connectionId: 1 }, [wa({ proxyMode: "single" })]);
+      expect(screen.getByTestId("place-video-call")).toBeDisabled();
+      expect(screen.getByTestId("place-video-call")).toHaveAttribute("data-block", "proxy");
+    });
+
+    it("operador em chamada não liga outra em vídeo", () => {
+      renderBtn({ id: 5, connectionId: 1 }, [wa()], { active: baseCall({ phase: "active" }) });
+      expect(screen.getByTestId("place-video-call")).toBeDisabled();
+    });
+
+    it("sem calls:place e em grupo não aparece", () => {
+      renderBtn({ id: 5, connectionId: 1 }, [wa()], { canPlace: false });
+      expect(screen.queryByTestId("place-video-call")).not.toBeInTheDocument();
+    });
   });
 });

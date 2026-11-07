@@ -6,6 +6,7 @@ export interface CallLogRow {
   contactId: number | null;
   ticketId: number | null;
   direction: "incoming" | "outgoing";
+  media?: "audio" | "video";
   status: string;
   peerJid: string;
   callerPn: string;
