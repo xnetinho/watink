@@ -35,7 +35,7 @@ export interface GroupCampaignTarget {
     id: number;
     tenantId: string;
     campaignId: number;
-    whatsappId: number;
+    connectionId: number;
     jid: string;
     subject?: string;
     isConnectionAdmin: boolean;
@@ -47,7 +47,7 @@ export interface GroupCampaign {
     tenantId: string;
     name: string;
     description: string;
-    whatsappId: number;
+    connectionId: number;
     status: GroupCampaignStatus;
     pauseReason?: string;
 
@@ -115,7 +115,7 @@ export interface GroupCampaignSend {
     tenantId: string;
     campaignId: number;
     runId: number;
-    whatsappId: number;
+    connectionId: number;
     jid: string;
     subject?: string;
     variantId?: number;
@@ -163,7 +163,7 @@ export interface GroupCampaignVariantInput {
 }
 
 export interface GroupCampaignTargetInput {
-    whatsappId: number;
+    connectionId: number;
     jid: string;
     subject?: string;
     isConnectionAdmin?: boolean;
@@ -173,7 +173,7 @@ export interface GroupCampaignTargetInput {
 export interface UpsertGroupCampaignInput {
     name: string;
     description?: string;
-    whatsappId: number;
+    connectionId: number;
 
     scheduleMode?: GroupCampaignScheduleMode;
     startAt?: string;

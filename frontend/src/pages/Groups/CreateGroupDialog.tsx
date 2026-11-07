@@ -20,12 +20,12 @@ import { i18n } from "../../translate/i18n";
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface CreateGroupDialogProps {
     open: boolean;
-    whatsappId: number;
+    connectionId: number;
     onClose: () => void;
     onCreated: () => void;
 }
 
-const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, whatsappId, onClose, onCreated }) => {
+const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, connectionId, onClose, onCreated }) => {
     const [subject, setSubject] = useState("");
     const [participantsRaw, setParticipantsRaw] = useState("");
     const [loading, setLoading] = useState(false);
@@ -41,7 +41,7 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, whatsappId,
             .filter(Boolean);
         setLoading(true);
         try {
-            await createGroup(whatsappId, subject.trim(), participants);
+            await createGroup(connectionId, subject.trim(), participants);
             setSubject("");
             setParticipantsRaw("");
             onCreated();

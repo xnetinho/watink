@@ -71,16 +71,16 @@ func (uc *UserController) ShowUser(c *gin.Context) {
 
 	// Monta resposta enriquecida
 	response := map[string]interface{}{
-		"id":         userModel.ID,
-		"name":       userModel.Name,
-		"email":      userModel.Email,
-		"alcance":    userModel.Alcance,
-		"whatsappId": userModel.ChannelConnectionID,
-		"tenantId":   userModel.TenantID,
-		"cargoId":    userModel.CargoID,
-		"configs":    userModel.Configs,
-		"createdAt":  userModel.CreatedAt,
-		"updatedAt":  userModel.UpdatedAt,
+		"id":           userModel.ID,
+		"name":         userModel.Name,
+		"email":        userModel.Email,
+		"alcance":      userModel.Alcance,
+		"connectionId": userModel.ChannelConnectionID,
+		"tenantId":     userModel.TenantID,
+		"cargoId":      userModel.CargoID,
+		"configs":      userModel.Configs,
+		"createdAt":    userModel.CreatedAt,
+		"updatedAt":    userModel.UpdatedAt,
 	}
 
 	// Adiciona relations apenas se existirem

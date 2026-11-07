@@ -189,7 +189,7 @@ export const ChannelSelectorModal: React.FC<ChannelSelectorModalProps> = ({
     setIsSubmitting(true);
     const payload = { ...values, queueIds: selectedQueueIds };
     try {
-      await api.post("/whatsapp", payload);
+      await api.post("/channels/connections", { ...payload, kind: "whatsapp" });
       notify.success(i18n.t("whatsappModal.success"));
       onChannelCreated?.();
       handleClose();

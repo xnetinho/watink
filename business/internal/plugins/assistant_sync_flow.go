@@ -36,7 +36,7 @@ func syntheticGraph(a models.Assistant) ([]byte, []byte, error) {
 	}
 	type triggerData struct {
 		TriggerType     string      `json:"triggerType"`
-		WhatsAppID      *string     `json:"whatsappId"`
+		WhatsAppID      *string     `json:"connectionId"`
 		Conditions      []condition `json:"conditions"`
 		TriggerOperator string      `json:"triggerOperator"`
 	}

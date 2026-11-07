@@ -19,8 +19,8 @@ interface UseUserModalReturn {
   setSelectedQueueIds: React.Dispatch<React.SetStateAction<number[]>>;
   showPassword: boolean;
   setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
-  whatsappId: number | string;
-  setWhatsappId: React.Dispatch<React.SetStateAction<number | string>>;
+  connectionId: number | string;
+  setConnectionId: React.Dispatch<React.SetStateAction<number | string>>;
   whatsApps: ReturnType<typeof useWhatsApps>["whatsApps"];
   whatsAppsLoading: boolean;
   handleClose: () => void;
@@ -47,7 +47,7 @@ export function useUserModal(
   const [user, setUser] = useState<UserFormValues>(INITIAL_STATE);
   const [selectedQueueIds, setSelectedQueueIds] = useState<number[]>([]);
   const [showPassword, setShowPassword] = useState(false);
-  const [whatsappId, setWhatsappId] = useState<number | string>("");
+  const [connectionId, setConnectionId] = useState<number | string>("");
   const { loading: whatsAppsLoading, whatsApps } = useWhatsApps();
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export function useUserModal(
         }));
         const userQueueIds = data.queues?.map((queue: UserQueue) => queue.id) ?? [];
         setSelectedQueueIds(userQueueIds);
-        setWhatsappId(data.whatsappId ? data.whatsappId : "");
+        setConnectionId(data.connectionId ? data.connectionId : "");
       } catch (err) {
         toastError(err);
       }
@@ -74,14 +74,14 @@ export function useUserModal(
     onClose();
     setUser(INITIAL_STATE);
     setSelectedQueueIds([]);
-    setWhatsappId("");
+    setConnectionId("");
   };
 
   const handleSaveUser = async (values: UserFormValues) => {
     const userData: UserSavePayload = {
       name: values.name,
       email: values.email,
-      whatsappId: whatsappId === "" ? null : Number(whatsappId),
+      connectionId: connectionId === "" ? null : Number(connectionId),
     };
     if (values.password) userData.password = values.password;
     try {
@@ -101,8 +101,8 @@ export function useUserModal(
     setSelectedQueueIds,
     showPassword,
     setShowPassword,
-    whatsappId,
-    setWhatsappId,
+    connectionId,
+    setConnectionId,
     whatsApps,
     whatsAppsLoading,
     handleClose,

@@ -21,11 +21,10 @@ import (
 // comment there) -- declared here too so testutil.NewTestDB (which only
 // runs AutoMigrate, never addCustomIndexes) creates the constraint in tests.
 type GroupCampaignTarget struct {
-	ID         int       `gorm:"primaryKey" json:"id"`
-	TenantID   uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
-	CampaignID int       `gorm:"column:campaignId;not null;uniqueIndex:idx_group_campaign_targets_campaign_jid" json:"campaignId"`
-	// A chave JSON segue "whatsappId" até a fatia 5 da migração (frontend): o contrato com a tela não muda neste PR.
-	ChannelConnectionID int       `gorm:"column:channelConnectionId;not null;index" json:"whatsappId,omitempty"`
+	ID                  int       `gorm:"primaryKey" json:"id"`
+	TenantID            uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
+	CampaignID          int       `gorm:"column:campaignId;not null;uniqueIndex:idx_group_campaign_targets_campaign_jid" json:"campaignId"`
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;not null;index" json:"connectionId,omitempty"`
 	JID                 string    `gorm:"column:jid;not null;uniqueIndex:idx_group_campaign_targets_campaign_jid" json:"jid"`
 	Subject             string    `gorm:"column:subject" json:"subject,omitempty"`
 	IsConnectionAdmin   bool      `gorm:"column:isConnectionAdmin" json:"isConnectionAdmin"`

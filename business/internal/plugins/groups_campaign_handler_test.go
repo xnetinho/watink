@@ -60,15 +60,15 @@ func doJSON(t *testing.T, r *gin.Engine, method, path string, body interface{}) 
 func validCreateCampaignBody(whatsappID int) map[string]interface{} {
 	now := time.Now()
 	return map[string]interface{}{
-		"name":       "Campanha de lançamento",
-		"whatsappId": whatsappID,
-		"riskAckAt":  now,
+		"name":         "Campanha de lançamento",
+		"connectionId": whatsappID,
+		"riskAckAt":    now,
 		"variants": []map[string]interface{}{
 			{"type": "text", "message": "olá {{group_name}}", "active": true},
 		},
 		"targets": []map[string]interface{}{
-			{"whatsappId": whatsappID, "jid": "120363000000000021@g.us", "subject": "Grupo 1"},
-			{"whatsappId": whatsappID, "jid": "120363000000000022@g.us", "subject": "Grupo 2"},
+			{"connectionId": whatsappID, "jid": "120363000000000021@g.us", "subject": "Grupo 1"},
+			{"connectionId": whatsappID, "jid": "120363000000000022@g.us", "subject": "Grupo 2"},
 		},
 	}
 }
@@ -148,8 +148,8 @@ func TestCreateGroupCampaign_TargetsRespectUniqueConstraint(t *testing.T) {
 
 	body := validCreateCampaignBody(w.ID)
 	body["targets"] = []map[string]interface{}{
-		{"whatsappId": w.ID, "jid": "120363000000000099@g.us", "subject": "Duplicado"},
-		{"whatsappId": w.ID, "jid": "120363000000000099@g.us", "subject": "Duplicado"},
+		{"connectionId": w.ID, "jid": "120363000000000099@g.us", "subject": "Duplicado"},
+		{"connectionId": w.ID, "jid": "120363000000000099@g.us", "subject": "Duplicado"},
 	}
 
 	resp := doJSON(t, r, http.MethodPost, "/group-campaigns", body)

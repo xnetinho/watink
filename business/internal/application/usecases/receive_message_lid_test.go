@@ -41,7 +41,7 @@ func TestReceiveMessage_LIDReplyJoinsTheAgendaContactAndItsTicket(t *testing.T) 
 	wa := models.Whatsapp{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
-	agenda := models.Contact{Name: "Fulano da Agenda", Number: "558382341576", TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
+	agenda := models.Contact{Name: "Fulano da Agenda", Number: "558382341576", TenantID: tenant, ConnectionID: wa.ID}
 	require.NoError(t, db.Create(&agenda).Error)
 	existing := models.Ticket{Status: "open", ContactID: agenda.ID, ChannelConnectionID: wa.ID, ConversationKey: domain.WhatsAppConversationKey(agenda.ID), TenantID: tenant}
 	require.NoError(t, db.Create(&existing).Error)

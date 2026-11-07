@@ -5,8 +5,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 vi.mock("../../services/api", () => ({
   default: {
     get: vi.fn((url: string) => {
-      if (url === "/whatsapp") return Promise.resolve({ data: [{ id: 1, name: "Comercial", status: "CONNECTED" }, { id: 2, name: "Suporte", status: "CONNECTED" }] });
-      if (url === "/channels/connections") return Promise.resolve({ data: [{ id: 1, kind: "telegram", name: "Jarvis", status: "CONNECTED" }] });
+      if (url === "/channels/connections") return Promise.resolve({ data: [{ id: 1, kind: "whatsapp", name: "Comercial", status: "CONNECTED" }, { id: 2, kind: "whatsapp", name: "Suporte", status: "CONNECTED" }, { id: 3, kind: "telegram", name: "Jarvis", status: "CONNECTED" }] });
       return Promise.resolve({ data: {} });
     }),
     post: vi.fn(),

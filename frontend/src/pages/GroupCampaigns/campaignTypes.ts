@@ -37,7 +37,7 @@ export type CampaignVariantContent =
     | QuickAnswerContentPoll;
 
 export interface CampaignTargetDraft {
-    whatsappId: number;
+    connectionId: number;
     jid: string;
     subject: string;
     isConnectionAdmin: boolean;

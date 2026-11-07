@@ -25,6 +25,6 @@ export interface WhatsAppData {
 export interface WebchatModalProps {
   open: boolean;
   onClose: () => void;
-  whatsAppId?: number;
+  connectionId?: number;
   onSaved?: () => Promise<void>;
 }

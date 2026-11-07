@@ -155,7 +155,7 @@ describe("Core UI Flows Component Suite (Tarefa 7.6)", () => {
                 {
                   id: 99,
                   callId: "CALL-FLOW-1",
-                  whatsappId: 1,
+                  connectionId: 1,
                   contactId: 10,
                   ticketId: 20,
                   direction: "outgoing",

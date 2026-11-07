@@ -51,7 +51,7 @@ describe("useStartChat", () => {
     expect(onStarted).toHaveBeenCalled();
   });
 
-  it("com 2+ conexões pergunta qual usar e reenvia com whatsappId", async () => {
+  it("com 2+ conexões pergunta qual usar e reenvia com connectionId", async () => {
     post.mockRejectedValueOnce(conflict).mockResolvedValueOnce({ data: { id: 43 } });
     render(<Harness />);
     fireEvent.click(screen.getByText("start"));
@@ -63,7 +63,7 @@ describe("useStartChat", () => {
     fireEvent.click(screen.getByText("Iniciar conversa"));
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/tickets/43"));
-    expect(post).toHaveBeenLastCalledWith("/tickets", { contactId: 7, whatsappId: 2 });
+    expect(post).toHaveBeenLastCalledWith("/tickets", { contactId: 7, connectionId: 2 });
   });
 
   it("outros erros viram toast e não abrem o diálogo", async () => {

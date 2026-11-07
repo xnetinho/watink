@@ -13,7 +13,7 @@ import ringtone from "@/assets/sound.mp3";
  * calls:receive (o provedor já não popula `ringing` sem a permissão). Mostra uma
  * oferta por vez (a mais antiga); as demais esperam a vez.
  */
-const IncomingCallModal: React.FC<{ connectionName?: (whatsappId: number) => string | undefined }> = ({
+const IncomingCallModal: React.FC<{ connectionName?: (connectionId: number) => string | undefined }> = ({
   connectionName,
 }) => {
   const { ringing, accept, reject, active, videoSink } = useCalls();
@@ -38,7 +38,7 @@ const IncomingCallModal: React.FC<{ connectionName?: (whatsappId: number) => str
   if (!current) return <audio ref={audioRef} src={ringtone} preload="auto" />;
 
   const name = displayName(current.contact, t("calls.unknownContact"));
-  const connection = connectionName?.(current.whatsappId);
+  const connection = connectionName?.(current.connectionId);
   const busy = !!active;
   const isVideo = current.media === "video";
 

@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import api from "../../../services/api";
 import toastError from "../../../errors/toastError";
 import { i18n } from "../../../translate/i18n";
-import { useWhatsAppsQuery } from "../../../hooks/useWhatsAppsQuery";
+import { useConnectionsQuery } from "../../../hooks/useConnectionsQuery";
 import { subscribeToSocket } from "../../../services/sse-client";
 
 import type { ConnectionSession } from "../connectionsTypes";
@@ -23,13 +23,12 @@ export interface UseConnectionsReturn {
   whatsApps: ConnectionSession[];
   reloadWhatsApps: () => void;
   channelConnections: ChannelConnection[];
-  reloadChannelConnections: () => Promise<void>;
   handleDeleteChannelConnection: (id: number) => Promise<void>;
   whatsAppModalOpen: boolean;
   webchatModalOpen: boolean;
   confirmModalOpen: boolean;
   selectedWhatsApp: ConnectionSession | null;
-  /** IDs com um POST/PUT /whatsappsession em voo — usado pra desabilitar o botão e evitar
+  /** IDs com um POST /channels/connections/:id/session em voo — usado pra desabilitar o botão e evitar
    * disparar o mesmo start (lock Redis de 10s) duas vezes antes do SSE atualizar o status. */
   pendingSessionIds: Set<number>;
   handleStartSession: (id: number) => Promise<void>;
@@ -48,32 +47,20 @@ export interface UseConnectionsReturn {
 
 export const useConnections = (): UseConnectionsReturn => {
   const navigate = useNavigate();
-  const { data: whatsApps = [], refetch: reloadWhatsApps } = useWhatsAppsQuery();
+  const { data: all = [], refetch: reloadWhatsApps } = useConnectionsQuery();
+  const whatsApps = all.filter((c) => c.kind === "whatsapp");
+  const channelConnections = all.filter((c) => c.kind !== "whatsapp") as ChannelConnection[];
 
   const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
   const [webchatModalOpen, setWebchatModalOpen] = useState(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [selectedWhatsApp, setSelectedWhatsApp] = useState<ConnectionSession | null>(null);
   const [pendingSessionIds, setPendingSessionIds] = useState<Set<number>>(new Set());
-  const [channelConnections, setChannelConnections] = useState<ChannelConnection[]>([]);
-
-  const reloadChannelConnections = async () => {
-    try {
-      const { data } = await api.get<ChannelConnection[]>("/channels/connections");
-      setChannelConnections(Array.isArray(data) ? data : []);
-    } catch {
-      setChannelConnections([]);
-    }
-  };
-
-  useEffect(() => {
-    reloadChannelConnections();
-  }, []);
 
   const handleDeleteChannelConnection = async (id: number) => {
     try {
       await api.delete(`/channels/connections/${id}`);
-      await reloadChannelConnections();
+      await reloadWhatsApps();
       toast.warn(i18n.t("connections.toasts.deleted"));
     } catch (err) {
       toastError(err);
@@ -92,14 +79,14 @@ export const useConnections = (): UseConnectionsReturn => {
   useEffect(() => {
     const refetch = () => { reloadWhatsApps(); };
     // whatsappSessionRisk é o mesmo refetch — o valor persistido (lastRiskCode/
-    // lastRiskAt) já vem no GET /whatsapp, então só precisamos disparar o reload.
-    // whatsappSession também libera o pending assim que o status muda (OPENING/QRCODE/...):
+    // lastRiskAt) já vem no GET /channels/connections, então só precisamos disparar o reload.
+    // channelConnection também libera o pending assim que o status muda (OPENING/QRCODE/...):
     // sem isso o botão ficaria desabilitado até o próximo fetch manual.
-    const onSession = (data: { session?: { id?: number } }) => {
-      if (typeof data?.session?.id === "number") removePending(data.session.id);
+    const onConnection = (data: { connection?: { id?: number } }) => {
+      if (typeof data?.connection?.id === "number") removePending(data.connection.id);
       reloadWhatsApps();
     };
-    return subscribeToSocket({ whatsappSession: onSession, whatsapp: refetch, whatsappSessionRisk: refetch });
+    return subscribeToSocket({ channelConnection: onConnection, whatsappSessionRisk: refetch });
   }, [reloadWhatsApps]);
 
   // Clique duplo (ou "Conectar" + "Reiniciar Sessão" do mesmo card) batia no lock Redis de 10s do
@@ -109,7 +96,7 @@ export const useConnections = (): UseConnectionsReturn => {
     if (pendingSessionIds.has(id)) return;
     addPending(id);
     try {
-      await api.post(`/whatsappsession/${id}`);
+      await api.post(`/channels/connections/${id}/session`);
     } catch (err) {
       removePending(id);
       toastError(err);
@@ -120,7 +107,7 @@ export const useConnections = (): UseConnectionsReturn => {
     if (pendingSessionIds.has(id)) return;
     addPending(id);
     try {
-      await api.put(`/whatsappsession/${id}`);
+      await api.post(`/channels/connections/${id}/session`);
     } catch (err) {
       removePending(id);
       toastError(err);
@@ -129,7 +116,7 @@ export const useConnections = (): UseConnectionsReturn => {
 
   const handleDisconnectSession = async (id: number) => {
     try {
-      await api.delete(`/whatsappsession/${id}`);
+      await api.delete(`/channels/connections/${id}/session`);
       await reloadWhatsApps();
       toast.success(i18n.t("connections.toasts.disconnected"));
     } catch (err) {
@@ -145,12 +132,12 @@ export const useConnections = (): UseConnectionsReturn => {
         selectedWhatsApp.status !== "TIMEOUT"
       ) {
         try {
-          await api.delete(`/whatsappsession/${selectedWhatsApp.id}`);
+          await api.delete(`/channels/connections/${selectedWhatsApp.id}/session`);
         } catch (err) {
           console.warn("Could not stop session before deleting:", err);
         }
       }
-      await api.delete(`/whatsapp/${selectedWhatsApp.id}`);
+      await api.delete(`/channels/connections/${selectedWhatsApp.id}`);
       await reloadWhatsApps();
       toast.warn(i18n.t("connections.toasts.deleted"));
     } catch (err) {
@@ -200,10 +187,9 @@ export const useConnections = (): UseConnectionsReturn => {
   };
 
   return {
-    whatsApps: whatsApps as ConnectionSession[],
+    whatsApps: whatsApps as unknown as ConnectionSession[],
     reloadWhatsApps,
     channelConnections,
-    reloadChannelConnections,
     handleDeleteChannelConnection,
     whatsAppModalOpen,
     webchatModalOpen,

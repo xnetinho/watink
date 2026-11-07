@@ -18,7 +18,7 @@ import { i18n } from "../../translate/i18n";
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface LinkGroupDialogProps {
     open: boolean;
-    whatsappId: number;
+    connectionId: number;
     communityJid: string;
     alreadyLinkedJids: string[];
     onClose: () => void;
@@ -27,7 +27,7 @@ interface LinkGroupDialogProps {
 
 const LinkGroupDialog: React.FC<LinkGroupDialogProps> = ({
     open,
-    whatsappId,
+    connectionId,
     communityJid,
     alreadyLinkedJids,
     onClose,
@@ -43,7 +43,7 @@ const LinkGroupDialog: React.FC<LinkGroupDialogProps> = ({
         (async () => {
             setLoading(true);
             try {
-                const all = await listGroups(whatsappId);
+                const all = await listGroups(connectionId);
                 if (active) {
                     setGroups(
                         all.filter((g) => g.jid !== communityJid && !g.isCommunity && !alreadyLinkedJids.includes(g.jid))
@@ -58,12 +58,12 @@ const LinkGroupDialog: React.FC<LinkGroupDialogProps> = ({
         return () => {
             active = false;
         };
-    }, [open, whatsappId, communityJid, alreadyLinkedJids]);
+    }, [open, connectionId, communityJid, alreadyLinkedJids]);
 
     const handleLink = async (groupJid: string) => {
         setLinkingJid(groupJid);
         try {
-            await linkCommunityGroup(whatsappId, communityJid, groupJid);
+            await linkCommunityGroup(connectionId, communityJid, groupJid);
             toast.success("Grupo vinculado!");
             onLinked();
         } catch (err) {

@@ -38,7 +38,7 @@ type flowInput struct {
 	Nodes      datatypes.JSON `json:"nodes"`
 	Edges      datatypes.JSON `json:"edges"`
 	Active     bool           `json:"active"`
-	WhatsAppID *int           `json:"whatsappId"`
+	WhatsAppID *int           `json:"connectionId"`
 }
 
 // flowUpdateInput is the Update payload. All fields are pointers so an omitted
@@ -49,7 +49,7 @@ type flowUpdateInput struct {
 	Nodes      *datatypes.JSON `json:"nodes"`
 	Edges      *datatypes.JSON `json:"edges"`
 	Active     *bool           `json:"active"`
-	WhatsAppID *int            `json:"whatsappId"`
+	WhatsAppID *int            `json:"connectionId"`
 }
 
 // validateFlowGraph parses nodes+edges into the versioned FlowGraph contract and
@@ -270,12 +270,12 @@ func (fc *FlowController) Update(c *gin.Context) {
 		utils.RespondWithBindError(c, err)
 		return
 	}
-	// Detecta se o request incluiu explicitamente "whatsappId" (mesmo null), para o
+	// Detecta se o request incluiu explicitamente "connectionId" (mesmo null), para o
 	// editor poder ATRELAR, TROCAR ou DESATRELAR (detach) a conexão — vs um PATCH que
 	// omite o campo (preserva). Um *int sozinho não distingue null de ausente.
 	var present map[string]json.RawMessage
 	_ = c.ShouldBindBodyWith(&present, binding.JSON)
-	_, whatsappProvided := present["whatsappId"]
+	_, whatsappProvided := present["connectionId"]
 
 	// Build the partial update set; only present fields are touched.
 	updates := map[string]interface{}{}

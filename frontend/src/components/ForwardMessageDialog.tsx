@@ -11,7 +11,7 @@ import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { TicketConnectionBadge } from "./TicketConnectionBadge";
 import { useConnectionOptions } from "../hooks/useConnectionOptions";
-import { connectionKey, type ConnectionOption } from "../lib/connections/connectionRef";
+import type { ConnectionOption } from "../lib/connections/connectionRef";
 import { Emojified } from "./Emojified";
 import { AudioKindPicker, type AudioKind } from "./AudioKindPicker";
 import type { Contact } from "../types/Ticket";
@@ -39,10 +39,10 @@ interface Props {
   sourceIsVoice?: boolean;
 }
 
-// O contato carrega só (origem, id) da conexão; o nome vem da lista de conexões da empresa.
+// O contato carrega só o id da conexão; o nome vem da lista de conexões da empresa.
 const connectionOf = (c: Contact, options: ConnectionOption[]) => {
-  const o = options.find((x) => connectionKey(x) === `${c.connectionSource}:${c.connectionId}`);
-  return o ? { kind: o.kind, id: o.id, name: o.name, source: o.source } : undefined;
+  const o = options.find((x) => x.id === c.connectionId);
+  return o ? { kind: o.kind, id: o.id, name: o.name } : undefined;
 };
 
 const ForwardMessageDialog: React.FC<Props> = ({ open, onClose, messageId, channel, currentContactId, mediaType, sourceIsVoice }) => {

@@ -33,7 +33,7 @@ type createUserRequest struct {
 	Email      string         `json:"email" binding:"required,email"`
 	Password   string         `json:"password" binding:"required"`
 	Alcance    string         `json:"alcance"`
-	WhatsappID *int           `json:"whatsappId"`
+	WhatsappID *int           `json:"connectionId"`
 	CargoID    *int           `json:"cargoId"`
 	Configs    string         `json:"configs"`
 	Setores    []setorVinculo `json:"setores"`
@@ -317,7 +317,7 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 		}
 		updateMap["alcance"] = alcance
 	}
-	if v, ok := req["whatsappId"]; ok {
+	if v, ok := req["connectionId"]; ok {
 		if v == "" || v == nil {
 			updateMap["channelConnectionId"] = nil
 		} else {

@@ -32,7 +32,7 @@ func (cc *ContactController) ImportContacts(c *gin.Context) {
 		return
 	}
 	// A importação é de UMA conexão WhatsApp, escolhida por quem pede; nunca "a primeira conectada".
-	conn, found := resolveConnection(db, tenantID, domain.ConnectionSourceWhatsapp, input.ConnectionID)
+	conn, found := resolveConnection(db, tenantID, input.ConnectionID)
 	if !found {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "connection_required"})
 		return
@@ -42,7 +42,7 @@ func (cc *ContactController) ImportContacts(c *gin.Context) {
 		return
 	}
 
-	cconn, ch, found, cerr := channelOfConnection(db, tenantID, conn.Ref.ID)
+	cconn, ch, found, cerr := channelOfConnection(db, tenantID, conn.ID)
 	syncer, can := ch.(domain.ContactSyncer)
 	if !found || cerr != nil || !can {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "contact_import_not_supported"})

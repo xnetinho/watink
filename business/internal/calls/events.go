@@ -90,7 +90,7 @@ func (s *Service) ResolveContactAndTicket(ctx context.Context, tenantID uuid.UUI
 	if number == "" {
 		number = peerNumber(peer)
 	}
-	contact, err := s.contacts.FindOrCreate(ctx, tenantID, domain.WhatsappConnection(whatsappID), number, "", "", false, isLID, peer, callerPn)
+	contact, err := s.contacts.FindOrCreate(ctx, tenantID, whatsappID, number, "", "", false, isLID, peer, callerPn)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -209,7 +209,7 @@ func (s *Service) command(ctx context.Context, tenantID uuid.UUID, connectionID 
 
 func (s *Service) callPayload(l *models.CallLog, c *domain.Contact, t *domain.Ticket) map[string]interface{} {
 	return map[string]interface{}{
-		"callId": l.CallID, "whatsappId": l.ChannelConnectionID, "direction": l.Direction, "status": l.Status,
+		"callId": l.CallID, "connectionId": l.ChannelConnectionID, "direction": l.Direction, "status": l.Status,
 		"media": l.Media, "contact": c, "ticketId": l.TicketID, "startedAt": l.StartedAt,
 	}
 }

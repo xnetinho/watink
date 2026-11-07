@@ -10,7 +10,7 @@ const contact = { name: "Diomedes", number: "558388095596", lid: null };
 
 describe("cabeçalho da conversa: identificação do canal e da conexão", () => {
   it("mostra o selo com a conexão do ticket", () => {
-    render(<TicketInfo contact={contact} ticket={{ id: 5, channel: "whatsapp", connection: { kind: "whatsapp", id: 2, name: "Comercial", source: "whatsapp" } }} />);
+    render(<TicketInfo contact={contact} ticket={{ id: 5, channel: "whatsapp", connection: { kind: "whatsapp", id: 2, name: "Comercial" } }} />);
     expect(screen.getByTestId("ticket-connection-badge")).toHaveTextContent("Comercial");
   });
   it("sem conexão mas com canal (conexão apagada): mostra o canal", () => {

@@ -37,7 +37,7 @@ function fromPayload(p: CallEventPayload, phase: CallPhase): ActiveCall {
     direction: p.direction,
     media: p.media === "video" ? "video" : "audio",
     phase,
-    whatsappId: p.whatsappId,
+    connectionId: p.connectionId,
     contact: p.contact ?? {},
     ticketId: p.ticketId ?? null,
     connectedAt: null,

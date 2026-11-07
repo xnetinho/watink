@@ -179,7 +179,7 @@ func handleUnlinkCommunityGroup(svc *groupsService) gin.HandlerFunc {
 			utils.RespondWithFriendlyOrInternalError(c, err, "GroupsPlugin.UnlinkCommunityGroup")
 			return
 		}
-		whatsappIDRaw := c.Query("whatsappId")
+		whatsappIDRaw := c.Query("connectionId")
 		if err := svc.checkThrottleFromQuery(tenantID, whatsappIDRaw); err != nil {
 			utils.RespondWithFriendlyOrInternalError(c, err, "GroupsPlugin.UnlinkCommunityGroup")
 			return

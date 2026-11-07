@@ -64,7 +64,7 @@ func TestDeleteWhatsApp_EventReachesOnlyTheOwnTenant(t *testing.T) {
 	chB, cleanB := hub.Register("b", []string{"tenant:" + tenantB.String()})
 	defer cleanB()
 
-	bc.EmitToTenantRoom(tenantA.String(), "whatsapp", gin.H{"action": "delete", "whatsappId": 1})
+	bc.EmitToTenantRoom(tenantA.String(), "whatsapp", gin.H{"action": "delete", "connectionId": 1})
 
 	select {
 	case <-chA:

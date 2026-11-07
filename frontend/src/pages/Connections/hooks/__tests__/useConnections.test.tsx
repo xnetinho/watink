@@ -26,8 +26,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 describe("useConnections — guard contra o lock de 10s do backend", () => {
   beforeEach(() => {
     vi.mocked(api.post).mockReset();
-    vi.mocked(api.put).mockReset();
-  });
+      });
 
   it("handleStartSession: um segundo clique antes da resposta NÃO dispara outro POST", async () => {
     let resolvePost!: () => void;
@@ -44,17 +43,17 @@ describe("useConnections — guard contra o lock de 10s do backend", () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
   });
 
-  it("handleRequestNewQrCode: o mesmo guard vale pro PUT (Reiniciar Sessão)", async () => {
-    let resolvePut!: () => void;
-    vi.mocked(api.put).mockReturnValue(new Promise((res) => { resolvePut = () => res({ data: {} }); }));
+  it("handleRequestNewQrCode: o mesmo guard vale pro Reiniciar Sessão", async () => {
+    let resolvePost!: () => void;
+    vi.mocked(api.post).mockReturnValue(new Promise((res) => { resolvePost = () => res({ data: {} }); }));
     const { result } = renderHook(() => useConnections(), { wrapper });
 
     act(() => { void result.current.handleRequestNewQrCode(7); });
     await waitFor(() => expect(result.current.pendingSessionIds.has(7)).toBe(true));
 
     act(() => { void result.current.handleRequestNewQrCode(7); });
-    expect(api.put).toHaveBeenCalledTimes(1);
-    resolvePut();
+    expect(api.post).toHaveBeenCalledTimes(1);
+    resolvePost();
   });
 
   it("conexões diferentes não se bloqueiam entre si", async () => {

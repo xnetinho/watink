@@ -265,7 +265,7 @@ func resolveTicketConnections(db *gorm.DB, tickets []models.Ticket) map[int]mode
 		var conns []models.ChannelConnection
 		_ = db.Session(&gorm.Session{NewDB: true}).Select("id", "kind", "name", "avatarUrl").Where("id IN ?", connIDList(ids)).Find(&conns).Error
 		for _, c := range conns {
-			byID[c.ID] = models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, Source: models.ConnectionSource(c.Kind), ProfilePicUrl: c.AvatarURL}
+			byID[c.ID] = models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, ProfilePicUrl: c.AvatarURL}
 		}
 	}
 	res := map[int]models.TicketConnectionInfo{}

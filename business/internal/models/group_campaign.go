@@ -18,14 +18,13 @@ import (
 // numbers is a STRONGER spam signal than one -- so the ADR 0016 reputation-
 // weighted chip rotation does NOT apply here (see ADR 0030).
 type GroupCampaign struct {
-	ID          int       `gorm:"primaryKey" json:"id"`
-	TenantID    uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
-	Name        string    `gorm:"column:name;not null" json:"name"`
-	Description string    `gorm:"column:description" json:"description"`
-	// A chave JSON segue "whatsappId" até a fatia 5 da migração (frontend): o contrato com a tela não muda neste PR.
-	ChannelConnectionID int    `gorm:"column:channelConnectionId;not null;index" json:"whatsappId,omitempty"`
-	Status              string `gorm:"column:status;not null;default:draft" json:"status"`
-	PauseReason         string `gorm:"column:pauseReason" json:"pauseReason,omitempty"`
+	ID                  int       `gorm:"primaryKey" json:"id"`
+	TenantID            uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
+	Name                string    `gorm:"column:name;not null" json:"name"`
+	Description         string    `gorm:"column:description" json:"description"`
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;not null;index" json:"connectionId,omitempty"`
+	Status              string    `gorm:"column:status;not null;default:draft" json:"status"`
+	PauseReason         string    `gorm:"column:pauseReason" json:"pauseReason,omitempty"`
 
 	// Schedule: immediate | once | recurring. See groups_campaign_schedule.go
 	// (issue #593) for computeNextOccurrence.

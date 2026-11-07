@@ -17,20 +17,20 @@ interface WhatsApp {
 
 interface WhatsAppSelectProps {
   whatsApps: WhatsApp[];
-  whatsappId: number | string;
+  connectionId: number | string;
   onChange: (value: number | string) => void;
 }
 
 const WhatsAppSelect: React.FC<WhatsAppSelectProps> = ({
   whatsApps,
-  whatsappId,
+  connectionId,
   onChange,
 }) => {
   return (
     <div className="flex flex-col gap-2">
       <Label>{i18n.t("userModal.form.whatsapp")}</Label>
       <Select
-        value={whatsappId.toString()}
+        value={connectionId.toString()}
         onValueChange={(val) => onChange(val === "none" ? "" : parseInt(val))}
       >
         <SelectTrigger>

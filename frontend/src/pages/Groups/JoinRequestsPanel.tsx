@@ -12,11 +12,11 @@ import { i18n } from "../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface JoinRequestsPanelProps {
-    whatsappId: number;
+    connectionId: number;
     groupJid: string;
 }
 
-const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ whatsappId, groupJid }) => {
+const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ connectionId, groupJid }) => {
     const [requests, setRequests] = useState<JoinRequestEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [processingJid, setProcessingJid] = useState<string | null>(null);
@@ -24,13 +24,13 @@ const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ whatsappId, group
     const fetchRequests = useCallback(async () => {
         setLoading(true);
         try {
-            setRequests(await listJoinRequests(whatsappId, groupJid));
+            setRequests(await listJoinRequests(connectionId, groupJid));
         } catch (err) {
             toast.error(classifyGroupsApiError(err).message);
         } finally {
             setLoading(false);
         }
-    }, [whatsappId, groupJid]);
+    }, [connectionId, groupJid]);
 
     useEffect(() => {
         fetchRequests();
@@ -39,7 +39,7 @@ const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ whatsappId, group
     const handleResolve = async (jid: string, action: "approve" | "reject") => {
         setProcessingJid(jid);
         try {
-            await resolveJoinRequests(whatsappId, groupJid, action, [jid]);
+            await resolveJoinRequests(connectionId, groupJid, action, [jid]);
             toast.success(action === "approve" ? tr("uiText.groups.requestApproved") : tr("uiText.groups.requestRejected"));
             fetchRequests();
         } catch (err) {

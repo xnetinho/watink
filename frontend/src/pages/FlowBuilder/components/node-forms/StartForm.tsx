@@ -47,7 +47,7 @@ const StartForm: React.FC<StartFormProps> = ({ formData, onChange }) => (
     {formData.triggerType === 'message' && (
       <div className="space-y-1">
         <Label className="text-xs">{tr("uiText.flow.form.connection")}</Label>
-        <Select value={formData.whatsappId || 'all'} onValueChange={(v) => onChange('whatsappId', v)}>
+        <Select value={formData.connectionId || 'all'} onValueChange={(v) => onChange('connectionId', v)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{tr("uiText.flow.form.allConnections")}</SelectItem>

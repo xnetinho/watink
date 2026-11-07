@@ -3,7 +3,7 @@ import { subscribeToSocket } from "../../../services/sse-client";
 import type { WhatsApp } from "../connectionConfigTypes";
 
 interface UseWhatsAppSocketOptions {
-  whatsappId: string | undefined;
+  connectionId: string | undefined;
   setWhatsapp: React.Dispatch<React.SetStateAction<WhatsApp | null>>;
   setShowQrCode: (v: boolean) => void;
   setShowPairingInput: (v: boolean) => void;
@@ -16,7 +16,7 @@ interface UseWhatsAppSocketOptions {
 }
 
 export const useWhatsAppSocket = ({
-  whatsappId,
+  connectionId,
   setWhatsapp,
   setShowQrCode,
   setShowPairingInput,
@@ -28,28 +28,28 @@ export const useWhatsAppSocket = ({
   fetchWhatsapp,
 }: UseWhatsAppSocketOptions): void => {
   useEffect(() => {
-    const handleSession = (data: { action: string; session: WhatsApp & { id: number } }) => {
-      if (data.action === "update" && data.session.id === parseInt(whatsappId ?? "0")) {
-        setWhatsapp((prev) => prev ? { ...prev, ...data.session } : (data.session as WhatsApp));
+    const handleConnection = (data: { action: string; connection: WhatsApp & { id: number } }) => {
+      if (data.action === "update" && data.connection.id === parseInt(connectionId ?? "0")) {
+        setWhatsapp((prev) => prev ? { ...prev, ...data.connection } : (data.connection as WhatsApp));
 
-        if (data.session.status === "QRCODE") {
+        if (data.connection.status === "QRCODE") {
           setShowQrCode(true);
           setShowPairingInput(false);
           setConnecting(false);
-          if (!data.session.qrcode) void fetchWhatsapp();
+          if (!data.connection.qrcode) void fetchWhatsapp();
         }
 
-        if (data.session.pairingCode) {
-          setPairingCode(data.session.pairingCode);
+        if (data.connection.pairingCode) {
+          setPairingCode(data.connection.pairingCode);
           setPairingLoading(false);
         }
 
-        if (["CONNECTED", "QRCODE", "PAIRING", "DISCONNECTED", "TIMEOUT"].includes(data.session.status)) {
+        if (["CONNECTED", "QRCODE", "PAIRING", "DISCONNECTED", "TIMEOUT"].includes(data.connection.status)) {
           setConnecting(false);
           setRestarting(false);
         }
 
-        if (data.session.status === "CONNECTED") {
+        if (data.connection.status === "CONNECTED") {
           setShowPairingInput(false);
           setShowQrCode(false);
           setPairingCode("");
@@ -58,7 +58,7 @@ export const useWhatsAppSocket = ({
           void fetchWhatsapp();
         }
 
-        if (data.session.status === "DISCONNECTED" || data.session.status === "TIMEOUT") {
+        if (data.connection.status === "DISCONNECTED" || data.connection.status === "TIMEOUT") {
           setShowQrCode(false);
           setShowPairingInput(false);
           setPairingLoading(false);
@@ -66,28 +66,21 @@ export const useWhatsAppSocket = ({
       }
     };
 
-    const handleWhatsapp = (data: { action: string; whatsapp: WhatsApp & { id: number } }) => {
-      if (data.action === "update" && data.whatsapp.id === parseInt(whatsappId ?? "0")) {
-        setWhatsapp((prev) => prev ? { ...prev, ...data.whatsapp } : (data.whatsapp as WhatsApp));
-      }
-    };
-
     // Sinal ao vivo de risco de ban/throttle (whatsmeow IQ 401/403/429/463).
     // O valor persistido (lastRiskCode/lastRiskAt) só chega no fetch seguinte,
     // então refazemos o fetch para o banner reagir sem esperar outro evento.
     const handleSessionRisk = (data: { sessionId: number }) => {
-      if (data.sessionId === parseInt(whatsappId ?? "0")) {
+      if (data.sessionId === parseInt(connectionId ?? "0")) {
         void fetchWhatsapp();
       }
     };
 
     return subscribeToSocket({
-      whatsappSession: handleSession,
-      whatsapp: handleWhatsapp,
+      channelConnection: handleConnection,
       whatsappSessionRisk: handleSessionRisk,
     });
   }, [
-    whatsappId,
+    connectionId,
     fetchWhatsapp,
     setWhatsapp,
     setShowQrCode,

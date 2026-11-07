@@ -69,11 +69,10 @@ func TestCreateContact_TelegramNaoTemAgendaDeCelular(t *testing.T) {
 	ch := models.ChannelConnection{TenantID: tenant, Kind: "telegram", Name: "Jarvis", Status: "CONNECTED"}
 	require.NoError(t, db.Create(&ch).Error)
 
-	w := doJSON(phoneRouter(db, tenant, pub), http.MethodPost, "/contacts", map[string]interface{}{"name": "Ana", "number": "tg-ana", "connectionSource": "channel", "connectionId": ch.ID})
+	w := doJSON(phoneRouter(db, tenant, pub), http.MethodPost, "/contacts", map[string]interface{}{"name": "Ana", "number": "tg-ana", "connectionId": ch.ID})
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 
 	c := createdContact(t, db, tenant, "tg-ana")
-	assert.Equal(t, "channel", c.ConnectionSource)
 	assert.Equal(t, ch.ID, c.ConnectionID)
 	assert.Empty(t, c.PhoneSync, "só o WhatsApp tem agenda no celular")
 	assert.False(t, pub.called)

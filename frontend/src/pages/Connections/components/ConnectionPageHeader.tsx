@@ -45,7 +45,7 @@ const ConnectionPageHeader = ({ whatsapp, status, isConnected, isBusy, onEditCli
     <PageHeader
       title={
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/connections")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/channels/connections")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100 text-green-600">

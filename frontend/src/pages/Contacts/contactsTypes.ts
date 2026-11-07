@@ -9,7 +9,6 @@ export interface Contact {
   isGroup?: boolean;
   lid?: string;
   /** Conexão de origem: o contato pertence a UMA conexão e é por ela que recebe e envia. */
-  connectionSource?: "whatsapp" | "channel";
   connectionId?: number;
   /** Gravação na agenda do celular (só WhatsApp): pending | saved | failed. */
   phoneSync?: "" | "pending" | "saved" | "failed";

@@ -41,13 +41,13 @@ export function useStartChat(onStarted?: () => void) {
   const [selected, setSelected] = useState("");
 
   const start = useCallback(
-    async (contactId: number | string, whatsappId?: number) => {
+    async (contactId: number | string, connectionId?: number) => {
       if (!contactId) return;
       setLoading(true);
       try {
         const { data: ticket } = await api.post("/tickets", {
           contactId: Number(contactId),
-          ...(whatsappId ? { whatsappId } : {}),
+          ...(connectionId ? { connectionId } : {}),
         });
         setPendingContactId(null);
         navigate(`/tickets/${ticket.id}`);

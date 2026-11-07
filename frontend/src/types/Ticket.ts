@@ -16,7 +16,6 @@ export interface Contact {
   extraInfo?: ExtraInfo[];
   client?: { id: number; socialName?: string | null } | null;
   /** Conexão de origem: o contato pertence a UMA conexão e é por ela que recebe e envia. */
-  connectionSource?: "whatsapp" | "channel";
   connectionId?: number;
   /** Resultado de gravar o contato na agenda do celular (só WhatsApp): pending | saved | failed. */
   phoneSync?: "" | "pending" | "saved" | "failed";
@@ -33,12 +32,6 @@ export interface Queue {
   id: number;
   name: string;
   color: string;
-}
-
-export interface Whatsapp {
-  id: number;
-  name: string;
-  status?: string;
 }
 
 export interface ChannelCapabilities {
@@ -69,8 +62,7 @@ export interface Ticket {
   contact: Contact;
   queueId?: number;
   queue?: Queue;
-  whatsappId?: number;
-  whatsapp?: Whatsapp;
+  connectionId?: number;
   userId?: number;
   user?: {
     id: number;
@@ -98,8 +90,6 @@ export interface TicketConnection {
   kind: string;
   id: number;
   name: string;
-  /** Tabela de origem do id ("whatsapp" | "channel"); some quando o WhatsApp migrar para ChannelConnections. */
-  source: "whatsapp" | "channel";
   /** Foto da conexão (hoje só a do WhatsApp): avatar das mensagens enviadas pelo Watink. */
   profilePicUrl?: string;
 }

@@ -39,13 +39,13 @@ func TestAttachChannelInfo_IdentificaCanalEConexao(t *testing.T) {
 	}
 	assert.Equal(t, "whatsapp", byID[1].Channel)
 	require.NotNil(t, byID[1].Connection)
-	assert.Equal(t, models.TicketConnectionInfo{Kind: "whatsapp", ID: wa.ID, Name: "Comercial", Source: "whatsapp", ProfilePicUrl: "https://pps.whatsapp.net/comercial.jpg"}, *byID[1].Connection,
+	assert.Equal(t, models.TicketConnectionInfo{Kind: "whatsapp", ID: wa.ID, Name: "Comercial", ProfilePicUrl: "https://pps.whatsapp.net/comercial.jpg"}, *byID[1].Connection,
 		"a foto da conexão viaja junto: é o avatar das mensagens que o Watink envia")
 	assert.Empty(t, byID[2].Connection.ProfilePicUrl, "conexão sem foto: vazio (a tela cai nas iniciais)")
 	assert.Equal(t, "Suporte", byID[2].Connection.Name, "duas conexões do mesmo canal se distinguem pelo nome")
 
 	assert.Equal(t, "telegram", byID[3].Channel)
-	assert.Equal(t, models.TicketConnectionInfo{Kind: "telegram", ID: tg.ID, Name: "Jarvis", Source: "channel"}, *byID[3].Connection)
+	assert.Equal(t, models.TicketConnectionInfo{Kind: "telegram", ID: tg.ID, Name: "Jarvis"}, *byID[3].Connection)
 
 	assert.Equal(t, "mercadolivre", byID[4].Channel)
 	assert.Equal(t, "Loja ML", byID[4].Connection.Name)

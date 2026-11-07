@@ -95,7 +95,7 @@ export interface AcessosUserListItem {
   id: number;
   name: string;
   email: string;
-  whatsappId: number | null;
+  connectionId: number | null;
   tenantId: string;
   cargoId: number | null;
   alcance: Alcance | string;
@@ -111,7 +111,7 @@ export interface AcessosUserDetail {
   name: string;
   email: string;
   alcance: Alcance | string;
-  whatsappId: number | null;
+  connectionId: number | null;
   tenantId: string;
   cargoId: number | null;
   configs: string;
@@ -141,7 +141,7 @@ export interface UserSavePayload {
   email?: string;
   password?: string;
   alcance?: Alcance | string;
-  whatsappId?: number | null;
+  connectionId?: number | null;
   cargoId?: number | null;
   configs?: string;
   setores?: UserSetorVinculo[];

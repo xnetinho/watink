@@ -23,20 +23,20 @@ func (mc *MessageController) conversationFor(db *gorm.DB, tenantID uuid.UUID, co
 	convKey := domain.WhatsAppConversationKey(contact.ID)
 	if conn.Kind != string(domain.ChannelKindWhatsApp) {
 		var ident models.ContactIdentity
-		if err := q().Where(`"tenantId" = ? AND "contactId" = ? AND "connectionId" = ?`, tenantID, contact.ID, conn.Ref.ID).First(&ident).Error; err != nil {
+		if err := q().Where(`"tenantId" = ? AND "contactId" = ? AND "connectionId" = ?`, tenantID, contact.ID, conn.ID).First(&ident).Error; err != nil {
 			return t, errNoConversationKey
 		}
 		convKey = ident.ExternalID
 	}
 	err := q().Preload("Contact").Where(`"tenantId" = ? AND "channelConnectionId" = ? AND "conversationKey" = ? AND status IN ?`,
-		tenantID, conn.Ref.ID, convKey, []string{"open", "pending"}).First(&t).Error
+		tenantID, conn.ID, convKey, []string{"open", "pending"}).First(&t).Error
 	if err == nil {
 		return t, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return t, err
 	}
-	t = models.Ticket{TenantID: tenantID, ContactID: contact.ID, ChannelConnectionID: conn.Ref.ID, ConversationKey: convKey, Status: "open", IsGroup: contact.IsGroup}
+	t = models.Ticket{TenantID: tenantID, ContactID: contact.ID, ChannelConnectionID: conn.ID, ConversationKey: convKey, Status: "open", IsGroup: contact.IsGroup}
 	if err := q().Create(&t).Error; err != nil {
 		return t, err
 	}

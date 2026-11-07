@@ -150,9 +150,9 @@ export function validateVariant(v: CampaignVariantDraft): string | undefined {
     }
 }
 
-export function buildTargetInput(t: { whatsappId: number; jid: string; subject: string; isConnectionAdmin: boolean }): GroupCampaignTargetInput {
+export function buildTargetInput(t: { connectionId: number; jid: string; subject: string; isConnectionAdmin: boolean }): GroupCampaignTargetInput {
     return {
-        whatsappId: t.whatsappId,
+        connectionId: t.connectionId,
         jid: t.jid,
         subject: t.subject,
         isConnectionAdmin: t.isConnectionAdmin,

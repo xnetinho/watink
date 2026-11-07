@@ -13,11 +13,11 @@ import { i18n } from "../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface GroupInviteCardProps {
-    whatsappId: number;
+    connectionId: number;
     groupJid: string;
 }
 
-const GroupInviteCard: React.FC<GroupInviteCardProps> = ({ whatsappId, groupJid }) => {
+const GroupInviteCard: React.FC<GroupInviteCardProps> = ({ connectionId, groupJid }) => {
     const [link, setLink] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [confirmRevoke, setConfirmRevoke] = useState(false);
@@ -28,7 +28,7 @@ const GroupInviteCard: React.FC<GroupInviteCardProps> = ({ whatsappId, groupJid 
         (async () => {
             setLoading(true);
             try {
-                const l = await getInviteLink(whatsappId, groupJid);
+                const l = await getInviteLink(connectionId, groupJid);
                 if (active) setLink(l);
             } catch (err) {
                 if (active) toast.error(classifyGroupsApiError(err).message);
@@ -39,7 +39,7 @@ const GroupInviteCard: React.FC<GroupInviteCardProps> = ({ whatsappId, groupJid 
         return () => {
             active = false;
         };
-    }, [whatsappId, groupJid]);
+    }, [connectionId, groupJid]);
 
     const handleCopy = () => {
         if (!link) return;
@@ -50,7 +50,7 @@ const GroupInviteCard: React.FC<GroupInviteCardProps> = ({ whatsappId, groupJid 
     const handleRevoke = async () => {
         setRevoking(true);
         try {
-            const newLink = await revokeInviteLink(whatsappId, groupJid);
+            const newLink = await revokeInviteLink(connectionId, groupJid);
             setLink(newLink);
             toast.success(tr("uiText.groups.linkRevoked"));
         } catch (err) {

@@ -41,11 +41,7 @@ func (cc *ContactController) ListContacts(c *gin.Context) {
 		filter.Limit = min(n, 100)
 	}
 	if id, err := strconv.Atoi(c.Query("connectionId")); err == nil && id > 0 {
-		src := c.Query("connectionSource")
-		if src == "" {
-			src = domain.ConnectionSourceWhatsapp
-		}
-		filter.Connection = &domain.ConnectionRef{Source: src, ID: id}
+		filter.Connection = &id
 	}
 	contacts, err := cc.contactRepo.Find(c.Request.Context(), tenantID, searchParam, filter)
 	if err != nil {

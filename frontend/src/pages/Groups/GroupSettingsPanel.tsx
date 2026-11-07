@@ -19,12 +19,12 @@ import { i18n } from "../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface GroupSettingsPanelProps {
-    whatsappId: number;
+    connectionId: number;
     group: GroupInfo;
     onChanged: () => void;
 }
 
-const GroupSettingsPanel: React.FC<GroupSettingsPanelProps> = ({ whatsappId, group, onChanged }) => {
+const GroupSettingsPanel: React.FC<GroupSettingsPanelProps> = ({ connectionId, group, onChanged }) => {
     const [subject, setSubject] = useState(group.subject);
     const [description, setDescription] = useState(group.description);
     const [announce, setAnnounce] = useState(group.announce);
@@ -46,7 +46,7 @@ const GroupSettingsPanel: React.FC<GroupSettingsPanelProps> = ({ whatsappId, gro
         }
         setSaving(true);
         try {
-            await updateGroupSettings(whatsappId, group.jid, patch);
+            await updateGroupSettings(connectionId, group.jid, patch);
             toast.success(tr("uiText.groups.settingsUpdated"));
             onChanged();
         } catch (err) {

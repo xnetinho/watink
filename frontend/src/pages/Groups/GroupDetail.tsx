@@ -22,7 +22,7 @@ const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i
 const GroupDetail: React.FC = () => {
     const { jid } = useParams<{ jid: string }>();
     const navigate = useNavigate();
-    const { whatsappId } = useGroupsConnection();
+    const { connectionId } = useGroupsConnection();
     const [group, setGroup] = useState<GroupInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [apiError, setApiError] = useState<GroupsApiError | null>(null);
@@ -31,26 +31,26 @@ const GroupDetail: React.FC = () => {
     const decodedJid = jid ? decodeURIComponent(jid) : "";
 
     const fetchGroup = useCallback(async () => {
-        if (!whatsappId || !decodedJid) return;
+        if (!connectionId || !decodedJid) return;
         setLoading(true);
         setApiError(null);
         try {
-            setGroup(await getGroup(whatsappId, decodedJid));
+            setGroup(await getGroup(connectionId, decodedJid));
         } catch (err) {
             setApiError(classifyGroupsApiError(err));
         } finally {
             setLoading(false);
         }
-    }, [whatsappId, decodedJid]);
+    }, [connectionId, decodedJid]);
 
     useEffect(() => {
         fetchGroup();
     }, [fetchGroup]);
 
     const handleLeave = async () => {
-        if (!whatsappId) return;
+        if (!connectionId) return;
         try {
-            await leaveGroup(whatsappId, decodedJid);
+            await leaveGroup(connectionId, decodedJid);
             toast.success(tr("uiText.groups.left"));
             navigate("/grupos-whatsapp/grupos");
         } catch (err) {
@@ -82,7 +82,7 @@ const GroupDetail: React.FC = () => {
                     </div>
                 ) : apiError ? (
                     <GroupsErrorState error={apiError} />
-                ) : !group || !whatsappId ? null : (
+                ) : !group || !connectionId ? null : (
                     <Tabs defaultValue="participants">
                         <TabsList>
                             <TabsTrigger value="participants">Participantes</TabsTrigger>
@@ -91,16 +91,16 @@ const GroupDetail: React.FC = () => {
                             <TabsTrigger value="requests">{tr("uiText.groups.requests")}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="participants" className="pt-4">
-                            <GroupParticipantsPanel whatsappId={whatsappId} group={group} onChanged={fetchGroup} />
+                            <GroupParticipantsPanel connectionId={connectionId} group={group} onChanged={fetchGroup} />
                         </TabsContent>
                         <TabsContent value="settings" className="pt-4">
-                            <GroupSettingsPanel whatsappId={whatsappId} group={group} onChanged={fetchGroup} />
+                            <GroupSettingsPanel connectionId={connectionId} group={group} onChanged={fetchGroup} />
                         </TabsContent>
                         <TabsContent value="invite" className="pt-4">
-                            <GroupInviteCard whatsappId={whatsappId} groupJid={group.jid} />
+                            <GroupInviteCard connectionId={connectionId} groupJid={group.jid} />
                         </TabsContent>
                         <TabsContent value="requests" className="pt-4">
-                            <JoinRequestsPanel whatsappId={whatsappId} groupJid={group.jid} />
+                            <JoinRequestsPanel connectionId={connectionId} groupJid={group.jid} />
                         </TabsContent>
                     </Tabs>
                 )}

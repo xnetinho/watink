@@ -48,7 +48,7 @@ export interface UseConnectionActionsReturn {
 }
 
 interface UseConnectionActionsOptions {
-  whatsappId: string | undefined;
+  connectionId: string | undefined;
   isConnected: boolean;
   isBusy: boolean;
   setWhatsapp: Dispatch<SetStateAction<WhatsApp | null>>;
@@ -56,7 +56,7 @@ interface UseConnectionActionsOptions {
 }
 
 export const useConnectionActions = ({
-  whatsappId,
+  connectionId,
   isConnected,
   isBusy,
   setWhatsapp,
@@ -88,7 +88,7 @@ export const useConnectionActions = ({
       setConnecting(true);
       setShowPairingInput(false);
       setShowQrCode(true);
-      await api.post(`/whatsappsession/${whatsappId}`, { usePairingCode: false });
+      await api.post(`/channels/connections/${connectionId}/session`, { usePairingCode: false });
       await fetchWhatsapp();
     } catch (err: unknown) {
       toastError(err);
@@ -100,7 +100,7 @@ export const useConnectionActions = ({
     if (restarting) return;
     try {
       setRestarting(true);
-      await api.put(`/whatsappsession/${whatsappId}`);
+      await api.post(`/channels/connections/${connectionId}/session`);
     } catch (err: unknown) {
       toastError(err);
       setRestarting(false);
@@ -117,7 +117,7 @@ export const useConnectionActions = ({
     setShowPairingInput(true);
     setInputPairingModalOpen(false);
     try {
-      await api.post(`/whatsappsession/${whatsappId}`, {
+      await api.post(`/channels/connections/${connectionId}/session`, {
         usePairingCode: true,
         phoneNumber: phoneNumber.replace(/\D/g, ""),
       });
@@ -129,7 +129,7 @@ export const useConnectionActions = ({
 
   const handleDisconnect = async () => {
     try {
-      await api.delete(`/whatsappsession/${whatsappId}`);
+      await api.delete(`/channels/connections/${connectionId}/session`);
       await fetchWhatsapp();
     } catch (err: unknown) {
       toastError(err);
@@ -139,9 +139,9 @@ export const useConnectionActions = ({
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/whatsapp/${whatsappId}`);
+      await api.delete(`/channels/connections/${connectionId}`);
       await reloadWhatsApps();
-      navigate("/connections");
+      navigate("/channels/connections");
     } catch (err: unknown) {
       toastError(err);
     }
@@ -156,7 +156,7 @@ export const useConnectionActions = ({
       return prev ? { ...prev, presencePolicy: policy, presenceIdleMinutes: idleMinutes } : prev;
     });
     try {
-      await api.put(`/whatsapp/${whatsappId}/presence-policy`, { presencePolicy: policy, presenceIdleMinutes: idleMinutes });
+      await api.put(`/channels/connections/${connectionId}/presence-policy`, { presencePolicy: policy, presenceIdleMinutes: idleMinutes });
       toast.success(i18n.t("connections.presencePolicy.updated") as string);
     } catch (err: unknown) {
       setWhatsapp((prev) => (prev ? { ...prev, ...previous } : prev));
@@ -170,7 +170,7 @@ export const useConnectionActions = ({
     setKeepAliveSaving(true);
     setWhatsapp((prev) => prev ? { ...prev, keepAlive: next } : prev);
     try {
-      await api.put(`/whatsapp/${whatsappId}/keepalive`, { keepAlive: next });
+      await api.put(`/channels/connections/${connectionId}/keepalive`, { keepAlive: next });
       toast.success(i18n.t("connections.toasts.keepAliveUpdated") as string);
     } catch (err: unknown) {
       setWhatsapp((prev) => prev ? { ...prev, keepAlive: !next } : prev);

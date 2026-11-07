@@ -14,8 +14,8 @@ const toFlow = (raw: FlowApi): Flow => ({
   name: raw.name,
   isActive: raw.active === true,
   updatedAt: raw.updatedAt,
-  whatsappId: raw.whatsappId,
-  whatsapp: raw.whatsapp,
+  connectionId: raw.connectionId,
+  connection: raw.connection,
 });
 
 export function useFlowManager() {
@@ -53,21 +53,21 @@ export function useFlowManager() {
 
   const fetchWhatsapps = async () => {
     try {
-      const { data } = await api.get("/whatsapp");
+      const { data } = await api.get("/channels/connections");
       setWhatsapps(Array.isArray(data) ? data : []);
     } catch (err) {
       toastError(err);
     }
   };
 
-  const isConnectionUsed = (whatsappId: number) => {
-    return flows.some((f) => f.whatsappId === whatsappId && f.isActive);
+  const isConnectionUsed = (connectionId: number) => {
+    return flows.some((f) => f.connectionId === connectionId && f.isActive);
   };
 
   const handleOpenModal = (flow: Flow | null = null) => {
     setSelectedFlow(flow);
     setNewFlowName(flow ? flow.name : "");
-    setSelectedWhatsapp(flow?.whatsappId ? String(flow.whatsappId) : "");
+    setSelectedWhatsapp(flow?.connectionId ? String(flow.connectionId) : "");
     setOpenModal(true);
   };
 
@@ -87,7 +87,7 @@ export function useFlowManager() {
       if (selectedFlow) {
         await api.put(`/flows/${selectedFlow.id}`, {
           name: newFlowName,
-          whatsappId: selectedWhatsapp ? Number(selectedWhatsapp) : null,
+          connectionId: selectedWhatsapp ? Number(selectedWhatsapp) : null,
         });
         toast.success(tr("uiText.flowManager.updated"));
         fetchFlows();
@@ -95,7 +95,7 @@ export function useFlowManager() {
       } else {
         const { data } = await api.post("/flows", {
           name: newFlowName,
-          whatsappId: selectedWhatsapp ? Number(selectedWhatsapp) : null,
+          connectionId: selectedWhatsapp ? Number(selectedWhatsapp) : null,
           nodes: [
             {
               id: "1",

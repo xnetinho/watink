@@ -23,11 +23,6 @@ interface Contact {
   number?: string;
 }
 
-interface WhatsApp {
-  name?: string;
-  status?: string;
-}
-
 interface TicketUser {
   id: number;
   name: string;
@@ -37,10 +32,9 @@ interface TicketData {
   id: number;
   status: "open" | "closed" | "pending";
   isGroup?: boolean;
-  whatsappId?: number;
+  connectionId?: number;
   contact: Contact;
   user?: TicketUser | null;
-  whatsapp?: WhatsApp;
   connection?: TicketConnection;
   channel?: string;
 }
@@ -141,11 +135,10 @@ const Ticket: React.FC<TicketProps> = ({ onToggleDetails, showDetails }) => {
 
       <ReplyMessageProvider>
         <MediaDropProvider>
-        <TicketDropZone canSend={ticket.status === "open" && (!ticket.whatsapp?.status || ticket.whatsapp.status === "CONNECTED")}>
+        <TicketDropZone canSend={ticket.status === "open"}>
         <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} channel={ticket.channel} contactId={ticket.contact?.id} peer={{ name: ticket.contact?.name, picUrl: ticket.contact?.profilePicUrl }} self={{ name: ticket.connection?.name, picUrl: ticket.connection?.profilePicUrl }} />
         <MessageInput
           ticketStatus={ticket.status}
-          whatsappStatus={ticket.whatsapp?.status}
           channel={ticket.channel}
         />
         </TicketDropZone>

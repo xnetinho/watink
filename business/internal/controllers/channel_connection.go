@@ -122,12 +122,6 @@ func (cc *ChannelConnectionController) CreateConnection(c *gin.Context) {
 		return
 	}
 
-	// shortcut: o WhatsApp só é criado e lido por /whatsapp até o frontend migrar (fatia 5 da migração); depois esta recusa sai.
-	if input.Kind == models.KindWhatsApp {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "kind whatsapp must be created through /whatsapp"})
-		return
-	}
-
 	if !cryptobox.IsConfigured() {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": cryptobox.ErrNotConfigured.Error()})
 		return

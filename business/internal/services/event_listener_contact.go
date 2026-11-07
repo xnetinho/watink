@@ -35,7 +35,7 @@ func handleContactUpdate(ctx context.Context, contacts domain.ContactRepository,
 	if sessionID == 0 {
 		return nil
 	}
-	contact, err := contacts.FindByNumber(ctx, tenantID, domain.WhatsappConnection(sessionID), number, false)
+	contact, err := contacts.FindByNumber(ctx, tenantID, sessionID, number, false)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func handleContactImport(ctx context.Context, contacts domain.ContactRepository,
 	if sessionID == 0 {
 		return fmt.Errorf("contact.import sem conexão (sessionId=%q)", p.SessionID)
 	}
-	conn := domain.WhatsappConnection(sessionID)
+	conn := sessionID
 
 	imported := 0
 	for _, c := range p.Contacts {
@@ -189,7 +189,7 @@ func handleContactSaved(ctx context.Context, contacts domain.ContactRepository, 
 	if sessionID == 0 || p.Number == "" {
 		return nil
 	}
-	c, err := contacts.FindByNumber(ctx, tenantID, domain.WhatsappConnection(sessionID), p.Number, false)
+	c, err := contacts.FindByNumber(ctx, tenantID, sessionID, p.Number, false)
 	if err != nil || c == nil {
 		return err
 	}

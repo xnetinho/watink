@@ -82,8 +82,9 @@ const PrivateRoutes = () => {
      <Route path="/tickets/:ticketId?" element={<PrivateRoute isPrivate><Tickets /></PrivateRoute>} />
      <Route path="/flowbuilder" element={<PrivateRoute isPrivate><FlowManager /></PrivateRoute>} />
      <Route path="/flowbuilder/:flowId" element={<PrivateRoute isPrivate><FlowBuilder /></PrivateRoute>} />
-     <Route path="/connections" element={<PrivateRoute isPrivate><Connections /></PrivateRoute>} />
-     <Route path="/connections/:whatsappId" element={<PrivateRoute isPrivate><ConnectionConfig /></PrivateRoute>} />
+     <Route path="/connections" element={<Navigate to="/channels/connections" replace />} />
+     <Route path="/channels/connections" element={<PrivateRoute isPrivate><Connections /></PrivateRoute>} />
+     <Route path="/channels/connections/:id/session" element={<PrivateRoute isPrivate><ConnectionConfig /></PrivateRoute>} />
      <Route path="/contacts" element={<PrivateRoute isPrivate><Contacts /></PrivateRoute>} />
      <Route path="/acessos" element={<Navigate to="/acessos/usuarios" replace />} />
      <Route path="/acessos/:tab" element={<PrivateRoute isPrivate><Acessos /></PrivateRoute>} />

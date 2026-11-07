@@ -6,11 +6,11 @@ import { i18n } from "../../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface IntegrationTabProps {
-  whatsAppId?: number;
+  connectionId?: number;
 }
 
-const IntegrationTab: React.FC<IntegrationTabProps> = ({ whatsAppId }) => {
-  if (!whatsAppId) {
+const IntegrationTab: React.FC<IntegrationTabProps> = ({ connectionId }) => {
+  if (!connectionId) {
     return <p className="text-sm text-muted-foreground mt-4">{tr("uiText.webchatModal.saveFirst")}</p>;
   }
 
@@ -21,7 +21,7 @@ const IntegrationTab: React.FC<IntegrationTabProps> = ({ whatsAppId }) => {
   const script = `<script>
   window.watinkWebchatConfig = {
     url: "${backendUrl}",
-    whatsappId: "${whatsAppId}"
+    whatsappId: "${connectionId}"
   };
   (function(d, s, id) {
     var js, fjs = d.getElementsByTagName(s)[0];

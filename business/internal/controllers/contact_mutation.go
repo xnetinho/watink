@@ -27,14 +27,13 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 
 	var input struct {
 		// Conexão de origem, obrigatória: o contato pertence a uma conexão e é por ela que recebe mensagens.
-		ConnectionSource string `json:"connectionSource"`
-		ConnectionID     int    `json:"connectionId"`
-		Name             string `json:"name"`
-		Number           string `json:"number"`
-		ProfilePicUrl    string `json:"profilePicUrl"`
-		Email            string `json:"email"`
-		IsGroup          bool   `json:"isGroup"`
-		WalletUserID     *int   `json:"walletUserId"`
+		ConnectionID  int    `json:"connectionId"`
+		Name          string `json:"name"`
+		Number        string `json:"number"`
+		ProfilePicUrl string `json:"profilePicUrl"`
+		Email         string `json:"email"`
+		IsGroup       bool   `json:"isGroup"`
+		WalletUserID  *int   `json:"walletUserId"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -63,22 +62,21 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 		return
 	}
 
-	conn, found := resolveConnection(db, tenantID, input.ConnectionSource, input.ConnectionID)
+	conn, found := resolveConnection(db, tenantID, input.ConnectionID)
 	if !found {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "connection_required"})
 		return
 	}
 
 	contact := &domain.Contact{
-		ConnectionSource: conn.Ref.Source,
-		ConnectionID:     conn.Ref.ID,
-		Name:             name,
-		Number:           number,
-		ProfilePicUrl:    profilePicUrl,
-		Email:            email,
-		IsGroup:          input.IsGroup,
-		WalletUserID:     input.WalletUserID,
-		TenantID:         tenantID,
+		ConnectionID:  conn.ID,
+		Name:          name,
+		Number:        number,
+		ProfilePicUrl: profilePicUrl,
+		Email:         email,
+		IsGroup:       input.IsGroup,
+		WalletUserID:  input.WalletUserID,
+		TenantID:      tenantID,
 	}
 
 	// Contato de WhatsApp criado aqui também vai para a agenda do celular, como o WhatsApp Web faz. Conexão fora do ar
@@ -109,7 +107,7 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 	}
 
 	if toPhone && contact.PhoneSync == "pending" {
-		cconn, ch, found, cerr := channelOfConnection(db, tenantID, conn.Ref.ID)
+		cconn, ch, found, cerr := channelOfConnection(db, tenantID, conn.ID)
 		syncer, can := ch.(domain.ContactSyncer)
 		saveErr := cerr
 		if !found || !can {

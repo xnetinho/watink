@@ -35,7 +35,7 @@ interface UseWebchatModalReturn {
 
 export function useWebchatModal(
   open: boolean,
-  whatsAppId: number | undefined,
+  connectionId: number | undefined,
   onClose: () => void,
   onSaved?: () => Promise<void>
 ): UseWebchatModalReturn {
@@ -44,14 +44,14 @@ export function useWebchatModal(
 
   useEffect(() => {
     const fetchSession = async () => {
-      if (!whatsAppId) {
+      if (!connectionId) {
         setWhatsApp(buildInitialState());
         setSelectedQueueIds([]);
         return;
       }
 
       try {
-        const { data } = await api.get(`whatsapp/${whatsAppId}`);
+        const { data } = await api.get(`/channels/connections/${connectionId}`);
         if (!data.chatConfig) {
           data.chatConfig = buildInitialState().chatConfig;
         }
@@ -68,16 +68,16 @@ export function useWebchatModal(
       fetchSession();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [whatsAppId, open]);
+  }, [connectionId, open]);
 
   const handleSaveWhatsApp = async (values: WhatsAppData) => {
-    const whatsappData = { ...values, queueIds: selectedQueueIds, type: "webchat" };
+    const whatsappData = { ...values, kind: "whatsapp", queueIds: selectedQueueIds, type: "webchat" };
 
     try {
-      if (whatsAppId) {
-        await api.put(`/whatsapp/${whatsAppId}`, whatsappData);
+      if (connectionId) {
+        await api.put(`/channels/connections/${connectionId}`, whatsappData);
       } else {
-        await api.post("/whatsapp", whatsappData);
+        await api.post("/channels/connections", whatsappData);
       }
       toast.success(i18n.t("whatsappModal.success"));
       if (onSaved) {

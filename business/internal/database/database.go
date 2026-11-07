@@ -393,8 +393,8 @@ func addCustomIndexes() error {
 	}
 
 	indexes := []string{
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", "connectionSource", "connectionId", number) WHERE number <> ''`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", "connectionSource", "connectionId", lid) WHERE lid IS NOT NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_number ON "Contacts" ("tenantId", "connectionId", number) WHERE number <> ''`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", "connectionId", lid) WHERE lid IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_status ON "Tickets" ("tenantId", "status")`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_queue_status ON "Tickets" ("tenantId", "queueId", "status")`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_open_conversation ON "Tickets" ("tenantId", "channelConnectionId", "conversationKey") WHERE "status" IN ('open', 'pending') AND "conversationKey" IS NOT NULL AND "conversationKey" != ''`,
@@ -477,7 +477,7 @@ func addCustomIndexes() error {
 		// GroupCache (plugin Grupos e Comunidades): uma linha por
 		// (conexão, grupo) -- o sync de background faz delete+reinsert por
 		// conexão (groups_cache_sync.go), a leitura de GET /groups filtra por
-		// ("tenantId", "whatsappId").
+		// ("tenantId", "connectionId").
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_group_caches_whatsapp_jid ON "group_caches" ("channelConnectionId", jid)`,
 		`CREATE INDEX IF NOT EXISTS idx_group_caches_tenant_whatsapp ON "group_caches" ("tenantId", "channelConnectionId")`,
 		// GroupCampaign (plugin Grupos e Comunidades, aba Campanhas -- issue

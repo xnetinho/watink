@@ -14,7 +14,7 @@ export interface UseConnectionFetchReturn {
 }
 
 export const useConnectionFetch = (
-  whatsappId: string | undefined,
+  connectionId: string | undefined,
 ): UseConnectionFetchReturn => {
   const [whatsapp, setWhatsapp] = useState<WhatsApp | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,22 +24,22 @@ export const useConnectionFetch = (
 
   const fetchWhatsapp = useCallback(async () => {
     try {
-      const { data } = await api.get(`/whatsapp/${whatsappId}`);
+      const { data } = await api.get(`/channels/connections/${connectionId}`);
       setWhatsapp(data as WhatsApp);
       setLoading(false);
     } catch (err: unknown) {
       toastError(err);
     }
-  }, [whatsappId]);
+  }, [connectionId]);
 
   const fetchStats = useCallback(async () => {
     try {
-      const { data } = await api.get(`/whatsapp/${whatsappId}/stats`);
+      const { data } = await api.get(`/channels/connections/${connectionId}/stats`);
       setStats(data as Stats);
     } catch {
       // stats are best-effort — never block the page
     }
-  }, [whatsappId]);
+  }, [connectionId]);
 
   useEffect(() => {
     fetchWhatsapp();
