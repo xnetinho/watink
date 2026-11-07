@@ -23,27 +23,28 @@ import (
 // database.go addCustomIndexes -- declared here too so testutil.NewTestDB
 // (AutoMigrate only) enforces it in tests.
 type GroupCampaignSend struct {
-	ID           int64      `gorm:"primaryKey" json:"id"`
-	TenantID     uuid.UUID  `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
-	CampaignID   int        `gorm:"column:campaignId;not null" json:"campaignId"`
-	RunID        int        `gorm:"column:runId;not null;uniqueIndex:idx_group_campaign_sends_run_jid" json:"runId"`
-	WhatsappID   int        `gorm:"column:whatsappId;not null" json:"whatsappId"`
-	JID          string     `gorm:"column:jid;not null;uniqueIndex:idx_group_campaign_sends_run_jid" json:"jid"`
-	Subject      string     `gorm:"column:subject" json:"subject,omitempty"`
-	VariantID    *int       `gorm:"column:variantId" json:"variantId,omitempty"`
-	VariantIndex int        `gorm:"column:variantIndex;not null;default:0" json:"variantIndex"`
-	Status       string     `gorm:"column:status;not null;default:pending" json:"status"`
-	ScheduledAt  time.Time  `gorm:"column:scheduledAt;not null" json:"scheduledAt"`
-	ClaimedAt    *time.Time `gorm:"column:claimedAt" json:"claimedAt,omitempty"`
-	SentAt       *time.Time `gorm:"column:sentAt" json:"sentAt,omitempty"`
-	Attempts     int        `gorm:"column:attempts;not null;default:0" json:"attempts"`
-	LastError    string     `gorm:"column:lastError" json:"lastError,omitempty"`
-	EnvID        string     `gorm:"column:envId;not null" json:"envId"`
-	MessageID    string     `gorm:"column:messageId" json:"messageId,omitempty"`
-	TicketID     *int       `gorm:"column:ticketId" json:"ticketId,omitempty"`
-	ReplyCount   int        `gorm:"column:replyCount;not null;default:0" json:"replyCount"`
-	CreatedAt    time.Time  `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt    time.Time  `gorm:"column:updatedAt" json:"updatedAt"`
+	ID         int64     `gorm:"primaryKey" json:"id"`
+	TenantID   uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
+	CampaignID int       `gorm:"column:campaignId;not null" json:"campaignId"`
+	RunID      int       `gorm:"column:runId;not null;uniqueIndex:idx_group_campaign_sends_run_jid" json:"runId"`
+	// A chave JSON segue "whatsappId" até a fatia 5 da migração (frontend): o contrato com a tela não muda neste PR.
+	ChannelConnectionID int        `gorm:"column:channelConnectionId;not null;index" json:"whatsappId"`
+	JID                 string     `gorm:"column:jid;not null;uniqueIndex:idx_group_campaign_sends_run_jid" json:"jid"`
+	Subject             string     `gorm:"column:subject" json:"subject,omitempty"`
+	VariantID           *int       `gorm:"column:variantId" json:"variantId,omitempty"`
+	VariantIndex        int        `gorm:"column:variantIndex;not null;default:0" json:"variantIndex"`
+	Status              string     `gorm:"column:status;not null;default:pending" json:"status"`
+	ScheduledAt         time.Time  `gorm:"column:scheduledAt;not null" json:"scheduledAt"`
+	ClaimedAt           *time.Time `gorm:"column:claimedAt" json:"claimedAt,omitempty"`
+	SentAt              *time.Time `gorm:"column:sentAt" json:"sentAt,omitempty"`
+	Attempts            int        `gorm:"column:attempts;not null;default:0" json:"attempts"`
+	LastError           string     `gorm:"column:lastError" json:"lastError,omitempty"`
+	EnvID               string     `gorm:"column:envId;not null" json:"envId"`
+	MessageID           string     `gorm:"column:messageId" json:"messageId,omitempty"`
+	TicketID            *int       `gorm:"column:ticketId" json:"ticketId,omitempty"`
+	ReplyCount          int        `gorm:"column:replyCount;not null;default:0" json:"replyCount"`
+	CreatedAt           time.Time  `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt           time.Time  `gorm:"column:updatedAt" json:"updatedAt"`
 }
 
 func (GroupCampaignSend) TableName() string {

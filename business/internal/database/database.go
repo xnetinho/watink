@@ -501,8 +501,8 @@ func addCustomIndexes() error {
 		// (conexão, grupo) -- o sync de background faz delete+reinsert por
 		// conexão (groups_cache_sync.go), a leitura de GET /groups filtra por
 		// ("tenantId", "whatsappId").
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_group_caches_whatsapp_jid ON "group_caches" ("whatsappId", jid)`,
-		`CREATE INDEX IF NOT EXISTS idx_group_caches_tenant_whatsapp ON "group_caches" ("tenantId", "whatsappId")`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_group_caches_whatsapp_jid ON "group_caches" ("channelConnectionId", jid)`,
+		`CREATE INDEX IF NOT EXISTS idx_group_caches_tenant_whatsapp ON "group_caches" ("tenantId", "channelConnectionId")`,
 		// GroupCampaign (plugin Grupos e Comunidades, aba Campanhas -- issue
 		// #591/#593/#594/#598). Os dois UNIQUE abaixo são âncoras de
 		// idempotência (materialização de ocorrência e claim de envio), não

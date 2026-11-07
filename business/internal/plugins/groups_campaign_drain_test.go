@@ -14,7 +14,7 @@ import (
 func pendingSendFixture(t *testing.T, db *gorm.DB, w models.Whatsapp, c models.GroupCampaign, run models.GroupCampaignRun, jid string, scheduledAt time.Time) models.GroupCampaignSend {
 	t.Helper()
 	s := models.GroupCampaignSend{
-		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID,
+		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID,
 		JID: jid, Status: models.GroupCampaignSendStatusPending, ScheduledAt: scheduledAt, EnvID: "env-" + jid,
 	}
 	require.NoError(t, db.Create(&s).Error)
@@ -57,14 +57,14 @@ func TestReapStuckClaims_ResetsUnderMaxAttemptsFailsOver(t *testing.T) {
 	run := runFixture(t, db, c)
 
 	stuck := models.GroupCampaignSend{
-		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID,
+		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID,
 		JID: "a@g.us", Status: models.GroupCampaignSendStatusSending,
 		ClaimedAt: timePtr(time.Now().Add(-10 * time.Minute)), Attempts: 1, EnvID: "env-a",
 	}
 	require.NoError(t, db.Create(&stuck).Error)
 
 	exhausted := models.GroupCampaignSend{
-		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID,
+		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID,
 		JID: "b@g.us", Status: models.GroupCampaignSendStatusSending,
 		ClaimedAt: timePtr(time.Now().Add(-10 * time.Minute)), Attempts: groupCampaignClaimMaxAttempts, EnvID: "env-b",
 	}
@@ -161,7 +161,7 @@ func TestDrainOneSend_ExhaustedAttemptsFailsPermanently(t *testing.T) {
 	w, c := campaignFixture(t, db, "CONNECTED")
 	run := runFixture(t, db, c)
 	send := models.GroupCampaignSend{
-		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID,
+		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID,
 		JID: "a@g.us", Status: models.GroupCampaignSendStatusPending, ScheduledAt: time.Now(),
 		Attempts: groupCampaignClaimMaxAttempts - 1, EnvID: "env-a",
 	}
@@ -189,7 +189,7 @@ func TestEvaluateCircuitBreaker_PausesAfterAllFailedInWindow(t *testing.T) {
 	for i := 0; i < groupCampaignBreakerWindow; i++ {
 		jid := "g" + strconv.Itoa(i) + "@g.us"
 		s := models.GroupCampaignSend{
-			TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID,
+			TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID,
 			JID: jid, Status: models.GroupCampaignSendStatusFailed, ScheduledAt: time.Now(),
 			EnvID: "env-" + jid, UpdatedAt: time.Now(),
 		}
@@ -213,13 +213,13 @@ func TestEvaluateCircuitBreaker_DoesNotPauseWithARecentSuccess(t *testing.T) {
 	for i := 0; i < groupCampaignBreakerWindow-1; i++ {
 		jid := "g" + strconv.Itoa(i) + "@g.us"
 		s := models.GroupCampaignSend{
-			TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID,
+			TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID,
 			JID: jid, Status: models.GroupCampaignSendStatusFailed, ScheduledAt: time.Now(), EnvID: "env-" + jid,
 		}
 		require.NoError(t, db.Create(&s).Error)
 	}
 	success := models.GroupCampaignSend{
-		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID,
+		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID,
 		JID: "g-success@g.us", Status: models.GroupCampaignSendStatusSent, ScheduledAt: time.Now(), EnvID: "env-ok",
 	}
 	require.NoError(t, db.Create(&success).Error)
@@ -238,8 +238,8 @@ func TestCloseFinishedRuns_MarksCompletedAndRecountsCounters(t *testing.T) {
 	w, c := campaignFixture(t, db, "CONNECTED")
 	run := runFixture(t, db, c)
 
-	sent := models.GroupCampaignSend{TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID, JID: "a@g.us", Status: models.GroupCampaignSendStatusSent, ScheduledAt: time.Now(), EnvID: "e1"}
-	failed := models.GroupCampaignSend{TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID, JID: "b@g.us", Status: models.GroupCampaignSendStatusFailed, ScheduledAt: time.Now(), EnvID: "e2"}
+	sent := models.GroupCampaignSend{TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID, JID: "a@g.us", Status: models.GroupCampaignSendStatusSent, ScheduledAt: time.Now(), EnvID: "e1"}
+	failed := models.GroupCampaignSend{TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID, JID: "b@g.us", Status: models.GroupCampaignSendStatusFailed, ScheduledAt: time.Now(), EnvID: "e2"}
 	require.NoError(t, db.Create(&sent).Error)
 	require.NoError(t, db.Create(&failed).Error)
 

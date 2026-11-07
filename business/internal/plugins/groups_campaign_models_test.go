@@ -23,7 +23,7 @@ func TestGroupCampaignModels_MigrateAndCreate(t *testing.T) {
 	campaign := models.GroupCampaign{
 		TenantID:     tenantID,
 		Name:         "Campanha de teste",
-		WhatsappID:   whatsapp.ID,
+		ChannelConnectionID:   whatsapp.ID,
 		Status:       models.GroupCampaignStatusDraft,
 		ScheduleMode: models.GroupCampaignScheduleImmediate,
 	}
@@ -43,7 +43,7 @@ func TestGroupCampaignModels_MigrateAndCreate(t *testing.T) {
 	target := models.GroupCampaignTarget{
 		TenantID:   tenantID,
 		CampaignID: campaign.ID,
-		WhatsappID: whatsapp.ID,
+		ChannelConnectionID: whatsapp.ID,
 		JID:        "120363000000000001@g.us",
 		Subject:    "Grupo de teste",
 	}
@@ -64,7 +64,7 @@ func TestGroupCampaignModels_MigrateAndCreate(t *testing.T) {
 		TenantID:    tenantID,
 		CampaignID:  campaign.ID,
 		RunID:       run.ID,
-		WhatsappID:  whatsapp.ID,
+		ChannelConnectionID:  whatsapp.ID,
 		JID:         target.JID,
 		VariantID:   &variant.ID,
 		Status:      models.GroupCampaignSendStatusPending,
@@ -97,13 +97,13 @@ func TestGroupCampaignTarget_UniqueCampaignJID(t *testing.T) {
 	tenantID := uuid.New()
 	whatsapp := models.Whatsapp{TenantID: tenantID, Name: "conn-unique-target", Number: "5511999990001"}
 	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
-	campaign := models.GroupCampaign{TenantID: tenantID, Name: "C", WhatsappID: whatsapp.ID}
+	campaign := models.GroupCampaign{TenantID: tenantID, Name: "C", ChannelConnectionID: whatsapp.ID}
 	require.NoError(t, db.Create(&campaign).Error)
 
-	t1 := models.GroupCampaignTarget{TenantID: tenantID, CampaignID: campaign.ID, WhatsappID: whatsapp.ID, JID: "120363x@g.us"}
+	t1 := models.GroupCampaignTarget{TenantID: tenantID, CampaignID: campaign.ID, ChannelConnectionID: whatsapp.ID, JID: "120363x@g.us"}
 	require.NoError(t, db.Create(&t1).Error)
 
-	t2 := models.GroupCampaignTarget{TenantID: tenantID, CampaignID: campaign.ID, WhatsappID: whatsapp.ID, JID: "120363x@g.us"}
+	t2 := models.GroupCampaignTarget{TenantID: tenantID, CampaignID: campaign.ID, ChannelConnectionID: whatsapp.ID, JID: "120363x@g.us"}
 	err := db.Create(&t2).Error
 	require.Error(t, err, "segundo target com o mesmo (campaignId, jid) deve violar o índice único")
 }
@@ -115,7 +115,7 @@ func TestGroupCampaignRun_UniqueOccurrenceKey(t *testing.T) {
 	tenantID := uuid.New()
 	whatsapp := models.Whatsapp{TenantID: tenantID, Name: "conn-unique-run", Number: "5511999990002"}
 	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
-	campaign := models.GroupCampaign{TenantID: tenantID, Name: "C", WhatsappID: whatsapp.ID}
+	campaign := models.GroupCampaign{TenantID: tenantID, Name: "C", ChannelConnectionID: whatsapp.ID}
 	require.NoError(t, db.Create(&campaign).Error)
 
 	r1 := models.GroupCampaignRun{TenantID: tenantID, CampaignID: campaign.ID, OccurrenceKey: "2026-01-01T09:00:00Z", ScheduledFor: time.Now()}

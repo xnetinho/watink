@@ -77,7 +77,7 @@ func reapStuckClaims(ctx context.Context, db *gorm.DB) {
 }
 
 // pickDueSends selects AT MOST ONE pending send per WhatsApp connection --
-// DISTINCT ON ("whatsappId") ordered by scheduledAt -- restricted to
+// DISTINCT ON ("channelConnectionId") ordered by scheduledAt -- restricted to
 // connections that are actually CONNECTED right now, AND to campaigns
 // still "running". This is the anti-ban backlog guard from
 // groups_campaign_schedule.go's design doc: never a thundering herd
@@ -88,12 +88,12 @@ func reapStuckClaims(ctx context.Context, db *gorm.DB) {
 func pickDueSends(ctx context.Context, db *gorm.DB) ([]models.GroupCampaignSend, error) {
 	var due []models.GroupCampaignSend
 	err := db.WithContext(ctx).Raw(`
-		SELECT DISTINCT ON (s."whatsappId") s.*
+		SELECT DISTINCT ON (s."channelConnectionId") s.*
 		  FROM "group_campaign_sends" s
-		  JOIN "ChannelConnections" w ON w.id = s."whatsappId" AND w.kind = 'whatsapp'
+		  JOIN "ChannelConnections" w ON w.id = s."channelConnectionId" AND w.kind = 'whatsapp'
 		  JOIN "group_campaigns" c ON c.id = s."campaignId"
 		 WHERE s.status = ? AND s."scheduledAt" <= ? AND w.status = ? AND c.status = ?
-		 ORDER BY s."whatsappId", s."scheduledAt" ASC
+		 ORDER BY s."channelConnectionId", s."scheduledAt" ASC
 		 LIMIT ?
 	`, models.GroupCampaignSendStatusPending, time.Now(), "CONNECTED", models.GroupCampaignStatusRunning, groupCampaignDrainBatchLimit).
 		Scan(&due).Error
@@ -183,7 +183,7 @@ func settleSendFailure(db *gorm.DB, send models.GroupCampaignSend, sendErr error
 		}
 		writeDB.Model(&models.GroupCampaignRun{}).Where(`id = ?`, send.RunID).
 			Update("failedCount", gorm.Expr(`"failedCount" + 1`))
-		evaluateCircuitBreaker(writeDB, send.TenantID, send.WhatsappID)
+		evaluateCircuitBreaker(writeDB, send.TenantID, send.ChannelConnectionID)
 		return
 	}
 
@@ -205,7 +205,7 @@ func settleSendFailure(db *gorm.DB, send models.GroupCampaignSend, sendErr error
 func evaluateCircuitBreaker(db *gorm.DB, tenantID uuid.UUID, whatsappID int) {
 	var recent []models.GroupCampaignSend
 	if err := db.
-		Where(`"tenantId" = ? AND "whatsappId" = ? AND status IN ?`, tenantID, whatsappID,
+		Where(`"tenantId" = ? AND "channelConnectionId" = ? AND status IN ?`, tenantID, whatsappID,
 			[]string{models.GroupCampaignSendStatusSent, models.GroupCampaignSendStatusFailed}).
 		Order(`"updatedAt" DESC`).
 		Limit(groupCampaignBreakerWindow).
@@ -223,7 +223,7 @@ func evaluateCircuitBreaker(db *gorm.DB, tenantID uuid.UUID, whatsappID int) {
 	}
 
 	if err := db.Model(&models.GroupCampaign{}).
-		Where(`"tenantId" = ? AND "whatsappId" = ? AND status = ?`, tenantID, whatsappID, models.GroupCampaignStatusRunning).
+		Where(`"tenantId" = ? AND "channelConnectionId" = ? AND status = ?`, tenantID, whatsappID, models.GroupCampaignStatusRunning).
 		Updates(map[string]interface{}{
 			"status":      models.GroupCampaignStatusPaused,
 			"pauseReason": "conexão instável — campanha pausada automaticamente",

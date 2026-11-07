@@ -17,7 +17,7 @@ import (
 func loadGroupsCache(db *gorm.DB, tenantID uuid.UUID, whatsappID int) ([]groupsListEntry, bool, error) {
 	var rows []models.GroupCache
 	if err := db.Session(&gorm.Session{NewDB: true}).
-		Where(`"tenantId" = ? AND "whatsappId" = ?`, tenantID, whatsappID).
+		Where(`"tenantId" = ? AND "channelConnectionId" = ?`, tenantID, whatsappID).
 		Order(`subject`).
 		Find(&rows).Error; err != nil {
 		return nil, false, err
@@ -65,29 +65,29 @@ func saveGroupsToCache(db *gorm.DB, tenantID uuid.UUID, w models.Whatsapp, group
 	now := time.Now()
 	for _, g := range groups {
 		rows = append(rows, models.GroupCache{
-			TenantID:          tenantID,
-			WhatsappID:        w.ID,
-			JID:               g.JID,
-			Subject:           g.Subject,
-			Description:       g.Description,
-			Owner:             g.Owner,
-			IsCommunity:       g.IsCommunity,
-			IsSubGroup:        g.IsSubGroup,
-			ParentJID:         g.ParentJID,
-			Announce:          g.Announce,
-			Locked:            g.Locked,
-			MemberAddMode:     g.MemberAddMode,
-			JoinApprovalMode:  g.JoinApprovalMode,
-			PictureURL:        g.PictureURL,
-			ParticipantCount:  len(g.Participants),
-			IsConnectionAdmin: connectionIsGroupAdmin(g.Participants, w.Number),
-			CreatedAt:         now,
-			UpdatedAt:         now,
+			TenantID:            tenantID,
+			ChannelConnectionID: w.ID,
+			JID:                 g.JID,
+			Subject:             g.Subject,
+			Description:         g.Description,
+			Owner:               g.Owner,
+			IsCommunity:         g.IsCommunity,
+			IsSubGroup:          g.IsSubGroup,
+			ParentJID:           g.ParentJID,
+			Announce:            g.Announce,
+			Locked:              g.Locked,
+			MemberAddMode:       g.MemberAddMode,
+			JoinApprovalMode:    g.JoinApprovalMode,
+			PictureURL:          g.PictureURL,
+			ParticipantCount:    len(g.Participants),
+			IsConnectionAdmin:   connectionIsGroupAdmin(g.Participants, w.Number),
+			CreatedAt:           now,
+			UpdatedAt:           now,
 		})
 	}
 
 	return db.Session(&gorm.Session{NewDB: true}).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where(`"tenantId" = ? AND "whatsappId" = ?`, tenantID, w.ID).
+		if err := tx.Where(`"tenantId" = ? AND "channelConnectionId" = ?`, tenantID, w.ID).
 			Delete(&models.GroupCache{}).Error; err != nil {
 			return err
 		}
@@ -98,7 +98,7 @@ func saveGroupsToCache(db *gorm.DB, tenantID uuid.UUID, w models.Whatsapp, group
 	})
 }
 
-// upsertOneGroupCache refreshes a single (whatsappId, jid) row -- used by
+// upsertOneGroupCache refreshes a single (channelConnectionId, jid) row -- used by
 // handleGetGroup, which already fetches the group live for the detail view
 // (on-demand, single-group, not a bulk anti-ban concern) and can keep the
 // list cache honest for that one entry as a side effect, same
@@ -106,28 +106,28 @@ func saveGroupsToCache(db *gorm.DB, tenantID uuid.UUID, w models.Whatsapp, group
 func upsertOneGroupCache(db *gorm.DB, tenantID uuid.UUID, w models.Whatsapp, g domain.GroupInfo) {
 	now := time.Now()
 	row := models.GroupCache{
-		TenantID:          tenantID,
-		WhatsappID:        w.ID,
-		JID:               g.JID,
-		Subject:           g.Subject,
-		Description:       g.Description,
-		Owner:             g.Owner,
-		IsCommunity:       g.IsCommunity,
-		IsSubGroup:        g.IsSubGroup,
-		ParentJID:         g.ParentJID,
-		Announce:          g.Announce,
-		Locked:            g.Locked,
-		MemberAddMode:     g.MemberAddMode,
-		JoinApprovalMode:  g.JoinApprovalMode,
-		PictureURL:        g.PictureURL,
-		ParticipantCount:  len(g.Participants),
-		IsConnectionAdmin: connectionIsGroupAdmin(g.Participants, w.Number),
-		UpdatedAt:         now,
+		TenantID:            tenantID,
+		ChannelConnectionID: w.ID,
+		JID:                 g.JID,
+		Subject:             g.Subject,
+		Description:         g.Description,
+		Owner:               g.Owner,
+		IsCommunity:         g.IsCommunity,
+		IsSubGroup:          g.IsSubGroup,
+		ParentJID:           g.ParentJID,
+		Announce:            g.Announce,
+		Locked:              g.Locked,
+		MemberAddMode:       g.MemberAddMode,
+		JoinApprovalMode:    g.JoinApprovalMode,
+		PictureURL:          g.PictureURL,
+		ParticipantCount:    len(g.Participants),
+		IsConnectionAdmin:   connectionIsGroupAdmin(g.Participants, w.Number),
+		UpdatedAt:           now,
 	}
 
 	writeDB := db.Session(&gorm.Session{NewDB: true})
 	var existing models.GroupCache
-	err := writeDB.Where(`"whatsappId" = ? AND jid = ?`, w.ID, g.JID).First(&existing).Error
+	err := writeDB.Where(`"channelConnectionId" = ? AND jid = ?`, w.ID, g.JID).First(&existing).Error
 	if err == nil {
 		writeDB.Model(&existing).Updates(&row)
 		return

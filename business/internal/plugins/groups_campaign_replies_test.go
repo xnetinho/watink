@@ -21,7 +21,7 @@ func sentCampaignSendFixture(t *testing.T, db *gorm.DB, w models.Whatsapp, c mod
 	run := models.GroupCampaignRun{TenantID: c.TenantID, CampaignID: c.ID, OccurrenceKey: "manual-" + jid, Status: models.GroupCampaignRunStatusRunning, ScheduledFor: time.Now()}
 	require.NoError(t, db.Create(&run).Error)
 	send := models.GroupCampaignSend{
-		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID,
+		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID,
 		JID: jid, Status: models.GroupCampaignSendStatusSent, ScheduledAt: sentAt, SentAt: &sentAt,
 		EnvID: "env-" + jid, MessageID: "env-" + jid,
 	}
