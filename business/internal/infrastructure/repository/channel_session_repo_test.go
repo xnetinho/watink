@@ -216,7 +216,7 @@ func TestGORMChannelSessionRepo_DeleteWithRelations(t *testing.T) {
 	// Criar um ticket vinculado à sessão
 	contact := &models.Contact{Name: "C", Number: "5500000001", TenantID: tenantA}
 	require.NoError(t, db.Create(contact).Error)
-	ticket := &models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: w.ID, TenantID: tenantA}
+	ticket := &models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: w.ID, TenantID: tenantA}
 	require.NoError(t, db.Create(ticket).Error)
 
 	// DeleteWithRelations
@@ -228,10 +228,8 @@ func TestGORMChannelSessionRepo_DeleteWithRelations(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, gone, "sessão deve ter sido removida")
 
-	// O ticket deve ter whatsappId nullificado
-	var updatedTicket models.Ticket
-	require.NoError(t, db.First(&updatedTicket, ticket.ID).Error)
-	assert.Zero(t, updatedTicket.WhatsappID, "whatsappId do ticket deve ser nulo após DeleteWithRelations")
+	// Quem apaga os tickets da conexão é o banco (FK com ON DELETE CASCADE); o banco de teste não cria FKs, então isso é provado
+	// com o esquema real em TestTicketsDaConexao_CascateNoBanco (internal/database).
 }
 
 // TestGORMChannelSessionRepo_Wid_SurvivesRoundTrip prova o invariante que

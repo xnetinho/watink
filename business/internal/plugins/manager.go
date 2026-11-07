@@ -167,10 +167,7 @@ func (c *coreImpl) SendTicketMessage(tenantID uuid.UUID, ticketID int, body stri
 	var externalID string
 	to := pluginContactJID(ticket.Contact)
 
-	connID := ticket.WhatsappID
-	if ticket.ChannelConnectionID != nil {
-		connID = *ticket.ChannelConnectionID
-	}
+	connID := ticket.ChannelConnectionID
 	var conn models.ChannelConnection
 	if err := c.db.Session(&gorm.Session{NewDB: true}).
 		Where(`id = ? AND "tenantId" = ?`, connID, tenantID).First(&conn).Error; err != nil {

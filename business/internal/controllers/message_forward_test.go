@@ -87,8 +87,7 @@ func TestForward_ParaContatoQueNuncaConversouCriaAConversaNaConexaoDele(t *testi
 
 	var t2 models.Ticket
 	require.NoError(t, e.db.Where(`"contactId" = ?`, dest.ID).First(&t2).Error)
-	require.NotNil(t, t2.ChannelConnectionID)
-	assert.Equal(t, e.conn.ID, *t2.ChannelConnectionID, "a conversa nasce na conexão do contato")
+	assert.Equal(t, e.conn.ID, t2.ChannelConnectionID, "a conversa nasce na conexão do contato")
 	var saved models.Message
 	require.NoError(t, e.db.Where(`"fromMe" = true AND "ticketId" = ?`, t2.ID).First(&saved).Error)
 	assert.JSONEq(t, `{"mimetype":"image/png"}`, saved.DataJson, "cópia não leva o selo")
@@ -98,7 +97,7 @@ func TestForward_ReaproveitaAConversaAbertaDoContato(t *testing.T) {
 	e := newSendEnv(t)
 	from := e.newTicket(t, "chat-A")
 	dest := e.contactOf(t, "chat-B")
-	open := models.Ticket{TenantID: e.tenantID, ContactID: dest.ID, ChannelConnectionID: &e.conn.ID, ConversationKey: "chat-B", Status: "open"}
+	open := models.Ticket{TenantID: e.tenantID, ContactID: dest.ID, ChannelConnectionID: e.conn.ID, ConversationKey: "chat-B", Status: "open"}
 	require.NoError(t, e.db.Create(&open).Error)
 	id := e.seedMessage(t, from, "m1", "10", "oi", "", "")
 
@@ -153,8 +152,7 @@ func TestForward_ContatoDeOutraConexaoDoMesmoCanalUsaAConexaoDele(t *testing.T) 
 
 	_, body := e.forward(t, id, `{"contactIds":[`+ids(ct)+`],"mode":"copy"}`)
 	assert.Contains(t, body, `"ok":true`)
-	require.NotNil(t, e.ticketOf(t, ct).ChannelConnectionID)
-	assert.Equal(t, other.ID, *e.ticketOf(t, ct).ChannelConnectionID, "sai pela conexão do contato, não pela da mensagem de origem")
+	assert.Equal(t, other.ID, e.ticketOf(t, ct).ChannelConnectionID, "sai pela conexão do contato, não pela da mensagem de origem")
 
 	_, body = e.forward(t, id, `{"contactIds":[`+ids(ct)+`],"mode":"forward"}`)
 	assert.Contains(t, body, `"code":"forward_not_supported"`, "encaminhar com selo exige a MESMA conexão; a cópia continua possível")
@@ -262,7 +260,7 @@ func TestListTickets_FiltroPorCanalParaDestinoDeEncaminhamento(t *testing.T) {
 	require.NoError(t, models.CreateWhatsapp(e.db, &wa))
 	ct := models.Contact{Name: "Zé", Number: "5511999", TenantID: e.tenantID}
 	require.NoError(t, e.db.Create(&ct).Error)
-	require.NoError(t, e.db.Create(&models.Ticket{TenantID: e.tenantID, ContactID: ct.ID, WhatsappID: wa.ID, Status: "open"}).Error)
+	require.NoError(t, e.db.Create(&models.Ticket{TenantID: e.tenantID, ContactID: ct.ID, ChannelConnectionID: wa.ID, Status: "open"}).Error)
 
 	tc := controllers.NewTicketController(nil, nil, nil, nil)
 	r := gin.New()

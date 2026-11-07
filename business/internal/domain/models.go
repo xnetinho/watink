@@ -15,14 +15,13 @@ type Ticket struct {
 	LastMessageType     string    `json:"lastMessageType,omitempty"`
 	ContactID           int       `json:"contactId"`
 	UserID              *int      `json:"userId"`
-	WhatsappID          int       `json:"whatsappId"`
 	IsGroup             bool      `json:"isGroup"`
 	IsCommunity         bool      `json:"isCommunity"`
 	IsSubGroup          bool      `json:"isSubGroup"`
 	UnreadMessages      int       `json:"unreadMessages"`
 	QueueID             *int      `json:"queueId"`
 	TenantID            uuid.UUID `json:"tenantId"`
-	ChannelConnectionID *int      `json:"channelConnectionId,omitempty"`
+	ChannelConnectionID int       `json:"whatsappId"` // chave JSON segue "whatsappId" até a fatia 5 (frontend)
 	ConversationKey     string    `json:"conversationKey,omitempty"`
 	CreatedAt           time.Time `json:"createdAt"`
 	UpdatedAt           time.Time `json:"updatedAt"`

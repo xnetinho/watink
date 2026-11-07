@@ -4,11 +4,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/sdk"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // WebchatPlugin — DB via core.GetDB().WithContext(c.Request.Context()) (DI), zero acesso a database.DB global.
@@ -95,13 +97,14 @@ func (wp *WebchatPlugin) OnActivate(core sdk.WatinkCore) error {
 
 		// Simplified Ticket creation logic for the plugin
 		var ticket models.Ticket
-		db.Session(&gorm.Session{NewDB: true}).Where(`"contactId" = ? AND "whatsappId" = ? AND status != ? AND "tenantId" = ?`, contact.ID, whatsapp.ID, "closed", tenantID).First(&ticket)
+		db.Session(&gorm.Session{NewDB: true}).Where(`"contactId" = ? AND "channelConnectionId" = ? AND status != ? AND "tenantId" = ?`, contact.ID, whatsapp.ID, "closed", tenantID).First(&ticket)
 		if ticket.ID == 0 {
 			ticket = models.Ticket{
-				ContactID:  contact.ID,
-				WhatsappID: whatsapp.ID,
-				Status:     "pending",
-				TenantID:   whatsapp.TenantID,
+				ContactID:           contact.ID,
+				ChannelConnectionID: whatsapp.ID,
+				ConversationKey:     domain.WhatsAppConversationKey(contact.ID),
+				Status:              "pending",
+				TenantID:            whatsapp.TenantID,
 			}
 			db.Session(&gorm.Session{NewDB: true}).Create(&ticket)
 		}

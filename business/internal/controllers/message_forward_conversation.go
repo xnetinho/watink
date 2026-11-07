@@ -3,10 +3,11 @@ package controllers
 import (
 	"errors"
 
-	"github.com/alltomatos/watinkdev/business/internal/domain"
-	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/models"
 )
 
 var errNoConversationKey = errors.New("contato sem identificação na conexão")
@@ -17,38 +18,25 @@ func (mc *MessageController) conversationFor(db *gorm.DB, tenantID uuid.UUID, co
 	q := func() *gorm.DB { return db.Session(&gorm.Session{NewDB: true}) }
 	var t models.Ticket
 
-	if conn.Ref.Source == domain.ConnectionSourceChannel {
-		// Canais agnósticos: a conversa é identificada pela chave do canal (Telegram: chat_id), guardada na identidade.
+	// A chave da conversa depende do canal: nos agnósticos (Telegram) é a do canal, guardada na identidade do contato; no WhatsApp
+	// é a do próprio contato, que já unifica telefone e LID. Daí em diante o caminho é o mesmo.
+	convKey := domain.WhatsAppConversationKey(contact.ID)
+	if conn.Kind != string(domain.ChannelKindWhatsApp) {
 		var ident models.ContactIdentity
 		if err := q().Where(`"tenantId" = ? AND "contactId" = ? AND "connectionId" = ?`, tenantID, contact.ID, conn.Ref.ID).First(&ident).Error; err != nil {
 			return t, errNoConversationKey
 		}
-		err := q().Preload("Contact").Where(`"tenantId" = ? AND "channelConnectionId" = ? AND "conversationKey" = ? AND status IN ?`,
-			tenantID, conn.Ref.ID, ident.ExternalID, []string{"open", "pending"}).First(&t).Error
-		if err == nil {
-			return t, nil
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return t, err
-		}
-		connID := conn.Ref.ID
-		t = models.Ticket{TenantID: tenantID, ContactID: contact.ID, ChannelConnectionID: &connID, ConversationKey: ident.ExternalID, Status: "open", IsGroup: contact.IsGroup}
-		if err := q().Create(&t).Error; err != nil {
-			return t, err
-		}
-		t.Contact = contact
-		return t, nil
+		convKey = ident.ExternalID
 	}
-
-	err := q().Preload("Contact").Where(`"tenantId" = ? AND "contactId" = ? AND "whatsappId" = ? AND status IN ?`,
-		tenantID, contact.ID, conn.Ref.ID, []string{"open", "pending"}).First(&t).Error
+	err := q().Preload("Contact").Where(`"tenantId" = ? AND "channelConnectionId" = ? AND "conversationKey" = ? AND status IN ?`,
+		tenantID, conn.Ref.ID, convKey, []string{"open", "pending"}).First(&t).Error
 	if err == nil {
 		return t, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return t, err
 	}
-	t = models.Ticket{TenantID: tenantID, ContactID: contact.ID, WhatsappID: conn.Ref.ID, Status: "open", IsGroup: contact.IsGroup}
+	t = models.Ticket{TenantID: tenantID, ContactID: contact.ID, ChannelConnectionID: conn.Ref.ID, ConversationKey: convKey, Status: "open", IsGroup: contact.IsGroup}
 	if err := q().Create(&t).Error; err != nil {
 		return t, err
 	}

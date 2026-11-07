@@ -12,17 +12,17 @@ type Ticket struct {
 	LastMessage string `gorm:"column:lastMessage" json:"lastMessage"`
 	// LastMessageType é o marcador de tipo da última mensagem quando ela não tem texto legível (image, video, poll,
 	// location...). A prévia do ticket é traduzida pela tela; o banco nunca guarda rótulo em um idioma.
-	LastMessageType     string    `gorm:"column:lastMessageType;size:30" json:"lastMessageType,omitempty"`
-	ContactID           int       `gorm:"column:contactId" json:"contactId"`
-	UserID              *int      `gorm:"column:userId" json:"userId"`
-	WhatsappID          int       `gorm:"column:whatsappId" json:"whatsappId"`
-	IsGroup             bool      `gorm:"column:isGroup;not null;default:false" json:"isGroup"`
-	IsCommunity         bool      `gorm:"column:isCommunity;not null;default:false" json:"isCommunity"`
-	IsSubGroup          bool      `gorm:"column:isSubGroup;not null;default:false" json:"isSubGroup"`
-	UnreadMessages      int       `gorm:"column:unreadMessages" json:"unreadMessages"`
-	QueueID             *int      `gorm:"column:queueId" json:"queueId"`
-	TenantID            uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
-	ChannelConnectionID *int      `gorm:"column:channelConnectionId;index:idx_tickets_channel_conn;constraint:OnDelete:CASCADE" json:"channelConnectionId,omitempty"`
+	LastMessageType string    `gorm:"column:lastMessageType;size:30" json:"lastMessageType,omitempty"`
+	ContactID       int       `gorm:"column:contactId" json:"contactId"`
+	UserID          *int      `gorm:"column:userId" json:"userId"`
+	IsGroup         bool      `gorm:"column:isGroup;not null;default:false" json:"isGroup"`
+	IsCommunity     bool      `gorm:"column:isCommunity;not null;default:false" json:"isCommunity"`
+	IsSubGroup      bool      `gorm:"column:isSubGroup;not null;default:false" json:"isSubGroup"`
+	UnreadMessages  int       `gorm:"column:unreadMessages" json:"unreadMessages"`
+	QueueID         *int      `gorm:"column:queueId" json:"queueId"`
+	TenantID        uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
+	// A conexão do ticket em ChannelConnections. A chave JSON segue "whatsappId" até a fatia 5 (frontend).
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;not null;index:idx_tickets_channel_conn;constraint:OnDelete:CASCADE" json:"whatsappId"`
 	ConversationKey     string    `gorm:"column:conversationKey;size:255;index:idx_tickets_conv_key" json:"conversationKey,omitempty"`
 	CreatedAt           time.Time `gorm:"column:createdAt" json:"createdAt"`
 	UpdatedAt           time.Time `gorm:"column:updatedAt" json:"updatedAt"`
@@ -50,6 +50,15 @@ func (Ticket) TableName() string {
 }
 
 // TicketConnectionInfo espelha domain.TicketConnection no modelo (o pacote models não importa domain).
+// ConnectionSource é o valor de TicketConnectionInfo.Source: a tela ainda identifica a conexão pelo par (origem, id) e só a fatia 5
+// da migração o elimina. O WhatsApp devolve "whatsapp"; os demais canais, "channel".
+func ConnectionSource(kind string) string {
+	if kind == KindWhatsApp {
+		return "whatsapp"
+	}
+	return "channel"
+}
+
 type TicketConnectionInfo struct {
 	Kind   string `json:"kind"`
 	ID     int    `json:"id"`

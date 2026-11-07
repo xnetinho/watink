@@ -66,7 +66,7 @@ func sessionID(st *ExecState) string {
 	if st.Ticket == nil {
 		return ""
 	}
-	return strconv.Itoa(st.Ticket.WhatsappID)
+	return strconv.Itoa(st.Ticket.ChannelConnectionID)
 }
 
 // sendWhatsApp resolves the "whatsapp" adapter from the registry and sends body

@@ -92,7 +92,7 @@ func (qac *QuickAnswerController) Send(c *gin.Context) {
 		qaType = "text"
 	}
 
-	sessionID := connectionIDOf(ticket)
+	sessionID := ticket.ChannelConnectionID
 	msgID := newWAMessageID()
 	commandType, payload := flow.BuildQuickAnswerCommand(qaType, message, contentMap, sessionID, msgID, to)
 

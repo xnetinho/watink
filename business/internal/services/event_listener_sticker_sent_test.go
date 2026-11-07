@@ -35,7 +35,7 @@ func stickerSentEnv(t *testing.T) stkEnv {
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open"}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: tenant, Status: "open"}
 	require.NoError(t, db.Create(&tk).Error)
 	bc := &voBroadcast{}
 	el := services.NewEventListener(nil, repository.NewGORMMessageRepo(db), nil, repository.NewGORMTicketRepo(db), nil, bc, db, nil, nil, nil, nil)

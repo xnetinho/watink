@@ -35,7 +35,7 @@ type ChannelConnection struct {
 
 	// Relations
 	Queues  []Queue  `gorm:"many2many:channel_connection_queues;" json:"queues,omitempty"`
-	Tickets []Ticket `gorm:"foreignKey:ChannelConnectionID" json:"tickets,omitempty"`
+	Tickets []Ticket `gorm:"foreignKey:ChannelConnectionID;constraint:OnDelete:CASCADE" json:"tickets,omitempty"`
 }
 
 func (ChannelConnection) TableName() string {

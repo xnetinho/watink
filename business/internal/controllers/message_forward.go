@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/alltomatos/watinkdev/business/internal/models"
-	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/pkg/auth"
 )
 
 const maxForwardTargets = 20
@@ -98,12 +99,9 @@ func (mc *MessageController) ForwardMessage(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"results": results})
 }
 
-// connectionKey identifica a conexão do ticket entre as duas tabelas (ChannelConnections e Whatsapps).
+// connectionKey identifica a conexão do ticket (só comparação: encaminhar com selo exige a mesma conexão).
 func connectionKey(t *models.Ticket) string {
-	if t.ChannelConnectionID != nil {
-		return "c" + strconv.Itoa(*t.ChannelConnectionID)
-	}
-	return "w" + strconv.Itoa(t.WhatsappID)
+	return strconv.Itoa(t.ChannelConnectionID)
 }
 
 func (mc *MessageController) forwardOne(c *gin.Context, db *gorm.DB, tenantID uuid.UUID, src models.Message, srcKind, srcConn string, contactID int, asNew bool, audioKind string) forwardResult {

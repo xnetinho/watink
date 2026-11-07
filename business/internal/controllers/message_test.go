@@ -66,7 +66,7 @@ func TestMessageController_ListMessages_ReturnsEnvelope(t *testing.T) {
 	tenantID := uuid.New()
 
 	// Insert a ticket and two messages
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantID)
 	var ticketID int
 	db.Raw(`SELECT id FROM "Tickets" WHERE "tenantId" = ?`, tenantID).Scan(&ticketID)
 
@@ -95,7 +95,7 @@ func TestMessageController_ListMessages_FiltersByTenantViaDB(t *testing.T) {
 	tenantA := uuid.New()
 	tenantB := uuid.New()
 
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantA)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantA)
 	var ticketID int
 	db.Raw(`SELECT id FROM "Tickets" WHERE "tenantId" = ?`, tenantA).Scan(&ticketID)
 
@@ -157,12 +157,12 @@ func TestMessageController_SendMessage_PublishesCommand(t *testing.T) {
 	db := setupMessageTestDB(t)
 	tenantID := uuid.New()
 
-	db.Exec(`INSERT INTO "ChannelConnections" (id, name, kind, "tenantId") VALUES (?,?,'whatsapp',?)`, 42, "conn-42", tenantID)
+	db.Exec(`INSERT INTO "ChannelConnections" (id, name, kind, status, "tenantId") VALUES (?,?,'whatsapp','CONNECTED',?)`, 42, "conn-42", tenantID)
 	db.Exec(`INSERT INTO whatsapp_connection_details ("connectionId") VALUES (42)`)
 	db.Exec(`INSERT INTO "Contacts" (name, number, "isGroup", "tenantId") VALUES (?,?,?,?)`, "Fulano", "5511999998888", false, tenantID)
 	var contactID int
 	db.Raw(`SELECT id FROM "Contacts" WHERE "tenantId" = ?`, tenantID).Scan(&contactID)
-	db.Exec(`INSERT INTO "Tickets" (status, "whatsappId", "contactId", "tenantId") VALUES (?,?,?,?)`, "open", 42, contactID, tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "channelConnectionId", "contactId", "tenantId") VALUES (?,?,?,?)`, "open", 42, contactID, tenantID)
 	var ticketID int
 	db.Raw(`SELECT id FROM "Tickets" WHERE "tenantId" = ?`, tenantID).Scan(&ticketID)
 
@@ -195,12 +195,12 @@ func TestMessageController_SendMessage_Multipart_SavesMediaAndPublishes(t *testi
 	db := setupMessageTestDB(t)
 	tenantID := uuid.New()
 
-	db.Exec(`INSERT INTO "ChannelConnections" (id, name, kind, "tenantId") VALUES (?,?,'whatsapp',?)`, 42, "conn-42", tenantID)
+	db.Exec(`INSERT INTO "ChannelConnections" (id, name, kind, status, "tenantId") VALUES (?,?,'whatsapp','CONNECTED',?)`, 42, "conn-42", tenantID)
 	db.Exec(`INSERT INTO whatsapp_connection_details ("connectionId") VALUES (42)`)
 	db.Exec(`INSERT INTO "Contacts" (name, number, "isGroup", "tenantId") VALUES (?,?,?,?)`, "Fulano", "5511999998888", false, tenantID)
 	var contactID int
 	db.Raw(`SELECT id FROM "Contacts" WHERE "tenantId" = ?`, tenantID).Scan(&contactID)
-	db.Exec(`INSERT INTO "Tickets" (status, "whatsappId", "contactId", "tenantId") VALUES (?,?,?,?)`, "open", 42, contactID, tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "channelConnectionId", "contactId", "tenantId") VALUES (?,?,?,?)`, "open", 42, contactID, tenantID)
 	var ticketID int
 	db.Raw(`SELECT id FROM "Tickets" WHERE "tenantId" = ?`, tenantID).Scan(&ticketID)
 

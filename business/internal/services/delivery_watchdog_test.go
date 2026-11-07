@@ -42,7 +42,7 @@ func TestDeliveryWatchdog(t *testing.T) {
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open"}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: tenant, Status: "open"}
 	require.NoError(t, db.Create(&tk).Error)
 
 	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)

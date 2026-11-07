@@ -115,10 +115,7 @@ func (r *AssistantRuntime) downloadInboundAudio(ctx context.Context, st *flow.Ex
 	}
 
 	var conn models.ChannelConnection
-	connID := st.Ticket.WhatsappID
-	if st.Ticket.ChannelConnectionID != nil {
-		connID = *st.Ticket.ChannelConnectionID
-	}
+	connID := st.Ticket.ChannelConnectionID
 	if err := r.db.Where(`id = ? AND "tenantId" = ?`, connID, st.TenantID).First(&conn).Error; err != nil {
 		return nil, "", fmt.Errorf("conexão do áudio não encontrada: %w", err)
 	}

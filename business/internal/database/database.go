@@ -134,19 +134,7 @@ func Migrate() {
 		log.Printf("Warning: failed to create custom indexes: %v", err)
 	}
 
-	// Tickets de canais não-WhatsApp gravam whatsappId = 0 (sentinel: "sem WhatsApp").
-	// A FK legada fk_Whatsapps_tickets rejeitava esse valor e derrubava todo o
-	// inbound de canal (violação SQLSTATE 23503). WhatsApp continua validado na
-	// aplicação (resolveConnection).
-	if err := DB.Exec(`ALTER TABLE "Tickets" DROP CONSTRAINT IF EXISTS "fk_Whatsapps_tickets"`).Error; err != nil {
-		log.Printf("Warning: failed to drop legacy fk_Whatsapps_tickets: %v", err)
-	}
-
 	addClientAddressGeography()
-
-	if err := BackfillTicketConversationKeys(DB); err != nil {
-		log.Printf("Warning: failed to backfill ticket conversation keys: %v", err)
-	}
 
 	// KBChunk (halfvec/HNSW) is not GORM-modelable, same reasoning as
 	// addCustomIndexes()/PostGIS above — raw idempotent DDL, best-effort.
@@ -165,17 +153,6 @@ func addClientAddressGeography() {
 	if err := DB.Exec(`ALTER TABLE "ClientAddresses" ADD COLUMN IF NOT EXISTS geog geography(Point,4326)`).Error; err != nil {
 		log.Printf("Warning: failed to add ClientAddresses.geog (PostGIS extension may be missing): %v", err)
 	}
-}
-
-// BackfillTicketConversationKeys preenche conversationKey com contactId::text para tickets legados
-// que ainda não possuem conversationKey definida (Task 2.3 / ADR 0033). É 100% idempotente.
-func BackfillTicketConversationKeys(db *gorm.DB) error {
-	q := `
-		UPDATE "Tickets"
-		SET "conversationKey" = "contactId"::text
-		WHERE "conversationKey" IS NULL OR "conversationKey" = '';
-	`
-	return db.Exec(q).Error
 }
 
 // Seed recria o catálogo de Permissions em granularidade recurso:ação
@@ -420,7 +397,7 @@ func addCustomIndexes() error {
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_tenant_lid ON "Contacts" ("tenantId", "connectionSource", "connectionId", lid) WHERE lid IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_status ON "Tickets" ("tenantId", "status")`,
 		`CREATE INDEX IF NOT EXISTS idx_tickets_tenant_queue_status ON "Tickets" ("tenantId", "queueId", "status")`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_open_conversation ON "Tickets" ("tenantId", "channelConnectionId", "conversationKey") WHERE "status" IN ('open', 'pending') AND "channelConnectionId" IS NOT NULL AND "conversationKey" IS NOT NULL AND "conversationKey" != ''`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_open_conversation ON "Tickets" ("tenantId", "channelConnectionId", "conversationKey") WHERE "status" IN ('open', 'pending') AND "conversationKey" IS NOT NULL AND "conversationKey" != ''`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_tenant_ticket_fromme ON "Messages" ("tenantId", "ticketId", "fromMe")`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_tenant_fromme_createdat ON "Messages" ("tenantId", "fromMe", "createdAt")`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_quick_answers_tenant_shortcut ON "QuickAnswers" ("tenantId", shortcut)`,

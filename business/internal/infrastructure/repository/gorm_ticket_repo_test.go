@@ -33,18 +33,18 @@ func seedTwoTenantsTickets(t *testing.T, db *gorm.DB) (tenantA, tenantB uuid.UUI
 	require.NoError(t, db.Create(contactB).Error)
 
 	ticketA = &models.Ticket{
-		Status:     "open",
-		ContactID:  contactA.ID,
-		WhatsappID: 1,
-		IsGroup:    false,
-		TenantID:   tenantA,
+		Status:              "open",
+		ContactID:           contactA.ID,
+		ChannelConnectionID: 1,
+		IsGroup:             false,
+		TenantID:            tenantA,
 	}
 	ticketB = &models.Ticket{
-		Status:     "pending",
-		ContactID:  contactB.ID,
-		WhatsappID: 2,
-		IsGroup:    false,
-		TenantID:   tenantB,
+		Status:              "pending",
+		ContactID:           contactB.ID,
+		ChannelConnectionID: 2,
+		IsGroup:             false,
+		TenantID:            tenantB,
 	}
 	require.NoError(t, db.Create(ticketA).Error)
 	require.NoError(t, db.Create(ticketB).Error)
@@ -92,21 +92,21 @@ func TestGORMTicketRepo_Update_IncrementUnreadIsAtomic(t *testing.T) {
 	assert.Equal(t, 6, got, "incremento deve ser atômico (5 + 1), não overwrite absoluto")
 }
 
-func TestGORMTicketRepo_FindOpenByContact_TenantIsolation(t *testing.T) {
+func TestGORMTicketRepo_FindOpenByConversation_TenantIsolation(t *testing.T) {
 	db := setupTicketTestDB(t)
 	tenantA, tenantB, ticketA, _ := seedTwoTenantsTickets(t, db)
 	repo := NewGORMTicketRepo(db)
 	ctx := context.Background()
 
 	// Buscar ticket aberto do contato A com tenantA → deve encontrar
-	found, err := repo.FindOpenByContact(ctx, tenantA, ticketA.ContactID, ticketA.WhatsappID)
+	found, err := repo.FindOpenByConversation(ctx, tenantA, ticketA.ChannelConnectionID, ticketA.ConversationKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, found, "deveria encontrar ticket aberto do contato no tenant correto")
 
 	// Buscar mesmo contato+session com tenantB → nil (isolamento)
-	leaked, err := repo.FindOpenByContact(ctx, tenantB, ticketA.ContactID, ticketA.WhatsappID)
+	leaked, err := repo.FindOpenByConversation(ctx, tenantB, ticketA.ChannelConnectionID, ticketA.ConversationKey)
 	assert.NoError(t, err)
-	assert.Nil(t, leaked, "VAZAMENTO DE DADOS: encontrou ticket de outro tenant via FindOpenByContact")
+	assert.Nil(t, leaked, "VAZAMENTO DE DADOS: encontrou ticket de outro tenant via FindOpenByConversation")
 }
 
 func TestGORMTicketRepo_Update_TenantIsolation(t *testing.T) {
@@ -148,11 +148,11 @@ func TestGORMTicketRepo_Save(t *testing.T) {
 	ctx := context.Background()
 
 	newTicket := &domain.Ticket{
-		Status:     "pending",
-		ContactID:  999,
-		WhatsappID: 1,
-		IsGroup:    false,
-		TenantID:   tenantA,
+		Status:              "pending",
+		ContactID:           999,
+		ChannelConnectionID: 1,
+		IsGroup:             false,
+		TenantID:            tenantA,
 	}
 	err := repo.Save(ctx, newTicket)
 	assert.NoError(t, err, "Save deveria criar o ticket sem erro")

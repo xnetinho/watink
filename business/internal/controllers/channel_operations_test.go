@@ -52,9 +52,9 @@ func TestOperacoesDoCanal_WhatsAppPublicaECanalSemOperacaoRecusa(t *testing.T) {
 	require.NoError(t, db.Create(&other).Error)
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenant}
 	require.NoError(t, db.Create(&contact).Error)
-	tkWA := models.Ticket{Status: "open", TenantID: tenant, ContactID: contact.ID, WhatsappID: wa.ID}
+	tkWA := models.Ticket{Status: "open", TenantID: tenant, ContactID: contact.ID, ChannelConnectionID: wa.ID}
 	require.NoError(t, db.Create(&tkWA).Error)
-	tkOther := models.Ticket{Status: "open", TenantID: tenant, ContactID: contact.ID, ChannelConnectionID: &other.ID, ConversationKey: "k"}
+	tkOther := models.Ticket{Status: "open", TenantID: tenant, ContactID: contact.ID, ChannelConnectionID: other.ID, ConversationKey: "k"}
 	require.NoError(t, db.Create(&tkOther).Error)
 	for _, m := range []models.Message{
 		{ID: "WA-1", Body: "oi", TicketID: tkWA.ID, FromMe: true, Ack: 2, MediaType: "chat", ContactID: &contact.ID, TenantID: tenant, Reactions: "[]"},

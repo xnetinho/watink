@@ -60,7 +60,7 @@ func (gc *AssistantGroupController) List(c *gin.Context) {
 	if err := db.Session(&gorm.Session{NewDB: true}).
 		Distinct().
 		Joins(`JOIN "Tickets" ON "Tickets"."contactId" = "Contacts".id`).
-		Where(`"Contacts"."tenantId" = ? AND "Contacts"."isGroup" = true AND "Tickets"."whatsappId" = ?`, tenantID, *a.ChannelConnectionID).
+		Where(`"Contacts"."tenantId" = ? AND "Contacts"."isGroup" = true AND "Tickets"."channelConnectionId" = ?`, tenantID, *a.ChannelConnectionID).
 		Find(&contacts).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "ListAssistantGroups: contacts")
 		return
@@ -127,7 +127,7 @@ func (gc *AssistantGroupController) Toggle(c *gin.Context) {
 	if err := db.Session(&gorm.Session{NewDB: true}).
 		Distinct().
 		Joins(`JOIN "Tickets" ON "Tickets"."contactId" = "Contacts".id`).
-		Where(`"Contacts".id = ? AND "Contacts"."tenantId" = ? AND "Contacts"."isGroup" = true AND "Tickets"."whatsappId" = ?`,
+		Where(`"Contacts".id = ? AND "Contacts"."tenantId" = ? AND "Contacts"."isGroup" = true AND "Tickets"."channelConnectionId" = ?`,
 			in.ContactID, tenantID, *a.ChannelConnectionID).
 		First(&contact).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "grupo não encontrado nesta conexão"})

@@ -76,7 +76,7 @@ func (e *sendEnv) newTicket(t *testing.T, chat string) models.Ticket {
 	require.NoError(t, models.CreateWhatsapp(e.db, &wa))
 	contact := models.Contact{Name: chat, Number: chat, TenantID: e.tenantID}
 	require.NoError(t, e.db.Create(&contact).Error)
-	ticket := models.Ticket{TenantID: e.tenantID, ContactID: contact.ID, WhatsappID: wa.ID, ChannelConnectionID: &e.conn.ID, ConversationKey: chat, Status: "open"}
+	ticket := models.Ticket{TenantID: e.tenantID, ContactID: contact.ID, ChannelConnectionID: e.conn.ID, ConversationKey: chat, Status: "open"}
 	require.NoError(t, e.db.Create(&ticket).Error)
 	return ticket
 }

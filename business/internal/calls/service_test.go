@@ -318,14 +318,14 @@ func TestHandleMissed_CreatesPendingTicketWhenNoneOpen(t *testing.T) {
 	var tk models.Ticket
 	require.NoError(t, r.db.First(&tk, *l.TicketID).Error)
 	assert.Equal(t, "pending", tk.Status)
-	assert.Equal(t, r.waA.ID, tk.WhatsappID)
+	assert.Equal(t, r.waA.ID, tk.ChannelConnectionID)
 }
 
 func TestHandleMissed_UsesExistingOpenTicket(t *testing.T) {
 	r := newRig(t)
 	contact := models.Contact{Name: "Ana", Number: "5511999990006", TenantID: r.tenant, ConnectionSource: "whatsapp", ConnectionID: r.waA.ID}
 	require.NoError(t, r.db.Create(&contact).Error)
-	open := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: r.waA.ID, TenantID: r.tenant}
+	open := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: r.waA.ID, ConversationKey: domain.WhatsAppConversationKey(contact.ID), TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&open).Error)
 
 	ev, _ := json.Marshal(map[string]interface{}{

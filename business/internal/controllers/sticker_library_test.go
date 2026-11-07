@@ -41,7 +41,7 @@ func newStickerEnv(t *testing.T) stickerEnv {
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open"}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: tenant, Status: "open"}
 	require.NoError(t, db.Create(&tk).Error)
 
 	ctrl := NewStickerLibraryController()
@@ -184,7 +184,7 @@ func TestStickerLibrary_MesmaFigurinhaEmEmpresasDiferentesNaoColide(t *testing.T
 	require.NoError(t, models.CreateWhatsapp(e.db, &wa2))
 	ct2 := models.Contact{Name: "C2", Number: "5511999990002", TenantID: other}
 	require.NoError(t, e.db.Create(&ct2).Error)
-	tk2 := models.Ticket{ContactID: ct2.ID, WhatsappID: wa2.ID, TenantID: other, Status: "open"}
+	tk2 := models.Ticket{ContactID: ct2.ID, ChannelConnectionID: wa2.ID, TenantID: other, Status: "open"}
 	require.NoError(t, e.db.Create(&tk2).Error)
 	require.NoError(t, e.db.Create(&models.Message{ID: "M2", MediaType: "sticker", MediaUrl: "/public/media/a.webp", TicketID: tk2.ID, TenantID: other, DataJson: `{}`}).Error)
 
@@ -235,7 +235,7 @@ func TestStickerLibrary_AlreadySavedEhPorEmpresa(t *testing.T) {
 	require.NoError(t, models.CreateWhatsapp(e.db, &wa))
 	ct := models.Contact{Name: "C2", Number: "5511999990002", TenantID: other}
 	require.NoError(t, e.db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: other, Status: "open"}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: other, Status: "open"}
 	require.NoError(t, e.db.Create(&tk).Error)
 	require.NoError(t, e.db.Create(&models.Message{ID: "M9", MediaType: "sticker", MediaUrl: "/public/media/a.webp", TicketID: tk.ID, TenantID: other, DataJson: `{}`}).Error)
 

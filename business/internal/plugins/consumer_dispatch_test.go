@@ -63,7 +63,7 @@ func TestPluginSendTicketMessage_AgnosticChannelDispatch(t *testing.T) {
 	ticket := models.Ticket{
 		TenantID:            tenantID,
 		ContactID:           contact.ID,
-		ChannelConnectionID: &conn.ID,
+		ChannelConnectionID: conn.ID,
 		ConversationKey:     "tg_chat_1",
 		Status:              "open",
 	}

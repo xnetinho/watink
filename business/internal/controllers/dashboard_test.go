@@ -57,12 +57,12 @@ func TestFetchTicketStatusCounts_WithData(t *testing.T) {
 	tenantID := uuid.New()
 	otherTenantID := uuid.New()
 
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantID)
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantID)
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "pending", tenantID)
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "closed", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "pending", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "closed", tenantID)
 	// outro tenant — não deve aparecer
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", otherTenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", otherTenantID)
 
 	var target struct {
 		Open    int64 `json:"open"`
@@ -82,8 +82,8 @@ func TestGetDashboardData_Returns200WithStructure(t *testing.T) {
 	db := setupDashboardTestDB(t)
 	tenantID := uuid.New()
 
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantID)
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "pending", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "pending", tenantID)
 
 	c, w := setupDashboardContext(t, db, tenantID)
 	GetDashboardData(c)
@@ -112,7 +112,7 @@ func TestCalculateTMR_WithMessages_ReturnsAvgMinutes(t *testing.T) {
 	// Ticket 1: contact message at T0, agent reply 10 minutes later
 	t0 := time.Now().UTC().Truncate(time.Second)
 	t1 := t0.Add(10 * time.Minute)
-	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId") VALUES (?,?,?)`, 1, "open", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId", "channelConnectionId") VALUES (?,?,?, 1)`, 1, "open", tenantID)
 	db.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "fromMe", "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?,?,?)`,
 		"msg-c1", "oi", 1, false, tenantID, t0, t0)
 	db.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "fromMe", "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?,?,?)`,
@@ -129,14 +129,14 @@ func TestCalculateTMR_CrossTenantIsolation(t *testing.T) {
 
 	// Tenant A: 10 min response
 	t0 := time.Now().UTC().Truncate(time.Second)
-	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId") VALUES (?,?,?)`, 1, "open", tenantA)
+	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId", "channelConnectionId") VALUES (?,?,?, 1)`, 1, "open", tenantA)
 	db.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "fromMe", "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?,?,?)`,
 		"a-c1", "oi", 1, false, tenantA, t0, t0)
 	db.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "fromMe", "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?,?,?)`,
 		"a-a1", "resp", 1, true, tenantA, t0.Add(10*time.Minute), t0.Add(10*time.Minute))
 
 	// Tenant B: different ticket and messages — must not bleed into tenant A
-	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId") VALUES (?,?,?)`, 2, "open", tenantB)
+	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId", "channelConnectionId") VALUES (?,?,?, 1)`, 2, "open", tenantB)
 	db.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "fromMe", "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?,?,?)`,
 		"b-c1", "oi", 2, false, tenantB, t0, t0)
 	db.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "fromMe", "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?,?,?)`,
@@ -164,7 +164,7 @@ func TestCalculateTME_WithData_ReturnsAvgMinutes(t *testing.T) {
 	// Ticket created at T0, first agent reply 20 minutes later
 	t0 := time.Now().UTC().Truncate(time.Second)
 	t1 := t0.Add(20 * time.Minute)
-	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?)`,
+	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId", "createdAt", "updatedAt", "channelConnectionId") VALUES (?,?,?,?,?, 1)`,
 		1, "open", tenantID, t0, t0)
 	db.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "fromMe", "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?,?,?)`,
 		"msg-a1", "resp", 1, true, tenantID, t1, t1)
@@ -180,13 +180,13 @@ func TestCalculateTME_MultipleTickets_ReturnsAverage(t *testing.T) {
 	t0 := time.Now().UTC().Truncate(time.Second)
 
 	// Ticket 1: 10 min wait
-	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?)`,
+	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId", "createdAt", "updatedAt", "channelConnectionId") VALUES (?,?,?,?,?, 1)`,
 		1, "open", tenantID, t0, t0)
 	db.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "fromMe", "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?,?,?)`,
 		"msg-1", "resp", 1, true, tenantID, t0.Add(10*time.Minute), t0.Add(10*time.Minute))
 
 	// Ticket 2: 30 min wait
-	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?)`,
+	db.Exec(`INSERT INTO "Tickets" (id, status, "tenantId", "createdAt", "updatedAt", "channelConnectionId") VALUES (?,?,?,?,?, 1)`,
 		2, "open", tenantID, t0, t0)
 	db.Exec(`INSERT INTO "Messages" (id, body, "ticketId", "fromMe", "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?,?,?,?)`,
 		"msg-2", "resp", 2, true, tenantID, t0.Add(30*time.Minute), t0.Add(30*time.Minute))
@@ -203,10 +203,10 @@ func TestGetDashboardData_CrossTenantIsolation(t *testing.T) {
 
 	// 3 tickets do tenant A, 5 do tenant B
 	for i := 0; i < 3; i++ {
-		db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantA)
+		db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantA)
 	}
 	for i := 0; i < 5; i++ {
-		db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantB)
+		db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantB)
 	}
 
 	c, w := setupDashboardContext(t, db, tenantA)
@@ -225,7 +225,7 @@ func TestFetchTicketsByHour_CountsTodayPerHourAndIgnoresOtherTenantAndOtherDays(
 	now := time.Date(2026, 10, 5, 15, 30, 0, 0, loc)
 
 	ins := func(tid uuid.UUID, at time.Time) {
-		require.NoError(t, db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?)`, "open", tid, at, at).Error)
+		require.NoError(t, db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "createdAt", "updatedAt", "channelConnectionId") VALUES (?,?,?,?, 1)`, "open", tid, at, at).Error)
 	}
 	ins(tenantA, time.Date(2026, 10, 5, 9, 5, 0, 0, loc))
 	ins(tenantA, time.Date(2026, 10, 5, 9, 50, 0, 0, loc))
@@ -247,7 +247,7 @@ func TestGetDashboardData_IncludesTicketsByHour(t *testing.T) {
 	db := setupDashboardTestDB(t)
 	tenantID := uuid.New()
 	now := time.Now()
-	require.NoError(t, db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "createdAt", "updatedAt") VALUES (?,?,?,?)`, "open", tenantID, now, now).Error)
+	require.NoError(t, db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "createdAt", "updatedAt", "channelConnectionId") VALUES (?,?,?,?, 1)`, "open", tenantID, now, now).Error)
 
 	c, w := setupDashboardContext(t, db, tenantID)
 	GetDashboardData(c)

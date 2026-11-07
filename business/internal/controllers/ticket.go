@@ -122,10 +122,8 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 		query = query.Where("\"Tickets\".\"isGroup\" = ?", false)
 	}
 
-	// channel restringe a um canal (destino de encaminhamento só no mesmo canal): o WhatsApp é o ticket sem conexão de canal.
-	if ch := c.Query("channel"); ch == string(domain.ChannelKindWhatsApp) {
-		query = query.Where("\"Tickets\".\"channelConnectionId\" IS NULL")
-	} else if ch != "" {
+	// channel restringe a um canal (destino de encaminhamento só no mesmo canal).
+	if ch := c.Query("channel"); ch != "" {
 		query = query.Where("\"Tickets\".\"channelConnectionId\" IN (?)",
 			db.Session(&gorm.Session{NewDB: true}).Model(&models.ChannelConnection{}).Select("id").Where("kind = ?", ch))
 	}
@@ -254,41 +252,25 @@ func (tc *TicketController) ShowTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// resolveTicketConnections identifica, em lote (no máximo 2 consultas), a conexão de cada ticket da lista. A regra de "de
-// qual tabela vem a conexão" é a de services.ConnectionOf; aqui só se evita 1 consulta por ticket. Ticket cuja conexão foi
-// apagada volta sem Connection e a tela mostra só o canal.
+// resolveTicketConnections identifica, em lote (1 consulta), a conexão de cada ticket da lista. A regra por ticket é a de
+// services.ConnectionOf; aqui só se evita 1 consulta por ticket. Ticket cuja conexão foi apagada volta sem Connection e a tela
+// mostra só o canal.
 func resolveTicketConnections(db *gorm.DB, tickets []models.Ticket) map[int]models.TicketConnectionInfo {
-	channelIDs, waIDs := map[int]bool{}, map[int]bool{}
+	ids := map[int]bool{}
 	for _, t := range tickets {
-		switch {
-		case t.ChannelConnectionID != nil:
-			channelIDs[*t.ChannelConnectionID] = true
-		case t.WhatsappID != 0:
-			waIDs[t.WhatsappID] = true
-		}
+		ids[t.ChannelConnectionID] = true
 	}
-	byChannel, byWhatsapp := map[int]models.TicketConnectionInfo{}, map[int]models.TicketConnectionInfo{}
-	if len(channelIDs) > 0 {
+	byID := map[int]models.TicketConnectionInfo{}
+	if len(ids) > 0 {
 		var conns []models.ChannelConnection
-		_ = db.Session(&gorm.Session{NewDB: true}).Select("id", "kind", "name").Where("id IN ?", connIDList(channelIDs)).Find(&conns).Error
+		_ = db.Session(&gorm.Session{NewDB: true}).Select("id", "kind", "name", "avatarUrl").Where("id IN ?", connIDList(ids)).Find(&conns).Error
 		for _, c := range conns {
-			byChannel[c.ID] = models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, Source: "channel"}
-		}
-	}
-	if len(waIDs) > 0 {
-		var was []models.Whatsapp
-		_ = models.FindWhatsapps(db.Session(&gorm.Session{NewDB: true}).Where("id IN ?", connIDList(waIDs)), &was)
-		for _, w := range was {
-			byWhatsapp[w.ID] = models.TicketConnectionInfo{Kind: string(domain.ChannelKindWhatsApp), ID: w.ID, Name: w.Name, Source: "whatsapp", ProfilePicUrl: w.ProfilePicUrl}
+			byID[c.ID] = models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, Source: models.ConnectionSource(c.Kind), ProfilePicUrl: c.AvatarURL}
 		}
 	}
 	res := map[int]models.TicketConnectionInfo{}
 	for _, t := range tickets {
-		if t.ChannelConnectionID != nil {
-			if c, ok := byChannel[*t.ChannelConnectionID]; ok {
-				res[t.ID] = c
-			}
-		} else if c, ok := byWhatsapp[t.WhatsappID]; ok {
+		if c, ok := byID[t.ChannelConnectionID]; ok {
 			res[t.ID] = c
 		}
 	}
@@ -307,7 +289,7 @@ func connIDList(m map[int]bool) []int {
 func attachChannelInfo(db *gorm.DB, tickets []models.Ticket) {
 	conns := resolveTicketConnections(db, tickets)
 	for i := range tickets {
-		tickets[i].Channel = string(domain.ChannelKindWhatsApp) // ticket sem conexão de canal é do WhatsApp (legado)
+		tickets[i].Channel = string(domain.ChannelKindWhatsApp) // conexão não encontrada: a tela mostra o padrão
 		if c, ok := conns[tickets[i].ID]; ok {
 			tickets[i].Channel = c.Kind
 			cc := c
@@ -328,12 +310,8 @@ func resolveTicketChannelAndCaps(db *gorm.DB, ticket *models.Ticket) (string, do
 		Video:                true,
 	}
 
-	if ticket.ChannelConnectionID == nil {
-		return "whatsapp", defaultWhatsAppCaps
-	}
-
 	var conn models.ChannelConnection
-	if err := db.Session(&gorm.Session{NewDB: true}).Where("id = ?", *ticket.ChannelConnectionID).First(&conn).Error; err != nil {
+	if err := db.Session(&gorm.Session{NewDB: true}).Where("id = ?", ticket.ChannelConnectionID).First(&conn).Error; err != nil {
 		return "whatsapp", defaultWhatsAppCaps
 	}
 
@@ -350,12 +328,8 @@ func resolveTicketReplyPolicy(db *gorm.DB, ticket *models.Ticket) domain.ReplyPo
 	channelKind, caps := resolveTicketChannelAndCaps(db, ticket)
 	_ = channelKind
 
-	if ticket.ChannelConnectionID == nil {
-		return domain.EvaluateReplyPolicy(caps, nil, nil, now)
-	}
-
 	var conn models.ChannelConnection
-	if err := db.Session(&gorm.Session{NewDB: true}).Where("id = ?", *ticket.ChannelConnectionID).First(&conn).Error; err != nil {
+	if err := db.Session(&gorm.Session{NewDB: true}).Where("id = ?", ticket.ChannelConnectionID).First(&conn).Error; err != nil {
 		return domain.EvaluateReplyPolicy(caps, nil, nil, now)
 	}
 

@@ -4,12 +4,14 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/alltomatos/watinkdev/business/internal/models"
-	"github.com/alltomatos/watinkdev/business/pkg/auth"
-	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/pkg/auth"
+	"github.com/alltomatos/watinkdev/business/pkg/utils"
 )
 
 type createTicketRequest struct {
@@ -102,7 +104,7 @@ func (tc *TicketController) CreateTicket(c *gin.Context) {
 	}
 
 	var existing models.Ticket
-	err := q().Where(`"tenantId" = ? AND "contactId" = ? AND "whatsappId" = ? AND status IN ?`,
+	err := q().Where(`"tenantId" = ? AND "contactId" = ? AND "channelConnectionId" = ? AND status IN ?`,
 		tenantID, contact.ID, whatsappID, []string{"open", "pending"}).First(&existing).Error
 	if err == nil {
 		var visible int64
@@ -130,13 +132,14 @@ func (tc *TicketController) CreateTicket(c *gin.Context) {
 	}
 
 	ticket := models.Ticket{
-		Status:     status,
-		ContactID:  contact.ID,
-		UserID:     &userID,
-		WhatsappID: whatsappID,
-		IsGroup:    contact.IsGroup,
-		QueueID:    queueID,
-		TenantID:   tenantID,
+		Status:              status,
+		ContactID:           contact.ID,
+		UserID:              &userID,
+		ChannelConnectionID: whatsappID,
+		ConversationKey:     domain.WhatsAppConversationKey(contact.ID),
+		IsGroup:             contact.IsGroup,
+		QueueID:             queueID,
+		TenantID:            tenantID,
 	}
 	if err := q().Create(&ticket).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "CreateTicket")

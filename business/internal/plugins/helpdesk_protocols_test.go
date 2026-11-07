@@ -158,7 +158,7 @@ func TestHandleCreateProtocol_WithTicketID_NotifiesViaWhatsApp(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
 	contact := createTestContact(t, db, tenantID)
-	ticket := models.Ticket{ContactID: contact.ID, WhatsappID: 1, TenantID: tenantID}
+	ticket := models.Ticket{ContactID: contact.ID, ChannelConnectionID: 1, TenantID: tenantID}
 	if err := db.Create(&ticket).Error; err != nil {
 		t.Fatalf("failed to create ticket: %v", err)
 	}
@@ -240,7 +240,7 @@ func TestHandleCreateProtocol_AutoCreateActivity_WithTicketID_CreatesAssignedAct
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
 	contact := createTestContact(t, db, tenantID)
-	ticket := models.Ticket{ContactID: contact.ID, WhatsappID: 1, TenantID: tenantID}
+	ticket := models.Ticket{ContactID: contact.ID, ChannelConnectionID: 1, TenantID: tenantID}
 	if err := db.Create(&ticket).Error; err != nil {
 		t.Fatalf("failed to create ticket: %v", err)
 	}

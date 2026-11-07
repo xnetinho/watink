@@ -5,11 +5,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/pkg/sdk"
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 // ensureGroupContact finds or creates the Contact row for a group JID --
@@ -51,12 +53,12 @@ func ensureGroupContact(db *gorm.DB, tenantID uuid.UUID, jid, subject string) (m
 }
 
 // ensureGroupTicket reuses an open ticket for (tenantId, contactId,
-// whatsappId) or creates one -- Status "open" for a fresh group ticket
+// channelConnectionId) or creates one -- Status "open" for a fresh group ticket
 // mirrors receive_message.go's own group behavior (groups open directly,
 // they never sit in "pending" waiting for triage).
 func ensureGroupTicket(db *gorm.DB, tenantID uuid.UUID, whatsappID int, contact models.Contact) (models.Ticket, error) {
 	var ticket models.Ticket
-	err := db.Where(`"tenantId" = ? AND "contactId" = ? AND "whatsappId" = ? AND status IN ?`,
+	err := db.Where(`"tenantId" = ? AND "contactId" = ? AND "channelConnectionId" = ? AND status IN ?`,
 		tenantID, contact.ID, whatsappID, []string{"open", "pending"}).First(&ticket).Error
 	if err == nil {
 		return ticket, nil
@@ -66,11 +68,12 @@ func ensureGroupTicket(db *gorm.DB, tenantID uuid.UUID, whatsappID int, contact 
 	}
 
 	ticket = models.Ticket{
-		TenantID:   tenantID,
-		ContactID:  contact.ID,
-		WhatsappID: whatsappID,
-		Status:     "open",
-		IsGroup:    true,
+		TenantID:            tenantID,
+		ContactID:           contact.ID,
+		ChannelConnectionID: whatsappID,
+		ConversationKey:     domain.WhatsAppConversationKey(contact.ID),
+		Status:              "open",
+		IsGroup:             true,
 	}
 	if createErr := db.Create(&ticket).Error; createErr != nil {
 		return ticket, createErr

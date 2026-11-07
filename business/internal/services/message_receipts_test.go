@@ -31,7 +31,7 @@ func newReceiptEnv(t *testing.T) *receiptEnv {
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "Cliente", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open"}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: tenant, Status: "open"}
 	require.NoError(t, db.Create(&tk).Error)
 	require.NoError(t, db.Create(&models.Message{ID: "OUT1", Body: "oi", FromMe: true, TicketID: tk.ID, TenantID: tenant, Ack: 1}).Error)
 	require.NoError(t, db.Create(&models.Message{ID: "IN1", Body: "olá", FromMe: false, TicketID: tk.ID, TenantID: tenant}).Error)

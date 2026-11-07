@@ -103,12 +103,8 @@ func (r *GORMChannelSessionRepository) ResetDefaultFlag(ctx context.Context, ten
 // DeleteWithRelations removes a session and nullifies foreign keys in related entities.
 func (r *GORMChannelSessionRepository) DeleteWithRelations(ctx context.Context, id int, tenantID uuid.UUID) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&models.Ticket{}).
-			Where("\"whatsappId\" = ? AND \"tenantId\" = ?", id, tenantID).
-			Update("whatsappId", nil).Error; err != nil {
-			return err
-		}
-
+		// Os tickets da conexão acompanham a conexão: channelConnectionId é NOT NULL com ON DELETE CASCADE, então o banco os
+		// apaga junto (antes o vínculo era zerado e a conversa ficava órfã, sem conexão para responder).
 		if err := tx.Model(&models.User{}).
 			Where("\"channelConnectionId\" = ? AND \"tenantId\" = ?", id, tenantID).
 			Update("channelConnectionId", nil).Error; err != nil {
