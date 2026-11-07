@@ -28,6 +28,15 @@ causa).
 29/36); ausência de FEC de vídeo (o contato manda PT 225/231, não identificados); perfil H.264 que o navegador
 produz variar entre chamadas.
 
+**Reproduzido em 7/nov/2026 (chamada de saída iniciada pelo painel, fase 3; Android do contato, 38 s, callId `467C06DD`):** o celular tocou
+como videochamada, atendeu (`accept` com `<video dec="H264,H265,AV1">`) e confirmou o aviso de câmera ligada (`ack type="video"`), mas
+mostrou só o primeiro quadro, mesmo ligando e desligando a câmera do painel. O engine enviou normalmente: 7 janelas de ~5 s com
+`au_in = au_sent` (~13 fps), `au_gated=0`, `au_not_ready=0`, **`pli=0`** (o celular nunca pediu quadro-chave), IDR a cada ~2 s, sem erro
+nem aviso; as janelas de 35 e 24 quadros batem com o operador desligando e religando a câmera. SSRC de vídeo do operador `2251168800`
+(bit alto ligado; só observação, sem prova de relação). Mesmo envio que funcionou em 19/out (tarefa 2.4); a causa continua desconhecida.
+Decisão do dono (7/nov/2026): **não investigar agora**; segue como bug aberto. Para retomar: B.1/B.2 abaixo (`logcat` do celular e comparação
+byte a byte dos pacotes).
+
 **Próximo passo:** capturar o que o decoder do celular registra durante o congelamento (`adb logcat` do
 WhatsApp/`MediaCodec` por depuração sem fio) e comparar byte a byte um pacote de vídeo nosso com um do contato.
 
@@ -113,7 +122,7 @@ WhatsApp/`MediaCodec` por depuração sem fio) e comparar byte a byte um pacote 
 - [x] 3.1 `POST /calls` aceita `video: true` (mesma permissão `calls:place`); comando `call.start` leva o vídeo _(7/nov/2026: `placeCallRequest.Video` → `Service.Place` grava `media` e manda `video` no comando; engine `Session.Start(…, video)` → `StartCall(isVideo)`; testes `TestPlaceCall_VideoFlag` e `TestStart_VideoFlagReachesTheHandle`, ambos provados por mutação)_
 - [x] 3.2 Botão de videochamada no ticket, oculto/desabilitado sem suporte do navegador ou com proxy _(7/nov/2026: `PlaceCallButton`, 6 testes novos)_
 - [x] 3.3 Registro da chamada guarda se foi de vídeo; histórico e mensagem do chat mostram o ícone _(7/nov/2026: `CallLog.Media` já existia; o histórico (`CallsTable`) ganhou o ícone; a mensagem do chat já o tinha)_
-- [ ] 3.4 **Teste real: operador liga em vídeo e o celular toca como videochamada** (iPhone e Android)
+- [ ] 3.4 **Teste real: operador liga em vídeo e o celular toca como videochamada** (iPhone e Android) _(7/nov/2026, só Android: o celular tocou como videochamada e atendeu; o vídeo do operador congelou no primeiro quadro = bug B acima. Fica aberta até o B ser resolvido e o iPhone testado)_
 
 ## 4. Upgrade e downgrade no meio
 
