@@ -27,9 +27,13 @@ import QuotedMessage from "./QuotedMessage";
 // Renders a media bubble when the message has stored media OR is a media type
 // that renders without a URL: location/vcard/carousel (body-driven) and the
 // downloadable types whose blurred placeholder shows before download.
-/** Há selo no rodapé esquerdo do balão (editada ou visualização única)? Quem tem precisa de largura e de uma linha extra. */
-export const hasFooterBadge = (m: Message): boolean =>
+/** Selo que já ocupa o canto esquerdo do rodapé (o do aparelho cede o lugar a ele). */
+const hasFooterBadgeOtherThanDevice = (m: Message): boolean =>
   !m.isDeleted && (Number(m.editCount ?? 0) > 0 || hasViewOnceBadge(m) || hasGifTrimmedBadge(m));
+
+/** Há selo no rodapé esquerdo do balão (editada, visualização única ou aparelho do contato)? Quem tem precisa de largura e de uma linha extra. */
+export const hasFooterBadge = (m: Message, channel?: string): boolean =>
+  !m.isDeleted && (Number(m.editCount ?? 0) > 0 || hasViewOnceBadge(m) || hasGifTrimmedBadge(m) || senderDeviceOf(m, channel) !== null);
 
 const MEDIA_BUBBLE_TYPES = [
   "image",
@@ -63,6 +67,7 @@ import ForwardedLabel from "./ForwardedLabel";
 import EditedBadge from "./EditedBadge";
 import ViewOnceBadge, { hasViewOnceBadge } from "./ViewOnceBadge";
 import GifTrimmedBadge, { hasGifTrimmedBadge } from "./GifTrimmedBadge";
+import SenderDeviceBadge, { senderDeviceOf } from "./SenderDeviceBadge";
 import LinkPreview from "./LinkPreview";
 import DailyTimestamp from "./DailyTimestamp";
 import SenderName from "./SenderName";
@@ -75,6 +80,7 @@ interface MessageBubbleProps {
   index: number;
   messagesList: Message[];
   isGroup?: boolean;
+  channel?: string;
   appTheme: string;
   mentionsMap: Record<string, string>;
   colorCache: Map<string, string>;
@@ -112,6 +118,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   index,
   messagesList,
   isGroup,
+  channel,
   appTheme,
   mentionsMap,
   colorCache,
@@ -192,7 +199,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         message.isDeleted ? "italic text-[hsl(var(--text-muted))] pr-20" : "pr-20",
         // Os selos do rodapé ("Editada", "Visualização única") ocupam o canto esquerdo e o horário a direita: sem esta
         // largura mínima os dois se sobrepõem num balão curto ("Oi"). A linha extra empurra o texto para cima do rodapé.
-        hasFooterBadge(message) && "min-w-[230px] pb-5"
+        hasFooterBadge(message, channel) && "min-w-[230px] pb-5"
       )}
     >
       <DeletedMessage message={message} />
@@ -211,6 +218,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       <EditedBadge message={message} />
       <ViewOnceBadge message={message} />
       <GifTrimmedBadge message={message} />
+      {!hasFooterBadgeOtherThanDevice(message) && <SenderDeviceBadge message={message} channel={channel} />}
       <MessageMetadata message={message} isGroup={isGroup} onRetry={message.ack === 5 ? handleRetry : undefined} />
     </div>
   );

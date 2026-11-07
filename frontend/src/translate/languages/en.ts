@@ -553,6 +553,13 @@ const messages = {
           remove: "Remove vote",
         },
         liveLocation: "Live location",
+        senderDevice: {
+          android: "Android",
+          ios: "iPhone",
+          web: "Web",
+          desktop: "Desktop",
+          estimated: "Device estimated from the message id format",
+        },
         forwarded: "Forwarded",
         edited: "Edited",
         receipts: {

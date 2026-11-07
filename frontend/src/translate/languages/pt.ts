@@ -675,6 +675,13 @@ const messages = {
           remove: "Remover voto",
         },
         liveLocation: "Localização em tempo real",
+        senderDevice: {
+          android: "Android",
+          ios: "iPhone",
+          web: "Web",
+          desktop: "Desktop",
+          estimated: "Aparelho estimado pelo formato do id da mensagem",
+        },
         forwarded: "Encaminhada",
         edited: "Editada",
         receipts: {

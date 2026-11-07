@@ -91,6 +91,7 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel,
               index={index}
               messagesList={messagesList}
               isGroup={isGroup}
+              channel={channel}
               appTheme={appTheme}
               mentionsMap={mentionsMap}
               colorCache={groupColorCacheRef.current ?? new Map()}
