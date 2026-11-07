@@ -112,7 +112,7 @@ func (mc *MessageController) forwardOne(c *gin.Context, db *gorm.DB, tenantID uu
 		Where(`id = ? AND "tenantId" = ?`, contactID, tenantID).First(&contact).Error; err != nil {
 		return fail("contact_not_found")
 	}
-	conn, found := resolveConnection(db, tenantID, contact.ConnectionSource, contact.ConnectionID)
+	conn, found := resolveConnection(db, tenantID, contact.ConnectionID)
 	if !found {
 		return fail("connection_required")
 	}

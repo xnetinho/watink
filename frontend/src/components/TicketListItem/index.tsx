@@ -20,11 +20,6 @@ interface Queue {
   color?: string;
 }
 
-interface WhatsApp {
-  name?: string;
-  status?: string;
-}
-
 interface Contact {
   id?: number;
   name: string;
@@ -51,12 +46,11 @@ interface Ticket {
   isCommunity?: boolean;
   isSubGroup?: boolean;
   isNewsletter?: boolean;
-  whatsappId?: number;
+  connectionId?: number;
   channel?: string;
   connection?: TicketConnection;
   contact: Contact;
   queue?: Queue;
-  whatsapp?: WhatsApp;
   tags?: Tag[];
 }
 

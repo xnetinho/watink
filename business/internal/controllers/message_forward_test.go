@@ -45,7 +45,7 @@ func (e *sendEnv) forward(t *testing.T, msgID, payload string) (*httptest.Respon
 // contactOf cria o contato de um chat do Telegram NESTA conexão (identidade incluída), como se ele tivesse sido visto antes.
 func (e *sendEnv) contactOf(t *testing.T, chat string) models.Contact {
 	t.Helper()
-	ct := models.Contact{Name: "Contato " + chat, Number: "", TenantID: e.tenantID, ConnectionSource: "channel", ConnectionID: e.conn.ID}
+	ct := models.Contact{Name: "Contato " + chat, Number: "", TenantID: e.tenantID, ConnectionID: e.conn.ID}
 	require.NoError(t, e.db.Create(&ct).Error)
 	require.NoError(t, e.db.Create(&models.ContactIdentity{TenantID: e.tenantID, ContactID: ct.ID, Channel: "telegram", ConnectionID: e.conn.ID, ExternalID: chat, Meta: "{}"}).Error)
 	return ct
@@ -146,7 +146,7 @@ func TestForward_ContatoDeOutraConexaoDoMesmoCanalUsaAConexaoDele(t *testing.T) 
 
 	other := models.ChannelConnection{TenantID: e.tenantID, Kind: "telegram", Name: "Outro bot", Status: "CONNECTED"}
 	require.NoError(t, e.db.Create(&other).Error)
-	ct := models.Contact{Name: "Zé", TenantID: e.tenantID, ConnectionSource: "channel", ConnectionID: other.ID}
+	ct := models.Contact{Name: "Zé", TenantID: e.tenantID, ConnectionID: other.ID}
 	require.NoError(t, e.db.Create(&ct).Error)
 	require.NoError(t, e.db.Create(&models.ContactIdentity{TenantID: e.tenantID, ContactID: ct.ID, Channel: "telegram", ConnectionID: other.ID, ExternalID: "chat-Z", Meta: "{}"}).Error)
 
@@ -179,7 +179,7 @@ func TestForward_EntreCanaisDiferentesERecusado(t *testing.T) {
 	id := e.seedMessage(t, from, "m1", "10", "oi", "", "")
 	wa := models.Whatsapp{Name: "wa", TenantID: e.tenantID, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(e.db, &wa))
-	ct := models.Contact{Name: "Zé", Number: "5511999", TenantID: e.tenantID, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
+	ct := models.Contact{Name: "Zé", Number: "5511999", TenantID: e.tenantID, ConnectionID: wa.ID}
 	require.NoError(t, e.db.Create(&ct).Error)
 
 	for _, mode := range []string{"copy", "forward"} {
@@ -193,9 +193,9 @@ func TestForward_ContatoSemConexaoValidaOuDeOutraEmpresaNaoRecebe(t *testing.T) 
 	e := newSendEnv(t)
 	from := e.newTicket(t, "chat-A")
 	id := e.seedMessage(t, from, "m1", "10", "oi", "", "")
-	orphan := models.Contact{Name: "Órfão", Number: "1", TenantID: e.tenantID, ConnectionSource: "channel", ConnectionID: 99999}
+	orphan := models.Contact{Name: "Órfão", Number: "1", TenantID: e.tenantID, ConnectionID: 99999}
 	require.NoError(t, e.db.Create(&orphan).Error)
-	alheio := models.Contact{Name: "Alheio", TenantID: uuid.New(), ConnectionSource: "channel", ConnectionID: e.conn.ID}
+	alheio := models.Contact{Name: "Alheio", TenantID: uuid.New(), ConnectionID: e.conn.ID}
 	require.NoError(t, e.db.Create(&alheio).Error)
 
 	_, body := e.forward(t, id, `{"contactIds":[`+ids(orphan, alheio)+`],"mode":"copy"}`)

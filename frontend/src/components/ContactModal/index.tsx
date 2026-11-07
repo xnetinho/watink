@@ -37,7 +37,7 @@ interface ExtraInfo {
 }
 
 interface ContactValues {
-  /** Conexão de origem ("whatsapp:1", "channel:2"): o contato pertence a ela e é por ela que recebe e envia. */
+  /** Id da conexão de origem (chave de connectionKey): o contato pertence a ela e é por ela que recebe e envia. */
   connection: string;
   name: string;
   number: string;
@@ -68,7 +68,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }: Conta
     }
     if (!contactId) return;
     api.get(`/contacts/${contactId}`)
-      .then(({ data }) => setContact({ ...data, connection: connectionKey({ source: data.connectionSource, id: data.connectionId }) }))
+      .then(({ data }) => setContact({ ...data, connection: String(data.connectionId) }))
       .catch(toastError);
   }, [contactId, open, initialValues]);
 
@@ -85,8 +85,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }: Conta
         await api.put(`/contacts/${contactId}`, rest);
       } else {
         const { connection, ...rest } = values;
-        const ref = parseConnectionKey(connection);
-        const { data } = await api.post("/contacts", { ...rest, connectionSource: ref?.source, connectionId: ref?.id });
+        const { data } = await api.post("/contacts", { ...rest, connectionId: parseConnectionKey(connection) });
         if (onSave) onSave(data);
       }
       toast.success(i18n.t("contactModal.success"));
@@ -130,7 +129,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }: Conta
                     {connections.map((c) => (
                       <SelectItem key={connectionKey(c)} value={connectionKey(c)}>
                         <span className="flex items-center gap-2">
-                          <TicketConnectionBadge connection={{ kind: c.kind, id: c.id, name: c.name, source: c.source }} size="sm" />
+                          <TicketConnectionBadge connection={{ kind: c.kind, id: c.id, name: c.name }} size="sm" />
                         </span>
                       </SelectItem>
                     ))}

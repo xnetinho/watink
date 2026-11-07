@@ -293,10 +293,10 @@ describe("TransferTicketModal", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  // ── ticketWhatsappId ──────────────────────────────────────────────────────
+  // ── ticketConnectionId ──────────────────────────────────────────────────────
 
-  it("pré-seleciona conexão quando ticketWhatsappId é passado", () => {
-    renderModal({ ticketWhatsappId: 10 });
+  it("pré-seleciona conexão quando ticketConnectionId é passado", () => {
+    renderModal({ ticketConnectionId: 10 });
     // O valor pré-selecionado "10" deve estar refletido; botão Transferir
     // deve estar habilitado pois há uma conexão selecionada
     const btn = screen.getByRole("button", { name: "Transferir" });

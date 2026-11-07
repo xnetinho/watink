@@ -254,7 +254,7 @@ func handleRevokeInviteLink(svc *groupsService) gin.HandlerFunc {
 			return
 		}
 		var req struct {
-			WhatsappID int `json:"whatsappId" binding:"required"`
+			WhatsappID int `json:"connectionId" binding:"required"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
 			utils.RespondWithBindError(c, err)
@@ -289,7 +289,7 @@ func handleLeaveGroup(svc *groupsService) gin.HandlerFunc {
 			return
 		}
 		var req struct {
-			WhatsappID int `json:"whatsappId" binding:"required"`
+			WhatsappID int `json:"connectionId" binding:"required"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
 			utils.RespondWithBindError(c, err)

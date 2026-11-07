@@ -19,10 +19,9 @@ import (
 // per connection here would be pure bloat for a list screen that only
 // renders subject/picture/counts.
 type GroupCache struct {
-	ID       int       `gorm:"primaryKey" json:"id"`
-	TenantID uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
-	// A chave JSON segue "whatsappId" até a fatia 5 da migração (frontend): o contrato com a tela não muda neste PR.
-	ChannelConnectionID int       `gorm:"column:channelConnectionId;not null;index" json:"whatsappId,omitempty"`
+	ID                  int       `gorm:"primaryKey" json:"id"`
+	TenantID            uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;not null;index" json:"connectionId,omitempty"`
 	JID                 string    `gorm:"column:jid;not null" json:"jid"`
 	Subject             string    `json:"subject"`
 	Description         string    `json:"description"`

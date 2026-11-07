@@ -29,14 +29,14 @@ func newGroupsService(core sdk.WatinkCore, resolver domain.WhatsAppEngineResolve
 	return &groupsService{db: core.GetDB(), resolver: resolver, throttle: newGroupsThrottle()}
 }
 
-// resolveConnectionFromQuery is the GET-route entry point — whatsappId
+// resolveConnectionFromQuery is the GET-route entry point — connectionId
 // travels as a query string.
 func (s *groupsService) resolveConnectionFromQuery(c *gin.Context, tenantID uuid.UUID) (models.Whatsapp, domain.GroupEngine, error) {
-	raw := c.Query("whatsappId")
+	raw := c.Query("connectionId")
 	whatsappID, err := strconv.Atoi(raw)
 	if err != nil || whatsappID <= 0 {
 		var zero models.Whatsapp
-		return zero, nil, utils.NewFriendlyError(http.StatusBadRequest, "Parâmetro whatsappId é obrigatório.", fmt.Errorf("groups: whatsappId inválido na query: %q", raw))
+		return zero, nil, utils.NewFriendlyError(http.StatusBadRequest, "Parâmetro connectionId é obrigatório.", fmt.Errorf("groups: connectionId inválido na query: %q", raw))
 	}
 	return s.resolveConnection(c, tenantID, whatsappID)
 }
@@ -77,13 +77,13 @@ func (s *groupsService) checkThrottle(tenantID uuid.UUID, whatsappID int) error 
 }
 
 // checkThrottleFromQuery is checkThrottle for the handful of write routes
-// that take whatsappId from the query string instead of a JSON body (e.g.
+// that take connectionId from the query string instead of a JSON body (e.g.
 // DELETE .../groups/:groupId, which typical REST clients send without a
 // body).
 func (s *groupsService) checkThrottleFromQuery(tenantID uuid.UUID, whatsappIDRaw string) error {
 	whatsappID, err := strconv.Atoi(whatsappIDRaw)
 	if err != nil || whatsappID <= 0 {
-		return utils.NewFriendlyError(http.StatusBadRequest, "Parâmetro whatsappId é obrigatório.", fmt.Errorf("groups: whatsappId inválido na query: %q", whatsappIDRaw))
+		return utils.NewFriendlyError(http.StatusBadRequest, "Parâmetro connectionId é obrigatório.", fmt.Errorf("groups: connectionId inválido na query: %q", whatsappIDRaw))
 	}
 	return s.checkThrottle(tenantID, whatsappID)
 }

@@ -13,5 +13,5 @@ export interface TransferTicketModalProps {
   modalOpen: boolean;
   onClose: () => void;
   ticketid: number | string;
-  ticketWhatsappId?: number | string;
+  ticketConnectionId?: number | string;
 }

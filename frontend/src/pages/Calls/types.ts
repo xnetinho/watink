@@ -2,7 +2,7 @@
 export interface CallLogRow {
   id: number;
   callId: string;
-  whatsappId: number;
+  connectionId: number;
   contactId: number | null;
   ticketId: number | null;
   direction: "incoming" | "outgoing";

@@ -61,14 +61,14 @@ func (uc *UserController) GetMe(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":         userModel.ID,
-		"name":       userModel.Name,
-		"email":      userModel.Email,
-		"alcance":    userModel.Alcance,
-		"whatsappId": userModel.ChannelConnectionID,
-		"tenantId":   userModel.TenantID,
-		"cargoId":    userModel.CargoID,
-		"configs":    userModel.Configs,
+		"id":           userModel.ID,
+		"name":         userModel.Name,
+		"email":        userModel.Email,
+		"alcance":      userModel.Alcance,
+		"connectionId": userModel.ChannelConnectionID,
+		"tenantId":     userModel.TenantID,
+		"cargoId":      userModel.CargoID,
+		"configs":      userModel.Configs,
 	})
 }
 
@@ -150,7 +150,7 @@ func (uc *UserController) UpdateMe(c *gin.Context) {
 		}
 		updateMap["email"] = normalizeEmail(email)
 	}
-	if v, ok := req["whatsappId"]; ok {
+	if v, ok := req["connectionId"]; ok {
 		if v == "" || v == nil {
 			updateMap["channelConnectionId"] = nil
 		} else {

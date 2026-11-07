@@ -23,7 +23,7 @@ const TransferTicketModal = ({
   modalOpen,
   onClose,
   ticketid,
-  ticketWhatsappId,
+  ticketConnectionId,
 }: TransferTicketModalProps) => {
   const {
     options,
@@ -43,7 +43,7 @@ const TransferTicketModal = ({
     handleSearchChange,
     setSelectedQueue,
     setSelectedWhatsapp,
-  } = useTransferTicketModal({ modalOpen, onClose, ticketid, ticketWhatsappId });
+  } = useTransferTicketModal({ modalOpen, onClose, ticketid, ticketConnectionId });
 
   return (
     <Dialog

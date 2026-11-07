@@ -33,7 +33,6 @@ const Connections = () => {
     whatsApps,
     reloadWhatsApps,
     channelConnections,
-    reloadChannelConnections,
     handleDeleteChannelConnection,
     whatsAppModalOpen,
     webchatModalOpen,
@@ -72,7 +71,7 @@ const Connections = () => {
       <WhatsAppModal
         open={whatsAppModalOpen}
         onClose={handleCloseWhatsAppModal}
-        whatsAppId={selectedWhatsApp?.id}
+        connectionId={selectedWhatsApp?.id}
         onSaved={async () => { await reloadWhatsApps(); }}
       />
       <ChannelSelectorModal
@@ -80,12 +79,12 @@ const Connections = () => {
         editConnection={editingChannel}
         onClose={() => { setChannelSelectorOpen(false); setEditingChannel(null); }}
         onSelectWhatsApp={handleOpenNewWhatsApp}
-        onChannelCreated={async () => { await Promise.all([reloadWhatsApps(), reloadChannelConnections()]); }}
+        onChannelCreated={async () => { await reloadWhatsApps(); }}
       />
       <WebchatModal
         open={webchatModalOpen}
         onClose={handleCloseWebchatModal}
-        whatsAppId={selectedWhatsApp?.id}
+        connectionId={selectedWhatsApp?.id}
         onSaved={async () => { await reloadWhatsApps(); }}
       />
       <ConfirmationModal
@@ -208,7 +207,7 @@ const Connections = () => {
               key={whatsApp.id}
               whatsApp={whatsApp}
               pending={pendingSessionIds.has(whatsApp.id)}
-              onNavigate={(id) => navigate(`/connections/${id}`)}
+              onNavigate={(id) => navigate(`/channels/connections/${id}/session`)}
               onConnect={handleStartSession}
               onDisconnect={handleDisconnectSession}
               onRequestQrCode={handleRequestNewQrCode}

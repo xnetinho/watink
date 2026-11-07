@@ -39,7 +39,7 @@ export function useFlowPersistence({
     const [isChatOpen, setIsChatOpen] = useState(false);
     // Conexão atrelada ao fluxo (Flow.WhatsAppID). null = sem conexão. Controlada
     // pelo editor (toolbar) — fonte da verdade; pode ser definida depois ou trocada.
-    const [whatsappId, setWhatsappId] = useState<number | null>(null);
+    const [connectionId, setConnectionId] = useState<number | null>(null);
     const [connections, setConnections] = useState<{ id: number; name: string }[]>([]);
 
     useEffect(() => {
@@ -60,7 +60,7 @@ export function useFlowPersistence({
             }
         };
         fetchSettings();
-        api.get('/whatsapp').then((r) => setConnections(r.data)).catch(() => {});
+        api.get('/channels/connections').then((r) => setConnections(r.data)).catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -69,7 +69,7 @@ export function useFlowPersistence({
                 const { data } = await api.get(`/flows/${flowId}`);
                 setFlowName(data.name);
                 setIsActive(data.active !== false);
-                setWhatsappId(typeof data.whatsappId === 'number' ? data.whatsappId : null);
+                setConnectionId(typeof data.connectionId === 'number' ? data.connectionId : null);
 
                 if (Array.isArray(data.nodes)) {
                     setNodes(hydrateNodes(stripLegacyDimensions(data.nodes as Node[])));
@@ -94,7 +94,7 @@ export function useFlowPersistence({
                 nodes,
                 edges,
                 active: isActive,
-                whatsappId,
+                connectionId,
             });
             if (!silent) toast.success(tr("uiText.flow.io.saved"));
         } catch (err) {
@@ -102,7 +102,7 @@ export function useFlowPersistence({
         } finally {
             if (!silent) setSaving(false);
         }
-    }, [flowId, flowName, nodes, edges, isActive, whatsappId]);
+    }, [flowId, flowName, nodes, edges, isActive, connectionId]);
 
     useEffect(() => {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -125,14 +125,14 @@ export function useFlowPersistence({
                 nodes,
                 edges,
                 active: next,
-                whatsappId,
+                connectionId,
             });
             toast.success(next ? 'Fluxo ativado' : 'Fluxo pausado');
         } catch (err) {
             setIsActive(!next);
             toastError(err);
         }
-    }, [isActive, flowId, flowName, nodes, edges, whatsappId]);
+    }, [isActive, flowId, flowName, nodes, edges, connectionId]);
 
     const validateFlow = useCallback(() => {
         const connectedEdges = getConnectedEdges(nodes, edges);
@@ -157,8 +157,8 @@ export function useFlowPersistence({
         aiEnabled,
         isChatOpen,
         setIsChatOpen,
-        whatsappId,
-        setWhatsappId,
+        connectionId,
+        setConnectionId,
         connections,
         handleSave,
         handleToggle,

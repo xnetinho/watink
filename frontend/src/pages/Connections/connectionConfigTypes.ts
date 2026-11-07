@@ -66,7 +66,7 @@ export interface DetailItemProps {
 }
 
 export interface UseConnectionConfigReturn {
-  whatsappId: string | undefined;
+  connectionId: string | undefined;
   whatsapp: WhatsApp | null;
   loading: boolean;
   stats: Stats | null;

@@ -1,30 +1,32 @@
 import { useEffect, useState } from "react";
 import api from "../../../services/api";
 import { useLocalStorage } from "../../../hooks/useLocalStorage";
-import { WhatsappOption } from "../groupTypes";
+import { ConnectionOption } from "../groupTypes";
 
 /**
  * Shared connection-selection state for Groups/Communities pages (plan §6.3
  * — a WhatsApp group cannot exist without a connection, so every screen is
- * scoped by whatsappId, persisted across visits).
+ * scoped by connectionId, persisted across visits).
  */
 export function useGroupsConnection() {
-    const [whatsapps, setWhatsapps] = useState<WhatsappOption[]>([]);
+    const [connections, setConnections] = useState<ConnectionOption[]>([]);
     const [loadingConnections, setLoadingConnections] = useState(true);
-    const [whatsappId, setWhatsappId] = useLocalStorage<number | null>("groupsWhatsappId", null);
+    const [connectionId, setConnectionId] = useLocalStorage<number | null>("groupsConnectionId", null);
 
     useEffect(() => {
         let active = true;
         (async () => {
             try {
-                const { data } = await api.get("/whatsapp");
-                const list: WhatsappOption[] = Array.isArray(data) ? data : [];
+                const { data } = await api.get("/channels/connections");
+                const list: ConnectionOption[] = Array.isArray(data)
+                    ? data.filter((c: ConnectionOption) => c.kind === "whatsapp")
+                    : [];
                 if (!active) return;
-                setWhatsapps(list);
-                if (whatsappId === null && list.length > 0) {
-                    setWhatsappId(list[0].id);
-                } else if (whatsappId !== null && !list.some((w) => w.id === whatsappId)) {
-                    setWhatsappId(list.length > 0 ? list[0].id : null);
+                setConnections(list);
+                if (connectionId === null && list.length > 0) {
+                    setConnectionId(list[0].id);
+                } else if (connectionId !== null && !list.some((w) => w.id === connectionId)) {
+                    setConnectionId(list.length > 0 ? list[0].id : null);
                 }
             } finally {
                 if (active) setLoadingConnections(false);
@@ -36,5 +38,5 @@ export function useGroupsConnection() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    return { whatsapps, whatsappId, setWhatsappId, loadingConnections };
+    return { connections, connectionId, setConnectionId, loadingConnections };
 }

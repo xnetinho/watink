@@ -26,7 +26,7 @@ interface Ticket {
   isGroup?: boolean;
   isCommunity?: boolean;
   isSubGroup?: boolean;
-  whatsappId?: number;
+  connectionId?: number;
   contact: {
     name: string;
   };

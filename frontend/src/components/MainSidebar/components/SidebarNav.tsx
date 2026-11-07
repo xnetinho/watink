@@ -236,7 +236,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed, activePlugins }) => 
         perform="connections:read"
         yes={() => (
           <SidebarItem
-            to="/connections"
+            to="/channels/connections"
             label={i18n.t("mainDrawer.listItems.connections")}
             icon={<RefreshCw size={20} />}
             collapsed={collapsed}

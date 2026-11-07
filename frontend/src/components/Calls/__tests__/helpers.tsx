@@ -16,7 +16,7 @@ export const baseCall = (over: Partial<ActiveCall> = {}): ActiveCall => ({
   direction: "incoming",
   media: "audio",
   phase: "ringing",
-  whatsappId: 1,
+  connectionId: 1,
   contact: { name: "Maria Souza", number: "5511999990001" },
   ticketId: 10,
   connectedAt: null,

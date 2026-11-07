@@ -2,8 +2,9 @@ import { i18n } from "../../translate/i18n";
 
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
-export interface WhatsappOption {
+export interface ConnectionOption {
     id: number;
+    kind: string;
     name: string;
     status?: string;
 }

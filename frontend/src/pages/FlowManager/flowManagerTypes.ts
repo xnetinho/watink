@@ -12,8 +12,8 @@ export interface FlowApi {
   name: string;
   active: boolean;
   updatedAt: string;
-  whatsappId: number | null;
-  whatsapp?: FlowWhatsapp;
+  connectionId: number | null;
+  connection?: FlowWhatsapp;
 }
 
 export interface Flow {
@@ -22,8 +22,8 @@ export interface Flow {
   /** UI-facing alias of the backend `active` field. */
   isActive: boolean;
   updatedAt: string;
-  whatsappId: number | null;
-  whatsapp?: FlowWhatsapp;
+  connectionId: number | null;
+  connection?: FlowWhatsapp;
 }
 
 export interface Whatsapp {

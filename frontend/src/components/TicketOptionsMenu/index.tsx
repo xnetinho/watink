@@ -12,7 +12,7 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 
 interface Ticket {
   id: number;
-  whatsappId?: number;
+  connectionId?: number;
   contact: {
     name: string;
   };
@@ -102,7 +102,7 @@ const TicketOptionsMenu: React.FC<TicketOptionsMenuProps> = ({
         modalOpen={transferTicketModalOpen}
         onClose={handleCloseTransferTicketModal}
         ticketid={ticket.id}
-        ticketWhatsappId={ticket.whatsappId}
+        ticketConnectionId={ticket.connectionId}
       />
     </>
   );

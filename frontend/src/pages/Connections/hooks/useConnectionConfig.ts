@@ -9,7 +9,7 @@ import type { UseConnectionConfigReturn } from "../connectionConfigTypes";
 export type { UseConnectionConfigReturn };
 
 export const useConnectionConfig = (): UseConnectionConfigReturn => {
-  const { whatsappId } = useParams<{ whatsappId: string }>();
+  const { id: connectionId } = useParams<{ id: string }>();
 
   const {
     whatsapp,
@@ -17,14 +17,14 @@ export const useConnectionConfig = (): UseConnectionConfigReturn => {
     loading,
     stats,
     fetchWhatsapp,
-  } = useConnectionFetch(whatsappId);
+  } = useConnectionFetch(connectionId);
 
   const status: string = whatsapp?.status ?? "DISCONNECTED";
   const isConnected = status === "CONNECTED";
   const isBusy = status === "OPENING" || status === "PAIRING";
 
   const actions = useConnectionActions({
-    whatsappId,
+    connectionId,
     isConnected,
     isBusy,
     setWhatsapp,
@@ -32,7 +32,7 @@ export const useConnectionConfig = (): UseConnectionConfigReturn => {
   });
 
   useWhatsAppSocket({
-    whatsappId,
+    connectionId,
     setWhatsapp,
     setShowQrCode: actions.setShowQrCode,
     setShowPairingInput: actions.setShowPairingInput,
@@ -45,7 +45,7 @@ export const useConnectionConfig = (): UseConnectionConfigReturn => {
   });
 
   return {
-    whatsappId,
+    connectionId,
     whatsapp,
     loading,
     stats,

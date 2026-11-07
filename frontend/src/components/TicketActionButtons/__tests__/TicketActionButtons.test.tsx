@@ -70,17 +70,17 @@ describe("TicketActionButtons — botão de ligar", () => {
   };
 
   it.each(["open", "pending", "closed"] as const)("aparece em ticket individual %s com calls:place", (status) => {
-    renderWith({ id: 1, status, whatsappId: 1, contact: { name: "Ana" } }, true);
+    renderWith({ id: 1, status, connectionId: 1, contact: { name: "Ana" } }, true);
     expect(screen.getByTestId("place-call")).toBeInTheDocument();
   });
 
   it("não aparece sem calls:place", () => {
-    renderWith({ id: 1, status: "open", whatsappId: 1, contact: { name: "Ana" } }, false);
+    renderWith({ id: 1, status: "open", connectionId: 1, contact: { name: "Ana" } }, false);
     expect(screen.queryByTestId("place-call")).not.toBeInTheDocument();
   });
 
   it("não aparece em grupo", () => {
-    renderWith({ id: 1, status: "open", whatsappId: 1, isGroup: true, contact: { name: "Grupo" } }, true);
+    renderWith({ id: 1, status: "open", connectionId: 1, isGroup: true, contact: { name: "Grupo" } }, true);
     expect(screen.queryByTestId("place-call")).not.toBeInTheDocument();
   });
 });

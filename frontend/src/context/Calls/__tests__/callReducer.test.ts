@@ -4,7 +4,7 @@ import type { CallEventPayload, CallQuality } from "../types";
 
 const incoming = (id = "C1"): CallEventPayload => ({
   callId: id,
-  whatsappId: 1,
+  connectionId: 1,
   direction: "incoming",
   contact: { name: "Maria", number: "5511999990001" },
   ticketId: 10,

@@ -220,8 +220,8 @@ func (s *Skeleton) matchTriggers(ctx context.Context, tenantID uuid.UUID, body s
 	var candidates []models.Flow
 	q := s.db.WithContext(ctx).
 		Where(`"tenantId" = ? AND active = ? AND "triggerType" = ?`, tenantID, true, TriggerWhatsAppMessage)
-	// Connection-scoped triggers: a flow bound to a connection ("whatsappId" set)
-	// only fires for inbound on THAT connection; an unbound flow (NULL "whatsappId")
+	// Connection-scoped triggers: a flow bound to a connection ("connectionId" set)
+	// only fires for inbound on THAT connection; an unbound flow (NULL "connectionId")
 	// fires for any connection. This is what makes an "agent bound to a connection"
 	// possible (an "any message" flow with whatsappId=X → all inbound on X is the
 	// agent's). connectionID<=0 (legacy no-ticket path) skips the filter.

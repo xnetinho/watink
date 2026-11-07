@@ -6,7 +6,7 @@ export interface NodeData {
   label?: string;
   triggerType?: string;
   actionType?: string;
-  whatsappId?: string;
+  connectionId?: string;
   webhookToken?: string;
   conditions?: Condition[];
   conditionsA?: Condition[];

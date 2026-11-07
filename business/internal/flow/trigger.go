@@ -28,7 +28,7 @@ type triggerNodeData struct {
 	TriggerType string `json:"triggerType"`
 	// WhatsAppID is the connection id the trigger is bound to. The frontend Select
 	// stores it as a string; parseConnID turns it into the *int the Flow column uses.
-	WhatsAppID *string `json:"whatsappId"`
+	WhatsAppID *string `json:"connectionId"`
 	Conditions []struct {
 		Field    string `json:"field"`
 		Operator string `json:"operator"`
@@ -165,7 +165,7 @@ func extractOperator(d triggerNodeData) string {
 }
 
 // parseConnID turns the trigger node's connection id (a string from the frontend
-// Select, possibly empty) into the *int the Flow "whatsappId" column uses. An empty
+// Select, possibly empty) into the *int the Flow "connectionId" column uses. An empty
 // or non-numeric value yields nil (= unbound / any connection).
 func parseConnID(s *string) *int {
 	if s == nil {

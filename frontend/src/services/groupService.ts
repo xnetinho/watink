@@ -61,106 +61,106 @@ export interface GroupSettingsPatch {
     memberAddMode?: string;
 }
 
-export const listGroups = async (whatsappId: number): Promise<GroupInfo[]> => {
-    const { data } = await api.get("/groups", { params: { whatsappId } });
+export const listGroups = async (connectionId: number): Promise<GroupInfo[]> => {
+    const { data } = await api.get("/groups", { params: { connectionId } });
     return Array.isArray(data) ? data : [];
 };
 
-export const getGroup = async (whatsappId: number, jid: string): Promise<GroupInfo> => {
-    const { data } = await api.get(`/groups/${encodeURIComponent(jid)}`, { params: { whatsappId } });
+export const getGroup = async (connectionId: number, jid: string): Promise<GroupInfo> => {
+    const { data } = await api.get(`/groups/${encodeURIComponent(jid)}`, { params: { connectionId } });
     return data;
 };
 
 export const createGroup = async (
-    whatsappId: number,
+    connectionId: number,
     subject: string,
     participants: string[]
 ): Promise<GroupInfo> => {
-    const { data } = await api.post("/groups", { whatsappId, subject, participants });
+    const { data } = await api.post("/groups", { connectionId, subject, participants });
     return data;
 };
 
 export const updateGroupSettings = async (
-    whatsappId: number,
+    connectionId: number,
     jid: string,
     patch: GroupSettingsPatch
 ): Promise<void> => {
-    await api.put(`/groups/${encodeURIComponent(jid)}`, { whatsappId, ...patch });
+    await api.put(`/groups/${encodeURIComponent(jid)}`, { connectionId, ...patch });
 };
 
 export const updateParticipants = async (
-    whatsappId: number,
+    connectionId: number,
     jid: string,
     action: "add" | "remove" | "promote" | "demote",
     participants: string[]
 ): Promise<ParticipantResult[]> => {
     const { data } = await api.post(`/groups/${encodeURIComponent(jid)}/participants`, {
-        whatsappId,
+        connectionId,
         action,
         participants,
     });
     return data.participants ?? [];
 };
 
-export const getInviteLink = async (whatsappId: number, jid: string): Promise<string> => {
-    const { data } = await api.get(`/groups/${encodeURIComponent(jid)}/invite-link`, { params: { whatsappId } });
+export const getInviteLink = async (connectionId: number, jid: string): Promise<string> => {
+    const { data } = await api.get(`/groups/${encodeURIComponent(jid)}/invite-link`, { params: { connectionId } });
     return data.link ?? "";
 };
 
-export const revokeInviteLink = async (whatsappId: number, jid: string): Promise<string> => {
-    const { data } = await api.post(`/groups/${encodeURIComponent(jid)}/invite-link/revoke`, { whatsappId });
+export const revokeInviteLink = async (connectionId: number, jid: string): Promise<string> => {
+    const { data } = await api.post(`/groups/${encodeURIComponent(jid)}/invite-link/revoke`, { connectionId });
     return data.link ?? "";
 };
 
-export const leaveGroup = async (whatsappId: number, jid: string): Promise<void> => {
-    await api.post(`/groups/${encodeURIComponent(jid)}/leave`, { whatsappId });
+export const leaveGroup = async (connectionId: number, jid: string): Promise<void> => {
+    await api.post(`/groups/${encodeURIComponent(jid)}/leave`, { connectionId });
 };
 
-export const listJoinRequests = async (whatsappId: number, jid: string): Promise<JoinRequestEntry[]> => {
-    const { data } = await api.get(`/groups/${encodeURIComponent(jid)}/join-requests`, { params: { whatsappId } });
+export const listJoinRequests = async (connectionId: number, jid: string): Promise<JoinRequestEntry[]> => {
+    const { data } = await api.get(`/groups/${encodeURIComponent(jid)}/join-requests`, { params: { connectionId } });
     return Array.isArray(data) ? data : [];
 };
 
 export const resolveJoinRequests = async (
-    whatsappId: number,
+    connectionId: number,
     jid: string,
     action: "approve" | "reject",
     participants: string[]
 ): Promise<ParticipantResult[]> => {
     const { data } = await api.post(`/groups/${encodeURIComponent(jid)}/join-requests`, {
-        whatsappId,
+        connectionId,
         action,
         participants,
     });
     return data.participants ?? [];
 };
 
-export const listCommunities = async (whatsappId: number): Promise<GroupInfo[]> => {
-    const { data } = await api.get("/communities", { params: { whatsappId } });
+export const listCommunities = async (connectionId: number): Promise<GroupInfo[]> => {
+    const { data } = await api.get("/communities", { params: { connectionId } });
     return Array.isArray(data) ? data : [];
 };
 
-export const createCommunity = async (whatsappId: number, name: string): Promise<CommunityInfo> => {
-    const { data } = await api.post("/communities", { whatsappId, name });
+export const createCommunity = async (connectionId: number, name: string): Promise<CommunityInfo> => {
+    const { data } = await api.post("/communities", { connectionId, name });
     return data;
 };
 
-export const getCommunity = async (whatsappId: number, jid: string): Promise<CommunityInfo> => {
-    const { data } = await api.get(`/communities/${encodeURIComponent(jid)}`, { params: { whatsappId } });
+export const getCommunity = async (connectionId: number, jid: string): Promise<CommunityInfo> => {
+    const { data } = await api.get(`/communities/${encodeURIComponent(jid)}`, { params: { connectionId } });
     return data;
 };
 
-export const linkCommunityGroup = async (whatsappId: number, communityJid: string, groupJid: string): Promise<void> => {
+export const linkCommunityGroup = async (connectionId: number, communityJid: string, groupJid: string): Promise<void> => {
     await api.post(
         `/communities/${encodeURIComponent(communityJid)}/groups/${encodeURIComponent(groupJid)}`,
-        { whatsappId }
+        { connectionId }
     );
 };
 
-export const unlinkCommunityGroup = async (whatsappId: number, communityJid: string, groupJid: string): Promise<void> => {
+export const unlinkCommunityGroup = async (connectionId: number, communityJid: string, groupJid: string): Promise<void> => {
     await api.delete(
         `/communities/${encodeURIComponent(communityJid)}/groups/${encodeURIComponent(groupJid)}`,
-        { params: { whatsappId } }
+        { params: { connectionId } }
     );
 };
 

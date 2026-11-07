@@ -21,7 +21,7 @@ type Ticket struct {
 	UnreadMessages      int       `json:"unreadMessages"`
 	QueueID             *int      `json:"queueId"`
 	TenantID            uuid.UUID `json:"tenantId"`
-	ChannelConnectionID int       `json:"whatsappId"` // chave JSON segue "whatsappId" até a fatia 5 (frontend)
+	ChannelConnectionID int       `json:"connectionId"` // chave JSON segue "connectionId" até a fatia 5 (frontend)
 	ConversationKey     string    `json:"conversationKey,omitempty"`
 	CreatedAt           time.Time `json:"createdAt"`
 	UpdatedAt           time.Time `json:"updatedAt"`
@@ -54,21 +54,6 @@ type Message struct {
 }
 
 // Contact represents a customer contact
-// ConnectionRef identifica a conexão (de qual tabela e qual id) de onde um contato deriva.
-type ConnectionRef struct {
-	Source string // ConnectionSourceWhatsapp ou ConnectionSourceChannel
-	ID     int
-}
-
-const (
-	ConnectionSourceWhatsapp = "whatsapp" // Whatsapps
-	ConnectionSourceChannel  = "channel"  // ChannelConnections (Telegram...)
-)
-
-// WhatsappConnection e ChannelConnection constroem a referência a partir do id que cada fluxo já tem.
-func WhatsappConnection(id int) ConnectionRef { return ConnectionRef{ConnectionSourceWhatsapp, id} }
-func ChannelConnection(id int) ConnectionRef  { return ConnectionRef{ConnectionSourceChannel, id} }
-
 type Contact struct {
 	ID            int       `json:"id"`
 	Name          string    `json:"name"`
@@ -80,12 +65,11 @@ type Contact struct {
 	Lid           *string   `json:"lid"`
 	WalletUserID  *int      `json:"walletUserId"`
 	// Conexão de origem do contato (ver models.Contact).
-	ConnectionSource string    `json:"connectionSource"`
-	ConnectionID     int       `json:"connectionId"`
-	PhoneSync        string    `json:"phoneSync"`
-	PhoneSyncError   string    `json:"phoneSyncError,omitempty"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	ConnectionID   int       `json:"connectionId"`
+	PhoneSync      string    `json:"phoneSync"`
+	PhoneSyncError string    `json:"phoneSyncError,omitempty"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
 // Queue represents a support queue with distribution settings
@@ -117,7 +101,7 @@ type User struct {
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
 	TokenVersion int       `json:"tokenVersion"`
-	WhatsappID   *int      `json:"whatsappId"`
+	WhatsappID   *int      `json:"connectionId"`
 	TenantID     uuid.UUID `json:"tenantId"`
 	CargoID      *int      `json:"cargoId"`
 	Alcance      string    `json:"alcance"`

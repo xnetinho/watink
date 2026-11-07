@@ -192,7 +192,7 @@ func TestAssistantController_Update_WhatsappBoundActive_DoesNotDuplicateTable(t 
 	ac := NewAssistantController()
 
 	body := map[string]interface{}{
-		"name": "Bound", "whatsappId": whatsappID, "allowMultipleOnConnection": false,
+		"name": "Bound", "connectionId": whatsappID, "allowMultipleOnConnection": false,
 		"mode": models.AssistantModePersona, "config": json.RawMessage(cfg),
 		"triggerType": "any", "triggerOperator": "contains", "active": false,
 	}

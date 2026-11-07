@@ -16,7 +16,7 @@ vi.mock("@/components/TicketHistory", () => ({ default: () => null }));
 const ticket = {
   id: 7,
   channel: "telegram",
-  connection: { kind: "telegram", id: 2, name: "Jarvis", source: "channel" as const },
+  connection: { kind: "telegram", id: 2, name: "Jarvis" },
   user: { name: "Admin" },
   contact: { id: 4, name: "Ana", number: "5511999990001" },
 };

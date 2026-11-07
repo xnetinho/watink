@@ -19,7 +19,7 @@ const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i
 const CommunityDetail: React.FC = () => {
     const { jid } = useParams<{ jid: string }>();
     const navigate = useNavigate();
-    const { whatsappId } = useGroupsConnection();
+    const { connectionId } = useGroupsConnection();
     const [community, setCommunity] = useState<CommunityInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [apiError, setApiError] = useState<GroupsApiError | null>(null);
@@ -29,26 +29,26 @@ const CommunityDetail: React.FC = () => {
     const decodedJid = jid ? decodeURIComponent(jid) : "";
 
     const fetchCommunity = useCallback(async () => {
-        if (!whatsappId || !decodedJid) return;
+        if (!connectionId || !decodedJid) return;
         setLoading(true);
         setApiError(null);
         try {
-            setCommunity(await getCommunity(whatsappId, decodedJid));
+            setCommunity(await getCommunity(connectionId, decodedJid));
         } catch (err) {
             setApiError(classifyGroupsApiError(err));
         } finally {
             setLoading(false);
         }
-    }, [whatsappId, decodedJid]);
+    }, [connectionId, decodedJid]);
 
     useEffect(() => {
         fetchCommunity();
     }, [fetchCommunity]);
 
     const handleUnlink = async () => {
-        if (!whatsappId || !unlinkTarget) return;
+        if (!connectionId || !unlinkTarget) return;
         try {
-            await unlinkCommunityGroup(whatsappId, decodedJid, unlinkTarget);
+            await unlinkCommunityGroup(connectionId, decodedJid, unlinkTarget);
             toast.success("Grupo desvinculado");
             fetchCommunity();
         } catch (err) {
@@ -80,7 +80,7 @@ const CommunityDetail: React.FC = () => {
                     </div>
                 ) : apiError ? (
                     <GroupsErrorState error={apiError} />
-                ) : !community || !whatsappId ? null : community.linkedGroups.length === 0 ? (
+                ) : !community || !connectionId ? null : community.linkedGroups.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-2 h-full text-center px-6 py-16">
                         <Link2 className="h-8 w-8 text-muted-foreground" />
                         <h3 className="text-base font-medium">Nenhum subgrupo vinculado</h3>
@@ -101,10 +101,10 @@ const CommunityDetail: React.FC = () => {
                     </div>
                 )}
             </PageContent>
-            {whatsappId && community && (
+            {connectionId && community && (
                 <LinkGroupDialog
                     open={linkOpen}
-                    whatsappId={whatsappId}
+                    connectionId={connectionId}
                     communityJid={community.jid}
                     alreadyLinkedJids={community.linkedGroups.map((g) => g.jid)}
                     onClose={() => setLinkOpen(false)}
