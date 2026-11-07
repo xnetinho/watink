@@ -26,7 +26,7 @@ func NewGORMChannelSessionRepo(db *gorm.DB) *GORMChannelSessionRepository {
 // FindByID returns the channel session with the given id under tenantID, or nil if not found.
 // Mantém retorno enxuto (sem relations carregadas).
 func (r *GORMChannelSessionRepository) FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*domain.ChannelSession, error) {
-	var m models.Whatsapp
+	var m models.WhatsAppView
 	err := models.FirstWhatsapp(r.db.WithContext(ctx).Where("id = ? AND \"tenantId\" = ?", id, tenantID), &m)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -39,8 +39,8 @@ func (r *GORMChannelSessionRepository) FindByID(ctx context.Context, id int, ten
 
 // FindByIDDetail returns the channel session with relations loaded.
 // Usado no endpoint de detalhe enriquecido.
-func (r *GORMChannelSessionRepository) FindByIDDetail(ctx context.Context, id int, tenantID uuid.UUID) (*models.Whatsapp, error) {
-	var m models.Whatsapp
+func (r *GORMChannelSessionRepository) FindByIDDetail(ctx context.Context, id int, tenantID uuid.UUID) (*models.WhatsAppView, error) {
+	var m models.WhatsAppView
 	err := models.FirstWhatsapp(r.db.WithContext(ctx).Where("id = ? AND \"tenantId\" = ?", id, tenantID), &m)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -56,7 +56,7 @@ func (r *GORMChannelSessionRepository) FindByIDDetail(ctx context.Context, id in
 
 // FindAll returns all channel sessions under tenantID.
 func (r *GORMChannelSessionRepository) FindAll(ctx context.Context, tenantID uuid.UUID) ([]domain.ChannelSession, error) {
-	var ms []models.Whatsapp
+	var ms []models.WhatsAppView
 	if err := models.FindWhatsapps(r.db.WithContext(ctx).Where("\"tenantId\" = ?", tenantID).Order("id"), &ms); err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (r *GORMChannelSessionRepository) FindAll(ctx context.Context, tenantID uui
 }
 
 // Create inserts a new channel session record. channelSessionDomainToModel
-// builds a NEW *models.Whatsapp, so the DB-generated ID/timestamps land on that
+// builds a NEW *models.WhatsAppView, so the DB-generated ID/timestamps land on that
 // struct, not on the caller's session. É obrigatório copiar de volta para o
 // session do caller, senão CreateWhatsapp usa `input` como corpo da resposta
 // HTTP e o JSON sai com ID=0.
@@ -123,7 +123,7 @@ func (r *GORMChannelSessionRepository) DeleteWithRelations(ctx context.Context, 
 
 // --- Mapping helpers ---
 
-func whatsappModelToDomain(m *models.Whatsapp) *domain.ChannelSession {
+func whatsappModelToDomain(m *models.WhatsAppView) *domain.ChannelSession {
 	return &domain.ChannelSession{
 		ID:                  m.ID,
 		Status:              m.Status,
@@ -157,8 +157,8 @@ func whatsappModelToDomain(m *models.Whatsapp) *domain.ChannelSession {
 	}
 }
 
-func channelSessionDomainToModel(d *domain.ChannelSession) *models.Whatsapp {
-	return &models.Whatsapp{
+func channelSessionDomainToModel(d *domain.ChannelSession) *models.WhatsAppView {
+	return &models.WhatsAppView{
 		ID:                  d.ID,
 		Status:              d.Status,
 		Name:                d.Name,

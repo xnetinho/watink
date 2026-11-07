@@ -15,8 +15,8 @@ func TestAttachChannelInfo_IdentificaCanalEConexao(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
 	require.NoError(t, db.Create(&models.Tenant{ID: tenant, Name: "T", Status: "active"}).Error)
-	wa := models.Whatsapp{Name: "Comercial", TenantID: tenant, Status: "CONNECTED", ProfilePicUrl: "https://pps.whatsapp.net/comercial.jpg"}
-	wa2 := models.Whatsapp{Name: "Suporte", TenantID: tenant, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "Comercial", TenantID: tenant, Status: "CONNECTED", ProfilePicUrl: "https://pps.whatsapp.net/comercial.jpg"}
+	wa2 := models.WhatsAppView{Name: "Suporte", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	require.NoError(t, models.CreateWhatsapp(db, &wa2))
 	tg := models.ChannelConnection{TenantID: tenant, Kind: "telegram", Name: "Jarvis", Status: "CONNECTED"}

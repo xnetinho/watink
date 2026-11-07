@@ -20,9 +20,9 @@ type world struct {
 	db     *gorm.DB
 	tenant uuid.UUID
 	other  uuid.UUID
-	waA    models.Whatsapp // conexão A (vai receber a chamada)
-	waB    models.Whatsapp // conexão B (sem vínculo)
-	waX    models.Whatsapp // conexão de OUTRA empresa
+	waA    models.WhatsAppView // conexão A (vai receber a chamada)
+	waB    models.WhatsAppView // conexão B (sem vínculo)
+	waX    models.WhatsAppView // conexão de OUTRA empresa
 	users  map[string]models.User
 }
 
@@ -37,8 +37,8 @@ func newWorld(t *testing.T) *world {
 	t.Helper()
 	db := testutil.NewTestDB(t)
 	w := &world{db: db, tenant: uuid.New(), other: uuid.New(), users: map[string]models.User{}}
-	mkWA := func(tenant uuid.UUID, name string) models.Whatsapp {
-		wa := models.Whatsapp{Name: name + tenant.String(), TenantID: tenant, Status: "CONNECTED"}
+	mkWA := func(tenant uuid.UUID, name string) models.WhatsAppView {
+		wa := models.WhatsAppView{Name: name + tenant.String(), TenantID: tenant, Status: "CONNECTED"}
 		require.NoError(t, models.CreateWhatsapp(db, &wa))
 		return wa
 	}
@@ -113,7 +113,7 @@ func TestUsersWhoSeeConnection_ParityWithTicketVisibility(t *testing.T) {
 
 	contact := models.Contact{Name: "C", Number: "5511999990000", TenantID: w.tenant}
 	require.NoError(t, w.db.Create(&contact).Error)
-	for _, wa := range []models.Whatsapp{w.waA, w.waB} {
+	for _, wa := range []models.WhatsAppView{w.waA, w.waB} {
 		tk := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: wa.ID, TenantID: w.tenant}
 		require.NoError(t, w.db.Create(&tk).Error)
 	}
@@ -137,7 +137,7 @@ func TestUsersWhoSeeConnection_ParityWithTicketVisibility(t *testing.T) {
 		return n > 0
 	}
 
-	for _, wa := range []models.Whatsapp{w.waA, w.waB} {
+	for _, wa := range []models.WhatsAppView{w.waA, w.waB} {
 		got, err := UsersWhoSeeConnection(w.db, w.tenant, wa.ID)
 		require.NoError(t, err)
 		inCalls := map[int]bool{}

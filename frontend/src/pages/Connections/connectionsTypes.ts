@@ -10,9 +10,9 @@ export interface ConnectionQueue {
 export interface ConnectionSession {
   id: number;
   name: string;
-  number?: string;
+  identifier?: string;
   status: "CONNECTED" | "DISCONNECTED" | "QRCODE" | "PAIRING" | "OPENING" | "TIMEOUT" | string;
-  profilePicUrl?: string;
+  avatarUrl?: string;
   type?: string;
   updatedAt?: string;
   queue?: ConnectionQueue;

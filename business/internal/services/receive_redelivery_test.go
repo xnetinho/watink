@@ -22,7 +22,7 @@ func TestReceiveMessage_ReentregaDoMesmoEventoNaoDuplicaEfeitos(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenantID := uuid.New()
 	require.NoError(t, db.Create(&models.Tenant{ID: tenantID, Name: "Empresa"}).Error)
-	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	uc := usecases.NewReceiveMessageUseCase(application.NewInMemoryEventBus(), repository.NewGORMMessageRepo(db),
@@ -53,7 +53,7 @@ func TestReceiveMessage_EntregasSimultaneasContamUmaVez(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenantID := uuid.New()
 	require.NoError(t, db.Create(&models.Tenant{ID: tenantID, Name: "Empresa"}).Error)
-	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	uc := usecases.NewReceiveMessageUseCase(application.NewInMemoryEventBus(), repository.NewGORMMessageRepo(db),

@@ -59,7 +59,7 @@ func TestProvider_ListGroups_HappyPath(t *testing.T) {
 	})
 
 	p := New(nil, nil)
-	groups, err := p.ListGroups(context.Background(), models.Whatsapp{ID: 42})
+	groups, err := p.ListGroups(context.Background(), models.WhatsAppView{ID: 42})
 	require.NoError(t, err)
 	require.Len(t, groups, 1)
 	assert.Equal(t, "120363xxx@g.us", groups[0].JID)
@@ -75,7 +75,7 @@ func TestProvider_GetGroup_NotFound(t *testing.T) {
 	})
 
 	p := New(nil, nil)
-	_, err := p.GetGroup(context.Background(), models.Whatsapp{ID: 42}, "120363xxx@g.us")
+	_, err := p.GetGroup(context.Background(), models.WhatsAppView{ID: 42}, "120363xxx@g.us")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "group not found")
 }
@@ -90,7 +90,7 @@ func TestProvider_CreateGroup_SendsBody(t *testing.T) {
 	})
 
 	p := New(nil, nil)
-	g, err := p.CreateGroup(context.Background(), models.Whatsapp{ID: 42}, "Novo grupo", []string{"5511999999999@s.whatsapp.net"})
+	g, err := p.CreateGroup(context.Background(), models.WhatsAppView{ID: 42}, "Novo grupo", []string{"5511999999999@s.whatsapp.net"})
 	require.NoError(t, err)
 	assert.Equal(t, "Novo grupo", gotBody["subject"])
 	assert.Equal(t, "120363xxx@g.us", g.JID)
@@ -108,7 +108,7 @@ func TestProvider_UpdateGroupSettings_OnlySendsChangedFields(t *testing.T) {
 	p := New(nil, nil)
 	subject := "novo nome"
 	announce := true
-	err := p.UpdateGroupSettings(context.Background(), models.Whatsapp{ID: 42}, "120363xxx@g.us", domain.GroupSettingsPatch{Subject: &subject, Announce: &announce})
+	err := p.UpdateGroupSettings(context.Background(), models.WhatsAppView{ID: 42}, "120363xxx@g.us", domain.GroupSettingsPatch{Subject: &subject, Announce: &announce})
 	require.NoError(t, err)
 	assert.Equal(t, "novo nome", gotBody["subject"])
 	assert.Equal(t, true, gotBody["announce"])
@@ -127,7 +127,7 @@ func TestProvider_UpdateParticipants_PartialResults(t *testing.T) {
 	})
 
 	p := New(nil, nil)
-	results, err := p.UpdateParticipants(context.Background(), models.Whatsapp{ID: 42}, "120363xxx@g.us", "add", []string{"a@s.whatsapp.net", "b@s.whatsapp.net"})
+	results, err := p.UpdateParticipants(context.Background(), models.WhatsAppView{ID: 42}, "120363xxx@g.us", "add", []string{"a@s.whatsapp.net", "b@s.whatsapp.net"})
 	require.NoError(t, err)
 	require.Len(t, results, 2)
 	assert.Equal(t, "ok", results[0].Status)
@@ -142,7 +142,7 @@ func TestProvider_5xxPropagatesAsError(t *testing.T) {
 	})
 
 	p := New(nil, nil)
-	_, err := p.GetGroup(context.Background(), models.Whatsapp{ID: 42}, "120363xxx@g.us")
+	_, err := p.GetGroup(context.Background(), models.WhatsAppView{ID: 42}, "120363xxx@g.us")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "whatsmeow failure")
 }
@@ -160,7 +160,7 @@ func TestProvider_Timeout_PropagatesAndNoRetry(t *testing.T) {
 	p := New(nil, nil)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
 	defer cancel()
-	_, err := p.GetGroup(ctx, models.Whatsapp{ID: 42}, "120363xxx@g.us")
+	_, err := p.GetGroup(ctx, models.WhatsAppView{ID: 42}, "120363xxx@g.us")
 	require.Error(t, err)
 	// Give the (already-failed) request time to have retried, if it were
 	// going to — it must not, a retried write would duplicate the action.
@@ -176,6 +176,6 @@ func TestProvider_LinkGroupToCommunity_PathIncludesBothJIDs(t *testing.T) {
 	})
 
 	p := New(nil, nil)
-	err := p.LinkGroupToCommunity(context.Background(), models.Whatsapp{ID: 42}, "comm-1@g.us", "sub-1@g.us")
+	err := p.LinkGroupToCommunity(context.Background(), models.WhatsAppView{ID: 42}, "comm-1@g.us", "sub-1@g.us")
 	require.NoError(t, err)
 }

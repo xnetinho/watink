@@ -18,9 +18,9 @@ func setupChannelSessionTestDB(t *testing.T) *gorm.DB {
 	return testutil.NewTestDB(t)
 }
 
-func seedChannelSession(t *testing.T, db *gorm.DB, tenantID uuid.UUID, name string) *models.Whatsapp {
+func seedChannelSession(t *testing.T, db *gorm.DB, tenantID uuid.UUID, name string) *models.WhatsAppView {
 	t.Helper()
-	w := &models.Whatsapp{
+	w := &models.WhatsAppView{
 		Name:     name,
 		Status:   "CONNECTED",
 		TenantID: tenantID,
@@ -183,11 +183,11 @@ func TestGORMChannelSessionRepo_ResetDefaultFlag(t *testing.T) {
 	ctx := context.Background()
 
 	// Criar sessão com isDefault=true
-	w := &models.Whatsapp{Name: "Default Session", Status: "CONNECTED", TenantID: tenantA, IsDefault: true}
+	w := &models.WhatsAppView{Name: "Default Session", Status: "CONNECTED", TenantID: tenantA, IsDefault: true}
 	require.NoError(t, models.CreateWhatsapp(db, w))
 
 	// Verificar que está como default
-	var before models.Whatsapp
+	var before models.WhatsAppView
 	require.NoError(t, models.FirstWhatsapp(db.Where("id = ?", w.ID), &before))
 	assert.True(t, before.IsDefault)
 
@@ -195,7 +195,7 @@ func TestGORMChannelSessionRepo_ResetDefaultFlag(t *testing.T) {
 	err := repo.ResetDefaultFlag(ctx, tenantA)
 	require.NoError(t, err)
 
-	var after models.Whatsapp
+	var after models.WhatsAppView
 	require.NoError(t, models.FirstWhatsapp(db.Where("id = ?", w.ID), &after))
 	assert.False(t, after.IsDefault, "ResetDefaultFlag deve setar isDefault=false")
 }

@@ -106,7 +106,7 @@ type QueueRepository interface {
 	Save(ctx context.Context, queue *Queue) error
 	Delete(ctx context.Context, id int, tenantID uuid.UUID) error
 	// FindQueueIDsByChannel returns the queue IDs linked to a WhatsApp channel
-	// (via the whatsapp_queues join table), scoped to the tenant.
+	// (via the channel_connection_queues join table), scoped to the tenant.
 	FindQueueIDsByChannel(ctx context.Context, channelID int, tenantID uuid.UUID) ([]int, error)
 }
 
@@ -117,7 +117,7 @@ type WhatsAppConnectionDetailsRepository interface {
 
 type ChannelSessionRepository interface {
 	FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*ChannelSession, error)
-	FindByIDDetail(ctx context.Context, id int, tenantID uuid.UUID) (*models.Whatsapp, error)
+	FindByIDDetail(ctx context.Context, id int, tenantID uuid.UUID) (*models.WhatsAppView, error)
 	FindAll(ctx context.Context, tenantID uuid.UUID) ([]ChannelSession, error)
 	Create(ctx context.Context, session *ChannelSession) error
 	Update(ctx context.Context, session *ChannelSession, fields map[string]interface{}) error
@@ -132,7 +132,7 @@ type ChannelSessionRepository interface {
 // to pick the right engine depend on this narrow interface instead of the full
 // session service.
 type WhatsAppEngineResolver interface {
-	EngineFor(w models.Whatsapp) (WhatsAppEngine, error)
+	EngineFor(w models.WhatsAppView) (WhatsAppEngine, error)
 }
 
 // WhatsAppEngine is the port every WhatsApp connection provider must
@@ -142,9 +142,9 @@ type WhatsAppEngineResolver interface {
 // HTTP); callers never branch on transport, only on which WhatsAppEngine
 // was resolved.
 type WhatsAppEngine interface {
-	StartSession(ctx context.Context, w models.Whatsapp, usePairingCode bool, phoneNumber string, force bool) error
-	StopSession(ctx context.Context, w models.Whatsapp) error
-	DeleteSession(ctx context.Context, w models.Whatsapp) error
+	StartSession(ctx context.Context, w models.WhatsAppView, usePairingCode bool, phoneNumber string, force bool) error
+	StopSession(ctx context.Context, w models.WhatsAppView) error
+	DeleteSession(ctx context.Context, w models.WhatsAppView) error
 	// SendText/SendMedia return the EFFECTIVE message ID actually assigned to
 	// the outbound message -- for engine-go (AMQP, whatsmeow) this always
 	// equals the requested messageID (forced via SendRequestExtra on the
@@ -153,8 +153,8 @@ type WhatsAppEngine interface {
 	// that need the real WhatsApp id for reply correlation (e.g. campaign
 	// send) MUST use the returned value, never assume it equals the
 	// requested messageID.
-	SendText(ctx context.Context, w models.Whatsapp, to, messageID, body string) (string, error)
-	SendMedia(ctx context.Context, w models.Whatsapp, to, messageID, mediaType, mediaURL, mimeType string) (string, error)
+	SendText(ctx context.Context, w models.WhatsAppView, to, messageID, body string) (string, error)
+	SendMedia(ctx context.Context, w models.WhatsAppView, to, messageID, mediaType, mediaURL, mimeType string) (string, error)
 }
 
 // InteractiveButton is an engine-neutral display button for an interactive
@@ -215,7 +215,7 @@ type RichMessageRequest struct {
 type RichMessageEngine interface {
 	// SendInteractive returns the EFFECTIVE message id (see WhatsAppEngine's
 	// SendText/SendMedia doc comment for why this can differ from messageID).
-	SendInteractive(ctx context.Context, w models.Whatsapp, to, messageID string, req RichMessageRequest) (string, error)
+	SendInteractive(ctx context.Context, w models.WhatsAppView, to, messageID string, req RichMessageRequest) (string, error)
 }
 
 // PresenceEngine is an OPTIONAL extension of WhatsAppEngine for engines that
@@ -225,7 +225,7 @@ type RichMessageEngine interface {
 // regardless (see flow.WhatsAppAdapter humanPacing). State is "composing" or
 // "paused".
 type PresenceEngine interface {
-	SendPresence(ctx context.Context, w models.Whatsapp, to, state string) error
+	SendPresence(ctx context.Context, w models.WhatsAppView, to, state string) error
 }
 
 // EventBus Interface

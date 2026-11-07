@@ -20,8 +20,8 @@ import (
 
 // SessionManager abstracts session lifecycle management (start, stop).
 type SessionManager interface {
-	StartWhatsAppSession(whatsapp models.Whatsapp, usePairingCode bool, phoneNumber string, force bool) error
-	StopWhatsAppSession(whatsapp models.Whatsapp) error
+	StartWhatsAppSession(whatsapp models.WhatsAppView, usePairingCode bool, phoneNumber string, force bool) error
+	StopWhatsAppSession(whatsapp models.WhatsAppView) error
 }
 
 // Adapter implementa domain.Channel para o WhatsApp (Tarefa 4.5 / ADR 0033).
@@ -90,7 +90,7 @@ func (a *Adapter) Capabilities() domain.Capabilities {
 
 func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, input domain.ConnectInput) (domain.ConnectResult, error) {
 	if a.sessionManager != nil {
-		wa := models.Whatsapp{
+		wa := models.WhatsAppView{
 			ID:         conn.ID,
 			TenantID:   conn.TenantID,
 			Name:       conn.Name,
@@ -116,7 +116,7 @@ func (a *Adapter) Connect(ctx context.Context, conn *models.ChannelConnection, i
 
 func (a *Adapter) Disconnect(ctx context.Context, conn *models.ChannelConnection) error {
 	if a.sessionManager != nil {
-		wa := models.Whatsapp{
+		wa := models.WhatsAppView{
 			ID:         conn.ID,
 			TenantID:   conn.TenantID,
 			Name:       conn.Name,
@@ -246,7 +246,7 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 		return domain.SendResult{}, fmt.Errorf("whatsapp engine resolver not configured")
 	}
 
-	wa := models.Whatsapp{
+	wa := models.WhatsAppView{
 		ID:         conn.ID,
 		TenantID:   conn.TenantID,
 		EngineType: "whatsmeow",

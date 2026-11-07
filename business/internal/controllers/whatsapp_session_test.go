@@ -30,7 +30,7 @@ type mockChannelSessionRepo struct {
 func (m *mockChannelSessionRepo) FindByID(_ context.Context, _ int, _ uuid.UUID) (*domain.ChannelSession, error) {
 	return m.session, m.findErr
 }
-func (m *mockChannelSessionRepo) FindByIDDetail(_ context.Context, _ int, _ uuid.UUID) (*models.Whatsapp, error) {
+func (m *mockChannelSessionRepo) FindByIDDetail(_ context.Context, _ int, _ uuid.UUID) (*models.WhatsAppView, error) {
 	panic("not used")
 }
 func (m *mockChannelSessionRepo) FindAll(_ context.Context, _ uuid.UUID) ([]domain.ChannelSession, error) {
@@ -74,7 +74,7 @@ func TestSessionController_StartSession_NotFound(t *testing.T) {
 	ctrl := NewSessionController(repo, nil, nil)
 
 	c, w := setupSessionGinContext(tenantID, "POST", "/whatsappsession/99", db)
-	c.Params = gin.Params{{Key: "whatsappId", Value: "99"}}
+	c.Params = gin.Params{{Key: "id", Value: "99"}}
 
 	ctrl.StartSession(c)
 
@@ -107,7 +107,7 @@ func TestSessionController_StopSession_NotFound(t *testing.T) {
 	ctrl := NewSessionController(repo, nil, nil)
 
 	c, w := setupSessionGinContext(tenantID, "DELETE", "/whatsappsession/99", db)
-	c.Params = gin.Params{{Key: "whatsappId", Value: "99"}}
+	c.Params = gin.Params{{Key: "id", Value: "99"}}
 
 	ctrl.StopSession(c)
 
@@ -178,7 +178,7 @@ func TestSessionController_StartSession_LockBusy_Returns409NotInternalError(t *t
 	ctrl := NewSessionController(repo, broadcast, wss)
 
 	c, w := setupSessionGinContext(tenantID, "POST", "/whatsappsession/1", db)
-	c.Params = gin.Params{{Key: "whatsappId", Value: "1"}}
+	c.Params = gin.Params{{Key: "id", Value: "1"}}
 
 	ctrl.StartSession(c)
 
@@ -224,7 +224,7 @@ func TestSessionController_StopSession_EventoCarregaOStatusNovo(t *testing.T) {
 	ctrl := NewSessionController(&mockChannelSessionRepo{session: sess}, bc, wss)
 
 	c, w := setupSessionGinContext(tenantID, "DELETE", "/whatsappsession/1", db)
-	c.Params = gin.Params{{Key: "whatsappId", Value: "1"}}
+	c.Params = gin.Params{{Key: "id", Value: "1"}}
 	ctrl.StopSession(c)
 
 	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())

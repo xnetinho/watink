@@ -20,7 +20,7 @@ import (
 // não existe uma "communities cache" separada.
 func handleListCommunities(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -73,7 +73,7 @@ func filterCommunities(groups []domain.GroupInfo) []domain.GroupInfo {
 
 func handleCreateCommunity(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -102,7 +102,7 @@ func handleCreateCommunity(svc *groupsService) gin.HandlerFunc {
 
 func handleGetCommunity(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -126,7 +126,7 @@ func handleGetCommunity(svc *groupsService) gin.HandlerFunc {
 
 func handleLinkCommunityGroup(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -162,7 +162,7 @@ func handleLinkCommunityGroup(svc *groupsService) gin.HandlerFunc {
 
 func handleUnlinkCommunityGroup(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}

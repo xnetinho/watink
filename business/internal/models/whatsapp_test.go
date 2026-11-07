@@ -14,7 +14,7 @@ func TestWhatsapp_RoundTripPelasTabelasAgnosticas(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenant, other := uuid.New(), uuid.New()
 	proxy := 7
-	w := models.Whatsapp{TenantID: tenant, Name: "zap", Status: "CONNECTED", Number: "5511999990000", ProfilePicUrl: "http://x/p.jpg",
+	w := models.WhatsAppView{TenantID: tenant, Name: "zap", Status: "CONNECTED", Number: "5511999990000", ProfilePicUrl: "http://x/p.jpg",
 		KeepAlive: true, PresencePolicy: "always", PresenceIdleMinutes: 9, EngineType: "whatsmeow", ProxyMode: "single", ProxyID: &proxy}
 	require.NoError(t, models.CreateWhatsapp(db, &w))
 	require.NotZero(t, w.ID)
@@ -29,13 +29,13 @@ func TestWhatsapp_RoundTripPelasTabelasAgnosticas(t *testing.T) {
 	require.True(t, d.KeepAlive)
 	require.Equal(t, "always", d.PresencePolicy)
 
-	var got models.Whatsapp
+	var got models.WhatsAppView
 	require.NoError(t, models.FirstWhatsapp(db.Where("id = ?", w.ID), &got))
 	require.Equal(t, w.Number, got.Number)
 	require.Equal(t, 9, got.PresenceIdleMinutes)
 	require.Equal(t, &proxy, got.ProxyID)
 
-	require.NoError(t, models.UpdateWhatsapp(db, tenant, w.ID, map[string]interface{}{"status": "OPENING", "keepAlive": false, "number": "5511888880000"}))
+	require.NoError(t, models.UpdateWhatsapp(db, tenant, w.ID, map[string]interface{}{"status": "OPENING", "keepAlive": false, "identifier": "5511888880000"}))
 	require.NoError(t, models.FirstWhatsapp(db.Where("id = ?", w.ID), &got))
 	require.Equal(t, "OPENING", got.Status)
 	require.False(t, got.KeepAlive)

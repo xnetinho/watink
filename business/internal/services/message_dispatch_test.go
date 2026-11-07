@@ -16,7 +16,7 @@ type mockDispatchAdapter struct {
 	caps domain.Capabilities
 }
 
-func (m *mockDispatchAdapter) Kind() domain.ChannelKind { return "mock" }
+func (m *mockDispatchAdapter) Kind() domain.ChannelKind          { return "mock" }
 func (m *mockDispatchAdapter) Capabilities() domain.Capabilities { return m.caps }
 func (m *mockDispatchAdapter) Connect(ctx context.Context, conn *models.ChannelConnection, input domain.ConnectInput) (domain.ConnectResult, error) {
 	return domain.ConnectResult{}, nil
@@ -39,8 +39,8 @@ func TestMessageDispatchService_CapabilitiesAndPolicy(t *testing.T) {
 	adapter := &mockDispatchAdapter{
 		caps: domain.Capabilities{
 			InitiateConversation: true,
-			MaxTextBytes: 50,
-			Media:        []domain.MediaKind{domain.MediaKindImage},
+			MaxTextBytes:         50,
+			Media:                []domain.MediaKind{domain.MediaKindImage},
 		},
 	}
 	reg.Register(adapter)

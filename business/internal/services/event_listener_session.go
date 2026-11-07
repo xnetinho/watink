@@ -27,7 +27,6 @@ func (el *EventListener) handleQrCode(ctx context.Context, payload json.RawMessa
 		return err
 	}
 
-	el.bcast().EmitToTenantRoom(tenantID.String(), "whatsappSession", map[string]interface{}{"action": "update", "session": map[string]interface{}{"id": sessionID, "qrcode": p.QrCode, "status": "QRCODE"}})
 	el.bcast().EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{"action": "update", "connection": map[string]interface{}{"id": sessionID, "qrcode": p.QrCode, "status": "QRCODE"}})
 	return nil
 }
@@ -49,7 +48,6 @@ func (el *EventListener) handlePairingCode(ctx context.Context, payload json.Raw
 		return err
 	}
 
-	el.bcast().EmitToTenantRoom(tenantID.String(), "whatsappSession", map[string]interface{}{"action": "update", "session": map[string]interface{}{"id": sessionID, "status": status, "pairingCode": p.PairingCode}})
 	el.bcast().EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{"action": "update", "connection": map[string]interface{}{"id": sessionID, "status": status, "pairingCode": p.PairingCode}})
 	return nil
 }
@@ -64,14 +62,14 @@ func (el *EventListener) handleSessionStatus(ctx context.Context, payload json.R
 	sessionID := getSessionID(p.SessionID)
 	updates := map[string]interface{}{"status": p.Status}
 	if p.Number != "" {
-		updates["number"] = p.Number
+		updates["identifier"] = p.Number
 	}
 	if p.ProfilePicUrl != "" {
-		updates["profilePicUrl"] = p.ProfilePicUrl
+		updates["avatarUrl"] = p.ProfilePicUrl
 	}
 	if p.FirstConnection {
 		now := time.Now()
-		updates["firstConnection"] = &now
+		updates["firstConnectedAt"] = &now
 	}
 	if p.Status == "CONNECTED" {
 		now := time.Now()
@@ -89,8 +87,7 @@ func (el *EventListener) handleSessionStatus(ctx context.Context, payload json.R
 		el.isolateConnectionProxy(ctx, sessionID, tenantID)
 	}
 
-	el.bcast().EmitToTenantRoom(tenantID.String(), "whatsappSession", map[string]interface{}{"action": "update", "session": map[string]interface{}{"id": sessionID, "status": p.Status, "number": p.Number, "profilePicUrl": p.ProfilePicUrl, "firstConnection": updates["firstConnection"]}})
-	el.bcast().EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{"action": "update", "connection": map[string]interface{}{"id": sessionID, "status": p.Status, "number": p.Number, "profilePicUrl": p.ProfilePicUrl, "firstConnection": updates["firstConnection"]}})
+	el.bcast().EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{"action": "update", "connection": map[string]interface{}{"id": sessionID, "status": p.Status, "identifier": p.Number, "avatarUrl": p.ProfilePicUrl, "firstConnectedAt": updates["firstConnectedAt"]}})
 	return nil
 }
 
@@ -101,7 +98,7 @@ func (el *EventListener) isolateConnectionProxy(ctx context.Context, sessionID i
 	if el.db == nil {
 		return
 	}
-	var w models.Whatsapp
+	var w models.WhatsAppView
 	if err := models.FirstWhatsapp(el.db.WithContext(ctx).
 		Where(`id = ? AND "tenantId" = ?`, sessionID, tenantID), &w); err != nil {
 		log.Printf("[EventListener] BANNED: conexão %d não encontrada para isolar proxy: %v", sessionID, err)

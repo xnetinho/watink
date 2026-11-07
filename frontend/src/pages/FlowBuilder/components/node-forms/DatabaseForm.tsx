@@ -12,7 +12,7 @@ import { NodeData, TABLE_ALL_FIELDS } from '../../nodeEditorTypes';
 import { i18n } from "../../../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
-const AVAILABLE_TABLES = ['Contacts', 'Tickets', 'Messages', 'Users', 'Queues', 'Whatsapps', 'QuickAnswers', 'Pipelines']; // i18n-ignore: nomes de tabela enviados à API (não são texto de tela)
+const AVAILABLE_TABLES = ['Contacts', 'Tickets', 'Messages', 'Users', 'Queues', 'ChannelConnections', 'QuickAnswers', 'Pipelines']; // i18n-ignore: nomes de tabela enviados à API (não são texto de tela)
 
 interface DatabaseFormProps {
   formData: NodeData;

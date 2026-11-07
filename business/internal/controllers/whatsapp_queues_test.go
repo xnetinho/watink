@@ -57,7 +57,7 @@ func TestWhatsapp_QueueIDs_CriaEditaEIsola(t *testing.T) {
 
 	w := call(http.MethodPost, "/whatsapp", `{"name":"zap","queueIds":[`+strconv.Itoa(q1.ID)+`,`+strconv.Itoa(qOther.ID)+`]}`)
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var created models.Whatsapp
+	var created models.WhatsAppView
 	require.NoError(t, models.FirstWhatsapp(db.Where("name = ?", "zap"), &created))
 	assert.Equal(t, []int{q1.ID}, queuesOf(t, db, created.ID), "fila de outra empresa é ignorada")
 

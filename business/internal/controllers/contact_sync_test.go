@@ -21,7 +21,7 @@ func TestContactController_SyncContact_EngineGo_PublishesCommand(t *testing.T) {
 	}
 
 	// A sessão precisa existir de verdade: o envio resolve a conexão em ChannelConnections antes de publicar.
-	wa := models.Whatsapp{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "WA", TenantID: tenantID, Status: "CONNECTED"}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}

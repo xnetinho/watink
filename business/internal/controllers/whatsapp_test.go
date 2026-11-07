@@ -32,12 +32,12 @@ func (m *MockChannelSessionRepo) FindByID(ctx context.Context, id int, tenantID 
 	return args.Get(0).(*domain.ChannelSession), args.Error(1)
 }
 
-func (m *MockChannelSessionRepo) FindByIDDetail(ctx context.Context, id int, tenantID uuid.UUID) (*models.Whatsapp, error) {
+func (m *MockChannelSessionRepo) FindByIDDetail(ctx context.Context, id int, tenantID uuid.UUID) (*models.WhatsAppView, error) {
 	args := m.Called(ctx, id, tenantID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Whatsapp), args.Error(1)
+	return args.Get(0).(*models.WhatsAppView), args.Error(1)
 }
 
 func (m *MockChannelSessionRepo) FindAll(ctx context.Context, tenantID uuid.UUID) ([]domain.ChannelSession, error) {
@@ -103,53 +103,13 @@ func setupWhatsappRouter(ctrl *WhatsappController, method, path string, handler 
 	return router
 }
 
-func TestWhatsappController_ListWhatsapps_Success(t *testing.T) {
-	db := newWhatsappTestDB(t)
-	repo := new(MockChannelSessionRepo)
-	planSvc := new(MockPlanLimitSvc)
-	ctrl := NewWhatsappController(repo, planSvc, nil, nil)
-
-	sessions := []domain.ChannelSession{
-		{ID: 1, Name: "WA-1", TenantID: testTenantID, Status: "DISCONNECTED"},
-	}
-	repo.On("FindAll", mock.Anything, testTenantID).Return(sessions, nil)
-
-	router := setupWhatsappRouter(ctrl, http.MethodGet, "/whatsapp", ctrl.ListWhatsapps, db)
-	req := httptest.NewRequest(http.MethodGet, "/whatsapp", nil)
-	res := httptest.NewRecorder()
-	router.ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusOK, res.Code)
-	var body []map[string]interface{}
-	assert.NoError(t, json.Unmarshal(res.Body.Bytes(), &body))
-	assert.Len(t, body, 1)
-	repo.AssertExpectations(t)
-}
-
-func TestWhatsappController_ListWhatsapps_RepoError(t *testing.T) {
-	db := newWhatsappTestDB(t)
-	repo := new(MockChannelSessionRepo)
-	planSvc := new(MockPlanLimitSvc)
-	ctrl := NewWhatsappController(repo, planSvc, nil, nil)
-
-	repo.On("FindAll", mock.Anything, testTenantID).Return([]domain.ChannelSession{}, errors.New("db error"))
-
-	router := setupWhatsappRouter(ctrl, http.MethodGet, "/whatsapp", ctrl.ListWhatsapps, db)
-	req := httptest.NewRequest(http.MethodGet, "/whatsapp", nil)
-	res := httptest.NewRecorder()
-	router.ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusInternalServerError, res.Code)
-	repo.AssertExpectations(t)
-}
-
 func TestWhatsappController_ShowWhatsapp_Success(t *testing.T) {
 	db := newWhatsappTestDB(t)
 	repo := new(MockChannelSessionRepo)
 	planSvc := new(MockPlanLimitSvc)
 	ctrl := NewWhatsappController(repo, planSvc, nil, nil)
 
-	wa := &models.Whatsapp{ID: 1, Name: "WA-1", TenantID: testTenantID, Status: "CONNECTED"}
+	wa := &models.WhatsAppView{ID: 1, Name: "WA-1", TenantID: testTenantID, Status: "CONNECTED"}
 	repo.On("FindByIDDetail", mock.Anything, 1, testTenantID).Return(wa, nil)
 
 	router := setupWhatsappRouter(ctrl, http.MethodGet, "/whatsapp/:id", ctrl.ShowWhatsapp, db)

@@ -121,7 +121,7 @@ func TestWebchatPlugin_GET_ReturnsWhatsAppConfig(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
 
-	whatsapp := models.Whatsapp{
+	whatsapp := models.WhatsAppView{
 		Name:            "Test Channel",
 		GreetingMessage: "Olá!",
 		FarewellMessage: "Até logo!",
@@ -184,7 +184,7 @@ func TestWebchatPlugin_POST_CreatesTicketAndContact(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
 
-	whatsapp := models.Whatsapp{
+	whatsapp := models.WhatsAppView{
 		Name:            "Chat Channel",
 		GreetingMessage: "Hi",
 		FarewellMessage: "Bye",
@@ -244,7 +244,7 @@ func TestWebchatPlugin_POST_CreatesTicketAndContact(t *testing.T) {
 func TestWebchatPlugin_OutraEmpresaNaoAlcancaOCanal(t *testing.T) {
 	db := setupPluginTestDB(t)
 	dono, intruso := uuid.New(), uuid.New()
-	whatsapp := models.Whatsapp{Name: "Canal do dono", TenantID: dono}
+	whatsapp := models.WhatsAppView{Name: "Canal do dono", TenantID: dono}
 	if err := models.CreateWhatsapp(db, &whatsapp); err != nil {
 		t.Fatal(err)
 	}

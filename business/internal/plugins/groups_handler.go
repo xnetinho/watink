@@ -81,7 +81,7 @@ func localPart(jid string) string {
 // com muitos grupos.
 func handleListGroups(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -121,7 +121,7 @@ func handleListGroups(svc *groupsService) gin.HandlerFunc {
 
 func handleGetGroup(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -152,7 +152,7 @@ func handleGetGroup(svc *groupsService) gin.HandlerFunc {
 
 func handleCreateGroup(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -181,7 +181,7 @@ func handleCreateGroup(svc *groupsService) gin.HandlerFunc {
 
 func handleUpdateGroupSettings(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -221,7 +221,7 @@ func handleUpdateGroupSettings(svc *groupsService) gin.HandlerFunc {
 
 func handleGetInviteLink(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -245,7 +245,7 @@ func handleGetInviteLink(svc *groupsService) gin.HandlerFunc {
 
 func handleRevokeInviteLink(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -280,7 +280,7 @@ func handleRevokeInviteLink(svc *groupsService) gin.HandlerFunc {
 
 func handleLeaveGroup(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}

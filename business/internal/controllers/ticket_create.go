@@ -36,7 +36,7 @@ func (errConnectionRequired) Error() string { return "connection required" }
 // pickConnection resolve a conexão de um novo ticket: a preferida do usuário
 // (se conectada), senão a única conectada; 0 conectadas → errNoConnectedConnection;
 // 2+ conectadas → errConnectionRequired (o frontend pergunta qual usar).
-func pickConnection(connected []models.Whatsapp, userPreferred *int) (int, error) {
+func pickConnection(connected []models.WhatsAppView, userPreferred *int) (int, error) {
 	if userPreferred != nil {
 		for _, w := range connected {
 			if w.ID == *userPreferred {
@@ -58,7 +58,7 @@ func pickConnection(connected []models.Whatsapp, userPreferred *int) (int, error
 }
 
 // @Summary      Iniciar conversa (criar ticket)
-// @Description  Abre um ticket para um contato. Se já existir ticket aberto/pendente do contato na mesma conexão, devolve o existente (200). Sem whatsappId, usa a conexão do usuário ou a única conectada; com 2+ conectadas responde 409 code=CONNECTION_REQUIRED listando as opções.
+// @Description  Abre um ticket para um contato. Se já existir ticket aberto/pendente do contato na mesma conexão, devolve o existente (200). Sem connectionId, usa a conexão do usuário ou a única conectada; com 2+ conectadas responde 409 code=CONNECTION_REQUIRED listando as opções.
 // @Tags         tickets
 // @Accept       json
 // @Produce      json
@@ -157,7 +157,7 @@ func (tc *TicketController) CreateTicket(c *gin.Context) {
 // resolveConnection devolve o id da conexão a usar; ok=false significa que a
 // resposta de erro já foi escrita.
 func (tc *TicketController) resolveConnection(c *gin.Context, q func() *gorm.DB, tenantID uuid.UUID, userID int, requested *int) (int, bool) {
-	var connected []models.Whatsapp
+	var connected []models.WhatsAppView
 	if err := models.FindWhatsapps(q().Where(`"tenantId" = ? AND status = ?`, tenantID, "CONNECTED").Order("id"), &connected); err != nil {
 		utils.RespondWithInternalError(c, err, "CreateTicket")
 		return 0, false

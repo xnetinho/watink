@@ -123,7 +123,7 @@ func TestStartGroupCampaign_RejectsWithoutActiveVariant(t *testing.T) {
 func TestStartGroupCampaign_RejectsDisconnectedConnection(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
-	w := models.Whatsapp{TenantID: tenantID, Name: "conn-off", Number: "5511999990000", Status: "DISCONNECTED"}
+	w := models.WhatsAppView{TenantID: tenantID, Name: "conn-off", Number: "5511999990000", Status: "DISCONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &w))
 	r := campaignActionRouter(db, tenantID, nil)
 	campaign := createTestCampaign(t, r, w.ID)

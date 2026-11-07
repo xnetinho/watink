@@ -62,13 +62,13 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
         <div className="flex items-center gap-3">
           <Avatar
             size="lg"
-            src={getBackendUrl(whatsApp.profilePicUrl)}
+            src={getBackendUrl(whatsApp.avatarUrl)}
             name={whatsApp.name}
           />
           <div>
             <CardTitle className="text-lg">{whatsApp.name}</CardTitle>
             <CardDescription className="flex items-center gap-1">
-              {whatsApp.number ? `+${whatsApp.number}` : tr("uiText.connections.noNumber")}
+              {whatsApp.identifier ? `+${whatsApp.identifier}` : tr("uiText.connections.noNumber")}
             </CardDescription>
           </div>
         </div>

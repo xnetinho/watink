@@ -55,7 +55,7 @@ func respondCallError(c *gin.Context, err error) {
 
 // hasProxy diz se a conexão tem proxy configurado. Com proxy a mídia não pode
 // sair pelo IP do servidor (ADR 0021), então não há chamada.
-func hasProxy(w *models.Whatsapp) bool {
+func hasProxy(w *models.WhatsAppView) bool {
 	return (w.ProxyMode != "" && w.ProxyMode != "none") || w.ProxyID != nil || w.ProxyGroupID != nil
 }
 
@@ -102,7 +102,7 @@ func (cc *CallController) Place(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "chamadas só estão disponíveis em conversas com um contato (não em grupos)", "code": "NOT_INDIVIDUAL"})
 		return
 	}
-	var wa models.Whatsapp
+	var wa models.WhatsAppView
 	if err := models.FirstWhatsapp(dbFresh(db).Where(`id = ? AND "tenantId" = ?`, ticket.ChannelConnectionID, tenantID), &wa); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "conexão não encontrada"})
 		return

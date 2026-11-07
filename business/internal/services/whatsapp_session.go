@@ -57,12 +57,12 @@ func NewWhatsAppSessionService(db *gorm.DB, pub domain.CommandPublisher, redisSv
 // Exported so callers outside session lifecycle (message send, FlowBuilder
 // outbound) can resolve the same engine without depending on the full
 // session service (see domain.WhatsAppEngineResolver).
-func (wss *WhatsAppSessionService) EngineFor(whatsapp models.Whatsapp) (domain.WhatsAppEngine, error) {
+func (wss *WhatsAppSessionService) EngineFor(whatsapp models.WhatsAppView) (domain.WhatsAppEngine, error) {
 	return wss.engineFor(whatsapp)
 }
 
 // engineFor resolves the WhatsAppEngine for a connection's EngineType.
-func (wss *WhatsAppSessionService) engineFor(whatsapp models.Whatsapp) (domain.WhatsAppEngine, error) {
+func (wss *WhatsAppSessionService) engineFor(whatsapp models.WhatsAppView) (domain.WhatsAppEngine, error) {
 	et := whatsapp.EngineType
 	if et == "" {
 		et = defaultEngineType
@@ -74,7 +74,7 @@ func (wss *WhatsAppSessionService) engineFor(whatsapp models.Whatsapp) (domain.W
 	return e, nil
 }
 
-func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp, usePairingCode bool, phoneNumber string, force bool) error {
+func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.WhatsAppView, usePairingCode bool, phoneNumber string, force bool) error {
 	lockKey := fmt.Sprintf("session:start:%d", whatsapp.ID)
 	lockValue := uuid.New().String()
 
@@ -115,10 +115,6 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 	whatsapp.Status = "OPENING"
 
 	// Emit via Socket (via injected broadcast)
-	wss.broadcast.EmitToTenantRoom(whatsapp.TenantID.String(), "whatsappSession", map[string]interface{}{
-		"action":  "update",
-		"session": whatsapp,
-	})
 	wss.broadcast.EmitToTenantRoom(whatsapp.TenantID.String(), "channelConnection", map[string]interface{}{
 		"action":     "update",
 		"connection": whatsapp,
@@ -132,10 +128,6 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 		}
 		if updErr := models.UpdateWhatsapp(db, whatsapp.TenantID, whatsapp.ID, map[string]interface{}{"status": revertStatus}); updErr == nil {
 			whatsapp.Status = revertStatus
-			wss.broadcast.EmitToTenantRoom(whatsapp.TenantID.String(), "whatsappSession", map[string]interface{}{
-				"action":  "update",
-				"session": whatsapp,
-			})
 			wss.broadcast.EmitToTenantRoom(whatsapp.TenantID.String(), "channelConnection", map[string]interface{}{
 				"action":     "update",
 				"connection": whatsapp,
@@ -146,7 +138,7 @@ func (wss *WhatsAppSessionService) StartWhatsAppSession(whatsapp models.Whatsapp
 	return nil
 }
 
-func (wss *WhatsAppSessionService) StopWhatsAppSession(whatsapp models.Whatsapp) error {
+func (wss *WhatsAppSessionService) StopWhatsAppSession(whatsapp models.WhatsAppView) error {
 	engine, err := wss.engineFor(whatsapp)
 	if err != nil {
 		return err
@@ -154,7 +146,7 @@ func (wss *WhatsAppSessionService) StopWhatsAppSession(whatsapp models.Whatsapp)
 	return engine.StopSession(context.Background(), whatsapp)
 }
 
-func (wss *WhatsAppSessionService) DeleteWhatsAppSession(whatsapp models.Whatsapp) error {
+func (wss *WhatsAppSessionService) DeleteWhatsAppSession(whatsapp models.WhatsAppView) error {
 	engine, err := wss.engineFor(whatsapp)
 	if err != nil {
 		return err

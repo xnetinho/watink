@@ -125,7 +125,7 @@ func TestStream_ChatRoomRespectsTicketVisibility(t *testing.T) {
 	bc := services.NewSSEBroadcast(hub)
 	tenant, other := uuid.New(), uuid.New()
 
-	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	contact := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&contact).Error)
@@ -138,7 +138,7 @@ func TestStream_ChatRoomRespectsTicketVisibility(t *testing.T) {
 	require.NoError(t, db.Create(&theirs).Error)
 	foreignContact := models.Contact{Name: "F", Number: "5511999990002", TenantID: other}
 	require.NoError(t, db.Create(&foreignContact).Error)
-	foreignWa := models.Whatsapp{Name: "WB", TenantID: other, Status: "CONNECTED"}
+	foreignWa := models.WhatsAppView{Name: "WB", TenantID: other, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &foreignWa))
 	foreign := models.Ticket{Status: "open", ContactID: foreignContact.ID, ChannelConnectionID: foreignWa.ID, TenantID: other}
 	require.NoError(t, db.Create(&foreign).Error)
@@ -161,7 +161,7 @@ func TestStream_TenantScopeSeesAllTicketsOfOwnTenantOnly(t *testing.T) {
 	bc := services.NewSSEBroadcast(hub)
 	tenant, other := uuid.New(), uuid.New()
 
-	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	contact := models.Contact{Name: "C", Number: "5511999990003", TenantID: tenant}
 	require.NoError(t, db.Create(&contact).Error)
@@ -169,7 +169,7 @@ func TestStream_TenantScopeSeesAllTicketsOfOwnTenantOnly(t *testing.T) {
 	require.NoError(t, db.Create(&tk).Error)
 	fc := models.Contact{Name: "F", Number: "5511999990004", TenantID: other}
 	require.NoError(t, db.Create(&fc).Error)
-	fwa := models.Whatsapp{Name: "WB", TenantID: other, Status: "CONNECTED"}
+	fwa := models.WhatsAppView{Name: "WB", TenantID: other, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &fwa))
 	ft := models.Ticket{Status: "open", ContactID: fc.ID, ChannelConnectionID: fwa.ID, TenantID: other}
 	require.NoError(t, db.Create(&ft).Error)

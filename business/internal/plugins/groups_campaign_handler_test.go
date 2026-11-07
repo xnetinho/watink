@@ -37,9 +37,9 @@ func campaignHandlerRouter(db *gorm.DB, tenantID uuid.UUID) *gin.Engine {
 	return r
 }
 
-func campaignConnFixture(t *testing.T, db *gorm.DB, tenantID uuid.UUID) models.Whatsapp {
+func campaignConnFixture(t *testing.T, db *gorm.DB, tenantID uuid.UUID) models.WhatsAppView {
 	t.Helper()
-	w := models.Whatsapp{TenantID: tenantID, Name: "conn-" + uuid.New().String()[:8], Number: "5511999990000", Status: "CONNECTED"}
+	w := models.WhatsAppView{TenantID: tenantID, Name: "conn-" + uuid.New().String()[:8], Number: "5511999990000", Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &w))
 	return w
 }

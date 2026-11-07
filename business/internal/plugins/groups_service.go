@@ -31,11 +31,11 @@ func newGroupsService(core sdk.WatinkCore, resolver domain.WhatsAppEngineResolve
 
 // resolveConnectionFromQuery is the GET-route entry point — connectionId
 // travels as a query string.
-func (s *groupsService) resolveConnectionFromQuery(c *gin.Context, tenantID uuid.UUID) (models.Whatsapp, domain.GroupEngine, error) {
+func (s *groupsService) resolveConnectionFromQuery(c *gin.Context, tenantID uuid.UUID) (models.WhatsAppView, domain.GroupEngine, error) {
 	raw := c.Query("connectionId")
 	whatsappID, err := strconv.Atoi(raw)
 	if err != nil || whatsappID <= 0 {
-		var zero models.Whatsapp
+		var zero models.WhatsAppView
 		return zero, nil, utils.NewFriendlyError(http.StatusBadRequest, "Parâmetro connectionId é obrigatório.", fmt.Errorf("groups: connectionId inválido na query: %q", raw))
 	}
 	return s.resolveConnection(c, tenantID, whatsappID)
@@ -46,8 +46,8 @@ func (s *groupsService) resolveConnectionFromQuery(c *gin.Context, tenantID uuid
 // the right HTTP shape) on any failure — including the 501 when the
 // resolved WhatsAppEngine doesn't implement GroupEngine, per the plan's
 // "devolve 501 claro" requirement.
-func (s *groupsService) resolveConnection(c *gin.Context, tenantID uuid.UUID, whatsappID int) (models.Whatsapp, domain.GroupEngine, error) {
-	var w models.Whatsapp
+func (s *groupsService) resolveConnection(c *gin.Context, tenantID uuid.UUID, whatsappID int) (models.WhatsAppView, domain.GroupEngine, error) {
+	var w models.WhatsAppView
 	if err := models.FirstWhatsapp(s.db.WithContext(c.Request.Context()).Where(`id = ? AND "tenantId" = ?`, whatsappID, tenantID), &w); err != nil {
 		return w, nil, utils.NewFriendlyError(http.StatusNotFound, "Conexão não encontrada.", fmt.Errorf("groups: conexão %d não encontrada para o tenant %s: %w", whatsappID, tenantID, err))
 	}

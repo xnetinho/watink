@@ -61,7 +61,7 @@ type mockSessionRepo struct {
 func (m *mockSessionRepo) FindByID(_ context.Context, _ int, _ uuid.UUID) (*domain.ChannelSession, error) {
 	return nil, nil
 }
-func (m *mockSessionRepo) FindByIDDetail(_ context.Context, _ int, _ uuid.UUID) (*models.Whatsapp, error) {
+func (m *mockSessionRepo) FindByIDDetail(_ context.Context, _ int, _ uuid.UUID) (*models.WhatsAppView, error) {
 	return nil, nil
 }
 func (m *mockSessionRepo) FindAll(_ context.Context, _ uuid.UUID) ([]domain.ChannelSession, error) {

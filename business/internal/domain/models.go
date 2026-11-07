@@ -134,14 +134,14 @@ type ChannelSession struct {
 	TenantID            uuid.UUID  `json:"tenantId"`
 	SyncHistory         bool       `json:"syncHistory"`
 	SyncPeriod          string     `json:"syncPeriod"`
-	Number              string     `json:"number"`
-	ProfilePicUrl       string     `json:"profilePicUrl"`
+	Number              string     `json:"identifier"`
+	ProfilePicUrl       string     `json:"avatarUrl"`
 	KeepAlive           bool       `json:"keepAlive"`
 	PresencePolicy      string     `json:"presencePolicy"`
 	PresenceIdleMinutes int        `json:"presenceIdleMinutes"`
 	CreatedAt           time.Time  `json:"createdAt"`
 	UpdatedAt           time.Time  `json:"updatedAt"`
-	FirstConnection     *time.Time `json:"firstConnection"`
+	FirstConnection     *time.Time `json:"firstConnectedAt"`
 	LastConnectedAt     *time.Time `json:"lastConnectedAt"`
 	EngineType          string     `json:"engineType"`
 	ProxyMode           string     `json:"proxyMode"`
@@ -154,7 +154,7 @@ type ChannelSession struct {
 	Wid string `json:"wid"`
 
 	// LastRisk* — último sinal de risco de ban/throttle (whatsmeow IQ
-	// 401/403/429/463) recebido para esta conexão. Ver models.Whatsapp.
+	// 401/403/429/463) recebido para esta conexão. Ver models.WhatsAppView.
 	LastRiskCode    int        `json:"lastRiskCode"`
 	LastRiskAction  string     `json:"lastRiskAction"`
 	LastRiskMessage string     `json:"lastRiskMessage"`

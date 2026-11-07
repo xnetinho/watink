@@ -20,7 +20,7 @@ import (
 func TestSyncConnectionProfilePic_UpdatesMatchingConnection(t *testing.T) {
 	db, sessions, _ := setupEventListenerRepos(t)
 	tenantID := uuid.New()
-	wa := models.Whatsapp{ID: 3, Name: "zap-4863", Number: "558597964683", TenantID: tenantID}
+	wa := models.WhatsAppView{ID: 3, Name: "zap-4863", Number: "558597964683", TenantID: tenantID}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatalf("seed whatsapp: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestSyncConnectionProfilePic_UpdatesMatchingConnection(t *testing.T) {
 		t.Fatalf("syncConnectionProfilePic: %v", err)
 	}
 
-	var reloaded models.Whatsapp
+	var reloaded models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 3), &reloaded); err != nil {
 		t.Fatalf("reload: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestSyncConnectionProfilePic_UpdatesMatchingConnection(t *testing.T) {
 func TestSyncConnectionProfilePic_NoMatchingConnection_NoOp(t *testing.T) {
 	db, sessions, _ := setupEventListenerRepos(t)
 	tenantID := uuid.New()
-	wa := models.Whatsapp{ID: 1, Name: "zap-0991", Number: "558598490991", TenantID: tenantID}
+	wa := models.WhatsAppView{ID: 1, Name: "zap-0991", Number: "558598490991", TenantID: tenantID}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatalf("seed whatsapp: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestSyncConnectionProfilePic_NoMatchingConnection_NoOp(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	var reloaded models.Whatsapp
+	var reloaded models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &reloaded); err != nil {
 		t.Fatal(err)
 	}

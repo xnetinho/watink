@@ -30,7 +30,7 @@ func TestUpdatePresencePolicy(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
 	require.NoError(t, db.Create(&models.Tenant{ID: tenant, Name: "T Presença", Status: "active"}).Error)
-	wa := models.Whatsapp{Name: "w", TenantID: tenant, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "w", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	require.Equal(t, "never", wa.PresencePolicy, "padrão do modelo: não silencia o celular")
 
@@ -39,8 +39,8 @@ func TestUpdatePresencePolicy(t *testing.T) {
 	r.Use(func(c *gin.Context) { c.Set("tenantId", tenant.String()); c.Set("db", db); c.Next() })
 	r.PUT("/whatsapp/:id/presence-policy", wc.UpdatePresencePolicy)
 
-	read := func() models.Whatsapp {
-		var w models.Whatsapp
+	read := func() models.WhatsAppView {
+		var w models.WhatsAppView
 		require.NoError(t, models.FirstWhatsapp(db.Where("id = ?", wa.ID), &w))
 		return w
 	}
@@ -73,11 +73,11 @@ func TestUpdatePresencePolicy(t *testing.T) {
 		})
 	}
 	t.Run("conexão de outra empresa é 404", func(t *testing.T) {
-		other := models.Whatsapp{Name: "alheia", TenantID: uuid.New(), Status: "CONNECTED"}
+		other := models.WhatsAppView{Name: "alheia", TenantID: uuid.New(), Status: "CONNECTED"}
 		require.NoError(t, db.Create(&models.Tenant{ID: other.TenantID, Name: "Outra", Status: "active"}).Error)
 		require.NoError(t, models.CreateWhatsapp(db, &other))
 		assert.Equal(t, http.StatusNotFound, putPolicy(t, r, other.ID, `{"presencePolicy":"always"}`).Code)
-		var got models.Whatsapp
+		var got models.WhatsAppView
 		require.NoError(t, models.FirstWhatsapp(db.Where("id = ?", other.ID), &got))
 		assert.Equal(t, "never", got.PresencePolicy)
 	})

@@ -35,9 +35,9 @@ func postImport(r *gin.Engine, body string) *httptest.ResponseRecorder {
 	return w
 }
 
-func newWhatsapp(t *testing.T, db *gorm.DB, tenantID uuid.UUID, name, status string) models.Whatsapp {
+func newWhatsapp(t *testing.T, db *gorm.DB, tenantID uuid.UUID, name, status string) models.WhatsAppView {
 	t.Helper()
-	w := models.Whatsapp{Name: name, Status: status, TenantID: tenantID}
+	w := models.WhatsAppView{Name: name, Status: status, TenantID: tenantID}
 	require.NoError(t, models.CreateWhatsapp(db, &w))
 	return w
 }

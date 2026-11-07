@@ -34,7 +34,7 @@ func contactRouter(t *testing.T, db *gorm.DB, tenantID uuid.UUID) *gin.Engine {
 // conn cria uma conexão WhatsApp da empresa e devolve o id (todo contato pertence a uma conexão).
 func conn(t *testing.T, db *gorm.DB, tenant uuid.UUID, name string) int {
 	t.Helper()
-	w := models.Whatsapp{Name: name, Status: "CONNECTED", TenantID: tenant}
+	w := models.WhatsAppView{Name: name, Status: "CONNECTED", TenantID: tenant}
 	require.NoError(t, models.CreateWhatsapp(db, &w))
 	return w.ID
 }

@@ -29,17 +29,17 @@ func NewSessionController(sr domain.ChannelSessionRepository, broadcast domain.B
 // @Summary      Iniciar sessão WhatsApp
 // @Tags         whatsapp-sessions
 // @Produce      json
-// @Param        whatsappId  path      int  true  "ID da conexão"
+// @Param        id  path      int  true  "ID da conexão"
 // @Success      200         {object}  map[string]string
 // @Security     BearerAuth
-// @Router       /whatsappsession/{whatsappId} [post]
-// @Router       /whatsappsession/{whatsappId} [put]
+// @Router       /channels/connections/{id}/session [post]
+// @Router       /channels/connections/{id}/session [put]
 func (sc *SessionController) StartSession(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
-	whatsappID, ok2 := utils.ParseIntParam(c, "whatsappId")
+	whatsappID, ok2 := utils.ParseIntParam(c, "id")
 	if !ok2 {
 		return
 	}
@@ -67,16 +67,16 @@ func (sc *SessionController) StartSession(c *gin.Context) {
 // @Summary      Parar sessão WhatsApp
 // @Tags         whatsapp-sessions
 // @Produce      json
-// @Param        whatsappId  path      int  true  "ID da conexão"
+// @Param        id  path      int  true  "ID da conexão"
 // @Success      200         {object}  map[string]string
 // @Security     BearerAuth
-// @Router       /whatsappsession/{whatsappId} [delete]
+// @Router       /channels/connections/{id}/session [delete]
 func (sc *SessionController) StopSession(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
-	whatsappID, ok2 := utils.ParseIntParam(c, "whatsappId")
+	whatsappID, ok2 := utils.ParseIntParam(c, "id")
 	if !ok2 {
 		return
 	}
@@ -100,11 +100,6 @@ func (sc *SessionController) StopSession(c *gin.Context) {
 		return
 	}
 
-	sc.broadcast.EmitToTenantRoom(tenantID.String(), "whatsappSession", map[string]interface{}{
-		"action":  "update",
-		"session": session,
-	})
-	// Equivalente neutro para clientes multicanal (Task 3.6 / ADR 0033)
 	sc.broadcast.EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{
 		"action":     "update",
 		"connection": session,
@@ -118,9 +113,9 @@ func (sc *SessionController) StopSession(c *gin.Context) {
 // @Produce      json
 // @Success      200  {object}  map[string]string
 // @Security     BearerAuth
-// @Router       /whatsappsession/all [post]
+// @Router       /channels/connections/session/restart-all [post]
 func (sc *SessionController) RestartAllSessions(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -146,8 +141,8 @@ func (sc *SessionController) RestartAllSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Restarting all sessions."})
 }
 
-func channelSessionToModel(s *domain.ChannelSession) models.Whatsapp {
-	return models.Whatsapp{
+func channelSessionToModel(s *domain.ChannelSession) models.WhatsAppView {
+	return models.WhatsAppView{
 		ID:                  s.ID,
 		Status:              s.Status,
 		Name:                s.Name,

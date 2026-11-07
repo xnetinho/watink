@@ -56,9 +56,9 @@ func seedCreateTicketBase(t *testing.T, db *gorm.DB, tenantID uuid.UUID) (models
 	return user, contact
 }
 
-func seedConnection(t *testing.T, db *gorm.DB, tenantID uuid.UUID, name, status string) models.Whatsapp {
+func seedConnection(t *testing.T, db *gorm.DB, tenantID uuid.UUID, name, status string) models.WhatsAppView {
 	t.Helper()
-	wa := models.Whatsapp{Name: name + "-" + uuid.NewString()[:6], TenantID: tenantID, Status: status}
+	wa := models.WhatsAppView{Name: name + "-" + uuid.NewString()[:6], TenantID: tenantID, Status: status}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
@@ -248,20 +248,20 @@ func TestCreateTicket_MissingContactIDIs400(t *testing.T) {
 }
 
 func TestPickConnection(t *testing.T) {
-	c := func(id int) models.Whatsapp { return models.Whatsapp{ID: id} }
+	c := func(id int) models.WhatsAppView { return models.WhatsAppView{ID: id} }
 	pref := 2
 
-	if id, err := pickConnection([]models.Whatsapp{c(1)}, nil); err != nil || id != 1 {
+	if id, err := pickConnection([]models.WhatsAppView{c(1)}, nil); err != nil || id != 1 {
 		t.Fatalf("única conectada: id=%d err=%v", id, err)
 	}
-	if id, err := pickConnection([]models.Whatsapp{c(1), c(2)}, &pref); err != nil || id != 2 {
+	if id, err := pickConnection([]models.WhatsAppView{c(1), c(2)}, &pref); err != nil || id != 2 {
 		t.Fatalf("preferida conectada deve vencer: id=%d err=%v", id, err)
 	}
 	other := 9
-	if _, err := pickConnection([]models.Whatsapp{c(1), c(2)}, &other); err == nil {
+	if _, err := pickConnection([]models.WhatsAppView{c(1), c(2)}, &other); err == nil {
 		t.Fatal("preferida desconectada com 2 conectadas deve pedir escolha")
 	}
-	if id, err := pickConnection([]models.Whatsapp{c(1)}, &other); err != nil || id != 1 {
+	if id, err := pickConnection([]models.WhatsAppView{c(1)}, &other); err != nil || id != 1 {
 		t.Fatalf("preferida desconectada com 1 conectada cai na única: id=%d err=%v", id, err)
 	}
 }

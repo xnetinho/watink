@@ -11,9 +11,9 @@ import (
 // KindWhatsApp é o valor de ChannelConnection.Kind das conexões WhatsApp.
 const KindWhatsApp = "whatsapp"
 
-// Whatsapp é a visão achatada de uma conexão WhatsApp: a linha de ChannelConnections (kind="whatsapp") mais a de
+// WhatsAppView é a visão achatada de uma conexão WhatsApp: a linha de ChannelConnections (kind="whatsapp") mais a de
 // whatsapp_connection_details. NÃO é tabela: ler e gravar só pelas funções deste arquivo.
-type Whatsapp struct {
+type WhatsAppView struct {
 	ID              int        `json:"id"`
 	Status          string     `json:"status"`
 	Name            string     `json:"name"`
@@ -21,11 +21,11 @@ type Whatsapp struct {
 	GreetingMessage string     `json:"greetingMessage"`
 	FarewellMessage string     `json:"farewellMessage"`
 	TenantID        uuid.UUID  `json:"tenantId"`
-	Number          string     `json:"number"`        // ChannelConnection.Identifier
-	ProfilePicUrl   string     `json:"profilePicUrl"` // ChannelConnection.AvatarURL
+	Number          string     `json:"identifier"`
+	ProfilePicUrl   string     `json:"avatarUrl"`
 	CreatedAt       time.Time  `json:"createdAt"`
 	UpdatedAt       time.Time  `json:"updatedAt"`
-	FirstConnection *time.Time `json:"firstConnection"` // ChannelConnection.FirstConnectedAt
+	FirstConnection *time.Time `json:"firstConnectedAt"`
 	LastConnectedAt *time.Time `json:"lastConnectedAt"`
 
 	SyncHistory         bool   `json:"syncHistory"`
@@ -56,8 +56,8 @@ type Whatsapp struct {
 var connectionColumns = map[string]string{
 	"status": "status", "name": "name", "isDefault": "isDefault",
 	"greetingMessage": "greetingMessage", "farewellMessage": "farewellMessage",
-	"number": "identifier", "profilePicUrl": "avatarUrl",
-	"firstConnection": "firstConnectedAt", "lastConnectedAt": "lastConnectedAt",
+	"identifier": "identifier", "avatarUrl": "avatarUrl",
+	"firstConnectedAt": "firstConnectedAt", "lastConnectedAt": "lastConnectedAt",
 }
 
 var detailColumns = map[string]bool{
@@ -66,7 +66,7 @@ var detailColumns = map[string]bool{
 	"lastRiskCode": true, "lastRiskAction": true, "lastRiskMessage": true, "lastRiskAt": true,
 }
 
-func (w *Whatsapp) parts() (ChannelConnection, WhatsAppConnectionDetails) {
+func (w *WhatsAppView) parts() (ChannelConnection, WhatsAppConnectionDetails) {
 	cc := ChannelConnection{
 		ID: w.ID, TenantID: w.TenantID, Kind: KindWhatsApp, Name: w.Name, Status: w.Status, IsDefault: w.IsDefault,
 		GreetingMessage: w.GreetingMessage, FarewellMessage: w.FarewellMessage,
@@ -81,8 +81,8 @@ func (w *Whatsapp) parts() (ChannelConnection, WhatsAppConnectionDetails) {
 	return cc, d
 }
 
-func joinWhatsapp(cc ChannelConnection, d WhatsAppConnectionDetails) Whatsapp {
-	return Whatsapp{
+func joinWhatsapp(cc ChannelConnection, d WhatsAppConnectionDetails) WhatsAppView {
+	return WhatsAppView{
 		ID: cc.ID, Status: cc.Status, Name: cc.Name, IsDefault: cc.IsDefault, GreetingMessage: cc.GreetingMessage,
 		FarewellMessage: cc.FarewellMessage, TenantID: cc.TenantID, Number: cc.Identifier, ProfilePicUrl: cc.AvatarURL,
 		CreatedAt: cc.CreatedAt, UpdatedAt: cc.UpdatedAt, FirstConnection: cc.FirstConnectedAt, LastConnectedAt: cc.LastConnectedAt,
@@ -103,7 +103,7 @@ func TenantWhatsappIDs(db *gorm.DB, tenantID uuid.UUID) *gorm.DB {
 
 // CreateWhatsapp grava a conexão e os seus detalhes na mesma transação e devolve w já com id, datas e padrões do banco.
 // Com w.ID zero o banco gera o id.
-func CreateWhatsapp(db *gorm.DB, w *Whatsapp) error {
+func CreateWhatsapp(db *gorm.DB, w *WhatsAppView) error {
 	return fresh(db).Transaction(func(tx *gorm.DB) error {
 		cc, d := w.parts()
 		if err := tx.Create(&cc).Error; err != nil {
@@ -119,7 +119,7 @@ func CreateWhatsapp(db *gorm.DB, w *Whatsapp) error {
 
 // FirstWhatsapp lê a primeira conexão WhatsApp que casa com as condições de q (Where/Select/Order). Devolve
 // gorm.ErrRecordNotFound se não houver.
-func FirstWhatsapp(q *gorm.DB, dest *Whatsapp) error {
+func FirstWhatsapp(q *gorm.DB, dest *WhatsAppView) error {
 	var cc ChannelConnection
 	if err := q.Model(&ChannelConnection{}).Where(`kind = ?`, KindWhatsApp).First(&cc).Error; err != nil {
 		return err
@@ -133,7 +133,7 @@ func FirstWhatsapp(q *gorm.DB, dest *Whatsapp) error {
 }
 
 // FindWhatsapps lê todas as conexões WhatsApp que casam com as condições de q.
-func FindWhatsapps(q *gorm.DB, dest *[]Whatsapp) error {
+func FindWhatsapps(q *gorm.DB, dest *[]WhatsAppView) error {
 	var ccs []ChannelConnection
 	if err := q.Model(&ChannelConnection{}).Where(`kind = ?`, KindWhatsApp).Find(&ccs).Error; err != nil {
 		return err
@@ -146,7 +146,7 @@ func FindWhatsapps(q *gorm.DB, dest *[]Whatsapp) error {
 	if err != nil {
 		return err
 	}
-	out := make([]Whatsapp, len(ccs))
+	out := make([]WhatsAppView, len(ccs))
 	for i := range ccs {
 		out[i] = joinWhatsapp(ccs[i], d[ccs[i].ID])
 	}
@@ -175,7 +175,7 @@ func loadDetails(q *gorm.DB, ids []int) (map[int]WhatsAppConnectionDetails, erro
 }
 
 // LoadWhatsappQueues preenche w.Queues com as filas ligadas à conexão.
-func LoadWhatsappQueues(db *gorm.DB, w *Whatsapp) error {
+func LoadWhatsappQueues(db *gorm.DB, w *WhatsAppView) error {
 	w.Queues = nil
 	return fresh(db).Raw(
 		`SELECT q.* FROM "Queues" q JOIN channel_connection_queues cq ON cq.queue_id = q.id WHERE cq.channel_connection_id = ?`, w.ID,

@@ -23,7 +23,7 @@ func setupEventListenerRepos(t *testing.T) (*gorm.DB, domain.ChannelSessionRepos
 
 func seedWhatsapp(t *testing.T, db *gorm.DB, id int, tenantID uuid.UUID) {
 	t.Helper()
-	wa := models.Whatsapp{
+	wa := models.WhatsAppView{
 		ID:       id,
 		Name:     "test-session-" + string(rune('0'+id)),
 		Status:   "CONNECTED",
@@ -68,7 +68,7 @@ func TestHandleQrCode_UpdatesWhatsapp(t *testing.T) {
 		t.Fatalf("handleQrCode() error: %v", err)
 	}
 
-	var wa models.Whatsapp
+	var wa models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &wa); err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestHandleSessionStatus_UpdatesStatus(t *testing.T) {
 		t.Fatalf("handleSessionStatus() error: %v", err)
 	}
 
-	var wa models.Whatsapp
+	var wa models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 2), &wa); err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +133,7 @@ func TestHandleSessionStatus_BannedIsolatesProxy(t *testing.T) {
 	if err := db.Create(&proxy).Error; err != nil {
 		t.Fatalf("seed proxy: %v", err)
 	}
-	wa := models.Whatsapp{ID: 3, Name: "s3", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
+	wa := models.WhatsAppView{ID: 3, Name: "s3", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatalf("seed wa: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestHandleSessionStatus_BannedIsolatesProxy(t *testing.T) {
 	if reloaded.Status != "isolated" {
 		t.Fatalf("expected proxy isolated after ban, got %q", reloaded.Status)
 	}
-	var wre models.Whatsapp
+	var wre models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 3), &wre); err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +169,7 @@ func TestHandleSessionRisk_463IsolatesProxy(t *testing.T) {
 	if err := db.Create(&proxy).Error; err != nil {
 		t.Fatalf("seed proxy: %v", err)
 	}
-	wa := models.Whatsapp{ID: 5, Name: "s5", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
+	wa := models.WhatsAppView{ID: 5, Name: "s5", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatalf("seed wa: %v", err)
 	}
@@ -194,7 +194,7 @@ func TestHandleSessionRisk_401DoesNotIsolateProxy(t *testing.T) {
 	tenantID := uuid.New()
 	proxy := models.Proxy{TenantID: tenantID, Scheme: "http", Host: "h", Port: 8080, Status: "active"}
 	db.Create(&proxy)
-	wa := models.Whatsapp{ID: 6, Name: "s6", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
+	wa := models.WhatsAppView{ID: 6, Name: "s6", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestHandleSessionRisk_PersistsLastRiskFields(t *testing.T) {
 		t.Fatalf("handleSessionRisk: %v", err)
 	}
 
-	var wa models.Whatsapp
+	var wa models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 7), &wa); err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestHandleSessionStatus_DisconnectKeepsProxyActive(t *testing.T) {
 	tenantID := uuid.New()
 	proxy := models.Proxy{TenantID: tenantID, Scheme: "http", Host: "h", Port: 8080, Status: "active"}
 	db.Create(&proxy)
-	wa := models.Whatsapp{ID: 4, Name: "s4", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
+	wa := models.WhatsAppView{ID: 4, Name: "s4", Status: "CONNECTED", TenantID: tenantID, ProxyMode: "single", ProxyID: &proxy.ID}
 	if err := models.CreateWhatsapp(db, &wa); err != nil {
 		t.Fatal(err)
 	}
@@ -285,7 +285,7 @@ func TestHandlePairingCode_UpdatesStatus(t *testing.T) {
 		t.Fatalf("handlePairingCode() error: %v", err)
 	}
 
-	var wa models.Whatsapp
+	var wa models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 3), &wa); err != nil {
 		t.Fatal(err)
 	}
@@ -306,7 +306,7 @@ func TestHandlePairingCode_DefaultStatus(t *testing.T) {
 		t.Fatalf("handlePairingCode() error: %v", err)
 	}
 
-	var wa models.Whatsapp
+	var wa models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 4), &wa); err != nil {
 		t.Fatal(err)
 	}

@@ -26,17 +26,17 @@ export interface ConnectionProxySummary {
 export interface WhatsApp {
   id: number;
   name: string;
-  number?: string;
+  identifier?: string;
   status: string;
   qrcode?: string;
   pairingCode?: string;
-  profilePicUrl?: string;
+  avatarUrl?: string;
   keepAlive?: boolean;
   presencePolicy?: string;
   presenceIdleMinutes?: number;
   isDefault?: boolean;
   lastConnectedAt?: string | null;
-  firstConnection?: string | null;
+  firstConnectedAt?: string | null;
   createdAt?: string;
   proxyMode?: string;
   proxyId?: number | null;

@@ -100,7 +100,7 @@ func (a *WhatsAppAdapter) sendInternal(ctx context.Context, msg OutboundMessage)
 	// as deps são injetadas; call sites que não as injetam publicam direto, como no FASE 1.
 	var conn models.ChannelConnection
 	var sender domain.RichSender
-	var whatsapp models.Whatsapp
+	var whatsapp models.WhatsAppView
 	var engine domain.WhatsAppEngine
 	if a.deps.DB != nil {
 		sid, _ := strconv.Atoi(msg.SessionID)
@@ -201,7 +201,7 @@ func (a *WhatsAppAdapter) sendInternal(ctx context.Context, msg OutboundMessage)
 // general) so this never changes behavior outside the Assistants plugin.
 // Best-effort throughout: a PresenceEngine that errors or isn't implemented
 // never blocks or fails the actual send that follows.
-func (a *WhatsAppAdapter) applyHumanPacing(ctx context.Context, engine domain.WhatsAppEngine, whatsapp models.Whatsapp, msg OutboundMessage) {
+func (a *WhatsAppAdapter) applyHumanPacing(ctx context.Context, engine domain.WhatsAppEngine, whatsapp models.WhatsAppView, msg OutboundMessage) {
 	if msg.Meta["humanPacing"] != true || msg.Body == "" {
 		return
 	}

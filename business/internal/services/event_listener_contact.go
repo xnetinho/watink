@@ -107,16 +107,12 @@ func syncConnectionProfilePic(ctx context.Context, sessions domain.ChannelSessio
 			continue
 		}
 		session := all[i]
-		if err := sessions.Update(ctx, &session, map[string]interface{}{"profilePicUrl": p.Contact.ProfilePicUrl}); err != nil {
+		if err := sessions.Update(ctx, &session, map[string]interface{}{"avatarUrl": p.Contact.ProfilePicUrl}); err != nil {
 			return err
 		}
-		domain.BroadcastOrNop(b).EmitToTenantRoom(tenantID.String(), "whatsappSession", map[string]interface{}{
-			"action":  "update",
-			"session": map[string]interface{}{"id": session.ID, "profilePicUrl": p.Contact.ProfilePicUrl},
-		})
 		domain.BroadcastOrNop(b).EmitToTenantRoom(tenantID.String(), "channelConnection", map[string]interface{}{
 			"action":     "update",
-			"connection": map[string]interface{}{"id": session.ID, "profilePicUrl": p.Contact.ProfilePicUrl},
+			"connection": map[string]interface{}{"id": session.ID, "avatarUrl": p.Contact.ProfilePicUrl},
 		})
 		return nil
 	}

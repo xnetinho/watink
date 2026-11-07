@@ -23,7 +23,7 @@ func (m *mockCommandPublisher) PublishCommand(routingKey string, payload interfa
 func assertSessionCommand(t *testing.T, p *Provider, commandType string) {
 	t.Helper()
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{ID: 42, TenantID: tenantID}
+	whatsapp := models.WhatsAppView{ID: 42, TenantID: tenantID}
 
 	routingKey, command := p.buildSessionCommand(whatsapp, commandType)
 
@@ -64,7 +64,7 @@ func TestStopSession_PublishesStop(t *testing.T) {
 	pub := &mockCommandPublisher{}
 	p := New(nil, pub)
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{ID: 99, TenantID: tenantID}
+	whatsapp := models.WhatsAppView{ID: 99, TenantID: tenantID}
 
 	if err := p.StopSession(context.TODO(), whatsapp); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -79,7 +79,7 @@ func TestDeleteSession_PublishesDelete(t *testing.T) {
 	pub := &mockCommandPublisher{}
 	p := New(nil, pub)
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{ID: 55, TenantID: tenantID}
+	whatsapp := models.WhatsAppView{ID: 55, TenantID: tenantID}
 
 	if err := p.DeleteSession(context.TODO(), whatsapp); err != nil {
 		t.Fatalf("unexpected error: %v", err)

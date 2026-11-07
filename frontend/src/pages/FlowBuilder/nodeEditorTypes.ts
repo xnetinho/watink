@@ -138,7 +138,7 @@ export const TABLE_ALL_FIELDS: Record<string, string[]> = {
   Messages: ['id', 'body', 'fromMe', 'mediaType', 'ticketId', 'createdAt'],
   Users: ['id', 'name', 'email', 'profile', 'createdAt'],
   Queues: ['id', 'name', 'color', 'createdAt'],
-  Whatsapps: ['id', 'name', 'status', 'isDefault', 'createdAt'],
+  ChannelConnections: ['id', 'name', 'status', 'isDefault', 'createdAt'],
   QuickAnswers: ['id', 'shortcut', 'message', 'createdAt'],
   Pipelines: ['id', 'name', 'createdAt'],
 };

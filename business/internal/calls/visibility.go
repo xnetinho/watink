@@ -8,7 +8,7 @@ import (
 
 // UsersWhoSeeConnection devolve os usuários da empresa que enxergam a conexão
 // (WhatsApp) `whatsappID`: alcance de empresa/plataforma, ou a conexão está
-// ligada a uma fila do usuário (whatsapp_queues × user_queues).
+// ligada a uma fila do usuário (channel_connection_queues × user_queues).
 //
 // Espelha a regra de visibilidade de tickets de auth.GetScopedDB("Tickets"), que
 // só existe como SQL dentro de um middleware HTTP. O teste de paridade

@@ -93,7 +93,7 @@ func syncAllGroupsCaches(ctx context.Context, db *gorm.DB, resolver domain.Whats
 
 func syncOneGroupsCache(ctx context.Context, db *gorm.DB, resolver domain.WhatsAppEngineResolver, t groupsCacheSyncTarget) {
 	// Etapa 1 (curta, escopo da empresa): carrega a conexão.
-	var w models.Whatsapp
+	var w models.WhatsAppView
 	if err := tenantdb.Do(ctx, db, t.TenantID, func(tx *gorm.DB) error {
 		return models.FirstWhatsapp(tx.Where(`id = ? AND "tenantId" = ?`, t.WhatsappID, t.TenantID), &w)
 	}); err != nil {
