@@ -106,6 +106,26 @@ Ordem acordada: A, B, E, F (C encerrado, D entregue). G (múltiplas bibliotecas 
 
 - **Bug (6/nov/2026): a notificação de chamada recebida não some da tela quando a chamada é atendida.** Achado pelo dono ligando do celular. A chamada toca ao mesmo tempo no celular e no Watink; ao ser atendida (aqui, pela API), o celular para de tocar, mas o painel do Watink continua com a notificação e só sai se o operador apertar "recusar". **Não tratado**, só registrado. Pistas, sem verificação: (1) o painel escuta `call.incoming` e deveria remover o modal ao receber `call.answered` ou `call.ended`; vale conferir se o evento `call.answered` chega a quem NÃO atendeu (a sala SSE de cada operador) e se o `IncomingCallModal` reage a ele; (2) o atendimento pela API não passa pelo estado da tela, então o modal nunca ouve que a chamada foi assumida; (3) "recusar" depois de atendida deveria ser inofensivo (`ErrAlreadyAnswered`), e vale conferir que ele não derruba a chamada de quem atendeu. Teste a escrever: dois operadores online, um atende, o outro precisa perder o modal sem ação.
 
+  **Verificado em 7/nov/2026: não reproduzido.** Duas rodadas no `lt`, com um monitor SSE (mesmo usuário do painel) que gravou cada evento `call.*`
+  que o painel recebe. (1) Chamada do Android pessoal **atendida no Android do número de teste** (WhatsApp Business): o engine recebeu `accept`
+  de outro aparelho e `terminate accepted_elsewhere`; o painel recebeu `call.incoming` e `call.ended` (`missed / accepted_elsewhere`); o toque
+  sumiu sozinho. (2) Chamada **deixada tocar**: `call.ended timeout` aos 45 s e o toque sumiu. Cada elo tem teste: engine
+  (`TestAcceptedElsewhere_EndsWithoutSendingAnything`), business (`TestHandleEnded_AnsweredElsewhereDismissesTheRingForEveryone`, novo) e
+  frontend (`callReducer.test.ts`). A causa do que o dono viu em 6/nov continua desconhecida (provavelmente o atalho de teste que atendia pela
+  API sem passar pelo estado da tela); não voltou a aparecer.
+
+- **Defeito achado nesse teste e corrigido (7/nov/2026): oferta de chamada duplicada virava `missed/busy`.** O servidor do WhatsApp entregou a mesma
+  oferta duas vezes (mesmo `call-id` e mesmo id de stanza, 56 ms de intervalo, a segunda com outra lista de relays). `Session.OnOffer` só olhava
+  "há chamada ativa?" e tratava a repetida como outra chamada com a linha ocupada: saía `call.missed busy` e o registro fechava como
+  `missed/busy` em 0,06 s, com a chamada ainda tocando. Agora uma oferta cujo `call-id` já é a chamada ativa é ignorada. O whatsmeow não
+  deduplica (`handleCallEvent` despacha tudo), então a guarda é nossa. Teste: `TestOffer_DuplicateOfActiveCallIsIgnored` (falha sem a guarda).
+
+- **Origem do chamador em chamadas (achado de 7/nov/2026, ainda não implementado).** O `<offer>` traz `platform` e `version`, e o whatsmeow já os
+  entrega em `events.CallOffer.RemotePlatform/RemoteVersion` (o engine hoje os descarta). Valores vistos: `android`, `web` (com dispositivo `:84` no
+  JID e versão `2.3000.x`) e `iphone` (não `ios`). O protocolo lista também `smba` (Business Android, visto só em `accept`), `smbi`, `ipad`, `darwin`,
+  `uwp`. O ID da chamada tem o mesmo formato (32 hex) em todas as origens, então NÃO serve. Proposta: gravar a plataforma em `CallLogs` e mostrar no
+  registro de chamada. Pendente: decisão do dono.
+
 ## Webchat: situação e decisão pendente (7/nov/2026)
 
 Anotado a pedido do usuário para **avaliação posterior**. Nada foi implementado nem removido; só o parâmetro de rota e o snippet de

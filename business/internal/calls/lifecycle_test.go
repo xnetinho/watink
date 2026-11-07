@@ -399,3 +399,20 @@ func TestSystemMessage_VoiceStaysVoice(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(msg.DataJson), &data))
 	assert.Equal(t, "audio", data["media"])
 }
+
+// Atendida FORA do Watink (no celular ou em outro aparelho): o engine encerra a oferta com accepted_elsewhere e o toque tem de sumir
+// do painel de todo operador, porque ninguém do Watink atendeu. Antes só o caminho "atendida pelo painel" tinha teste.
+func TestHandleEnded_AnsweredElsewhereDismissesTheRingForEveryone(t *testing.T) {
+	r := newRig(t)
+	ringing(t, r, "ELSE-1")
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("ELSE-1", "accepted_elsewhere", 0)))
+
+	l := r.log(t, "ELSE-1")
+	assert.NotNil(t, l.EndedAt, "a oferta fecha")
+	assert.Equal(t, "accepted_elsewhere", l.EndReason)
+	assert.Nil(t, l.HandledByUserID, "nenhum operador do Watink atendeu")
+	assert.Equal(t, 1, r.bc.to("tenant:"+r.tenant.String(), "call.ended"), "todo navegador do tenant recebe o fim do toque")
+
+	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "ELSE-1")
+	assert.Error(t, err, "um clique tardio em Atender não pode reabrir uma oferta encerrada")
+}
