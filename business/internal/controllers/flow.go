@@ -190,15 +190,15 @@ func (fc *FlowController) Create(c *gin.Context) {
 	whatsappID := req.WhatsAppID
 
 	flow := models.Flow{
-		Name:            flowName,
-		Nodes:           req.Nodes,
-		Edges:           req.Edges,
-		Active:          req.Active,
-		WhatsAppID:      whatsappID,
-		TriggerType:     proj.Type,
-		TriggerValue:    proj.Value,
-		TriggerOperator: proj.Operator,
-		TenantID:        tenantID,
+		Name:                flowName,
+		Nodes:               req.Nodes,
+		Edges:               req.Edges,
+		Active:              req.Active,
+		ChannelConnectionID: whatsappID,
+		TriggerType:         proj.Type,
+		TriggerValue:        proj.Value,
+		TriggerOperator:     proj.Operator,
+		TenantID:            tenantID,
 	}
 
 	if err := db.Create(&flow).Error; err != nil {
@@ -319,7 +319,7 @@ func (fc *FlowController) Update(c *gin.Context) {
 	// Conexão: o editor é a fonte da verdade. Presente (valor ou null) → grava;
 	// ausente → preserva. req.WhatsAppID é *int → GORM grava o valor ou NULL (detach).
 	if whatsappProvided {
-		updates["whatsappId"] = req.WhatsAppID
+		updates["channelConnectionId"] = req.WhatsAppID
 	}
 
 	// FB0-B4: only re-validate the graph when nodes/edges are part of this PATCH.

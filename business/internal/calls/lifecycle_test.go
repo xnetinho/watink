@@ -318,7 +318,7 @@ func placeOutgoing(t *testing.T, r *rig, callID string) {
 	require.NoError(t, r.db.Create(&contact).Error)
 	uid := r.users["da_fila_A"].ID
 	require.NoError(t, r.db.Create(&models.CallLog{
-		TenantID: r.tenant, CallID: callID, WhatsappID: r.waA.ID, ContactID: &contact.ID, Direction: "outgoing",
+		TenantID: r.tenant, CallID: callID, ChannelConnectionID: r.waA.ID, ContactID: &contact.ID, Direction: "outgoing",
 		Status: StatusRinging, PeerJid: "5511999990020@s.whatsapp.net", CallerPn: "5511999990020", StartedAt: time.Now(),
 		HandledByUserID: &uid,
 	}).Error)

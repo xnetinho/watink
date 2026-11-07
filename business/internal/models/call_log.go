@@ -10,13 +10,13 @@ import (
 // (tenantId, callId): o callId vem do WhatsApp e só é único dentro de uma
 // empresa para fins do Watink, então a unicidade NUNCA é global.
 type CallLog struct {
-	ID         int       `gorm:"primaryKey" json:"id"`
-	TenantID   uuid.UUID `gorm:"column:tenantId;type:uuid;not null;uniqueIndex:idx_calllogs_tenant_call,priority:1;index:idx_calllogs_tenant_started,priority:1" json:"-"`
-	CallID     string    `gorm:"column:callId;not null;uniqueIndex:idx_calllogs_tenant_call,priority:2" json:"callId"`
-	WhatsappID          int       `gorm:"column:whatsappId;not null;index" json:"whatsappId,omitempty"`
-	ChannelConnectionID int       `gorm:"column:channelConnectionId;index" json:"channelConnectionId,omitempty"`
-	ContactID  *int      `gorm:"column:contactId" json:"contactId"`
-	TicketID   *int      `gorm:"column:ticketId" json:"ticketId"`
+	ID       int       `gorm:"primaryKey" json:"id"`
+	TenantID uuid.UUID `gorm:"column:tenantId;type:uuid;not null;uniqueIndex:idx_calllogs_tenant_call,priority:1;index:idx_calllogs_tenant_started,priority:1" json:"-"`
+	CallID   string    `gorm:"column:callId;not null;uniqueIndex:idx_calllogs_tenant_call,priority:2" json:"callId"`
+	// A chave JSON segue "whatsappId" até a fatia 5 da migração (frontend): o contrato com a tela não muda neste PR.
+	ChannelConnectionID int  `gorm:"column:channelConnectionId;not null;index" json:"whatsappId,omitempty"`
+	ContactID           *int `gorm:"column:contactId" json:"contactId"`
+	TicketID            *int `gorm:"column:ticketId" json:"ticketId"`
 
 	// Direction: incoming | outgoing.
 	Direction string `gorm:"not null" json:"direction"`

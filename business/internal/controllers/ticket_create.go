@@ -172,8 +172,8 @@ func (tc *TicketController) resolveConnection(c *gin.Context, q func() *gorm.DB,
 
 	var preferred *int
 	var u models.User
-	if err := q().Select("id", "whatsappId").Where(`id = ? AND "tenantId" = ?`, userID, tenantID).First(&u).Error; err == nil {
-		preferred = u.WhatsappID
+	if err := q().Select("id", "channelConnectionId").Where(`id = ? AND "tenantId" = ?`, userID, tenantID).First(&u).Error; err == nil {
+		preferred = u.ChannelConnectionID
 	}
 
 	id, err := pickConnection(connected, preferred)

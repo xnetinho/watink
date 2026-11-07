@@ -43,7 +43,7 @@ func (gc *AssistantGroupController) List(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "assistant não encontrado"})
 		return
 	}
-	if a.WhatsAppID == nil {
+	if a.ChannelConnectionID == nil {
 		// No connection bound yet — a group belongs to exactly one
 		// connection (only members of that number see it on WhatsApp), so
 		// without a connection there is no group list to show.
@@ -60,7 +60,7 @@ func (gc *AssistantGroupController) List(c *gin.Context) {
 	if err := db.Session(&gorm.Session{NewDB: true}).
 		Distinct().
 		Joins(`JOIN "Tickets" ON "Tickets"."contactId" = "Contacts".id`).
-		Where(`"Contacts"."tenantId" = ? AND "Contacts"."isGroup" = true AND "Tickets"."whatsappId" = ?`, tenantID, *a.WhatsAppID).
+		Where(`"Contacts"."tenantId" = ? AND "Contacts"."isGroup" = true AND "Tickets"."whatsappId" = ?`, tenantID, *a.ChannelConnectionID).
 		Find(&contacts).Error; err != nil {
 		utils.RespondWithInternalError(c, err, "ListAssistantGroups: contacts")
 		return
@@ -114,7 +114,7 @@ func (gc *AssistantGroupController) Toggle(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "contactId é obrigatório"})
 		return
 	}
-	if a.WhatsAppID == nil {
+	if a.ChannelConnectionID == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "assistant sem conexão configurada"})
 		return
 	}
@@ -128,7 +128,7 @@ func (gc *AssistantGroupController) Toggle(c *gin.Context) {
 		Distinct().
 		Joins(`JOIN "Tickets" ON "Tickets"."contactId" = "Contacts".id`).
 		Where(`"Contacts".id = ? AND "Contacts"."tenantId" = ? AND "Contacts"."isGroup" = true AND "Tickets"."whatsappId" = ?`,
-			in.ContactID, tenantID, *a.WhatsAppID).
+			in.ContactID, tenantID, *a.ChannelConnectionID).
 		First(&contact).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "grupo não encontrado nesta conexão"})
 		return

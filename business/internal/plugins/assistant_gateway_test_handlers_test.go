@@ -185,7 +185,7 @@ func TestAssistantController_Update_WhatsappBoundActive_DoesNotDuplicateTable(t 
 	cfg, _ := json.Marshal(models.AssistantPersonaConfig{Persona: "Vendedor", AiGatewayID: 1, RagFallbackBehavior: models.RagFallbackHandoff})
 	a := models.Assistant{
 		TenantID: tenantID, Name: "Bound", Mode: models.AssistantModePersona, TriggerType: "any",
-		TriggerOperator: "contains", WhatsAppID: &whatsappID, AllowMultipleOnConnection: false,
+		TriggerOperator: "contains", ChannelConnectionID: &whatsappID, AllowMultipleOnConnection: false,
 		Active: true, Config: datatypes.JSON(cfg),
 	}
 	require.NoError(t, db.Create(&a).Error)
@@ -218,9 +218,9 @@ func TestAssistantRouterController_Create_SameConnection_Succeeds(t *testing.T) 
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
 	whatsappID := 1
-	router := models.Assistant{TenantID: tenantID, Name: "Roteador", Mode: models.AssistantModeRouter, TriggerType: "any", WhatsAppID: &whatsappID}
+	router := models.Assistant{TenantID: tenantID, Name: "Roteador", Mode: models.AssistantModeRouter, TriggerType: "any", ChannelConnectionID: &whatsappID}
 	require.NoError(t, db.Create(&router).Error)
-	target := models.Assistant{TenantID: tenantID, Name: "Suporte", Mode: models.AssistantModePersona, TriggerType: "any", WhatsAppID: &whatsappID}
+	target := models.Assistant{TenantID: tenantID, Name: "Suporte", Mode: models.AssistantModePersona, TriggerType: "any", ChannelConnectionID: &whatsappID}
 	require.NoError(t, db.Create(&target).Error)
 	rc := NewAssistantRouterController()
 

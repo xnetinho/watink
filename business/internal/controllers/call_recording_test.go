@@ -82,7 +82,7 @@ func (w *recWorld) recorded(t *testing.T, callID string, ticketID *int) {
 	key := callID + "/key.mp3"
 	w.store.objects[key] = []byte("mp3")
 	require.NoError(t, w.db.Create(&models.CallLog{
-		TenantID: w.tenant, CallID: callID, WhatsappID: w.wa.ID, TicketID: ticketID, Direction: "incoming", Status: "ended",
+		TenantID: w.tenant, CallID: callID, ChannelConnectionID: w.wa.ID, TicketID: ticketID, Direction: "incoming", Status: "ended",
 		RecordingKey: key, RecordingStatus: "ready",
 	}).Error)
 }
@@ -132,7 +132,7 @@ func TestRecordingListen_OtherTenantAndNoRecording(t *testing.T) {
 	intruder := w.user(t, "intruso", "tenant", w.other, "read")
 	assert.Equal(t, http.StatusNotFound, do(w.recRouter(intruder), "GET", "/calls/R-1/recording", nil).Code, "outra empresa")
 
-	require.NoError(t, w.db.Create(&models.CallLog{TenantID: w.tenant, CallID: "R-NONE", WhatsappID: w.wa.ID, TicketID: &w.ticket.ID,
+	require.NoError(t, w.db.Create(&models.CallLog{TenantID: w.tenant, CallID: "R-NONE", ChannelConnectionID: w.wa.ID, TicketID: &w.ticket.ID,
 		Direction: "incoming", Status: "ended"}).Error)
 	admin := w.user(t, "admin", "tenant", w.tenant, "read")
 	assert.Equal(t, http.StatusNotFound, do(w.recRouter(admin), "GET", "/calls/R-NONE/recording", nil).Code, "chamada sem gravação")
@@ -271,7 +271,7 @@ func TestRecordingStartStop_Routes(t *testing.T) {
 	w := newRecWorld(t, true)
 	op := w.user(t, "operador", "proprio", w.tenant, "receive")
 	r := w.recRouter(op)
-	require.NoError(t, w.db.Create(&models.CallLog{TenantID: w.tenant, CallID: "ST-1", WhatsappID: w.wa.ID, TicketID: &w.ticket.ID,
+	require.NoError(t, w.db.Create(&models.CallLog{TenantID: w.tenant, CallID: "ST-1", ChannelConnectionID: w.wa.ID, TicketID: &w.ticket.ID,
 		Direction: "incoming", Status: "active", HandledByUserID: &op.ID}).Error)
 
 	res := do(r, "POST", "/calls/ST-1/recording/start", nil)

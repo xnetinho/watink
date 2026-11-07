@@ -242,10 +242,7 @@ func (s *Service) openMedia(ctx context.Context, tenantID uuid.UUID, callID stri
 		if err != nil {
 			return err
 		}
-		connID = l.WhatsappID
-		if l.ChannelConnectionID > 0 {
-			connID = l.ChannelConnectionID
-		}
+		connID = l.ChannelConnectionID
 		return s.fresh(c).Where(`id = ? AND "tenantId" = ?`, connID, tenantID).First(&conn).Error
 	}); err != nil {
 		return nil, err

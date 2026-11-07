@@ -75,10 +75,10 @@ func sameConnection(db *gorm.DB, tenantID interface{}, routerAssistantID, target
 	if err := db.Session(&gorm.Session{NewDB: true}).Where(`id = ? AND "tenantId" = ?`, targetAssistantID, tenantID).First(&target).Error; err != nil {
 		return false, err
 	}
-	if router.WhatsAppID == nil || target.WhatsAppID == nil {
+	if router.ChannelConnectionID == nil || target.ChannelConnectionID == nil {
 		return false, nil
 	}
-	return *router.WhatsAppID == *target.WhatsAppID, nil
+	return *router.ChannelConnectionID == *target.ChannelConnectionID, nil
 }
 
 // Create adds a router option to an Assistant in "router" mode.

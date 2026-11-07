@@ -110,14 +110,14 @@ func (r *GORMChannelSessionRepository) DeleteWithRelations(ctx context.Context, 
 		}
 
 		if err := tx.Model(&models.User{}).
-			Where("\"whatsappId\" = ? AND \"tenantId\" = ?", id, tenantID).
-			Update("whatsappId", nil).Error; err != nil {
+			Where("\"channelConnectionId\" = ? AND \"tenantId\" = ?", id, tenantID).
+			Update("channelConnectionId", nil).Error; err != nil {
 			return err
 		}
 
 		if err := tx.Model(&models.Flow{}).
-			Where("\"whatsappId\" = ? AND \"tenantId\" = ?", id, tenantID).
-			Update("whatsappId", nil).Error; err != nil {
+			Where("\"channelConnectionId\" = ? AND \"tenantId\" = ?", id, tenantID).
+			Update("channelConnectionId", nil).Error; err != nil {
 			return err
 		}
 

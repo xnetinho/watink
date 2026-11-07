@@ -226,11 +226,11 @@ func (r *AssistantRuntime) groupActive(tenantID uuid.UUID, assistantID, contactI
 // exact JID equality, tolerates that formatting. No connection bound (or no
 // mentions on the message) → not mentioned, fail closed (observe only).
 func (r *AssistantRuntime) isMentioned(a models.Assistant, mentionedJIDs []string) bool {
-	if a.WhatsAppID == nil || len(mentionedJIDs) == 0 {
+	if a.ChannelConnectionID == nil || len(mentionedJIDs) == 0 {
 		return false
 	}
 	var wa models.Whatsapp
-	if err := models.FirstWhatsapp(r.db.Where(`id = ? AND "tenantId" = ?`, *a.WhatsAppID, a.TenantID), &wa); err != nil {
+	if err := models.FirstWhatsapp(r.db.Where(`id = ? AND "tenantId" = ?`, *a.ChannelConnectionID, a.TenantID), &wa); err != nil {
 		return false
 	}
 	number := strings.TrimSpace(wa.Number)

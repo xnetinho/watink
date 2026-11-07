@@ -28,7 +28,7 @@ type world struct {
 
 func mkUser(t *testing.T, db *gorm.DB, tenant uuid.UUID, name, alcance string, waID *int) models.User {
 	t.Helper()
-	u := models.User{Name: name, Email: name + "@" + tenant.String()[:8] + ".io", TenantID: tenant, Alcance: alcance, WhatsappID: waID}
+	u := models.User{Name: name, Email: name + "@" + tenant.String()[:8] + ".io", TenantID: tenant, Alcance: alcance, ChannelConnectionID: waID}
 	require.NoError(t, db.Create(&u).Error)
 	return u
 }

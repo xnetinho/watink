@@ -32,7 +32,7 @@ func toAssistantResponse(a models.Assistant) gin.H {
 		"tenantId":                  a.TenantID,
 		"name":                      a.Name,
 		"description":               a.Description,
-		"whatsappId":                a.WhatsAppID,
+		"whatsappId":                a.ChannelConnectionID,
 		"allowMultipleOnConnection": a.AllowMultipleOnConnection,
 		"mode":                      a.Mode,
 		"config":                    a.Config,
@@ -189,7 +189,7 @@ func validateAssistantConfig(mode string, raw json.RawMessage) error {
 // ignore itself.
 //
 // Serialization uses a Postgres transaction-scoped ADVISORY LOCK keyed by
-// (tenantId, whatsappId) — NOT "SELECT ... FOR UPDATE" on the count query.
+// (tenantId, channelConnectionId) — NOT "SELECT ... FOR UPDATE" on the count query.
 // Two reasons a row lock cannot do this job: (1) Postgres rejects a locking
 // clause combined with an aggregate ("FOR UPDATE is not allowed with
 // aggregate functions") — count(*) FOR UPDATE simply errors; (2) even
@@ -210,7 +210,7 @@ func assertConnectionAvailable(tx *gorm.DB, tenantID interface{}, whatsappID *in
 
 	var count int64
 	err := tx.Model(&models.Assistant{}).
-		Where(`"tenantId" = ? AND "whatsappId" = ? AND active = true AND "allowMultipleOnConnection" = false AND id <> ?`,
+		Where(`"tenantId" = ? AND "channelConnectionId" = ? AND active = true AND "allowMultipleOnConnection" = false AND id <> ?`,
 			tenantID, *whatsappID, excludeID).
 		Count(&count).Error
 	if err != nil {
@@ -276,7 +276,7 @@ func (ac *AssistantController) Create(c *gin.Context) {
 
 	a := models.Assistant{
 		TenantID: tenantID, Name: in.Name, Description: in.Description,
-		WhatsAppID: in.WhatsAppID, AllowMultipleOnConnection: in.AllowMultipleOnConnection,
+		ChannelConnectionID: in.WhatsAppID, AllowMultipleOnConnection: in.AllowMultipleOnConnection,
 		Mode: in.Mode, Config: datatypes.JSON(in.Config),
 		TriggerType: triggerType, TriggerOperator: in.TriggerOperator, TriggerValue: in.TriggerValue,
 		SessionExpiryMinutes: in.SessionExpiryMinutes, TypingDelayMs: in.TypingDelayMs,
@@ -362,7 +362,7 @@ func (ac *AssistantController) Update(c *gin.Context) {
 
 	fields := map[string]interface{}{
 		"name": in.Name, "description": in.Description,
-		"whatsappId": in.WhatsAppID, "allowMultipleOnConnection": in.AllowMultipleOnConnection,
+		"channelConnectionId": in.WhatsAppID, "allowMultipleOnConnection": in.AllowMultipleOnConnection,
 		"mode": in.Mode, "config": datatypes.JSON(in.Config),
 		"triggerType": in.TriggerType, "triggerOperator": in.TriggerOperator, "triggerValue": in.TriggerValue,
 		"sessionExpiryMinutes": in.SessionExpiryMinutes, "typingDelayMs": in.TypingDelayMs,

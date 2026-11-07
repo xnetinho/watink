@@ -156,7 +156,7 @@ func TestFlowController_Update_PartialPatch_PreservesGraph(t *testing.T) {
 
 	nodes := `[{"id":"start","type":"start","data":{}},{"id":"end","type":"end","data":{}}]`
 	edges := `[{"id":"e1","source":"start","target":"end"}]`
-	db.Exec(`INSERT INTO "Flows" (name,nodes,edges,active,"triggerType","triggerValue","whatsappId","tenantId")
+	db.Exec(`INSERT INTO "Flows" (name,nodes,edges,active,"triggerType","triggerValue","channelConnectionId","tenantId")
 		VALUES (?,?,?,?,?,?,?,?)`,
 		"Antigo", nodes, edges, true, "whatsapp_message", "ola", 7, tenantID)
 
@@ -183,7 +183,7 @@ func TestFlowController_Update_PartialPatch_PreservesGraph(t *testing.T) {
 		WhatsappID   *int
 	}
 	db.Raw(`SELECT name, nodes, edges, active, "triggerType" AS trigger_type,
-		"triggerValue" AS trigger_value, "whatsappId" AS whatsapp_id
+		"triggerValue" AS trigger_value, "channelConnectionId" AS whatsapp_id
 		FROM "Flows" WHERE id = ?`, flow.ID).Scan(&row)
 
 	assert.Equal(t, "Renomeado", row.Name, "name should be patched")
@@ -343,7 +343,7 @@ func TestFlowController_Create_PersistsWhatsAppID(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 
 	var row struct{ WhatsappID *int }
-	db.Raw(`SELECT "whatsappId" AS whatsapp_id FROM "Flows" WHERE "tenantId" = ?`, tenantID).Scan(&row)
+	db.Raw(`SELECT "channelConnectionId" AS whatsapp_id FROM "Flows" WHERE "tenantId" = ?`, tenantID).Scan(&row)
 	require.NotNil(t, row.WhatsappID, "whatsappId must be persisted, not dropped")
 	assert.Equal(t, wid, *row.WhatsappID)
 }

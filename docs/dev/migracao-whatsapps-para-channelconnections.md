@@ -148,3 +148,30 @@ recibos. Hoje eles recusam o canal agnóstico com 422; passam a viver no adaptad
 | 4 | Tickets e dependentes trocam `whatsappId` por `connectionId` |
 | 5 | Frontend |
 | 6 | Remover `Whatsapps`, `whatsapp_queues`, `/whatsapp/*`; recriar o `lt` e reparear |
+
+## 9. Andamento (7/nov/2026)
+
+**Fatias 0 a 3 entregues** (#150 a #159): auditoria, esquema novo, conexão WhatsApp em `ChannelConnections` +
+`whatsapp_connection_details`, e envio, operações, mídia, contatos, resposta rápida, flow, plugins, chamadas (comandos **e** fluxo
+de áudio/vídeo) pelo adaptador do canal. O business não publica mais comando de WhatsApp direto no RabbitMQ pelos controllers.
+Validado em celular real: texto, citação, visualização única, figurinha, GIF, voz, enquete, reação, voto e **chamada de voz recebida**.
+
+**Achado recorrente da fatia 3:** cinco defeitos de escopo de empresa (RLS) que os testes comuns não pegavam, porque o banco de
+teste não aplica o RLS por papel. Cada um ganhou teste com RLS real (`internal/database/rls_session_test.go`). Ao mexer em
+leitura de conexão, ticket ou chamada, o teste novo deve rodar com RLS real.
+
+**Fatia 4, decisão D4 (dono, 7/nov/2026): o ticket do WhatsApp ganha `conversationKey` (opção B).** Hoje o ticket do WhatsApp se
+identifica por contato + `whatsappId` e não tem `conversationKey`; o do Telegram por `channelConnectionId` + `conversationKey`, com o
+índice único `idx_tickets_open_conversation`. Depois da migração os dois usam o mesmo caminho: o WhatsApp passa a gravar
+`conversationKey` (o JID do chat), entra no índice único e na mesma busca.
+
+**Ordem da fatia 4, um PR cada:**
+
+| PR | Conteúdo | Estado |
+|---|---|---|
+| 4a | `Flows`, `Users`, `Assistants`, `CallLogs`: `whatsappId` sai, fica só `channelConnectionId` (a chave JSON segue `whatsappId` até a fatia 5) | em andamento |
+| 4b | `group_caches`, `group_campaigns`, `group_campaign_targets`, `group_campaign_sends` | a fazer |
+| 4c | `Tickets`: `channelConnectionId` obrigatório, `conversationKey` do WhatsApp, índice único, busca unificada; sai `Ticket.WhatsappID` e o sentinela `0` | a fazer |
+
+**Banco já migrado (`lt`):** coluna removida do modelo fica órfã até o banco ser recriado (fatia 6). Não há migração incremental.
+

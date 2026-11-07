@@ -155,7 +155,7 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 		connID = *ticket.ChannelConnectionID
 	}
 	l, created, err := s.upsertLog(ctx, tenantID, &models.CallLog{
-		CallID: ev.CallID, WhatsappID: waID, ChannelConnectionID: connID, ContactID: &contact.ID, TicketID: &ticket.ID,
+		CallID: ev.CallID, ChannelConnectionID: connID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "incoming", Media: mediaOf(ev.Media), Status: StatusRinging, PeerJid: ev.Peer, CallerPn: ev.CallerPn, StartedAt: s.now(),
 	})
 	if err != nil {
@@ -211,7 +211,7 @@ func (s *Service) command(ctx context.Context, tenantID uuid.UUID, connectionID 
 
 func (s *Service) callPayload(l *models.CallLog, c *domain.Contact, t *domain.Ticket) map[string]interface{} {
 	return map[string]interface{}{
-		"callId": l.CallID, "whatsappId": l.WhatsappID, "direction": l.Direction, "status": l.Status,
+		"callId": l.CallID, "whatsappId": l.ChannelConnectionID, "direction": l.Direction, "status": l.Status,
 		"media": l.Media, "contact": c, "ticketId": l.TicketID, "startedAt": l.StartedAt,
 	}
 }
@@ -231,7 +231,7 @@ func (s *Service) HandleMissed(ctx context.Context, tenantID uuid.UUID, raw json
 		return err
 	}
 	l, _, err := s.upsertLog(ctx, tenantID, &models.CallLog{
-		CallID: ev.CallID, WhatsappID: waID, ContactID: &contact.ID, TicketID: &ticket.ID,
+		CallID: ev.CallID, ChannelConnectionID: waID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "incoming", Status: StatusMissed, PeerJid: ev.Peer, CallerPn: ev.CallerPn,
 		StartedAt: s.now(), EndReason: ev.Reason,
 	})

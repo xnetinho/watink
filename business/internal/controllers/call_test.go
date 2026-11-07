@@ -237,7 +237,7 @@ func TestPlaceCall_ConnectionBusy(t *testing.T) {
 func TestCallHistory_TenantAndOperatorIsolation(t *testing.T) {
 	w := newCallWorld(t)
 	mkLog := func(tenant uuid.UUID, id string, ticketID *int, wa int) {
-		require.NoError(t, w.db.Create(&models.CallLog{TenantID: tenant, CallID: id, WhatsappID: wa, TicketID: ticketID,
+		require.NoError(t, w.db.Create(&models.CallLog{TenantID: tenant, CallID: id, ChannelConnectionID: wa, TicketID: ticketID,
 			Direction: "incoming", Status: "ended"}).Error)
 	}
 	tk2 := models.Ticket{Status: "open", ContactID: w.ticket.ContactID, WhatsappID: w.wa.ID, TenantID: w.tenant}
@@ -278,7 +278,7 @@ func TestCallHistory_TenantAndOperatorIsolation(t *testing.T) {
 func TestCallHistory_FiltersAndPaging(t *testing.T) {
 	w := newCallWorld(t)
 	for i, st := range []string{"ended", "missed", "ended", "rejected"} {
-		require.NoError(t, w.db.Create(&models.CallLog{TenantID: w.tenant, CallID: "H-" + strconv.Itoa(i), WhatsappID: w.wa.ID,
+		require.NoError(t, w.db.Create(&models.CallLog{TenantID: w.tenant, CallID: "H-" + strconv.Itoa(i), ChannelConnectionID: w.wa.ID,
 			TicketID: &w.ticket.ID, Direction: "incoming", Status: st}).Error)
 	}
 	r := w.router(w.user(t, "admin", "tenant", w.tenant, "read"))
@@ -306,7 +306,7 @@ func TestCallAccept_UnknownIs404AndConflictCodes(t *testing.T) {
 	w := newCallWorld(t)
 	u := w.user(t, "atende", "proprio", w.tenant, "receive")
 	assert.Equal(t, http.StatusNotFound, do(w.router(u), "POST", "/calls/NAO-EXISTE/accept", nil).Code)
-	require.NoError(t, w.db.Create(&models.CallLog{TenantID: w.tenant, CallID: "ACC", WhatsappID: w.wa.ID, Direction: "incoming", Status: "active"}).Error)
+	require.NoError(t, w.db.Create(&models.CallLog{TenantID: w.tenant, CallID: "ACC", ChannelConnectionID: w.wa.ID, Direction: "incoming", Status: "active"}).Error)
 	res := do(w.router(u), "POST", "/calls/ACC/accept", nil)
 	assert.Equal(t, http.StatusConflict, res.Code)
 	assert.Equal(t, "ALREADY_ANSWERED", code(res))
