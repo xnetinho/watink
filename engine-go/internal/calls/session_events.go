@@ -58,6 +58,10 @@ func (s *Session) OnOffer(ctx context.Context, evt *events.CallOffer) {
 		return
 	}
 
+	// O servidor pode reentregar a mesma oferta (mesmo call-id, outra lista de relays): é a chamada que já toca, não uma segunda.
+	if s.get(callID) != nil {
+		return
+	}
 	ac := &activeCall{id: callID, incoming: true, peer: peer, callerPn: pn, offerDone: make(chan struct{})}
 	if !s.register(ac) {
 		s.missed(callID, peer, pn, ReasonBusy)

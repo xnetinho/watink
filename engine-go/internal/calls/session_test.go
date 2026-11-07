@@ -88,6 +88,15 @@ func (h *fakeHandle) has(s string) bool {
 	}
 	return false
 }
+func (h *fakeHandle) count(s string) int {
+	n := 0
+	for _, c := range h.calls() {
+		if c == s {
+			n++
+		}
+	}
+	return n
+}
 func (h *fakeHandle) SetHooks(k Hooks) { h.hooks = k }
 func (h *fakeHandle) HandleOffer(context.Context, *waBinary.Node, types.JID) {
 	h.rec("offer")
@@ -881,5 +890,29 @@ func TestStart_VideoFlagReachesTheHandle(t *testing.T) {
 		if !tc.video && r.handle(0).has("start:video") {
 			t.Fatal("sem video=true a chamada não pode sair como videochamada")
 		}
+	}
+}
+
+// O servidor do WhatsApp pode entregar a MESMA oferta duas vezes (mesmo call-id, mesmo id de stanza), a segunda com outra lista de
+// relays, 50 ms depois. Era tratada como "outra chamada com a linha ocupada": saía call.missed busy e a chamada que tocava era gravada
+// como perdida/busy em 0,06 s (visto no lt em 7/nov/2026, 21:15). A reentrega tem de ser ignorada.
+func TestOffer_DuplicateOfActiveCallIsIgnored(t *testing.T) {
+	r := newRig(t, false, nil)
+	r.s.OnOffer(context.Background(), offer(callA, pn("5511999990001")))
+	r.s.OnOffer(context.Background(), offer(callA, pn("5511999990001")))
+
+	eventually(t, "oferta", func() bool { return r.handle(0) != nil && r.handle(0).has("offer") })
+	time.Sleep(30 * time.Millisecond)
+	if n := len(r.evs("call.missed")); n != 0 {
+		t.Fatalf("a oferta repetida não pode virar call.missed (vieram %d): %v", n, r.evs("call.missed"))
+	}
+	if n := len(r.evs("call.incoming")); n != 1 {
+		t.Fatalf("a chamada toca uma vez só, vieram %d call.incoming", n)
+	}
+	if r.s.get(callA) == nil {
+		t.Fatal("a chamada original tem de continuar ativa")
+	}
+	if got := r.handle(0).count("offer"); got != 1 {
+		t.Fatalf("o gerenciador processa a oferta uma vez, processou %d", got)
 	}
 }
