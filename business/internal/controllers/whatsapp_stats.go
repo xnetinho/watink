@@ -43,7 +43,7 @@ func engineLatencyMs() int {
 // @Security     BearerAuth
 // @Router       /whatsapp/{id}/stats [get]
 func (wc *WhatsappController) StatsWhatsapp(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -91,7 +91,7 @@ func (wc *WhatsappController) StatsWhatsapp(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /whatsapp/{id}/keepalive [put]
 func (wc *WhatsappController) ToggleKeepAlive(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -135,7 +135,7 @@ func (wc *WhatsappController) ToggleKeepAlive(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /whatsapp/{id}/presence-policy [put]
 func (wc *WhatsappController) UpdatePresencePolicy(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}

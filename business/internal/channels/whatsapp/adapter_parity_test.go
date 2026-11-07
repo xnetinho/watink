@@ -14,15 +14,15 @@ import (
 )
 
 type mockSessionManager struct {
-	startedWA   models.Whatsapp
+	startedWA   models.WhatsAppView
 	usePairing  bool
 	phone       string
-	stoppedWA   models.Whatsapp
+	stoppedWA   models.WhatsAppView
 	startCalled bool
 	stopCalled  bool
 }
 
-func (m *mockSessionManager) StartWhatsAppSession(wa models.Whatsapp, usePairing bool, phone string, force bool) error {
+func (m *mockSessionManager) StartWhatsAppSession(wa models.WhatsAppView, usePairing bool, phone string, force bool) error {
 	m.startedWA = wa
 	m.usePairing = usePairing
 	m.phone = phone
@@ -30,7 +30,7 @@ func (m *mockSessionManager) StartWhatsAppSession(wa models.Whatsapp, usePairing
 	return nil
 }
 
-func (m *mockSessionManager) StopWhatsAppSession(wa models.Whatsapp) error {
+func (m *mockSessionManager) StopWhatsAppSession(wa models.WhatsAppView) error {
 	m.stoppedWA = wa
 	m.stopCalled = true
 	return nil

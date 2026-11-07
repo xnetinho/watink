@@ -52,7 +52,7 @@ func proxyGroupOwnedByTenant(db *gorm.DB, tenantID interface{}, id *int) bool {
 }
 
 // ProxyController manages the tenant's proxy pool. All queries are tenant-scoped
-// via auth.GetScoped (reusing the "Whatsapps" permission — proxies are
+// via auth.GetScoped (reusing the "ChannelConnections" scope — proxies are
 // connection infrastructure). Passwords are encrypted-at-rest (cryptobox) and
 // never serialized back to the client.
 type ProxyController struct{}
@@ -106,7 +106,7 @@ func toProxyResponse(p models.Proxy) gin.H {
 // @Security     BearerAuth
 // @Router       /proxies [get]
 func (pc *ProxyController) List(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -172,7 +172,7 @@ func validateProxyStrings(c *gin.Context, in proxyInput) bool {
 // @Security     BearerAuth
 // @Router       /proxies [post]
 func (pc *ProxyController) Create(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -271,7 +271,7 @@ func parseProxyLine(line string) (host string, port int, user, pass string, err 
 // @Security     BearerAuth
 // @Router       /proxies/import [post]
 func (pc *ProxyController) Import(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -371,7 +371,7 @@ func (pc *ProxyController) Import(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /proxies/{id} [put]
 func (pc *ProxyController) Update(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -475,7 +475,7 @@ func (pc *ProxyController) Update(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /proxies/{id} [delete]
 func (pc *ProxyController) Delete(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -504,7 +504,7 @@ func (pc *ProxyController) Delete(c *gin.Context) {
 }
 
 func (pc *ProxyController) setStatus(c *gin.Context, status string) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -534,7 +534,7 @@ func (pc *ProxyController) setStatus(c *gin.Context, status string) {
 // @Security     BearerAuth
 // @Router       /proxies/{id}/test [post]
 func (pc *ProxyController) Test(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -581,7 +581,7 @@ func (pc *ProxyController) Test(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /proxies/test-all [post]
 func (pc *ProxyController) TestAll(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -660,7 +660,7 @@ func (pc *ProxyController) TestAll(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /proxies [delete]
 func (pc *ProxyController) DeleteAll(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -693,7 +693,7 @@ type assignGroupInput struct {
 // @Security     BearerAuth
 // @Router       /proxies/assign-group [post]
 func (pc *ProxyController) AssignGroup(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}

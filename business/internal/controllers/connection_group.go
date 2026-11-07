@@ -13,7 +13,7 @@ import (
 )
 
 // ConnectionGroupController manages groupings of WhatsApp connections.
-// Tenant-scoped via auth.GetScoped (reusing the "Whatsapps" permission).
+// Tenant-scoped via auth.GetScoped (reusing the "ChannelConnections" scope).
 type ConnectionGroupController struct{}
 
 func NewConnectionGroupController() *ConnectionGroupController { return &ConnectionGroupController{} }
@@ -30,7 +30,7 @@ type connectionGroupInput struct {
 // @Security     BearerAuth
 // @Router       /connection-groups [get]
 func (cgc *ConnectionGroupController) List(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -75,7 +75,7 @@ func (cgc *ConnectionGroupController) List(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /connection-groups [post]
 func (cgc *ConnectionGroupController) Create(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -110,7 +110,7 @@ func (cgc *ConnectionGroupController) Create(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /connection-groups/{id} [put]
 func (cgc *ConnectionGroupController) Update(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -150,7 +150,7 @@ func (cgc *ConnectionGroupController) Update(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /connection-groups/{id} [delete]
 func (cgc *ConnectionGroupController) Delete(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}

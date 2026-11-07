@@ -288,17 +288,6 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.POST("/message/:messageId/vote", auth.RequirePermission("tickets", "update"), messageController.VotePoll)
 		protected.POST("/message/:messageId/transcribe", auth.RequirePermission("tickets", "update"), messageController.TranscribeAudio)
 
-		// WhatsApp Connections
-		protected.GET("/whatsapp", auth.RequirePermission("connections", "read"), whatsappController.ListWhatsapps)
-		protected.GET("/whatsapp/", auth.RequirePermission("connections", "read"), whatsappController.ListWhatsapps)
-		protected.GET("/whatsapp/:id", auth.RequirePermission("connections", "read"), whatsappController.ShowWhatsapp)
-		protected.POST("/whatsapp", auth.RequirePermission("connections", "create"), whatsappController.CreateWhatsapp)
-		protected.PUT("/whatsapp/:id", auth.RequirePermission("connections", "update"), whatsappController.UpdateWhatsapp)
-		protected.GET("/whatsapp/:id/stats", auth.RequirePermission("connections", "read"), whatsappController.StatsWhatsapp)
-		protected.PUT("/whatsapp/:id/keepalive", auth.RequirePermission("connections", "update"), whatsappController.ToggleKeepAlive)
-		protected.PUT("/whatsapp/:id/presence-policy", auth.RequirePermission("connections", "update"), whatsappController.UpdatePresencePolicy)
-		protected.DELETE("/whatsapp/:id", auth.RequirePermission("connections", "delete"), whatsappController.DeleteWhatsapp)
-
 		// Channel Connections (Agnostic - Telegram, WhatsApp, ML, etc. - ADR 0033 / Tarefa 7.1)
 		channelConnCtrl := controllers.NewChannelConnectionController()
 		connRouter := controllers.NewConnectionRouter(whatsappController, sessionController, channelConnCtrl)
@@ -317,7 +306,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		}
 
 		// Proxies (anti-ban) — mesmo domínio de acesso que as conexões
-		// (Whatsapps): gated por connections:<ação> (P2-2). Antes as rotas eram
+		// (ChannelConnections): gated por connections:<ação> (P2-2). Antes as rotas eram
 		// só tenant-scoped, então um usuário sem permissão de conexões podia
 		// criar/importar/rotacionar e até zerar o pool (DELETE /proxies).
 		protected.GET("/proxies", auth.RequirePermission("connections", "read"), proxyController.List)
@@ -341,12 +330,6 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.POST("/connection-groups", auth.RequirePermission("connections", "create"), connectionGroupController.Create)
 		protected.PUT("/connection-groups/:id", auth.RequirePermission("connections", "update"), connectionGroupController.Update)
 		protected.DELETE("/connection-groups/:id", auth.RequirePermission("connections", "delete"), connectionGroupController.Delete)
-
-		// WhatsApp Sessions
-		protected.POST("/whatsappsession/all", auth.RequirePermission("connections", "update"), sessionController.RestartAllSessions)
-		protected.POST("/whatsappsession/:whatsappId", auth.RequirePermission("connections", "update"), sessionController.StartSession)
-		protected.PUT("/whatsappsession/:whatsappId", auth.RequirePermission("connections", "update"), sessionController.StartSession)
-		protected.DELETE("/whatsappsession/:whatsappId", auth.RequirePermission("connections", "update"), sessionController.StopSession)
 
 		// Contacts
 		protected.GET("/contacts", contactController.ListContacts)

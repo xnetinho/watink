@@ -47,8 +47,8 @@ func TestProxyDelete_GroupModeStaysFailClosed(t *testing.T) {
 	if err := db.Create(&px).Error; err != nil {
 		t.Fatalf("seed px: %v", err)
 	}
-	wGroup := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "g1", ProxyMode: "group", ProxyGroupID: &grp.ID, ProxyID: &px.ID}
-	wSingle := models.Whatsapp{ID: 2, TenantID: tenantID, Name: "s1", ProxyMode: "single", ProxyID: &px.ID}
+	wGroup := models.WhatsAppView{ID: 1, TenantID: tenantID, Name: "g1", ProxyMode: "group", ProxyGroupID: &grp.ID, ProxyID: &px.ID}
+	wSingle := models.WhatsAppView{ID: 2, TenantID: tenantID, Name: "s1", ProxyMode: "single", ProxyID: &px.ID}
 	if err := models.CreateWhatsapp(db, &wGroup); err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestProxyDelete_GroupModeStaysFailClosed(t *testing.T) {
 		t.Fatalf("status %d body %s", w.Code, w.Body.String())
 	}
 
-	var g, s models.Whatsapp
+	var g, s models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &g); err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestProxyGroupDelete_PersistsAndDetaches(t *testing.T) {
 	db.Create(&grp)
 	px := models.Proxy{TenantID: tenantID, Scheme: "http", Host: "h", Port: 1, Status: "active", ProxyGroupID: &grp.ID}
 	db.Create(&px)
-	wConn := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "g1", ProxyMode: "group", ProxyGroupID: &grp.ID, ProxyID: &px.ID}
+	wConn := models.WhatsAppView{ID: 1, TenantID: tenantID, Name: "g1", ProxyMode: "group", ProxyGroupID: &grp.ID, ProxyID: &px.ID}
 	if err := models.CreateWhatsapp(db, &wConn); err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestProxyGroupDelete_PersistsAndDetaches(t *testing.T) {
 	if p.ProxyGroupID != nil {
 		t.Fatalf("proxy deveria estar desvinculado")
 	}
-	var cn models.Whatsapp
+	var cn models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &cn); err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestConnectionGroupDelete_PersistsAndDetaches(t *testing.T) {
 	tenantID := uuid.New()
 	cg := models.ConnectionGroup{TenantID: tenantID, Name: "cg"}
 	db.Create(&cg)
-	wConn := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "c1", ConnectionGroupID: &cg.ID}
+	wConn := models.WhatsAppView{ID: 1, TenantID: tenantID, Name: "c1", ConnectionGroupID: &cg.ID}
 	if err := models.CreateWhatsapp(db, &wConn); err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestConnectionGroupDelete_PersistsAndDetaches(t *testing.T) {
 	if cnt != 0 {
 		t.Fatalf("connection group NÃO foi deletado (bug NewDB)")
 	}
-	var cn models.Whatsapp
+	var cn models.WhatsAppView
 	if err := models.FirstWhatsapp(db.Where("id = ?", 1), &cn); err != nil {
 		t.Fatal(err)
 	}

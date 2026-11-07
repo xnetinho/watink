@@ -28,49 +28,49 @@ type fakeGroupEngine struct {
 	results   []domain.ParticipantResult
 }
 
-func (f *fakeGroupEngine) ListGroups(ctx context.Context, w models.Whatsapp) ([]domain.GroupInfo, error) {
+func (f *fakeGroupEngine) ListGroups(ctx context.Context, w models.WhatsAppView) ([]domain.GroupInfo, error) {
 	return f.groups, f.err
 }
-func (f *fakeGroupEngine) GetGroup(ctx context.Context, w models.Whatsapp, groupJID string) (*domain.GroupInfo, error) {
+func (f *fakeGroupEngine) GetGroup(ctx context.Context, w models.WhatsAppView, groupJID string) (*domain.GroupInfo, error) {
 	return f.group, f.err
 }
-func (f *fakeGroupEngine) CreateGroup(ctx context.Context, w models.Whatsapp, subject string, participants []string) (*domain.GroupInfo, error) {
+func (f *fakeGroupEngine) CreateGroup(ctx context.Context, w models.WhatsAppView, subject string, participants []string) (*domain.GroupInfo, error) {
 	return f.group, f.err
 }
-func (f *fakeGroupEngine) UpdateParticipants(ctx context.Context, w models.Whatsapp, groupJID, action string, participants []string) ([]domain.ParticipantResult, error) {
+func (f *fakeGroupEngine) UpdateParticipants(ctx context.Context, w models.WhatsAppView, groupJID, action string, participants []string) ([]domain.ParticipantResult, error) {
 	return f.results, f.err
 }
-func (f *fakeGroupEngine) UpdateGroupSettings(ctx context.Context, w models.Whatsapp, groupJID string, patch domain.GroupSettingsPatch) error {
+func (f *fakeGroupEngine) UpdateGroupSettings(ctx context.Context, w models.WhatsAppView, groupJID string, patch domain.GroupSettingsPatch) error {
 	return f.err
 }
-func (f *fakeGroupEngine) GetInviteLink(ctx context.Context, w models.Whatsapp, groupJID string) (string, error) {
+func (f *fakeGroupEngine) GetInviteLink(ctx context.Context, w models.WhatsAppView, groupJID string) (string, error) {
 	return "https://chat.whatsapp.com/fake", f.err
 }
-func (f *fakeGroupEngine) RevokeInviteLink(ctx context.Context, w models.Whatsapp, groupJID string) (string, error) {
+func (f *fakeGroupEngine) RevokeInviteLink(ctx context.Context, w models.WhatsAppView, groupJID string) (string, error) {
 	return "https://chat.whatsapp.com/fake2", f.err
 }
-func (f *fakeGroupEngine) LeaveGroup(ctx context.Context, w models.Whatsapp, groupJID string) error {
+func (f *fakeGroupEngine) LeaveGroup(ctx context.Context, w models.WhatsAppView, groupJID string) error {
 	return f.err
 }
-func (f *fakeGroupEngine) SetJoinApprovalMode(ctx context.Context, w models.Whatsapp, groupJID string, enabled bool) error {
+func (f *fakeGroupEngine) SetJoinApprovalMode(ctx context.Context, w models.WhatsAppView, groupJID string, enabled bool) error {
 	return f.err
 }
-func (f *fakeGroupEngine) ListJoinRequests(ctx context.Context, w models.Whatsapp, groupJID string) ([]domain.JoinRequest, error) {
+func (f *fakeGroupEngine) ListJoinRequests(ctx context.Context, w models.WhatsAppView, groupJID string) ([]domain.JoinRequest, error) {
 	return nil, f.err
 }
-func (f *fakeGroupEngine) ResolveJoinRequests(ctx context.Context, w models.Whatsapp, groupJID, action string, participants []string) ([]domain.ParticipantResult, error) {
+func (f *fakeGroupEngine) ResolveJoinRequests(ctx context.Context, w models.WhatsAppView, groupJID, action string, participants []string) ([]domain.ParticipantResult, error) {
 	return f.results, f.err
 }
-func (f *fakeGroupEngine) CreateCommunity(ctx context.Context, w models.Whatsapp, name string) (*domain.CommunityInfo, error) {
+func (f *fakeGroupEngine) CreateCommunity(ctx context.Context, w models.WhatsAppView, name string) (*domain.CommunityInfo, error) {
 	return f.community, f.err
 }
-func (f *fakeGroupEngine) GetCommunity(ctx context.Context, w models.Whatsapp, communityJID string) (*domain.CommunityInfo, error) {
+func (f *fakeGroupEngine) GetCommunity(ctx context.Context, w models.WhatsAppView, communityJID string) (*domain.CommunityInfo, error) {
 	return f.community, f.err
 }
-func (f *fakeGroupEngine) LinkGroupToCommunity(ctx context.Context, w models.Whatsapp, communityJID, groupJID string) error {
+func (f *fakeGroupEngine) LinkGroupToCommunity(ctx context.Context, w models.WhatsAppView, communityJID, groupJID string) error {
 	return f.err
 }
-func (f *fakeGroupEngine) UnlinkGroupFromCommunity(ctx context.Context, w models.Whatsapp, communityJID, groupJID string) error {
+func (f *fakeGroupEngine) UnlinkGroupFromCommunity(ctx context.Context, w models.WhatsAppView, communityJID, groupJID string) error {
 	return f.err
 }
 
@@ -78,15 +78,15 @@ func (f *fakeGroupEngine) UnlinkGroupFromCommunity(ctx context.Context, w models
 // — exercises the 501 path (plan's "devolve 501 claro" requirement).
 type nonGroupEngine struct{}
 
-func (nonGroupEngine) StartSession(ctx context.Context, w models.Whatsapp, usePairingCode bool, phoneNumber string, force bool) error {
+func (nonGroupEngine) StartSession(ctx context.Context, w models.WhatsAppView, usePairingCode bool, phoneNumber string, force bool) error {
 	return nil
 }
-func (nonGroupEngine) StopSession(ctx context.Context, w models.Whatsapp) error   { return nil }
-func (nonGroupEngine) DeleteSession(ctx context.Context, w models.Whatsapp) error { return nil }
-func (nonGroupEngine) SendText(ctx context.Context, w models.Whatsapp, to, messageID, body string) (string, error) {
+func (nonGroupEngine) StopSession(ctx context.Context, w models.WhatsAppView) error   { return nil }
+func (nonGroupEngine) DeleteSession(ctx context.Context, w models.WhatsAppView) error { return nil }
+func (nonGroupEngine) SendText(ctx context.Context, w models.WhatsAppView, to, messageID, body string) (string, error) {
 	return messageID, nil
 }
-func (nonGroupEngine) SendMedia(ctx context.Context, w models.Whatsapp, to, messageID, mediaType, mediaURL, mimeType string) (string, error) {
+func (nonGroupEngine) SendMedia(ctx context.Context, w models.WhatsAppView, to, messageID, mediaType, mediaURL, mimeType string) (string, error) {
 	return messageID, nil
 }
 
@@ -102,7 +102,7 @@ type fakeResolver struct {
 	err    error
 }
 
-func (f *fakeResolver) EngineFor(w models.Whatsapp) (domain.WhatsAppEngine, error) {
+func (f *fakeResolver) EngineFor(w models.WhatsAppView) (domain.WhatsAppEngine, error) {
 	return f.engine, f.err
 }
 
@@ -181,7 +181,7 @@ func TestGroupsPlugin_ListGroups_501WhenEngineIsNotGroupEngine(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{TenantID: tenantID, Name: "conn-1"}
+	whatsapp := models.WhatsAppView{TenantID: tenantID, Name: "conn-1"}
 	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 
 	svc := &groupsService{db: db, resolver: &fakeResolver{engine: nonGroupEngine{}}, throttle: newGroupsThrottle()}
@@ -233,7 +233,7 @@ func TestGroupsPlugin_ListGroups_HappyPath(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{TenantID: tenantID, Name: "conn-1"}
+	whatsapp := models.WhatsAppView{TenantID: tenantID, Name: "conn-1"}
 	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 
 	engine := &fakeGroupEngine{groups: []domain.GroupInfo{{JID: "120363xxx@g.us", Subject: "Test"}}}
@@ -259,7 +259,7 @@ func TestGroupsPlugin_ListGroups_404ForOtherTenantsConnection(t *testing.T) {
 	db := setupPluginTestDB(t)
 	ownerTenant := uuid.New()
 	callerTenant := uuid.New()
-	whatsapp := models.Whatsapp{TenantID: ownerTenant, Name: "conn-1"}
+	whatsapp := models.WhatsAppView{TenantID: ownerTenant, Name: "conn-1"}
 	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 
 	svc := &groupsService{db: db, resolver: &fakeResolver{engine: &fakeGroupEngine{}}, throttle: newGroupsThrottle()}

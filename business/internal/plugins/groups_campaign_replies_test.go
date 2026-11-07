@@ -16,7 +16,7 @@ import (
 // the reply gate finds it), a run, and ONE already-"sent" send -- MessageID
 // == EnvID by construction (models.GroupCampaignSend doc), same as the real
 // send path (sendOne, issue #595).
-func sentCampaignSendFixture(t *testing.T, db *gorm.DB, w models.Whatsapp, c models.GroupCampaign, jid string, sentAt time.Time) models.GroupCampaignSend {
+func sentCampaignSendFixture(t *testing.T, db *gorm.DB, w models.WhatsAppView, c models.GroupCampaign, jid string, sentAt time.Time) models.GroupCampaignSend {
 	t.Helper()
 	run := models.GroupCampaignRun{TenantID: c.TenantID, CampaignID: c.ID, OccurrenceKey: "manual-" + jid, Status: models.GroupCampaignRunStatusRunning, ScheduledFor: time.Now()}
 	require.NoError(t, db.Create(&run).Error)

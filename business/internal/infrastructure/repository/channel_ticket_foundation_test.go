@@ -30,7 +30,7 @@ func TestChannelTicketFoundation_UmaConversaAbertaPorChave(t *testing.T) {
 	tenantID := uuid.New()
 	require.NoError(t, db.Create(&models.Tenant{ID: tenantID, Name: "Tenant Teste Channel Tickets"}).Error)
 
-	whatsapp := models.Whatsapp{Name: "WhatsApp Conexão 1", TenantID: tenantID, Status: "CONNECTED"}
+	whatsapp := models.WhatsAppView{Name: "WhatsApp Conexão 1", TenantID: tenantID, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 	telegram := models.ChannelConnection{TenantID: tenantID, Kind: "telegram", Name: "Telegram Bot 1", Status: "CONNECTED"}
 	require.NoError(t, db.Create(&telegram).Error)

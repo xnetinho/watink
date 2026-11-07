@@ -108,27 +108,27 @@ type GroupSettingsPatch struct {
 // mass-action ban vector and is deferred to a v2.
 //
 // Every method identifies a group/community by its full JID
-// (models.Whatsapp.JID-style string, e.g. "120363xxxxx@g.us") — never a
+// (models.WhatsAppView.JID-style string, e.g. "120363xxxxx@g.us") — never a
 // Watink-owned numeric ID (invariant 5).
 type GroupEngine interface {
-	ListGroups(ctx context.Context, w models.Whatsapp) ([]GroupInfo, error)
-	GetGroup(ctx context.Context, w models.Whatsapp, groupJID string) (*GroupInfo, error)
-	CreateGroup(ctx context.Context, w models.Whatsapp, subject string, participants []string) (*GroupInfo, error)
+	ListGroups(ctx context.Context, w models.WhatsAppView) ([]GroupInfo, error)
+	GetGroup(ctx context.Context, w models.WhatsAppView, groupJID string) (*GroupInfo, error)
+	CreateGroup(ctx context.Context, w models.WhatsAppView, subject string, participants []string) (*GroupInfo, error)
 
-	UpdateParticipants(ctx context.Context, w models.Whatsapp, groupJID string, action string, participants []string) ([]ParticipantResult, error)
-	UpdateGroupSettings(ctx context.Context, w models.Whatsapp, groupJID string, patch GroupSettingsPatch) error
+	UpdateParticipants(ctx context.Context, w models.WhatsAppView, groupJID string, action string, participants []string) ([]ParticipantResult, error)
+	UpdateGroupSettings(ctx context.Context, w models.WhatsAppView, groupJID string, patch GroupSettingsPatch) error
 
-	GetInviteLink(ctx context.Context, w models.Whatsapp, groupJID string) (string, error)
-	RevokeInviteLink(ctx context.Context, w models.Whatsapp, groupJID string) (string, error)
+	GetInviteLink(ctx context.Context, w models.WhatsAppView, groupJID string) (string, error)
+	RevokeInviteLink(ctx context.Context, w models.WhatsAppView, groupJID string) (string, error)
 
-	LeaveGroup(ctx context.Context, w models.Whatsapp, groupJID string) error
+	LeaveGroup(ctx context.Context, w models.WhatsAppView, groupJID string) error
 
-	SetJoinApprovalMode(ctx context.Context, w models.Whatsapp, groupJID string, enabled bool) error
-	ListJoinRequests(ctx context.Context, w models.Whatsapp, groupJID string) ([]JoinRequest, error)
-	ResolveJoinRequests(ctx context.Context, w models.Whatsapp, groupJID string, action string, participants []string) ([]ParticipantResult, error)
+	SetJoinApprovalMode(ctx context.Context, w models.WhatsAppView, groupJID string, enabled bool) error
+	ListJoinRequests(ctx context.Context, w models.WhatsAppView, groupJID string) ([]JoinRequest, error)
+	ResolveJoinRequests(ctx context.Context, w models.WhatsAppView, groupJID string, action string, participants []string) ([]ParticipantResult, error)
 
-	CreateCommunity(ctx context.Context, w models.Whatsapp, name string) (*CommunityInfo, error)
-	GetCommunity(ctx context.Context, w models.Whatsapp, communityJID string) (*CommunityInfo, error)
-	LinkGroupToCommunity(ctx context.Context, w models.Whatsapp, communityJID, groupJID string) error
-	UnlinkGroupFromCommunity(ctx context.Context, w models.Whatsapp, communityJID, groupJID string) error
+	CreateCommunity(ctx context.Context, w models.WhatsAppView, name string) (*CommunityInfo, error)
+	GetCommunity(ctx context.Context, w models.WhatsAppView, communityJID string) (*CommunityInfo, error)
+	LinkGroupToCommunity(ctx context.Context, w models.WhatsAppView, communityJID, groupJID string) error
+	UnlinkGroupFromCommunity(ctx context.Context, w models.WhatsAppView, communityJID, groupJID string) error
 }

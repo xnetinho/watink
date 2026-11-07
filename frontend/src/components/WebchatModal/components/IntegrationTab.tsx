@@ -21,7 +21,7 @@ const IntegrationTab: React.FC<IntegrationTabProps> = ({ connectionId }) => {
   const script = `<script>
   window.watinkWebchatConfig = {
     url: "${backendUrl}",
-    whatsappId: "${connectionId}"
+    connectionId: "${connectionId}"
   };
   (function(d, s, id) {
     var js, fjs = d.getElementsByTagName(s)[0];

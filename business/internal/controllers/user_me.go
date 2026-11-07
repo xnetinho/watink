@@ -73,7 +73,7 @@ func (uc *UserController) GetMe(c *gin.Context) {
 }
 
 // UpdateMe updates ONLY the authenticated user's own profile fields —
-// name/email/password/whatsappId. NUNCA aceita alcance/cargoId/setores: mudar
+// name/email/password/connectionId. NUNCA aceita alcance/cargoId/setores: mudar
 // esses campos exige gestão de acessos (Central de Acessos +
 // RequirePermission). Campos de RBAC que venham no payload são silenciosamente
 // ignorados — este é o caminho sem-gate, então ele mesmo tem de fechar o vetor
@@ -83,7 +83,7 @@ func (uc *UserController) GetMe(c *gin.Context) {
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Param        body  body      map[string]interface{}  true  "name/email/password/whatsappId"
+// @Param        body  body      map[string]interface{}  true  "name/email/password/connectionId"
 // @Success      200   {object}  map[string]interface{}
 // @Security     BearerAuth
 // @Router       /me [put]

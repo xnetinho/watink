@@ -23,7 +23,7 @@ func TestLoadGroupsCache_EmptyIsNotFound(t *testing.T) {
 func TestSaveGroupsToCache_ThenLoad_RoundTrips(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
-	w := models.Whatsapp{TenantID: tenantID, Name: "conn-1", Number: "5511999990000"}
+	w := models.WhatsAppView{TenantID: tenantID, Name: "conn-1", Number: "5511999990000"}
 	require.NoError(t, models.CreateWhatsapp(db, &w))
 
 	groups := []domain.GroupInfo{
@@ -73,7 +73,7 @@ func TestSaveGroupsToCache_ThenLoad_RoundTrips(t *testing.T) {
 func TestSaveGroupsToCache_ReplacesStaleRows(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
-	w := models.Whatsapp{TenantID: tenantID, Name: "conn-1", Number: "5511999990000"}
+	w := models.WhatsAppView{TenantID: tenantID, Name: "conn-1", Number: "5511999990000"}
 	require.NoError(t, models.CreateWhatsapp(db, &w))
 
 	require.NoError(t, saveGroupsToCache(db, tenantID, w, []domain.GroupInfo{
@@ -97,7 +97,7 @@ func TestSaveGroupsToCache_ReplacesStaleRows(t *testing.T) {
 func TestUpsertOneGroupCache_CreatesThenUpdates(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
-	w := models.Whatsapp{TenantID: tenantID, Name: "conn-1", Number: "5511999990000"}
+	w := models.WhatsAppView{TenantID: tenantID, Name: "conn-1", Number: "5511999990000"}
 	require.NoError(t, models.CreateWhatsapp(db, &w))
 
 	g := domain.GroupInfo{JID: "120363000000000009@g.us", Subject: "V1"}

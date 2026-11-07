@@ -185,7 +185,7 @@ func (fc *FlowController) Create(c *gin.Context) {
 	// triggerType/triggerValue columns the runtime matches against.
 	proj := projectFlowTrigger(req.Nodes, req.Edges)
 
-	// The flow-level whatsappId (set in the editor toolbar) is the source of truth
+	// The flow-level connectionId (set in the editor toolbar) is the source of truth
 	// for the connection binding — a flow may be created with none and bound later.
 	whatsappID := req.WhatsAppID
 
@@ -250,7 +250,7 @@ func (fc *FlowController) Show(c *gin.Context) {
 //
 // Update applies a PARTIAL PATCH: only the fields present in the body are
 // changed. Omitted fields (nodes/edges/active/name and the
-// triggerType/triggerValue/whatsappId/timestamps not exposed here) are
+// triggerType/triggerValue/connectionId/timestamps not exposed here) are
 // preserved — never zeroed (FB0-B1).
 func (fc *FlowController) Update(c *gin.Context) {
 	db, tenantID, ok := auth.GetScoped(c, "Flows")
@@ -335,7 +335,7 @@ func (fc *FlowController) Update(c *gin.Context) {
 		updates["triggerValue"] = proj.Value
 		updates["triggerOperator"] = proj.Operator
 		// A conexão NÃO vem mais do nó de gatilho — é o editor (toolbar) quem define
-		// o whatsappId do fluxo (ver bloco de presença acima).
+		// o connectionId do fluxo (ver bloco de presença acima).
 	}
 
 	// Activation guard: block turning a flow ACTIVE while its effective graph
@@ -352,7 +352,7 @@ func (fc *FlowController) Update(c *gin.Context) {
 
 	// Session(NewDB:true) — never reuse the scoped db for writes. Model+Updates
 	// of a map writes ONLY the listed columns, preserving every other field
-	// (triggerType/triggerValue/whatsappId/createdAt and any omitted graph blob).
+	// (triggerType/triggerValue/connectionId/createdAt and any omitted graph blob).
 	if err := db.Session(&gorm.Session{NewDB: true}).
 		Model(&models.Flow{}).
 		Where("\"tenantId\" = ? AND id = ?", tenantID, existing.ID).

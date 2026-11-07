@@ -46,7 +46,7 @@ func TestOperacoesDoCanal_WhatsAppPublicaECanalSemOperacaoRecusa(t *testing.T) {
 	useWhatsAppChannel(pub)
 	domain.DefaultChannelRegistry().Register(canalSemOperacoes{})
 
-	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	other := models.ChannelConnection{TenantID: tenant, Kind: "semoperacoes", Name: "X", Status: "CONNECTED"}
 	require.NoError(t, db.Create(&other).Error)

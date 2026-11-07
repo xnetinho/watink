@@ -15,7 +15,7 @@ import (
 // a bulk action must be rendered item-by-item, never "success" generically).
 func handleUpdateParticipants(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -48,7 +48,7 @@ func handleUpdateParticipants(svc *groupsService) gin.HandlerFunc {
 
 func handleListJoinRequests(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -72,7 +72,7 @@ func handleListJoinRequests(svc *groupsService) gin.HandlerFunc {
 
 func handleResolveJoinRequests(svc *groupsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}

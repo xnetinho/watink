@@ -175,3 +175,18 @@ identifica por contato + `whatsappId` e não tem `conversationKey`; o do Telegra
 
 **Banco já migrado (`lt`):** coluna removida do modelo fica órfã até o banco ser recriado (fatia 6). Não há migração incremental.
 
+## 10. Conclusão (7/nov/2026)
+
+**Fatias 4 e 5 entregues** (#160 a #163) e **fatia 6** (remoção): a tabela `Whatsapps`, `whatsapp_queues`, as rotas `/whatsapp/*` e
+`/whatsappsession/*`, a sala `whatsapp` e o evento `whatsappSession` não existem mais. O que resta do WhatsApp é a linha em
+`ChannelConnections` (`kind='whatsapp'`) e `whatsapp_connection_details`. A visão achatada que o código usa se chama
+`models.WhatsAppView` (não é tabela). O escopo de empresa dos controllers é `"ChannelConnections"`.
+
+Nomes definitivos no JSON da conexão: `identifier`, `avatarUrl`, `firstConnectedAt` (antes `number`, `profilePicUrl`,
+`firstConnection`); chave de conexão `connectionId` em todo objeto de domínio.
+
+**Mantidos de propósito:** o parâmetro de rota público do webchat (`/webchat/:whatsappId`) e a chave `whatsappId` do snippet de
+embed; o evento `whatsappSessionRisk` (sem equivalente neutro ainda); `business/docs/swagger.*` (gerados à mão, não regenerados).
+
+Busca de produção (backend) por `models.Whatsapp`, `"Whatsapps"` e `whatsapp_queues` = 0. `lt` recriado: esquema sem `Whatsapps`,
+sem `whatsappId` e sem `connectionSource`; rotas antigas respondem 404.

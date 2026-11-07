@@ -52,7 +52,7 @@ type callWorld struct {
 	other  uuid.UUID
 	pub    *callPub
 	svc    *calls.Service
-	wa     models.Whatsapp
+	wa     models.WhatsAppView
 	ticket models.Ticket
 	cargos map[string]int
 }
@@ -64,7 +64,7 @@ func newCallWorld(t *testing.T) *callWorld {
 	w.svc = calls.NewService(db, repository.NewGORMContactRepo(db), repository.NewGORMTicketRepo(db),
 		repository.NewGORMQueueRepo(db), w.pub, nil, nil)
 	useWhatsAppChannel(w.pub)
-	w.wa = models.Whatsapp{Name: "WA" + w.tenant.String(), TenantID: w.tenant, Status: "CONNECTED", ProxyMode: "none"}
+	w.wa = models.WhatsAppView{Name: "WA" + w.tenant.String(), TenantID: w.tenant, Status: "CONNECTED", ProxyMode: "none"}
 	require.NoError(t, models.CreateWhatsapp(db, &w.wa))
 	contact := models.Contact{Name: "Cliente", Number: "5511999991111", TenantID: w.tenant}
 	require.NoError(t, db.Create(&contact).Error)
@@ -244,7 +244,7 @@ func TestCallHistory_TenantAndOperatorIsolation(t *testing.T) {
 	require.NoError(t, w.db.Create(&tk2).Error)
 	mkLog(w.tenant, "L-MINE", &w.ticket.ID, w.wa.ID)
 	mkLog(w.tenant, "L-OTHERS", &tk2.ID, w.wa.ID)
-	foreignWA := models.Whatsapp{Name: "F" + w.other.String(), TenantID: w.other, Status: "CONNECTED"}
+	foreignWA := models.WhatsAppView{Name: "F" + w.other.String(), TenantID: w.other, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(w.db, &foreignWA))
 	mkLog(w.other, "L-FOREIGN", nil, foreignWA.ID)
 

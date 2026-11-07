@@ -61,7 +61,7 @@ func TestStopWhatsAppSession_PublishesStop(t *testing.T) {
 	wss := NewWhatsAppSessionService(db, pub, mockRedis, mockBroadcast)
 
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{ID: 99, TenantID: tenantID}
+	whatsapp := models.WhatsAppView{ID: 99, TenantID: tenantID}
 
 	if err := wss.StopWhatsAppSession(whatsapp); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -81,7 +81,7 @@ func TestDeleteWhatsAppSession_PublishesDelete(t *testing.T) {
 	wss := NewWhatsAppSessionService(db, pub, mockRedis, mockBroadcast)
 
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{ID: 55, TenantID: tenantID}
+	whatsapp := models.WhatsAppView{ID: 55, TenantID: tenantID}
 
 	if err := wss.DeleteWhatsAppSession(whatsapp); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -107,11 +107,11 @@ func (m *mockRedisServiceLockError) SetLock(key string, value string, expiration
 }
 
 // newTestDBWithWhatsapp opens a PostgreSQL test DB with the Whatsapp table migrated.
-func newTestDBWithWhatsapp(t *testing.T) (*gorm.DB, models.Whatsapp) {
+func newTestDBWithWhatsapp(t *testing.T) (*gorm.DB, models.WhatsAppView) {
 	t.Helper()
 	db := testutil.NewTestDB(t)
 	tenantID := uuid.New()
-	w := models.Whatsapp{ID: 1, TenantID: tenantID, Name: "test-session"}
+	w := models.WhatsAppView{ID: 1, TenantID: tenantID, Name: "test-session"}
 	if err := models.CreateWhatsapp(db, &w); err != nil {
 		t.Fatalf("failed to seed Whatsapp: %v", err)
 	}

@@ -13,7 +13,7 @@ import (
 )
 
 // ProxyGroupController manages proxy pools (groups) and their rotation strategy.
-// Tenant-scoped via auth.GetScoped (reusing the "Whatsapps" permission).
+// Tenant-scoped via auth.GetScoped (reusing the "ChannelConnections" scope).
 type ProxyGroupController struct{}
 
 func NewProxyGroupController() *ProxyGroupController { return &ProxyGroupController{} }
@@ -41,7 +41,7 @@ type proxyGroupInput struct {
 // @Security     BearerAuth
 // @Router       /proxy-groups [get]
 func (pgc *ProxyGroupController) List(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -92,7 +92,7 @@ func (pgc *ProxyGroupController) List(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /proxy-groups [post]
 func (pgc *ProxyGroupController) Create(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -132,7 +132,7 @@ func (pgc *ProxyGroupController) Create(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /proxy-groups/{id} [put]
 func (pgc *ProxyGroupController) Update(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -180,7 +180,7 @@ func (pgc *ProxyGroupController) Update(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /proxy-groups/{id} [delete]
 func (pgc *ProxyGroupController) Delete(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}

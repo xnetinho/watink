@@ -53,7 +53,7 @@ func TestStartWhatsAppSession_ComRLSReal(t *testing.T) {
 
 	pub := &rlsFakePublisher{}
 	wss := services.NewWhatsAppSessionService(gdb, pub, rlsFakeRedis{}, domain.BroadcastOrNop(nil))
-	wa := models.Whatsapp{ID: id, TenantID: tenant, Status: "DISCONNECTED", EngineType: "whatsmeow"}
+	wa := models.WhatsAppView{ID: id, TenantID: tenant, Status: "DISCONNECTED", EngineType: "whatsmeow"}
 
 	require.NoError(t, wss.StartWhatsAppSession(wa, false, "", true))
 	assert.Len(t, pub.keys, 1, "o comando session.start precisa chegar ao broker")

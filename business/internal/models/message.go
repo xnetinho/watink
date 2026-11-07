@@ -21,9 +21,9 @@ type Message struct {
 	ContactID           *int      `gorm:"column:contactId" json:"contactId"`
 	QuotedMsgID         *string   `gorm:"column:quotedMsgId" json:"quotedMsgId"`
 	TenantID            uuid.UUID `gorm:"column:tenantId;type:uuid;index:idx_messages_tenant_conn_ext,priority:1" json:"tenantId"`
-	Reactions   string    `gorm:"type:jsonb;default:'[]'" json:"reactions"`
-	DataJson    string    `gorm:"column:dataJson;type:jsonb;default:'{}'" json:"dataJson"`
-	Participant string    `json:"participant"`
+	Reactions           string    `gorm:"type:jsonb;default:'[]'" json:"reactions"`
+	DataJson            string    `gorm:"column:dataJson;type:jsonb;default:'{}'" json:"dataJson"`
+	Participant         string    `json:"participant"`
 	// Transcription is filled on-demand when an operator clicks "Transcrever
 	// áudio" on an audio message (message_transcription.go) — never written
 	// automatically on receipt, and never sent back to WhatsApp.

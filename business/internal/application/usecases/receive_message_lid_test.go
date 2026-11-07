@@ -38,7 +38,7 @@ func countRows(t *testing.T, db *gorm.DB, model interface{}, tenantID uuid.UUID)
 func TestReceiveMessage_LIDReplyJoinsTheAgendaContactAndItsTicket(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
-	wa := models.Whatsapp{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	agenda := models.Contact{Name: "Fulano da Agenda", Number: "558382341576", TenantID: tenant, ConnectionID: wa.ID}
@@ -77,7 +77,7 @@ func TestReceiveMessage_LIDReplyJoinsTheAgendaContactAndItsTicket(t *testing.T) 
 func TestReceiveMessage_LIDWithoutResolvedPhoneStillCreatesLIDContact(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
-	wa := models.Whatsapp{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	res, err := newLIDReceiveUC(db).Execute(context.Background(), ReceiveMessageInput{
@@ -93,7 +93,7 @@ func TestReceiveMessage_LIDWithoutResolvedPhoneStillCreatesLIDContact(t *testing
 func TestReceiveMessage_PlainPhoneMessageIsUnaffected(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
-	wa := models.Whatsapp{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "Conexão", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	uc := newLIDReceiveUC(db)

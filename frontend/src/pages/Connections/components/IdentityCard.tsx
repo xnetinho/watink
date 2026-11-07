@@ -22,7 +22,7 @@ const IdentityCard: React.FC<IdentityCardProps> = ({ whatsapp, isConnected, stat
         <Avatar
           size="xl"
           className="h-20 w-20"
-          src={whatsapp.profilePicUrl ? getBackendUrl(whatsapp.profilePicUrl) : undefined}
+          src={whatsapp.avatarUrl ? getBackendUrl(whatsapp.avatarUrl) : undefined}
           name={whatsapp.name}
         />
         {isConnected && (
@@ -33,7 +33,7 @@ const IdentityCard: React.FC<IdentityCardProps> = ({ whatsapp, isConnected, stat
       </div>
       <div className="text-center">
         <p className="text-2xl font-semibold tracking-tight">
-          {formatPhone(whatsapp.number) || tr("uiText.connections.numberUnavailable")}
+          {formatPhone(whatsapp.identifier) || tr("uiText.connections.numberUnavailable")}
         </p>
         {isConnected && whatsapp.lastConnectedAt && (
           <p className="mt-1 text-sm text-muted-foreground">

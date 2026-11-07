@@ -76,27 +76,6 @@ func NewWhatsappController(sr domain.ChannelSessionRepository, planLimitSvc doma
 	}
 }
 
-// @Summary      Listar conexões WhatsApp
-// @Tags         whatsapp
-// @Produce      json
-// @Success      200  {array}   map[string]interface{}
-// @Security     BearerAuth
-// @Router       /whatsapp [get]
-func (wc *WhatsappController) ListWhatsapps(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
-	if !ok {
-		return
-	}
-
-	whatsapps, err := wc.sessionRepo.FindAll(c.Request.Context(), tenantID)
-	if err != nil {
-		utils.RespondWithInternalError(c, err, "ListWhatsapps")
-		return
-	}
-
-	c.JSON(http.StatusOK, whatsapps)
-}
-
 // @Summary      Criar conexão WhatsApp
 // @Tags         whatsapp
 // @Accept       json
@@ -106,7 +85,7 @@ func (wc *WhatsappController) ListWhatsapps(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /whatsapp [post]
 func (wc *WhatsappController) CreateWhatsapp(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -126,11 +105,11 @@ func (wc *WhatsappController) CreateWhatsapp(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if _, err := utils.ValidateStringField(input.Number, "number", 50); err != nil {
+	if _, err := utils.ValidateStringField(input.Number, "identifier", 50); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if _, err := utils.ValidateStringField(input.ProfilePicUrl, "profilePicUrl", 2048); err != nil {
+	if _, err := utils.ValidateStringField(input.ProfilePicUrl, "avatarUrl", 2048); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -193,7 +172,7 @@ func (wc *WhatsappController) CreateWhatsapp(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /whatsapp/{id} [put]
 func (wc *WhatsappController) UpdateWhatsapp(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -225,14 +204,14 @@ func (wc *WhatsappController) UpdateWhatsapp(c *gin.Context) {
 			return
 		}
 	}
-	if _, sent := raw["number"]; sent {
-		if _, err := utils.ValidateStringField(input.Number, "number", 50); err != nil {
+	if _, sent := raw["identifier"]; sent {
+		if _, err := utils.ValidateStringField(input.Number, "identifier", 50); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 	}
-	if _, sent := raw["profilePicUrl"]; sent {
-		if _, err := utils.ValidateStringField(input.ProfilePicUrl, "profilePicUrl", 2048); err != nil {
+	if _, sent := raw["avatarUrl"]; sent {
+		if _, err := utils.ValidateStringField(input.ProfilePicUrl, "avatarUrl", 2048); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -266,7 +245,7 @@ func (wc *WhatsappController) UpdateWhatsapp(c *gin.Context) {
 		{"isDefault", input.IsDefault},
 		{"greetingMessage", input.GreetingMessage}, {"farewellMessage", input.FarewellMessage},
 		{"syncHistory", input.SyncHistory}, {"syncPeriod", input.SyncPeriod},
-		{"number", input.Number}, {"profilePicUrl", input.ProfilePicUrl},
+		{"identifier", input.Number}, {"avatarUrl", input.ProfilePicUrl},
 		{"keepAlive", input.KeepAlive}, {"engineType", input.EngineType},
 	} {
 		if _, sent := raw[f.key]; sent {

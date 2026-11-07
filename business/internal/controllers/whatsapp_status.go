@@ -15,7 +15,7 @@ import (
 // connection's detail view. Never includes the credential — same safety as
 // toProxyResponse in proxy.go. Returns nil when proxyMode is "none" or the
 // referenced row was deleted (dangling id).
-func proxySummary(db *gorm.DB, tenantID interface{}, w *models.Whatsapp) gin.H {
+func proxySummary(db *gorm.DB, tenantID interface{}, w *models.WhatsAppView) gin.H {
 	fresh := db.Session(&gorm.Session{NewDB: true})
 	switch w.ProxyMode {
 	case "single":
@@ -65,7 +65,7 @@ func proxySummary(db *gorm.DB, tenantID interface{}, w *models.Whatsapp) gin.H {
 // @Security     BearerAuth
 // @Router       /whatsapp/{id} [get]
 func (wc *WhatsappController) ShowWhatsapp(c *gin.Context) {
-	db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -90,14 +90,14 @@ func (wc *WhatsappController) ShowWhatsapp(c *gin.Context) {
 		"tenantId":            whatsappModel.TenantID,
 		"syncHistory":         whatsappModel.SyncHistory,
 		"syncPeriod":          whatsappModel.SyncPeriod,
-		"number":              whatsappModel.Number,
-		"profilePicUrl":       whatsappModel.ProfilePicUrl,
+		"identifier":          whatsappModel.Number,
+		"avatarUrl":           whatsappModel.ProfilePicUrl,
 		"keepAlive":           whatsappModel.KeepAlive,
 		"presencePolicy":      whatsappModel.PresencePolicy,
 		"presenceIdleMinutes": whatsappModel.PresenceIdleMinutes,
 		"createdAt":           whatsappModel.CreatedAt,
 		"updatedAt":           whatsappModel.UpdatedAt,
-		"firstConnection":     whatsappModel.FirstConnection,
+		"firstConnectedAt":    whatsappModel.FirstConnection,
 		"engineType":          whatsappModel.EngineType,
 		"proxyMode":           whatsappModel.ProxyMode,
 		"proxyId":             whatsappModel.ProxyID,
@@ -127,7 +127,7 @@ func (wc *WhatsappController) ShowWhatsapp(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /whatsapp/{id} [delete]
 func (wc *WhatsappController) DeleteWhatsapp(c *gin.Context) {
-	_, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+	_, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
 		return
 	}
@@ -139,7 +139,7 @@ func (wc *WhatsappController) DeleteWhatsapp(c *gin.Context) {
 		return
 	}
 
-	model := models.Whatsapp{
+	model := models.WhatsAppView{
 		ID:                  whatsapp.ID,
 		Status:              whatsapp.Status,
 		Name:                whatsapp.Name,
@@ -169,10 +169,6 @@ func (wc *WhatsappController) DeleteWhatsapp(c *gin.Context) {
 		return
 	}
 
-	wc.broadcast.EmitToTenantRoom(tenantID.String(), "whatsapp", gin.H{
-		"action":       "delete",
-		"connectionId": whatsapp.ID,
-	})
 	wc.broadcast.EmitToTenantRoom(tenantID.String(), "channelConnection", gin.H{
 		"action":       "delete",
 		"connectionId": whatsapp.ID,

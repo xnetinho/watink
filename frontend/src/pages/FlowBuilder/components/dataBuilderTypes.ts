@@ -42,7 +42,7 @@ export const EDITABLE_FIELDS: Record<string, FieldConfig[]> = {
     { value: 'name', label: 'uiText.flow.field.name', type: 'string' },
     { value: 'color', label: 'uiText.flow.field.color', type: 'string' },
   ],
-  Whatsapps: [
+  ChannelConnections: [
     { value: 'name', label: 'uiText.flow.field.name', type: 'string' },
     { value: 'isDefault', label: 'uiText.flow.field.isDefault', type: 'boolean' },
   ],

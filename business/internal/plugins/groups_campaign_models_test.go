@@ -17,15 +17,15 @@ import (
 func TestGroupCampaignModels_MigrateAndCreate(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{TenantID: tenantID, Name: "conn-campaign-models", Number: "5511999990000"}
+	whatsapp := models.WhatsAppView{TenantID: tenantID, Name: "conn-campaign-models", Number: "5511999990000"}
 	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 
 	campaign := models.GroupCampaign{
-		TenantID:     tenantID,
-		Name:         "Campanha de teste",
-		ChannelConnectionID:   whatsapp.ID,
-		Status:       models.GroupCampaignStatusDraft,
-		ScheduleMode: models.GroupCampaignScheduleImmediate,
+		TenantID:            tenantID,
+		Name:                "Campanha de teste",
+		ChannelConnectionID: whatsapp.ID,
+		Status:              models.GroupCampaignStatusDraft,
+		ScheduleMode:        models.GroupCampaignScheduleImmediate,
 	}
 	require.NoError(t, db.Create(&campaign).Error)
 	require.NotZero(t, campaign.ID)
@@ -41,11 +41,11 @@ func TestGroupCampaignModels_MigrateAndCreate(t *testing.T) {
 	require.NotZero(t, variant.ID)
 
 	target := models.GroupCampaignTarget{
-		TenantID:   tenantID,
-		CampaignID: campaign.ID,
+		TenantID:            tenantID,
+		CampaignID:          campaign.ID,
 		ChannelConnectionID: whatsapp.ID,
-		JID:        "120363000000000001@g.us",
-		Subject:    "Grupo de teste",
+		JID:                 "120363000000000001@g.us",
+		Subject:             "Grupo de teste",
 	}
 	require.NoError(t, db.Create(&target).Error)
 	require.NotZero(t, target.ID)
@@ -61,15 +61,15 @@ func TestGroupCampaignModels_MigrateAndCreate(t *testing.T) {
 	require.NotZero(t, run.ID)
 
 	send := models.GroupCampaignSend{
-		TenantID:    tenantID,
-		CampaignID:  campaign.ID,
-		RunID:       run.ID,
-		ChannelConnectionID:  whatsapp.ID,
-		JID:         target.JID,
-		VariantID:   &variant.ID,
-		Status:      models.GroupCampaignSendStatusPending,
-		ScheduledAt: time.Now(),
-		EnvID:       "env-test-1",
+		TenantID:            tenantID,
+		CampaignID:          campaign.ID,
+		RunID:               run.ID,
+		ChannelConnectionID: whatsapp.ID,
+		JID:                 target.JID,
+		VariantID:           &variant.ID,
+		Status:              models.GroupCampaignSendStatusPending,
+		ScheduledAt:         time.Now(),
+		EnvID:               "env-test-1",
 	}
 	require.NoError(t, db.Create(&send).Error)
 	require.NotZero(t, send.ID)
@@ -95,7 +95,7 @@ func TestGroupCampaignModels_MigrateAndCreate(t *testing.T) {
 func TestGroupCampaignTarget_UniqueCampaignJID(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{TenantID: tenantID, Name: "conn-unique-target", Number: "5511999990001"}
+	whatsapp := models.WhatsAppView{TenantID: tenantID, Name: "conn-unique-target", Number: "5511999990001"}
 	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 	campaign := models.GroupCampaign{TenantID: tenantID, Name: "C", ChannelConnectionID: whatsapp.ID}
 	require.NoError(t, db.Create(&campaign).Error)
@@ -113,7 +113,7 @@ func TestGroupCampaignTarget_UniqueCampaignJID(t *testing.T) {
 func TestGroupCampaignRun_UniqueOccurrenceKey(t *testing.T) {
 	db := setupPluginTestDB(t)
 	tenantID := uuid.New()
-	whatsapp := models.Whatsapp{TenantID: tenantID, Name: "conn-unique-run", Number: "5511999990002"}
+	whatsapp := models.WhatsAppView{TenantID: tenantID, Name: "conn-unique-run", Number: "5511999990002"}
 	require.NoError(t, models.CreateWhatsapp(db, &whatsapp))
 	campaign := models.GroupCampaign{TenantID: tenantID, Name: "C", ChannelConnectionID: whatsapp.ID}
 	require.NoError(t, db.Create(&campaign).Error)

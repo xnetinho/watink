@@ -36,7 +36,7 @@ func TestCreateContact_WhatsappConectadoMandaGravarNaAgendaDoCelular(t *testing.
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
 	pub := &mockPublisher{}
-	wa := models.Whatsapp{Name: "Comercial", Status: "CONNECTED", TenantID: tenant}
+	wa := models.WhatsAppView{Name: "Comercial", Status: "CONNECTED", TenantID: tenant}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	w := doJSON(phoneRouter(db, tenant, pub), http.MethodPost, "/contacts", map[string]interface{}{"name": "Maria", "number": "5583999990001", "connectionId": wa.ID})
@@ -50,7 +50,7 @@ func TestCreateContact_WhatsappDesconectadoCadastraMasAvisaQueNaoFoiAoCelular(t 
 	db := testutil.NewTestDB(t)
 	tenant := uuid.New()
 	pub := &mockPublisher{}
-	wa := models.Whatsapp{Name: "Comercial", Status: "DISCONNECTED", TenantID: tenant}
+	wa := models.WhatsAppView{Name: "Comercial", Status: "DISCONNECTED", TenantID: tenant}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
 	w := doJSON(phoneRouter(db, tenant, pub), http.MethodPost, "/contacts", map[string]interface{}{"name": "Maria", "number": "5583999990002", "connectionId": wa.ID})

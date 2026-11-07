@@ -54,7 +54,7 @@ export const TABLE_FIELDS: Record<string, FieldConfig[]> = {
     { value: 'name', label: 'uiText.flow.field.name', type: 'string' },
     { value: 'color', label: 'uiText.flow.field.color', type: 'string' },
   ],
-  Whatsapps: [
+  ChannelConnections: [
     { value: 'id', label: 'uiText.flow.field.id', type: 'number' },
     { value: 'name', label: 'uiText.flow.field.name', type: 'string' },
     { value: 'status', label: 'uiText.flow.field.status', type: 'select', options: ['CONNECTED', 'DISCONNECTED', 'OPENING'] },

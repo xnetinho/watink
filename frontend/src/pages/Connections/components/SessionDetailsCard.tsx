@@ -66,14 +66,14 @@ const SessionDetailsCard: React.FC<SessionDetailsCardProps> = ({
         <DetailItem
           icon={<MessageSquare className="h-4 w-4" />}
           label={tr("uiText.connections.connectedNumber")}
-          value={formatPhone(whatsapp.number) || "—"}
+          value={formatPhone(whatsapp.identifier) || "—"}
         />
         <DetailItem
           icon={<Calendar className="h-4 w-4" />}
           label={tr("uiText.connections.firstConnection")}
           value={
-            whatsapp.firstConnection
-              ? new Date(whatsapp.firstConnection).toLocaleDateString()
+            whatsapp.firstConnectedAt
+              ? new Date(whatsapp.firstConnectedAt).toLocaleDateString()
               : whatsapp.createdAt
               ? new Date(whatsapp.createdAt).toLocaleDateString()
               : "—"

@@ -15,7 +15,7 @@ import (
 )
 
 // groupCampaignScope is the auth.GetScoped table label for this feature --
-// distinct from "Whatsapps" (used by groups_watch.go) so a future Alcance
+// distinct from "ChannelConnections" (used by groups_watch.go) so a future Alcance
 // rule specific to campaigns has somewhere to hook without touching
 // unrelated routes.
 const groupCampaignScope = "GroupCampaigns"

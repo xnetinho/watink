@@ -223,7 +223,7 @@ func (s *Skeleton) matchTriggers(ctx context.Context, tenantID uuid.UUID, body s
 	// Connection-scoped triggers: a flow bound to a connection ("connectionId" set)
 	// only fires for inbound on THAT connection; an unbound flow (NULL "connectionId")
 	// fires for any connection. This is what makes an "agent bound to a connection"
-	// possible (an "any message" flow with whatsappId=X → all inbound on X is the
+	// possible (an "any message" flow with connectionId=X → all inbound on X is the
 	// agent's). connectionID<=0 (legacy no-ticket path) skips the filter.
 	if connectionID > 0 {
 		q = q.Where(`("channelConnectionId" IS NULL OR "channelConnectionId" = ?)`, connectionID)

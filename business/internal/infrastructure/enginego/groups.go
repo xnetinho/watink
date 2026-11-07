@@ -18,7 +18,7 @@ var _ domain.GroupEngine = (*Provider)(nil)
 // straight into the domain types without an intermediate DTO layer. This is
 // deliberate: it's what "code-mirror" (groups-api.md) actually buys us.
 
-func (p *Provider) ListGroups(ctx context.Context, w models.Whatsapp) ([]domain.GroupInfo, error) {
+func (p *Provider) ListGroups(ctx context.Context, w models.WhatsAppView) ([]domain.GroupInfo, error) {
 	var out []domain.GroupInfo
 	if err := groupsDo(ctx, http.MethodGet, sessionGroupsPath(w.ID), nil, &out); err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func (p *Provider) ListGroups(ctx context.Context, w models.Whatsapp) ([]domain.
 	return out, nil
 }
 
-func (p *Provider) GetGroup(ctx context.Context, w models.Whatsapp, groupJID string) (*domain.GroupInfo, error) {
+func (p *Provider) GetGroup(ctx context.Context, w models.WhatsAppView, groupJID string) (*domain.GroupInfo, error) {
 	var out domain.GroupInfo
 	if err := groupsDo(ctx, http.MethodGet, sessionGroupItemPath(w.ID, groupJID), nil, &out); err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (p *Provider) GetGroup(ctx context.Context, w models.Whatsapp, groupJID str
 	return &out, nil
 }
 
-func (p *Provider) CreateGroup(ctx context.Context, w models.Whatsapp, subject string, participants []string) (*domain.GroupInfo, error) {
+func (p *Provider) CreateGroup(ctx context.Context, w models.WhatsAppView, subject string, participants []string) (*domain.GroupInfo, error) {
 	body := map[string]interface{}{"tenantId": w.TenantID.String(), "subject": subject, "participants": participants}
 	var out domain.GroupInfo
 	if err := groupsDo(ctx, http.MethodPost, sessionGroupsPath(w.ID), body, &out); err != nil {
@@ -43,7 +43,7 @@ func (p *Provider) CreateGroup(ctx context.Context, w models.Whatsapp, subject s
 	return &out, nil
 }
 
-func (p *Provider) UpdateParticipants(ctx context.Context, w models.Whatsapp, groupJID string, action string, participants []string) ([]domain.ParticipantResult, error) {
+func (p *Provider) UpdateParticipants(ctx context.Context, w models.WhatsAppView, groupJID string, action string, participants []string) ([]domain.ParticipantResult, error) {
 	body := map[string]interface{}{"tenantId": w.TenantID.String(), "action": action, "participants": participants}
 	var out struct {
 		Participants []domain.ParticipantResult `json:"participants"`
@@ -56,7 +56,7 @@ func (p *Provider) UpdateParticipants(ctx context.Context, w models.Whatsapp, gr
 
 // UpdateGroupSettings sends a single PUT with only the changed fields — no
 // "which sub-call failed" ambiguity possible.
-func (p *Provider) UpdateGroupSettings(ctx context.Context, w models.Whatsapp, groupJID string, patch domain.GroupSettingsPatch) error {
+func (p *Provider) UpdateGroupSettings(ctx context.Context, w models.WhatsAppView, groupJID string, patch domain.GroupSettingsPatch) error {
 	body := map[string]interface{}{"tenantId": w.TenantID.String()}
 	if patch.Subject != nil {
 		body["subject"] = *patch.Subject
@@ -79,7 +79,7 @@ func (p *Provider) UpdateGroupSettings(ctx context.Context, w models.Whatsapp, g
 	return groupsDo(ctx, http.MethodPut, sessionGroupItemPath(w.ID, groupJID), body, nil)
 }
 
-func (p *Provider) GetInviteLink(ctx context.Context, w models.Whatsapp, groupJID string) (string, error) {
+func (p *Provider) GetInviteLink(ctx context.Context, w models.WhatsAppView, groupJID string) (string, error) {
 	var out struct {
 		Link string `json:"link"`
 	}
@@ -89,7 +89,7 @@ func (p *Provider) GetInviteLink(ctx context.Context, w models.Whatsapp, groupJI
 	return out.Link, nil
 }
 
-func (p *Provider) RevokeInviteLink(ctx context.Context, w models.Whatsapp, groupJID string) (string, error) {
+func (p *Provider) RevokeInviteLink(ctx context.Context, w models.WhatsAppView, groupJID string) (string, error) {
 	body := map[string]interface{}{"tenantId": w.TenantID.String()}
 	var out struct {
 		Link string `json:"link"`
@@ -100,17 +100,17 @@ func (p *Provider) RevokeInviteLink(ctx context.Context, w models.Whatsapp, grou
 	return out.Link, nil
 }
 
-func (p *Provider) LeaveGroup(ctx context.Context, w models.Whatsapp, groupJID string) error {
+func (p *Provider) LeaveGroup(ctx context.Context, w models.WhatsAppView, groupJID string) error {
 	body := map[string]interface{}{"tenantId": w.TenantID.String()}
 	return groupsDo(ctx, http.MethodPost, sessionGroupItemPath(w.ID, groupJID)+"/leave", body, nil)
 }
 
-func (p *Provider) SetJoinApprovalMode(ctx context.Context, w models.Whatsapp, groupJID string, enabled bool) error {
+func (p *Provider) SetJoinApprovalMode(ctx context.Context, w models.WhatsAppView, groupJID string, enabled bool) error {
 	body := map[string]interface{}{"tenantId": w.TenantID.String(), "enabled": enabled}
 	return groupsDo(ctx, http.MethodPost, sessionGroupItemPath(w.ID, groupJID)+"/join-approval-mode", body, nil)
 }
 
-func (p *Provider) ListJoinRequests(ctx context.Context, w models.Whatsapp, groupJID string) ([]domain.JoinRequest, error) {
+func (p *Provider) ListJoinRequests(ctx context.Context, w models.WhatsAppView, groupJID string) ([]domain.JoinRequest, error) {
 	var out []domain.JoinRequest
 	if err := groupsDo(ctx, http.MethodGet, sessionGroupItemPath(w.ID, groupJID)+"/join-requests", nil, &out); err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ func (p *Provider) ListJoinRequests(ctx context.Context, w models.Whatsapp, grou
 	return out, nil
 }
 
-func (p *Provider) ResolveJoinRequests(ctx context.Context, w models.Whatsapp, groupJID string, action string, participants []string) ([]domain.ParticipantResult, error) {
+func (p *Provider) ResolveJoinRequests(ctx context.Context, w models.WhatsAppView, groupJID string, action string, participants []string) ([]domain.ParticipantResult, error) {
 	body := map[string]interface{}{"tenantId": w.TenantID.String(), "action": action, "participants": participants}
 	var out struct {
 		Participants []domain.ParticipantResult `json:"participants"`
@@ -129,7 +129,7 @@ func (p *Provider) ResolveJoinRequests(ctx context.Context, w models.Whatsapp, g
 	return out.Participants, nil
 }
 
-func (p *Provider) CreateCommunity(ctx context.Context, w models.Whatsapp, name string) (*domain.CommunityInfo, error) {
+func (p *Provider) CreateCommunity(ctx context.Context, w models.WhatsAppView, name string) (*domain.CommunityInfo, error) {
 	body := map[string]interface{}{"tenantId": w.TenantID.String(), "name": name}
 	var out domain.CommunityInfo
 	if err := groupsDo(ctx, http.MethodPost, sessionCommunitiesPath(w.ID), body, &out); err != nil {
@@ -138,7 +138,7 @@ func (p *Provider) CreateCommunity(ctx context.Context, w models.Whatsapp, name 
 	return &out, nil
 }
 
-func (p *Provider) GetCommunity(ctx context.Context, w models.Whatsapp, communityJID string) (*domain.CommunityInfo, error) {
+func (p *Provider) GetCommunity(ctx context.Context, w models.WhatsAppView, communityJID string) (*domain.CommunityInfo, error) {
 	var out domain.CommunityInfo
 	if err := groupsDo(ctx, http.MethodGet, sessionCommunityItemPath(w.ID, communityJID), nil, &out); err != nil {
 		return nil, err
@@ -146,13 +146,13 @@ func (p *Provider) GetCommunity(ctx context.Context, w models.Whatsapp, communit
 	return &out, nil
 }
 
-func (p *Provider) LinkGroupToCommunity(ctx context.Context, w models.Whatsapp, communityJID, groupJID string) error {
+func (p *Provider) LinkGroupToCommunity(ctx context.Context, w models.WhatsAppView, communityJID, groupJID string) error {
 	path := sessionCommunityItemPath(w.ID, communityJID) + "/groups/" + url.PathEscape(groupJID)
 	body := map[string]interface{}{"tenantId": w.TenantID.String()}
 	return groupsDo(ctx, http.MethodPost, path, body, nil)
 }
 
-func (p *Provider) UnlinkGroupFromCommunity(ctx context.Context, w models.Whatsapp, communityJID, groupJID string) error {
+func (p *Provider) UnlinkGroupFromCommunity(ctx context.Context, w models.WhatsAppView, communityJID, groupJID string) error {
 	path := sessionCommunityItemPath(w.ID, communityJID) + "/groups/" + url.PathEscape(groupJID) + "/remove"
 	body := map[string]interface{}{"tenantId": w.TenantID.String()}
 	return groupsDo(ctx, http.MethodPost, path, body, nil)

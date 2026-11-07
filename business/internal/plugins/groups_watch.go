@@ -161,7 +161,7 @@ type updateGroupWatchTagRequest struct {
 
 func handleListGroupWatchTags(core sdk.WatinkCore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -179,7 +179,7 @@ func handleListGroupWatchTags(core sdk.WatinkCore) gin.HandlerFunc {
 
 func handleCreateGroupWatchTag(core sdk.WatinkCore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -219,7 +219,7 @@ func handleCreateGroupWatchTag(core sdk.WatinkCore) gin.HandlerFunc {
 // rewrites history.
 func handleUpdateGroupWatchTag(core sdk.WatinkCore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -270,7 +270,7 @@ func handleUpdateGroupWatchTag(core sdk.WatinkCore) gin.HandlerFunc {
 
 func handleDeleteGroupWatchTag(core sdk.WatinkCore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
@@ -299,7 +299,7 @@ const groupWatchMatchesLimit = 100
 // the selected tag once total volume passes 100 across ALL tags combined.
 func handleListGroupWatchMatches(core sdk.WatinkCore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db, tenantID, ok := auth.GetScoped(c, "Whatsapps")
+		db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}

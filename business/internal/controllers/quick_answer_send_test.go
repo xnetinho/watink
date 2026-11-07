@@ -22,7 +22,7 @@ func TestQuickAnswerSend_PublicaPeloCanalEGravaAMensagem(t *testing.T) {
 	pub := &stubPublisher{}
 	useWhatsAppChannel(pub)
 
-	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
+	wa := models.WhatsAppView{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenant}
 	require.NoError(t, db.Create(&contact).Error)

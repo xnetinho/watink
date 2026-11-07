@@ -229,7 +229,7 @@ func (r *AssistantRuntime) isMentioned(a models.Assistant, mentionedJIDs []strin
 	if a.ChannelConnectionID == nil || len(mentionedJIDs) == 0 {
 		return false
 	}
-	var wa models.Whatsapp
+	var wa models.WhatsAppView
 	if err := models.FirstWhatsapp(r.db.Where(`id = ? AND "tenantId" = ?`, *a.ChannelConnectionID, a.TenantID), &wa); err != nil {
 		return false
 	}

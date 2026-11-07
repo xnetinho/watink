@@ -34,7 +34,7 @@ func New(db *gorm.DB, publisher domain.CommandPublisher) *Provider {
 
 // StartSession resolves the connection's proxy (fail-closed) and publishes
 // session.start to engine-go.
-func (p *Provider) StartSession(ctx context.Context, whatsapp models.Whatsapp, usePairingCode bool, phoneNumber string, force bool) error {
+func (p *Provider) StartSession(ctx context.Context, whatsapp models.WhatsAppView, usePairingCode bool, phoneNumber string, force bool) error {
 	proxyURL, err := p.composeProxyURL(ctx, whatsapp)
 	if err != nil {
 		return fmt.Errorf("proxy configuration error: %w", err)
@@ -67,12 +67,12 @@ func (p *Provider) StartSession(ctx context.Context, whatsapp models.Whatsapp, u
 	return p.publisher.PublishCommand(routingKey, command)
 }
 
-func (p *Provider) StopSession(ctx context.Context, whatsapp models.Whatsapp) error {
+func (p *Provider) StopSession(ctx context.Context, whatsapp models.WhatsAppView) error {
 	routingKey, command := p.buildSessionCommand(whatsapp, "session.stop")
 	return p.publisher.PublishCommand(routingKey, command)
 }
 
-func (p *Provider) DeleteSession(ctx context.Context, whatsapp models.Whatsapp) error {
+func (p *Provider) DeleteSession(ctx context.Context, whatsapp models.WhatsAppView) error {
 	routingKey, command := p.buildSessionCommand(whatsapp, "session.delete")
 	return p.publisher.PublishCommand(routingKey, command)
 }
@@ -80,7 +80,7 @@ func (p *Provider) DeleteSession(ctx context.Context, whatsapp models.Whatsapp) 
 // SendText always honors the requested messageID -- engine-go forces it as
 // the real WhatsApp stanza ID via whatsmeow's SendRequestExtra, so the
 // effective ID returned here always equals the input (see domain.WhatsAppEngine).
-func (p *Provider) SendText(ctx context.Context, whatsapp models.Whatsapp, to, messageID, body string) (string, error) {
+func (p *Provider) SendText(ctx context.Context, whatsapp models.WhatsAppView, to, messageID, body string) (string, error) {
 	err := p.sendCommand(whatsapp, "message.send.text", map[string]interface{}{
 		"sessionId": whatsapp.ID,
 		"messageId": messageID,
@@ -90,7 +90,7 @@ func (p *Provider) SendText(ctx context.Context, whatsapp models.Whatsapp, to, m
 	return messageID, err
 }
 
-func (p *Provider) SendMedia(ctx context.Context, whatsapp models.Whatsapp, to, messageID, mediaType, mediaURL, mimeType string) (string, error) {
+func (p *Provider) SendMedia(ctx context.Context, whatsapp models.WhatsAppView, to, messageID, mediaType, mediaURL, mimeType string) (string, error) {
 	err := p.sendCommand(whatsapp, "message.send.media", map[string]interface{}{
 		"sessionId": whatsapp.ID,
 		"messageId": messageID,
@@ -104,7 +104,7 @@ func (p *Provider) SendMedia(ctx context.Context, whatsapp models.Whatsapp, to, 
 
 // SendPresence implements domain.PresenceEngine, publishing chat.presence to
 // engine-go. state is "composing" or "paused".
-func (p *Provider) SendPresence(ctx context.Context, whatsapp models.Whatsapp, to, state string) error {
+func (p *Provider) SendPresence(ctx context.Context, whatsapp models.WhatsAppView, to, state string) error {
 	return p.sendCommand(whatsapp, "chat.presence", map[string]interface{}{
 		"sessionId": whatsapp.ID,
 		"to":        to,
@@ -112,13 +112,13 @@ func (p *Provider) SendPresence(ctx context.Context, whatsapp models.Whatsapp, t
 	})
 }
 
-func (p *Provider) sendCommand(whatsapp models.Whatsapp, commandType string, payload map[string]interface{}) error {
+func (p *Provider) sendCommand(whatsapp models.WhatsAppView, commandType string, payload map[string]interface{}) error {
 	command := map[string]interface{}{"type": commandType, "payload": payload}
 	routingKey := wbot.Command(whatsapp.TenantID.String(), strconv.Itoa(whatsapp.ID), commandType)
 	return p.publisher.PublishCommand(routingKey, command)
 }
 
-func (p *Provider) buildSessionCommand(whatsapp models.Whatsapp, commandType string) (string, map[string]interface{}) {
+func (p *Provider) buildSessionCommand(whatsapp models.WhatsAppView, commandType string) (string, map[string]interface{}) {
 	command := map[string]interface{}{
 		"id":        uuid.New().String(),
 		"timestamp": time.Now().UnixMilli(),
@@ -135,7 +135,7 @@ func (p *Provider) buildSessionCommand(whatsapp models.Whatsapp, commandType str
 // composeProxyURL builds the proxy URL for the connection, decrypting the
 // password. Returns "" when no proxy is assigned (ProxyMode "none"). Returns an
 // error (fail-closed) when a proxy IS assigned but unusable.
-func (p *Provider) composeProxyURL(ctx context.Context, whatsapp models.Whatsapp) (string, error) {
+func (p *Provider) composeProxyURL(ctx context.Context, whatsapp models.WhatsAppView) (string, error) {
 	px, err := p.resolveProxy(ctx, whatsapp)
 	if err != nil {
 		return "", err
@@ -161,7 +161,7 @@ func (p *Provider) composeProxyURL(ctx context.Context, whatsapp models.Whatsapp
 
 // resolveProxy returns the active proxy a connection should use, or nil when
 // ProxyMode is "none". Fail-closed on any misconfiguration.
-func (p *Provider) resolveProxy(ctx context.Context, whatsapp models.Whatsapp) (*models.Proxy, error) {
+func (p *Provider) resolveProxy(ctx context.Context, whatsapp models.WhatsAppView) (*models.Proxy, error) {
 	switch whatsapp.ProxyMode {
 	case "single":
 		if whatsapp.ProxyID == nil {
@@ -193,7 +193,7 @@ func (p *Provider) resolveProxy(ctx context.Context, whatsapp models.Whatsapp) (
 //
 // Isolated/banned proxies are excluded (status != active), so the ban-isolation
 // guard automatically removes a burned IP from the pool.
-func (p *Provider) pickGroupProxy(ctx context.Context, whatsapp models.Whatsapp) (*models.Proxy, error) {
+func (p *Provider) pickGroupProxy(ctx context.Context, whatsapp models.WhatsAppView) (*models.Proxy, error) {
 	if whatsapp.ProxyGroupID == nil {
 		return nil, fmt.Errorf("proxyMode=group sem proxyGroupId na conexão %d", whatsapp.ID)
 	}

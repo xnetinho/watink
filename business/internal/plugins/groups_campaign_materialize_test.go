@@ -11,21 +11,21 @@ import (
 	"gorm.io/gorm"
 )
 
-func campaignFixture(t *testing.T, db *gorm.DB, connectedStatus string) (models.Whatsapp, models.GroupCampaign) {
+func campaignFixture(t *testing.T, db *gorm.DB, connectedStatus string) (models.WhatsAppView, models.GroupCampaign) {
 	t.Helper()
 	tenantID := uuid.New()
-	w := models.Whatsapp{TenantID: tenantID, Name: "conn-" + uuid.New().String()[:8], Number: "5511999990000", Status: connectedStatus}
+	w := models.WhatsAppView{TenantID: tenantID, Name: "conn-" + uuid.New().String()[:8], Number: "5511999990000", Status: connectedStatus}
 	require.NoError(t, models.CreateWhatsapp(db, &w))
 
 	c := models.GroupCampaign{
-		TenantID:          tenantID,
-		Name:              "Campanha de teste",
-		ChannelConnectionID:        w.ID,
-		Status:            models.GroupCampaignStatusScheduled,
-		ScheduleMode:      models.GroupCampaignScheduleOnce,
-		IntervalSeconds:   60,
-		BatchSize:         10,
-		BatchPauseSeconds: 300,
+		TenantID:            tenantID,
+		Name:                "Campanha de teste",
+		ChannelConnectionID: w.ID,
+		Status:              models.GroupCampaignStatusScheduled,
+		ScheduleMode:        models.GroupCampaignScheduleOnce,
+		IntervalSeconds:     60,
+		BatchSize:           10,
+		BatchPauseSeconds:   300,
 	}
 	require.NoError(t, db.Create(&c).Error)
 	return w, c

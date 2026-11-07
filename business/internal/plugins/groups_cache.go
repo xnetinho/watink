@@ -60,7 +60,7 @@ func loadGroupsCache(db *gorm.DB, tenantID uuid.UUID, whatsappID int) ([]groupsL
 // (handleListGroups, first-ever access) and from the periodic background
 // sync (groups_cache_sync.go). Best-effort: errors are logged by the
 // caller, never bubble up to break the live response that triggered them.
-func saveGroupsToCache(db *gorm.DB, tenantID uuid.UUID, w models.Whatsapp, groups []domain.GroupInfo) error {
+func saveGroupsToCache(db *gorm.DB, tenantID uuid.UUID, w models.WhatsAppView, groups []domain.GroupInfo) error {
 	rows := make([]models.GroupCache, 0, len(groups))
 	now := time.Now()
 	for _, g := range groups {
@@ -103,7 +103,7 @@ func saveGroupsToCache(db *gorm.DB, tenantID uuid.UUID, w models.Whatsapp, group
 // (on-demand, single-group, not a bulk anti-ban concern) and can keep the
 // list cache honest for that one entry as a side effect, same
 // best-effort/never-blocks-the-response spirit as enrichContactsFromGroups.
-func upsertOneGroupCache(db *gorm.DB, tenantID uuid.UUID, w models.Whatsapp, g domain.GroupInfo) {
+func upsertOneGroupCache(db *gorm.DB, tenantID uuid.UUID, w models.WhatsAppView, g domain.GroupInfo) {
 	now := time.Now()
 	row := models.GroupCache{
 		TenantID:            tenantID,

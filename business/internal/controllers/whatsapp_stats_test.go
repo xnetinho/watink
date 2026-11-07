@@ -24,8 +24,8 @@ func TestStatsWhatsapp_ContaSoOsDaConexao(t *testing.T) {
 	tenant := uuid.New()
 	require.NoError(t, db.Create(&models.Tenant{ID: tenant, Name: "T Stats", Status: "active"}).Error)
 
-	a := models.Whatsapp{Name: "A", TenantID: tenant, Status: "CONNECTED"}
-	b := models.Whatsapp{Name: "B", TenantID: tenant, Status: "CONNECTED"}
+	a := models.WhatsAppView{Name: "A", TenantID: tenant, Status: "CONNECTED"}
+	b := models.WhatsAppView{Name: "B", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &a))
 	require.NoError(t, models.CreateWhatsapp(db, &b))
 	contact := models.Contact{Name: "C", Number: "5511999990000", TenantID: tenant}

@@ -116,25 +116,16 @@ func (r *ConnectionRouter) PresencePolicy() gin.HandlerFunc {
 	return r.whatsappOnly(r.whatsapp.UpdatePresencePolicy)
 }
 
-// StartSession e StopSession usam o parâmetro :id (as rotas antigas usavam :whatsappId).
 func (r *ConnectionRouter) StartSession() gin.HandlerFunc {
-	return r.whatsappOnly(aliasParam("id", "whatsappId", r.sessions.StartSession))
+	return r.whatsappOnly(r.sessions.StartSession)
 }
 func (r *ConnectionRouter) StopSession() gin.HandlerFunc {
-	return r.whatsappOnly(aliasParam("id", "whatsappId", r.sessions.StopSession))
+	return r.whatsappOnly(r.sessions.StopSession)
 }
 func (r *ConnectionRouter) RestartAll() gin.HandlerFunc { return r.sessions.RestartAllSessions }
 
-// aliasParam copia o parâmetro de rota `from` para `to`, para reaproveitar handlers escritos com o nome antigo.
-func aliasParam(from, to string, h gin.HandlerFunc) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Params = append(c.Params, gin.Param{Key: to, Value: c.Param(from)})
-		h(c)
-	}
-}
-
-// List devolve as conexões de todos os canais numa lista só. O WhatsApp vem na visão achatada (identidade + detalhes, com os aliases
-// temporários number/profilePicUrl/firstConnection); os demais canais, como o ChannelConnection. Ambos levam connectionId.
+// List devolve as conexões de todos os canais numa lista só. O WhatsApp vem na visão achatada (identidade + detalhes); os demais
+// canais, como o ChannelConnection. Ambos levam connectionId.
 func (r *ConnectionRouter) List(c *gin.Context) {
 	db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 	if !ok {
@@ -167,28 +158,22 @@ func (r *ConnectionRouter) List(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
-// withKind acrescenta `kind`, `identifier` e os aliases de transição ao JSON da visão achatada do WhatsApp.
+// withKind acrescenta `kind`, `connectionId` e `displayName` ao JSON da visão achatada do WhatsApp.
 func withKind(v interface{}, cn models.ChannelConnection) gin.H {
 	raw, _ := json.Marshal(v)
 	m := gin.H{}
 	_ = json.Unmarshal(raw, &m)
 	m["kind"] = cn.Kind
 	m["connectionId"] = cn.ID
-	m["identifier"] = cn.Identifier
 	m["displayName"] = cn.DisplayName
-	m["avatarUrl"] = cn.AvatarURL
-	m["firstConnectedAt"] = cn.FirstConnectedAt
 	return m
 }
 
-// connectionAliases devolve o canal não-WhatsApp com connectionId e os aliases number/profilePicUrl/firstConnection.
+// connectionAliases devolve o canal não-WhatsApp com connectionId.
 func connectionAliases(cn models.ChannelConnection) gin.H {
 	raw, _ := json.Marshal(cn)
 	m := gin.H{}
 	_ = json.Unmarshal(raw, &m)
 	m["connectionId"] = cn.ID
-	m["number"] = cn.Identifier
-	m["profilePicUrl"] = cn.AvatarURL
-	m["firstConnection"] = cn.FirstConnectedAt
 	return m
 }

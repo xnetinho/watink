@@ -58,7 +58,7 @@ func handleStartGroupCampaign() gin.HandlerFunc {
 			return
 		}
 
-		var whatsapp models.Whatsapp
+		var whatsapp models.WhatsAppView
 		if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).Where(`id = ?`, campaign.ChannelConnectionID), &whatsapp); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "conexão da campanha não encontrada"})
 			return
