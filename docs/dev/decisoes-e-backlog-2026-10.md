@@ -132,3 +132,26 @@ tela de Conexões há "Adicionar Webchat", um modal de aparência (cor, ícone, 
 
 Não há prioridade definida. Enquanto isso, o Webchat não deve ser anunciado como funcional.
 
+## Aparelho do contato no rodapé do balão (7/nov/2026)
+
+Pedido do dono: cada mensagem **recebida** mostra no rodapé do balão o aparelho do contato, com "~" na frente (estimativa): `~Android`,
+`~iPhone`, `~Web`, `~Desktop`.
+
+**O WhatsApp não informa o aparelho na mensagem.** O `MessageInfo` do whatsmeow não tem campo de plataforma (só `ID`, `Sender`, `Chat`,
+`PushName`, `Type`, `Category`...). O número do dispositivo no JID separa só "celular" (0) de "vinculado" (>0), e não distingue Android de
+iPhone. O único sinal que separa os três é o **formato do id da mensagem**, e é previsão, não contrato.
+
+**Regra adotada** (`frontend/src/lib/senderDevice.ts`, copiada de `getDevice` do Baileys, WhiskeySockets/Baileys, `src/Utils/messages.ts`, MIT,
+na mesma ordem): `3A` + 18 caracteres = iPhone; `3E` + 20 = Web; 21 ou 32 caracteres = Android; `3F...` ou 18 caracteres = Desktop; resto = sem selo.
+
+**Validado com mensagens reais (7/nov/2026):** Android (`ACF893AD...`, 32 hex, texto e foto), iPhone (`3AF2FA95...`, 20, texto e foto) e WhatsApp Web
+(`3EB0908D...`, 22). As três origens batem com a regra. Amostra pequena (2 mensagens por aparelho, 1 de cada origem de teste).
+
+**Onde aparece:** só mensagem recebida do WhatsApp (não em mensagem nossa, apagada, registro de chamada nem outros canais). Sem coluna nova
+nem mudança no engine: a regra usa o id que o painel já recebe. Quando há outro selo no canto esquerdo ("Editada", "Visualização única", "GIF
+cortado"), o do aparelho cede o lugar.
+
+**Limites conhecidos:** (1) é heurística: um app atualizado pode mudar o formato sem aviso; (2) mensagens enviadas pelo próprio painel
+(`3EB0` + 16 hex) não casam e não ganham selo, o que é o desejado; (3) iPhone e Android antigos, Desktop e mensagens de grupo não foram
+testados; (4) um cliente de terceiros que use o prefixo `3EB0` pode aparecer como Web.
+
