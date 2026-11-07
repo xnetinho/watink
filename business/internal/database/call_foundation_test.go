@@ -12,7 +12,7 @@ import (
 )
 
 func newCallLog(tenant uuid.UUID, callID string) models.CallLog {
-	return models.CallLog{TenantID: tenant, CallID: callID, WhatsappID: 1, Direction: "incoming", Status: "ringing", StartedAt: time.Now()}
+	return models.CallLog{TenantID: tenant, CallID: callID, ChannelConnectionID: 1, Direction: "incoming", Status: "ringing", StartedAt: time.Now()}
 }
 
 // 5.1: o callId é único POR EMPRESA. A mesma duplicata na mesma empresa é
@@ -44,7 +44,7 @@ func TestCallLog_IndexesExist(t *testing.T) {
 
 func TestCallLog_DefaultsAndOptionalFields(t *testing.T) {
 	db := testutil.NewTestDB(t)
-	l := models.CallLog{TenantID: uuid.New(), CallID: "X", WhatsappID: 3, Direction: "outgoing", StartedAt: time.Now()}
+	l := models.CallLog{TenantID: uuid.New(), CallID: "X", ChannelConnectionID: 3, Direction: "outgoing", StartedAt: time.Now()}
 	require.NoError(t, db.Create(&l).Error)
 	var got models.CallLog
 	require.NoError(t, db.First(&got, l.ID).Error)

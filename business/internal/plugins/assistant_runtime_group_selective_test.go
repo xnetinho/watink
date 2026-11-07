@@ -48,7 +48,7 @@ func TestAssistantRuntime_Selective_ActiveGroupWithoutMentionOnlyObserves(t *tes
 	whatsAppID := wa.ID
 	a := models.Assistant{
 		TenantID: tenantID, Name: "Teste", Mode: models.AssistantModePersona,
-		Active: true, GroupsMode: models.AssistantGroupsModeSelective, WhatsAppID: &whatsAppID,
+		Active: true, GroupsMode: models.AssistantGroupsModeSelective, ChannelConnectionID: &whatsAppID,
 	}
 	require.NoError(t, db.Create(&a).Error)
 
@@ -80,7 +80,7 @@ func TestAssistantRuntime_Selective_ActiveGroupWithMentionReachesPersona(t *test
 	whatsAppID := wa.ID
 	a := models.Assistant{
 		TenantID: tenantID, Name: "Teste", Mode: models.AssistantModePersona,
-		Active: true, GroupsMode: models.AssistantGroupsModeSelective, WhatsAppID: &whatsAppID,
+		Active: true, GroupsMode: models.AssistantGroupsModeSelective, ChannelConnectionID: &whatsAppID,
 	}
 	require.NoError(t, db.Create(&a).Error)
 

@@ -24,8 +24,8 @@ func syntheticFlowName(assistantID int) string {
 // runtime instead of duplicating it (ADR 0027 "Flow sintético").
 func syntheticGraph(a models.Assistant) ([]byte, []byte, error) {
 	var whatsappID *string
-	if a.WhatsAppID != nil {
-		s := strconv.Itoa(*a.WhatsAppID)
+	if a.ChannelConnectionID != nil {
+		s := strconv.Itoa(*a.ChannelConnectionID)
 		whatsappID = &s
 	}
 
@@ -107,15 +107,15 @@ func syncSyntheticFlow(db *gorm.DB, tenantID uuid.UUID, a models.Assistant) erro
 	err = db.Where(`"tenantId" = ? AND name = ? AND internal = true`, tenantID, name).First(&existing).Error
 
 	fields := map[string]interface{}{
-		"name":            name,
-		"nodes":           datatypes.JSON(nodesJSON),
-		"edges":           datatypes.JSON(edgesJSON),
-		"triggerType":     triggerType,
-		"triggerValue":    triggerValue,
-		"triggerOperator": triggerOperator,
-		"whatsappId":      a.WhatsAppID,
-		"active":          a.Active,
-		"internal":        true,
+		"name":                name,
+		"nodes":               datatypes.JSON(nodesJSON),
+		"edges":               datatypes.JSON(edgesJSON),
+		"triggerType":         triggerType,
+		"triggerValue":        triggerValue,
+		"triggerOperator":     triggerOperator,
+		"channelConnectionId": a.ChannelConnectionID,
+		"active":              a.Active,
+		"internal":            true,
 	}
 
 	if err == gorm.ErrRecordNotFound {
@@ -123,7 +123,7 @@ func syncSyntheticFlow(db *gorm.DB, tenantID uuid.UUID, a models.Assistant) erro
 			Name: name, TenantID: tenantID, Internal: true,
 			Nodes: datatypes.JSON(nodesJSON), Edges: datatypes.JSON(edgesJSON),
 			TriggerType: triggerType, TriggerValue: triggerValue, TriggerOperator: triggerOperator,
-			WhatsAppID: a.WhatsAppID, Active: a.Active,
+			ChannelConnectionID: a.ChannelConnectionID, Active: a.Active,
 		}
 		return db.Create(&newFlow).Error
 	}

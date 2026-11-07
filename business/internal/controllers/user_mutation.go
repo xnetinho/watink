@@ -319,10 +319,10 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 	}
 	if v, ok := req["whatsappId"]; ok {
 		if v == "" || v == nil {
-			updateMap["whatsappId"] = nil
+			updateMap["channelConnectionId"] = nil
 		} else {
 			s := formatInt(v)
-			updateMap["whatsappId"] = s
+			updateMap["channelConnectionId"] = s
 		}
 	}
 	if v, ok := req["cargoId"]; ok {

@@ -443,7 +443,7 @@ func addCustomIndexes() error {
 		`CREATE INDEX IF NOT EXISTS idx_proxies_tenant_status ON "Proxies" ("tenantId", "status")`,
 		// Assistants: connection-scoped lookups (the "one active Assistant per
 		// connection" rule) and the router option list/target join.
-		`CREATE INDEX IF NOT EXISTS idx_assistants_tenant_whatsapp ON "Assistants" ("tenantId", "whatsappId")`,
+		`CREATE INDEX IF NOT EXISTS idx_assistants_tenant_whatsapp ON "Assistants" ("tenantId", "channelConnectionId")`,
 		`CREATE INDEX IF NOT EXISTS idx_assistant_router_options_tenant_router ON "AssistantRouterOptions" ("tenantId", "routerAssistantId")`,
 		`CREATE INDEX IF NOT EXISTS idx_ai_gateways_tenant ON "AiGateways" ("tenantId")`,
 		// Idle-sweep idempotency guard: one proactive send per (assistant, deal,

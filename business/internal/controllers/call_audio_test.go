@@ -58,7 +58,7 @@ func (a *audioRig) dial(callID, token string, hdr http.Header) (*websocket.Conn,
 func (a *audioRig) answered(t *testing.T, callID string, u models.User) {
 	t.Helper()
 	require.NoError(t, a.w.db.Create(&models.CallLog{
-		TenantID: a.w.tenant, CallID: callID, WhatsappID: a.w.wa.ID, Direction: "incoming", Status: "active",
+		TenantID: a.w.tenant, CallID: callID, ChannelConnectionID: a.w.wa.ID, Direction: "incoming", Status: "active",
 		HandledByUserID: &u.ID,
 	}).Error)
 }

@@ -36,8 +36,8 @@ func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, tic
 	}
 	var onConn int64
 	if err := s.fresh(ctx).Model(&models.CallLog{}).
-		Where(`"tenantId" = ? AND ("whatsappId" = ? OR "channelConnectionId" = ?) AND "endedAt" IS NULL AND status IN ?`,
-			tenantID, connID, connID, []string{StatusRinging, StatusActive}).Count(&onConn).Error; err != nil {
+		Where(`"tenantId" = ? AND "channelConnectionId" = ? AND "endedAt" IS NULL AND status IN ?`,
+			tenantID, connID, []string{StatusRinging, StatusActive}).Count(&onConn).Error; err != nil {
 		return nil, err
 	}
 	if onConn > 0 {
@@ -52,7 +52,7 @@ func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, tic
 	now := s.now()
 	callID := newCallID()
 	l := &models.CallLog{
-		TenantID: tenantID, CallID: callID, WhatsappID: connID, ChannelConnectionID: connID, ContactID: &contact.ID, TicketID: &ticket.ID,
+		TenantID: tenantID, CallID: callID, ChannelConnectionID: connID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "outgoing", Status: StatusRinging, PeerJid: peer, CallerPn: number, StartedAt: now,
 		HandledByUserID: &userID, AnsweredAt: nil,
 	}

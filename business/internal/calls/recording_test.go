@@ -455,7 +455,7 @@ func TestRecording_NeverExpiresByAge(t *testing.T) {
 	key := recording.ObjectKey(r.tenant, "OLD-1")
 	store.objects[key] = []byte("mp3 de 5 anos atrás")
 	require.NoError(t, r.db.Create(&models.CallLog{
-		TenantID: r.tenant, CallID: "OLD-1", WhatsappID: r.waA.ID, Direction: "incoming", Status: StatusEnded,
+		TenantID: r.tenant, CallID: "OLD-1", ChannelConnectionID: r.waA.ID, Direction: "incoming", Status: StatusEnded,
 		StartedAt: old, RecordingKey: key, RecordingStatus: recording.StatusReady,
 	}).Error)
 

@@ -456,7 +456,7 @@ func TestCallTelemetry_ComRLSReal(t *testing.T) {
 	var uid int
 	require.NoError(t, admin.QueryRow(`SELECT id FROM "Users" WHERE "tenantId" = $1`, tenant).Scan(&uid))
 	require.NoError(t, seedRow(admin, "CallLogs", tenant))
-	_, err = admin.Exec(`UPDATE "CallLogs" SET "callId" = 'TEL-1', "whatsappId" = $2, "handledByUserId" = $3, "endedAt" = NULL, status = 'active' WHERE "tenantId" = $1`, tenant, waID, uid)
+	_, err = admin.Exec(`UPDATE "CallLogs" SET "callId" = 'TEL-1', "channelConnectionId" = $2, "handledByUserId" = $3, "endedAt" = NULL, status = 'active' WHERE "tenantId" = $1`, tenant, waID, uid)
 	require.NoError(t, err)
 
 	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})

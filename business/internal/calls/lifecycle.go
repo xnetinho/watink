@@ -63,10 +63,7 @@ func (s *Service) Accept(ctx context.Context, tenantID uuid.UUID, userID int, ca
 	if res.RowsAffected == 0 {
 		return nil, ErrAlreadyAnswered
 	}
-	connID := l.WhatsappID
-	if l.ChannelConnectionID > 0 {
-		connID = l.ChannelConnectionID
-	}
+	connID := l.ChannelConnectionID
 	if err := s.command(ctx, tenantID, connID, "call.accept", map[string]interface{}{"callId": callID}); err != nil {
 		s.fresh(ctx).Model(&models.CallLog{}).
 			Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
@@ -98,10 +95,7 @@ func (s *Service) Reject(ctx context.Context, tenantID uuid.UUID, userID int, ca
 	if res.RowsAffected == 0 {
 		return ErrAlreadyAnswered
 	}
-	connID := l.WhatsappID
-	if l.ChannelConnectionID > 0 {
-		connID = l.ChannelConnectionID
-	}
+	connID := l.ChannelConnectionID
 	if err := s.command(ctx, tenantID, connID, "call.reject", map[string]interface{}{"callId": callID}); err != nil {
 		return fmt.Errorf("falha ao recusar: %w", err)
 	}
@@ -120,10 +114,7 @@ func (s *Service) End(ctx context.Context, tenantID uuid.UUID, userID int, callI
 	if l.EndedAt != nil || l.HandledByUserID == nil || *l.HandledByUserID != userID {
 		return ErrNotActive
 	}
-	connID := l.WhatsappID
-	if l.ChannelConnectionID > 0 {
-		connID = l.ChannelConnectionID
-	}
+	connID := l.ChannelConnectionID
 	return s.command(ctx, tenantID, connID, "call.end", map[string]interface{}{"callId": callID})
 }
 

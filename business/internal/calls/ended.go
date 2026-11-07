@@ -89,7 +89,7 @@ func (s *Service) HandleReset(ctx context.Context, tenantID uuid.UUID, raw json.
 	}
 	var open []models.CallLog
 	if err := s.fresh(ctx).
-		Where(`"tenantId" = ? AND "whatsappId" = ? AND "endedAt" IS NULL AND status IN ?`,
+		Where(`"tenantId" = ? AND "channelConnectionId" = ? AND "endedAt" IS NULL AND status IN ?`,
 			tenantID, waID, []string{StatusRinging, StatusActive}).
 		Find(&open).Error; err != nil {
 		return err

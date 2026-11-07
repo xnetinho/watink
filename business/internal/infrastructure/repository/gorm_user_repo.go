@@ -256,7 +256,7 @@ func userModelToDomain(m *models.User) *domain.User {
 		Email:        m.Email,
 		PasswordHash: m.PasswordHash,
 		TokenVersion: m.TokenVersion,
-		WhatsappID:   m.WhatsappID,
+		WhatsappID:   m.ChannelConnectionID,
 		TenantID:     m.TenantID,
 		CargoID:      m.CargoID,
 		Alcance:      m.Alcance,
@@ -268,17 +268,17 @@ func userModelToDomain(m *models.User) *domain.User {
 
 func userDomainToModel(d *domain.User) *models.User {
 	return &models.User{
-		ID:           d.ID,
-		Name:         d.Name,
-		Email:        d.Email,
-		PasswordHash: d.PasswordHash,
-		TokenVersion: d.TokenVersion,
-		WhatsappID:   d.WhatsappID,
-		TenantID:     d.TenantID,
-		CargoID:      d.CargoID,
-		Alcance:      d.Alcance,
-		Configs:      d.Configs,
-		CreatedAt:    d.CreatedAt,
-		UpdatedAt:    d.UpdatedAt,
+		ID:                  d.ID,
+		Name:                d.Name,
+		Email:               d.Email,
+		PasswordHash:        d.PasswordHash,
+		TokenVersion:        d.TokenVersion,
+		ChannelConnectionID: d.WhatsappID,
+		TenantID:            d.TenantID,
+		CargoID:             d.CargoID,
+		Alcance:             d.Alcance,
+		Configs:             d.Configs,
+		CreatedAt:           d.CreatedAt,
+		UpdatedAt:           d.UpdatedAt,
 	}
 }

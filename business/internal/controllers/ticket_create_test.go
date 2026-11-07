@@ -149,7 +149,7 @@ func TestCreateTicket_UserPreferredConnectionWins(t *testing.T) {
 	_, contact := seedCreateTicketBase(t, db, tenantID)
 	seedConnection(t, db, tenantID, "a", "CONNECTED")
 	b := seedConnection(t, db, tenantID, "b", "CONNECTED")
-	user := models.User{Name: "Bia", Email: "bia-" + uuid.NewString() + "@t.io", TenantID: tenantID, WhatsappID: &b.ID}
+	user := models.User{Name: "Bia", Email: "bia-" + uuid.NewString() + "@t.io", TenantID: tenantID, ChannelConnectionID: &b.ID}
 	if err := db.Create(&user).Error; err != nil {
 		t.Fatal(err)
 	}

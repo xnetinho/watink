@@ -65,7 +65,7 @@ func (uc *UserController) GetMe(c *gin.Context) {
 		"name":       userModel.Name,
 		"email":      userModel.Email,
 		"alcance":    userModel.Alcance,
-		"whatsappId": userModel.WhatsappID,
+		"whatsappId": userModel.ChannelConnectionID,
 		"tenantId":   userModel.TenantID,
 		"cargoId":    userModel.CargoID,
 		"configs":    userModel.Configs,
@@ -152,9 +152,9 @@ func (uc *UserController) UpdateMe(c *gin.Context) {
 	}
 	if v, ok := req["whatsappId"]; ok {
 		if v == "" || v == nil {
-			updateMap["whatsappId"] = nil
+			updateMap["channelConnectionId"] = nil
 		} else {
-			updateMap["whatsappId"] = formatInt(v)
+			updateMap["channelConnectionId"] = formatInt(v)
 		}
 	}
 

@@ -226,7 +226,7 @@ func (s *Skeleton) matchTriggers(ctx context.Context, tenantID uuid.UUID, body s
 	// possible (an "any message" flow with whatsappId=X → all inbound on X is the
 	// agent's). connectionID<=0 (legacy no-ticket path) skips the filter.
 	if connectionID > 0 {
-		q = q.Where(`("whatsappId" IS NULL OR "whatsappId" = ?)`, connectionID)
+		q = q.Where(`("channelConnectionId" IS NULL OR "channelConnectionId" = ?)`, connectionID)
 	}
 	if err := q.Find(&candidates).Error; err != nil {
 		log.Printf("[FlowSkeleton] trigger match query failed for tenant %s: %v", tenantID, err)
