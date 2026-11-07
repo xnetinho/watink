@@ -56,7 +56,7 @@ func sendOne(ctx context.Context, db *gorm.DB, core sdk.WatinkCore, adapter *flo
 
 	ticket, effectiveID, err := dispatchCampaignMessage(ctx, db, core, adapter, dispatchCampaignMessageParams{
 		TenantID:     send.TenantID,
-		WhatsappID:   send.WhatsappID,
+		WhatsappID:   send.ChannelConnectionID,
 		JID:          send.JID,
 		Subject:      send.Subject,
 		CampaignName: campaign.Name,
