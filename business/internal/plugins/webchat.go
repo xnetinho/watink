@@ -32,16 +32,16 @@ func (wp *WebchatPlugin) OnInstall(core sdk.WatinkCore) error {
 }
 
 func (wp *WebchatPlugin) OnActivate(core sdk.WatinkCore) error {
-	// GET /api/webchat/:whatsappId
-	core.RegisterRoute("GET", "/webchat/:whatsappId", withPermission("connections", "read", func(c *gin.Context) {
-		whatsappId := c.Param("whatsappId")
+	// GET /api/webchat/:connectionId
+	core.RegisterRoute("GET", "/webchat/:connectionId", withPermission("connections", "read", func(c *gin.Context) {
+		connectionID := c.Param("connectionId")
 		db, tenantID, ok := auth.GetScoped(c, "ChannelConnections")
 		if !ok {
 			return
 		}
 		db = db.Session(&gorm.Session{NewDB: true})
 		var whatsapp models.WhatsAppView
-		if err := models.FirstWhatsapp(db.Where(`id = ? AND "tenantId" = ?`, whatsappId, tenantID), &whatsapp); err != nil {
+		if err := models.FirstWhatsapp(db.Where(`id = ? AND "tenantId" = ?`, connectionID, tenantID), &whatsapp); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Webchat not found"})
 			return
 		}
@@ -53,9 +53,9 @@ func (wp *WebchatPlugin) OnActivate(core sdk.WatinkCore) error {
 		})
 	}))
 
-	// POST /api/webchat/:whatsappId/tickets
-	core.RegisterRoute("POST", "/webchat/:whatsappId/tickets", withPermission("tickets", "create", func(c *gin.Context) {
-		whatsappId := c.Param("whatsappId")
+	// POST /api/webchat/:connectionId/tickets
+	core.RegisterRoute("POST", "/webchat/:connectionId/tickets", withPermission("tickets", "create", func(c *gin.Context) {
+		connectionID := c.Param("connectionId")
 		db, tenantID, ok := auth.GetScoped(c, "Tickets")
 		if !ok {
 			return
@@ -73,7 +73,7 @@ func (wp *WebchatPlugin) OnActivate(core sdk.WatinkCore) error {
 		}
 
 		var whatsapp models.WhatsAppView
-		if err := models.FirstWhatsapp(db.Where(`id = ? AND "tenantId" = ?`, whatsappId, tenantID), &whatsapp); err != nil {
+		if err := models.FirstWhatsapp(db.Where(`id = ? AND "tenantId" = ?`, connectionID, tenantID), &whatsapp); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Webchat not found"})
 			return
 		}

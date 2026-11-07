@@ -56,6 +56,16 @@
   `add-channel-instagram`, `add-channel-olx`, `add-channel-tiktok`. **Aprovações externas devem começar já** (Instagram App
   Review + Business Verification; TikTok DSPR; OLX registro de aplicação), porque definem o prazo. | 📋 Planejada
 
+- [ ] **Epic 12**: Exportação e importação de dados (backup) em nível de projeto, segura e agnóstica de canal. Origem: ao apagar
+  uma conexão, os tickets dela são apagados (FK `ON DELETE CASCADE`, fatia 4c da migração `Whatsapps`). Pedido do dono (7/nov/2026):
+  o usuário deve ser **avisado** do que será apagado e ter a opção de **exportar** os dados para **importar** numa conexão nova.
+  O escopo não é só tickets do WhatsApp: abrange todos os canais (Telegram etc.) e os dados ligados (contatos, mensagens, chamadas,
+  campanhas, fluxos, assistentes). A desenhar antes de implementar: formato do arquivo e versionamento do esquema; mídia (embutida
+  ou por referência, com o armazenamento local e o futuro S3 do item H do backlog); chaves de conversa refeitas na conexão de
+  destino; importação em conexão vazia ou mesclando; permissão, trilha de auditoria e escopo de empresa (RLS) na exportação e na
+  importação; cifrar o arquivo e limitar tamanho/taxa; LGPD (exportar dados pessoais exige registro e base legal); e o aviso com
+  contagens antes de apagar (hoje o `DELETE` apaga sem confirmar). Nada implementado. | 📋 Planejada
+
 - [x] **Epic 11**: Visualização de mídia de mensagem de visualização única, sob ação explícita do operador. Hoje o WhatsApp
   entrega aos aparelhos vinculados só um marcador indisponível; o CRM registra o aviso, mas não recebe a mídia (ver
   `engine-go/internal/whatsapp/events_unavailable.go`). Investigar primeiro o caminho assistido pelo celular principal:

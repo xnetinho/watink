@@ -111,9 +111,9 @@ func TestWebchatPlugin_OnActivate_RegistersRoutes(t *testing.T) {
 	mockCore.AssertNumberOfCalls(t, "RegisterRoute", 2)
 	assert.Len(t, mockCore.registeredRoutes, 2)
 	assert.Equal(t, "GET", mockCore.registeredRoutes[0].Method)
-	assert.Equal(t, "/webchat/:whatsappId", mockCore.registeredRoutes[0].Path)
+	assert.Equal(t, "/webchat/:connectionId", mockCore.registeredRoutes[0].Path)
 	assert.Equal(t, "POST", mockCore.registeredRoutes[1].Method)
-	assert.Equal(t, "/webchat/:whatsappId/tickets", mockCore.registeredRoutes[1].Path)
+	assert.Equal(t, "/webchat/:connectionId/tickets", mockCore.registeredRoutes[1].Path)
 }
 
 // TestWebchatPlugin_GET_ReturnsWhatsAppConfig testa a rota GET com dados reais
@@ -141,7 +141,7 @@ func TestWebchatPlugin_GET_ReturnsWhatsAppConfig(t *testing.T) {
 
 	// Simular a rota GET
 	r := authedRouter(db, tenantID)
-	r.GET("/webchat/:whatsappId", mockCore.registeredRoutes[0].Handler)
+	r.GET("/webchat/:connectionId", mockCore.registeredRoutes[0].Handler)
 
 	req := httptest.NewRequest("GET", "/webchat/"+strconv.Itoa(whatsapp.ID), nil)
 	w := httptest.NewRecorder()
@@ -170,7 +170,7 @@ func TestWebchatPlugin_GET_NotFound(t *testing.T) {
 	}
 
 	r := authedRouter(db, uuid.New())
-	r.GET("/webchat/:whatsappId", mockCore.registeredRoutes[0].Handler)
+	r.GET("/webchat/:connectionId", mockCore.registeredRoutes[0].Handler)
 
 	req := httptest.NewRequest("GET", "/webchat/999", nil)
 	w := httptest.NewRecorder()
@@ -204,7 +204,7 @@ func TestWebchatPlugin_POST_CreatesTicketAndContact(t *testing.T) {
 	}
 
 	r := authedRouter(db, tenantID)
-	r.POST("/webchat/:whatsappId/tickets", mockCore.registeredRoutes[1].Handler)
+	r.POST("/webchat/:connectionId/tickets", mockCore.registeredRoutes[1].Handler)
 
 	payload := map[string]string{
 		"name":    "João",
@@ -255,8 +255,8 @@ func TestWebchatPlugin_OutraEmpresaNaoAlcancaOCanal(t *testing.T) {
 	assert.NoError(t, (&WebchatPlugin{}).OnActivate(mockCore))
 
 	r := authedRouter(db, intruso)
-	r.GET("/webchat/:whatsappId", mockCore.registeredRoutes[0].Handler)
-	r.POST("/webchat/:whatsappId/tickets", mockCore.registeredRoutes[1].Handler)
+	r.GET("/webchat/:connectionId", mockCore.registeredRoutes[0].Handler)
+	r.POST("/webchat/:connectionId/tickets", mockCore.registeredRoutes[1].Handler)
 
 	id := strconv.Itoa(whatsapp.ID)
 	w := httptest.NewRecorder()

@@ -106,3 +106,29 @@ Ordem acordada: A, B, E, F (C encerrado, D entregue). G (múltiplas bibliotecas 
 
 - **Bug (6/nov/2026): a notificação de chamada recebida não some da tela quando a chamada é atendida.** Achado pelo dono ligando do celular. A chamada toca ao mesmo tempo no celular e no Watink; ao ser atendida (aqui, pela API), o celular para de tocar, mas o painel do Watink continua com a notificação e só sai se o operador apertar "recusar". **Não tratado**, só registrado. Pistas, sem verificação: (1) o painel escuta `call.incoming` e deveria remover o modal ao receber `call.answered` ou `call.ended`; vale conferir se o evento `call.answered` chega a quem NÃO atendeu (a sala SSE de cada operador) e se o `IncomingCallModal` reage a ele; (2) o atendimento pela API não passa pelo estado da tela, então o modal nunca ouve que a chamada foi assumida; (3) "recusar" depois de atendida deveria ser inofensivo (`ErrAlreadyAnswered`), e vale conferir que ele não derruba a chamada de quem atendeu. Teste a escrever: dois operadores online, um atende, o outro precisa perder o modal sem ação.
 
+## Webchat: situação e decisão pendente (7/nov/2026)
+
+Anotado a pedido do usuário para **avaliação posterior**. Nada foi implementado nem removido; só o parâmetro de rota e o snippet de
+embed foram renomeados de `whatsappId` para `connectionId` (fatia 6 da migração).
+
+**O que é:** widget de chat para o site do cliente. O visitante informa nome, e-mail e telefone e a conversa chega como ticket. Na
+tela de Conexões há "Adicionar Webchat", um modal de aparência (cor, ícone, posição, título, subtítulo, campos) e o código de embed.
+
+**O que existe hoje (verificado no código, não é efeito da migração):**
+1. `POST /webchat/:connectionId/tickets` e `GET /webchat/:connectionId` são rotas **autenticadas** (plugin `webchat`, permissões
+   `tickets:create` e `connections:read`). Um visitante anônimo do site não consegue chamá-las.
+2. O snippet de embed carrega `<backend>/public/webchat`, que **não existe** (o backend só serve `/public/media`). O widget não carrega.
+3. O modal envia `type: "webchat"` e `chatConfig` (aparência) ao salvar a conexão; o backend **ignora os dois**, então a aparência não
+   persiste e a conexão é criada como uma conexão WhatsApp comum.
+4. A rota cria contato (por e-mail) e ticket `pending`, mas não grava a mensagem inicial nem avisa o painel (há um comentário
+   "Emitting message to RabbitMQ would go here").
+5. O plugin está marcado como `pro` e o catálogo lista "Webchat incluso" em planos.
+
+**Decisão a tomar depois (duas saídas):**
+- **Terminar:** script/widget público servido pelo backend; rota pública sem login com limite de taxa, validação do `Origin` e proteção
+  contra abuso; mensagens em tempo real nos dois sentidos pelo adaptador de canal (`kind` próprio, não WhatsApp); aparência gravada;
+  teste de ponta a ponta com um navegador.
+- **Remover a casca:** tirar o plugin, o modal e a opção da tela, e o item dos planos.
+
+Não há prioridade definida. Enquanto isso, o Webchat não deve ser anunciado como funcional.
+
