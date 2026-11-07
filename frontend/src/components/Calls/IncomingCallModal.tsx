@@ -21,7 +21,9 @@ const IncomingCallModal: React.FC<{ connectionName?: (connectionId: number) => s
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Som em loop enquanto houver toque e o operador não estiver em outra chamada.
-  const shouldRing = !!current && !active;
+  // Chamada já encerrada (painel ainda aberto até fechar) não conta como ocupado.
+  const inCall = !!active && active.phase !== "ended";
+  const shouldRing = !!current && !inCall;
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return undefined;
@@ -39,7 +41,7 @@ const IncomingCallModal: React.FC<{ connectionName?: (connectionId: number) => s
 
   const name = displayName(current.contact, t("calls.unknownContact"));
   const connection = connectionName?.(current.connectionId);
-  const busy = !!active;
+  const busy = inCall;
   const isVideo = current.media === "video";
 
   return (

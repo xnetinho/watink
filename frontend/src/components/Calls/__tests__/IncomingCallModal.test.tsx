@@ -55,6 +55,14 @@ describe("IncomingCallModal", () => {
     expect(screen.getByTestId("reject-call")).toBeEnabled();
   });
 
+  it("chamada anterior já encerrada (painel ainda aberto) não bloqueia o Atender nem silencia o toque", () => {
+    const ctx = makeCtx({ ringing: [baseCall({ media: "video" })], active: baseCall({ callId: "ANTIGA", phase: "ended" }) });
+    render(withCalls(ctx, <IncomingCallModal />));
+    expect(screen.getByTestId("accept-call")).toBeEnabled();
+    const play = window.HTMLMediaElement.prototype.play as ReturnType<typeof vi.fn>;
+    expect(play).toHaveBeenCalled();
+  });
+
   it("toca o som em loop enquanto houver toque e para quando acaba", () => {
     const play = window.HTMLMediaElement.prototype.play as ReturnType<typeof vi.fn>;
     play.mockClear();
