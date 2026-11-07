@@ -26,7 +26,7 @@ func TestQuickAnswerSend_PublicaPeloCanalEGravaAMensagem(t *testing.T) {
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenant}
 	require.NoError(t, db.Create(&contact).Error)
-	ticket := models.Ticket{Status: "open", TenantID: tenant, ContactID: contact.ID, WhatsappID: wa.ID}
+	ticket := models.Ticket{Status: "open", TenantID: tenant, ContactID: contact.ID, ChannelConnectionID: wa.ID}
 	require.NoError(t, db.Create(&ticket).Error)
 	qa := models.QuickAnswer{Shortcut: "/enq", Message: "Gostou?", Type: "poll", TenantID: tenant,
 		Content: `{"question":"Gostou?","options":["Sim","Nao"],"maxSelections":1}`}

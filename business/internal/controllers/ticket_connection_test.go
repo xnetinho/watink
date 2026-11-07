@@ -25,11 +25,11 @@ func TestAttachChannelInfo_IdentificaCanalEConexao(t *testing.T) {
 	require.NoError(t, db.Create(&ml).Error)
 
 	tickets := []models.Ticket{
-		{ID: 1, WhatsappID: wa.ID},
-		{ID: 2, WhatsappID: wa2.ID},
-		{ID: 3, ChannelConnectionID: &tg.ID},
-		{ID: 4, ChannelConnectionID: &ml.ID}, // canal futuro: o mesmo formato, sem código novo
-		{ID: 5, WhatsappID: 9999},            // conexão apagada
+		{ID: 1, ChannelConnectionID: wa.ID},
+		{ID: 2, ChannelConnectionID: wa2.ID},
+		{ID: 3, ChannelConnectionID: tg.ID},
+		{ID: 4, ChannelConnectionID: ml.ID}, // canal futuro: o mesmo formato, sem código novo
+		{ID: 5, ChannelConnectionID: 9999},  // conexão apagada
 	}
 	attachChannelInfo(db, tickets)
 

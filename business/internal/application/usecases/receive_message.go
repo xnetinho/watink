@@ -7,10 +7,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/plugins"
 	"github.com/alltomatos/watinkdev/business/pkg/mediastore"
-	"github.com/google/uuid"
 )
 
 // ReceiveMessageInput is the application-layer DTO for inbound WhatsApp messages.
@@ -145,7 +146,8 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		}
 	}
 
-	ticket, err := uc.ticketRepo.FindOpenByContact(ctx, input.TenantID, contact.ID, input.SessionID)
+	convKey := domain.WhatsAppConversationKey(contact.ID)
+	ticket, err := uc.ticketRepo.FindOpenByConversation(ctx, input.TenantID, input.SessionID, convKey)
 	if err != nil {
 		return nil, err
 	}
@@ -155,14 +157,15 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 			ticketStatus = "open"
 		}
 		ticket, err = uc.ticketRepo.FindOrCreatePending(ctx, &domain.Ticket{
-			ContactID:   contact.ID,
-			Status:      ticketStatus,
-			TenantID:    input.TenantID,
-			WhatsappID:  input.SessionID,
-			IsGroup:     input.IsGroup,
-			IsCommunity: input.IsCommunity,
-			IsSubGroup:  input.IsSubGroup,
-			QueueID:     uc.resolveChannelQueue(ctx, input.SessionID, input.TenantID),
+			ContactID:           contact.ID,
+			Status:              ticketStatus,
+			TenantID:            input.TenantID,
+			ChannelConnectionID: input.SessionID,
+			ConversationKey:     convKey,
+			IsGroup:             input.IsGroup,
+			IsCommunity:         input.IsCommunity,
+			IsSubGroup:          input.IsSubGroup,
+			QueueID:             uc.resolveChannelQueue(ctx, input.SessionID, input.TenantID),
 		})
 		if err != nil {
 			return nil, err

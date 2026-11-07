@@ -193,7 +193,7 @@ func (s *Skeleton) RouteInboundTicket(ctx context.Context, in InboundContext) {
 	}
 
 	// 3. No active run → match triggers and start the first one.
-	matches := s.matchTriggers(ctx, in.TenantID, in.Body, in.Ticket.WhatsappID)
+	matches := s.matchTriggers(ctx, in.TenantID, in.Body, in.Ticket.ChannelConnectionID)
 	if len(matches) == 0 {
 		return
 	}

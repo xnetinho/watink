@@ -89,12 +89,12 @@ func (fc *FlowController) Run(c *gin.Context) {
 		}
 
 		domainTicket := &domain.Ticket{
-			ID:         ticket.ID,
-			Status:     ticket.Status,
-			ContactID:  ticket.ContactID,
-			WhatsappID: ticket.WhatsappID,
-			IsGroup:    ticket.IsGroup,
-			TenantID:   ticket.TenantID,
+			ID:                  ticket.ID,
+			Status:              ticket.Status,
+			ContactID:           ticket.ContactID,
+			ChannelConnectionID: ticket.ChannelConnectionID,
+			IsGroup:             ticket.IsGroup,
+			TenantID:            ticket.TenantID,
 		}
 		domainContact := &domain.Contact{
 			ID:       ticket.Contact.ID,

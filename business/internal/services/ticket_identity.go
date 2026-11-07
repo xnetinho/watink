@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 
+	"gorm.io/gorm"
+
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
-	"gorm.io/gorm"
 )
 
 // withConnectionIdentity devolve o ticket como mapa JSON com "channel" e "connection" (canal + conexão), para o evento em
@@ -34,30 +35,19 @@ func withConnectionIdentity(ctx context.Context, db *gorm.DB, ticket *domain.Tic
 		return ticket
 	}
 	out["channel"] = string(domain.ChannelKindWhatsApp)
-	if c, ok := ConnectionOf(db.WithContext(ctx), ticket.ID, ticket.WhatsappID, ticket.ChannelConnectionID); ok {
+	if c, ok := ConnectionOf(db.WithContext(ctx), ticket.ChannelConnectionID); ok {
 		out["channel"] = c.Kind
 		out["connection"] = c
 	}
 	return out
 }
 
-// ConnectionOf resolve a conexão de UM ticket (canal + nome). Fonte única da regra "de qual tabela vem a conexão":
-// ChannelConnectionID manda; sem ele, o ticket é do WhatsApp e a conexão é a linha de Whatsapps.
-func ConnectionOf(db *gorm.DB, ticketID, whatsappID int, channelConnectionID *int) (models.TicketConnectionInfo, bool) {
-	s := db.Session(&gorm.Session{NewDB: true})
-	if channelConnectionID != nil {
-		var c models.ChannelConnection
-		if err := s.Select("id", "kind", "name").Where("id = ?", *channelConnectionID).First(&c).Error; err != nil {
-			return models.TicketConnectionInfo{}, false
-		}
-		return models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, Source: "channel"}, true
-	}
-	if whatsappID == 0 {
+// ConnectionOf resolve a conexão de UM ticket (canal + nome) em ChannelConnections. Com o RLS ativo, a conexão de outra empresa
+// nunca é encontrada, então o nome dela não vaza.
+func ConnectionOf(db *gorm.DB, connectionID int) (models.TicketConnectionInfo, bool) {
+	var c models.ChannelConnection
+	if err := db.Session(&gorm.Session{NewDB: true}).Select("id", "kind", "name", "avatarUrl").Where("id = ?", connectionID).First(&c).Error; err != nil {
 		return models.TicketConnectionInfo{}, false
 	}
-	var w models.Whatsapp
-	if err := models.FirstWhatsapp(s.Where("id = ?", whatsappID), &w); err != nil {
-		return models.TicketConnectionInfo{}, false
-	}
-	return models.TicketConnectionInfo{Kind: string(domain.ChannelKindWhatsApp), ID: w.ID, Name: w.Name, Source: "whatsapp", ProfilePicUrl: w.ProfilePicUrl}, true
+	return models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, Source: models.ConnectionSource(c.Kind), ProfilePicUrl: c.AvatarURL}, true
 }

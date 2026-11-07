@@ -103,7 +103,7 @@ func (cc *CallController) Place(c *gin.Context) {
 		return
 	}
 	var wa models.Whatsapp
-	if err := models.FirstWhatsapp(dbFresh(db).Where(`id = ? AND "tenantId" = ?`, ticket.WhatsappID, tenantID), &wa); err != nil {
+	if err := models.FirstWhatsapp(dbFresh(db).Where(`id = ? AND "tenantId" = ?`, ticket.ChannelConnectionID, tenantID), &wa); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "conexão não encontrada"})
 		return
 	}

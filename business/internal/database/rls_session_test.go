@@ -167,12 +167,12 @@ func TestTicketConnectionIdentity_ComRLSReal(t *testing.T) {
 
 	err = tenantdb.WithTenant(context.Background(), gdb, a, func(ctx context.Context) error {
 		db := gdb.WithContext(ctx)
-		c, ok := services.ConnectionOf(db, 1, waA, nil)
+		c, ok := services.ConnectionOf(db, waA)
 		assert.True(t, ok)
 		assert.Equal(t, "Conexao A", c.Name)
 		assert.Equal(t, "whatsapp", c.Kind)
 
-		_, ok = services.ConnectionOf(db, 2, waB, nil) // ticket da empresa A apontando para conexão da empresa B
+		_, ok = services.ConnectionOf(db, waB) // ticket da empresa A apontando para conexão da empresa B
 		assert.False(t, ok, "o nome da conexão de outra empresa nunca pode vazar")
 		return nil
 	})
@@ -195,7 +195,7 @@ func TestWithConnectionIdentity_EventoComRLSReal(t *testing.T) {
 	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: routerOver(t, app)}), &gorm.Config{Logger: logger.Discard})
 	require.NoError(t, err)
 
-	ticket := &domain.Ticket{ID: 9, TenantID: tenant, ChannelConnectionID: &connID}
+	ticket := &domain.Ticket{ID: 9, TenantID: tenant, ChannelConnectionID: connID}
 	err = tenantdb.WithTenant(context.Background(), gdb, tenant, func(ctx context.Context) error {
 		out, ok := services.WithConnectionIdentity(ctx, gdb, ticket).(map[string]interface{})
 		require.True(t, ok, "com escopo, devolve o ticket enriquecido")
@@ -469,4 +469,32 @@ func TestCallTelemetry_ComRLSReal(t *testing.T) {
 	svc.TelemetryForTest(context.Background(), tenant, raw)
 
 	assert.Equal(t, []string{calls.UserRoom(tenant, uid) + "|call.quality"}, rec.rooms, "a medição chega só ao operador da chamada")
+}
+
+// Apagar uma conexão apaga os tickets dela: Tickets.channelConnectionId é NOT NULL com FK ON DELETE CASCADE. Antes o vínculo era
+// zerado e a conversa ficava órfã, sem conexão para responder. Só o esquema real (migratedDB) cria as FKs.
+func TestTicketsDaConexao_CascateNoBanco(t *testing.T) {
+	admin, _, _, _ := migratedDB(t)
+	tenant := uuid.New()
+	_, err := admin.Exec(`INSERT INTO "Tenants" (id, name, status, "createdAt", "updatedAt") VALUES ($1,'A','active',now(),now())`, tenant)
+	require.NoError(t, err)
+	waID, err := seedWhatsapp(admin, tenant, "A")
+	require.NoError(t, err)
+	require.NoError(t, seedRow(admin, "Contacts", tenant))
+	var contactID int
+	require.NoError(t, admin.QueryRow(`SELECT id FROM "Contacts" WHERE "tenantId" = $1`, tenant).Scan(&contactID))
+	_, err = admin.Exec(`INSERT INTO "Tickets" (status, "contactId", "channelConnectionId", "conversationKey", "tenantId") VALUES ('open',$1,$2,'wa:1',$3)`, contactID, waID, tenant)
+	require.NoError(t, err)
+
+	// Sem conexão não há ticket: o vínculo é obrigatório.
+	_, err = admin.Exec(`INSERT INTO "Tickets" (status, "contactId", "conversationKey", "tenantId") VALUES ('open',$1,'wa:2',$2)`, contactID, tenant)
+	require.Error(t, err, "ticket sem conexão deve ser recusado (NOT NULL)")
+
+	_, err = admin.Exec(`DELETE FROM whatsapp_connection_details WHERE "connectionId" = $1`, waID)
+	require.NoError(t, err)
+	_, err = admin.Exec(`DELETE FROM "ChannelConnections" WHERE id = $1`, waID)
+	require.NoError(t, err)
+	var n int
+	require.NoError(t, admin.QueryRow(`SELECT count(*) FROM "Tickets" WHERE "tenantId" = $1`, tenant).Scan(&n))
+	assert.Zero(t, n, "o ticket some junto com a conexão")
 }

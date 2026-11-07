@@ -35,7 +35,7 @@ func libTenant(t *testing.T, db *gorm.DB, n string) (uuid.UUID, models.Ticket) {
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "C" + n, Number: "55119999900" + n, TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open"}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: tenant, Status: "open"}
 	require.NoError(t, db.Create(&tk).Error)
 	return tenant, tk
 }

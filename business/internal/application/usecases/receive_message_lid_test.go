@@ -4,14 +4,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/alltomatos/watinkdev/business/internal/domain"
-	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
-	"github.com/alltomatos/watinkdev/business/internal/models"
-	"github.com/alltomatos/watinkdev/business/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+
+	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/infrastructure/repository"
+	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/internal/testutil"
 )
 
 func newLIDReceiveUC(db *gorm.DB) *ReceiveMessageUseCase {
@@ -42,7 +43,7 @@ func TestReceiveMessage_LIDReplyJoinsTheAgendaContactAndItsTicket(t *testing.T) 
 
 	agenda := models.Contact{Name: "Fulano da Agenda", Number: "558382341576", TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
 	require.NoError(t, db.Create(&agenda).Error)
-	existing := models.Ticket{Status: "open", ContactID: agenda.ID, WhatsappID: wa.ID, TenantID: tenant}
+	existing := models.Ticket{Status: "open", ContactID: agenda.ID, ChannelConnectionID: wa.ID, ConversationKey: domain.WhatsAppConversationKey(agenda.ID), TenantID: tenant}
 	require.NoError(t, db.Create(&existing).Error)
 
 	uc := newLIDReceiveUC(db)

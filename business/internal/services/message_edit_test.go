@@ -29,7 +29,7 @@ func newEditEnv(t *testing.T) *editEnv {
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open"}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: tenant, Status: "open"}
 	require.NoError(t, db.Create(&tk).Error)
 	t0 := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)
 	require.NoError(t, db.Create(&models.Message{ID: "M1", Body: "Oi", TicketID: tk.ID, TenantID: tenant, CreatedAt: t0, UpdatedAt: t0}).Error)

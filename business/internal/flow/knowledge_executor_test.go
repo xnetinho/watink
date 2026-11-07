@@ -39,7 +39,7 @@ func newKnowledgeState(t *testing.T, retr Retriever, inbound string) (*ExecState
 		Run:       &models.FlowRun{ID: uuid.New()},
 		Inbound:   inbound,
 		Contact:   &domain.Contact{Number: "5511999999999"},
-		Ticket:    &domain.Ticket{WhatsappID: 1},
+		Ticket:    &domain.Ticket{ChannelConnectionID: 1},
 		Registry:  reg,
 		DB:        db,
 		Retriever: retr,

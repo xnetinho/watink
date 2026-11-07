@@ -45,7 +45,7 @@ func TestUpdateTicketRejectsCrossTenantAccess(t *testing.T) {
 
 	tenantA := uuid.New()
 	tenantB := uuid.New()
-	ticket := models.Ticket{Status: "pending", ContactID: 1, WhatsappID: 1, TenantID: tenantA}
+	ticket := models.Ticket{Status: "pending", ContactID: 1, ChannelConnectionID: 1, TenantID: tenantA}
 	if err := db.Create(&ticket).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestUpdateTicketCreatesTenantScopedLog(t *testing.T) {
 	db, controller := setupTicketControllerTest(t)
 
 	tenantID := uuid.New()
-	ticket := models.Ticket{Status: "pending", ContactID: 1, WhatsappID: 1, TenantID: tenantID}
+	ticket := models.Ticket{Status: "pending", ContactID: 1, ChannelConnectionID: 1, TenantID: tenantID}
 	if err := db.Create(&ticket).Error; err != nil {
 		t.Fatal(err)
 	}

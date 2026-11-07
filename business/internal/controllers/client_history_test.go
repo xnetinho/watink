@@ -34,7 +34,7 @@ func TestClientController_History_ConsolidatesAcrossMultipleContacts(t *testing.
 
 	// Ticket for Contact A.
 	require.NoError(t, db.Exec(
-		`INSERT INTO "Tickets" (status, "contactId", "whatsappId", "tenantId") VALUES (?,?,?,?)`,
+		`INSERT INTO "Tickets" (status, "contactId", "channelConnectionId", "tenantId") VALUES (?,?,?,?)`,
 		"pending", contactAID, 0, tenantID,
 	).Error)
 

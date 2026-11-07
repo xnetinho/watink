@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
+
+	"github.com/alltomatos/watinkdev/business/internal/models"
 )
 
 // ChannelKind identifica o tipo de canal de mensageria suportado pela plataforma.
@@ -116,13 +117,13 @@ type InboundMessage struct {
 
 // OutboundMessage representa uma mensagem a ser transmitida para a plataforma externa.
 type OutboundMessage struct {
-	ConversationKey string            `json:"conversationKey"`
-	ExternalID      string            `json:"externalId"`
-	Body            string            `json:"body"`
-	MediaType       string            `json:"mediaType,omitempty"`
-	MediaURL        string            `json:"mediaUrl,omitempty"`
-	MediaData       []byte            `json:"-"`
-	QuotedMessageID string            `json:"quotedMessageId,omitempty"`
+	ConversationKey string `json:"conversationKey"`
+	ExternalID      string `json:"externalId"`
+	Body            string `json:"body"`
+	MediaType       string `json:"mediaType,omitempty"`
+	MediaURL        string `json:"mediaUrl,omitempty"`
+	MediaData       []byte `json:"-"`
+	QuotedMessageID string `json:"quotedMessageId,omitempty"`
 	// Quoted traz o que o destinatário precisa ver na citação (quem escreveu, prévia, mídia); canais que não citam com prévia ignoram.
 	Quoted   *QuotedRef        `json:"quoted,omitempty"`
 	Metadata map[string]string `json:"metadata,omitempty"`
@@ -323,3 +324,7 @@ func (r *ChannelRegistry) List() []Channel {
 	}
 	return list
 }
+
+// WhatsAppConversationKey é a chave da conversa de um contato no WhatsApp: o id do contato. O contato já unifica o telefone e o
+// LID do mesmo interlocutor (ContactRepository.FindOrCreate), então a chave não muda quando o WhatsApp alterna o endereço.
+func WhatsAppConversationKey(contactID int) string { return fmt.Sprintf("wa:%d", contactID) }

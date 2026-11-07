@@ -98,7 +98,7 @@ func accessCount(t *testing.T, w *recWorld, callID, action string) int64 {
 func TestRecordingListen_PermissionScopeAndAudit(t *testing.T) {
 	w := newRecWorld(t, true)
 	w.recorded(t, "R-MINE", &w.ticket.ID)
-	other := models.Ticket{Status: "open", ContactID: w.ticket.ContactID, WhatsappID: w.wa.ID, TenantID: w.tenant}
+	other := models.Ticket{Status: "open", ContactID: w.ticket.ContactID, ChannelConnectionID: w.wa.ID, TenantID: w.tenant}
 	require.NoError(t, w.db.Create(&other).Error)
 	w.recorded(t, "R-OTHERS", &other.ID)
 
@@ -162,7 +162,7 @@ func TestRecordingDelete_RemovesFromStoreAuditsAndMarksHistory(t *testing.T) {
 
 func TestRecordingDelete_OutOfScopeIs404AndKeepsTheFile(t *testing.T) {
 	w := newRecWorld(t, true)
-	other := models.Ticket{Status: "open", ContactID: w.ticket.ContactID, WhatsappID: w.wa.ID, TenantID: w.tenant}
+	other := models.Ticket{Status: "open", ContactID: w.ticket.ContactID, ChannelConnectionID: w.wa.ID, TenantID: w.tenant}
 	require.NoError(t, w.db.Create(&other).Error)
 	w.recorded(t, "R-X", &other.ID)
 	agent := w.user(t, "agente", "proprio", w.tenant, "delete")

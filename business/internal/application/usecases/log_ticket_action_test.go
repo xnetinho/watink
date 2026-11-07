@@ -70,7 +70,7 @@ func insertLogTicket(t *testing.T, db *gorm.DB, tenantID uuid.UUID) int {
 	t.Helper()
 	var id int
 	res := db.Raw(
-		`INSERT INTO "Tickets" (status, "contactId", "whatsappId", "tenantId") VALUES (?, ?, ?, ?) RETURNING id`,
+		`INSERT INTO "Tickets" (status, "contactId", "channelConnectionId", "tenantId") VALUES (?, ?, ?, ?) RETURNING id`,
 		"open", 1, 1, tenantID.String(),
 	).Scan(&id)
 	if res.Error != nil {

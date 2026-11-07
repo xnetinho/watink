@@ -35,7 +35,7 @@ func TestChaotic_UDPBlocked_EndsAsMediaTimeoutAndFreesConnection(t *testing.T) {
 	// Valida que a conexão foi liberada: uma nova chamada pode ser originada sem ErrConnectionBusy
 	contact := models.Contact{Name: "Bob", Number: "5511999990022", TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&contact).Error)
-	ticket := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: r.waA.ID, TenantID: r.tenant}
+	ticket := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: r.waA.ID, TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&ticket).Error)
 
 	placed, err := r.svc.Place(context.Background(), r.tenant, r.users["da_fila_A"].ID, &ticket, &contact)
@@ -65,7 +65,7 @@ func TestChaotic_RelayLoss_EndsAsFailedAndFreesConnection(t *testing.T) {
 	// Conexão liberada para nova chamada
 	contact := models.Contact{Name: "Carlos", Number: "5511999990024", TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&contact).Error)
-	ticket := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: r.waA.ID, TenantID: r.tenant}
+	ticket := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: r.waA.ID, TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&ticket).Error)
 
 	placed, err := r.svc.Place(context.Background(), r.tenant, r.users["da_fila_A"].ID, &ticket, &contact)
@@ -96,7 +96,7 @@ func TestChaotic_EngineRestartMidCall_EndsAsInterruptedAndFreesConnection(t *tes
 	// Conexão liberada para nova chamada
 	contact := models.Contact{Name: "Daniel", Number: "5511999990026", TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&contact).Error)
-	ticket := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: r.waA.ID, TenantID: r.tenant}
+	ticket := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: r.waA.ID, TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&ticket).Error)
 
 	placed, err := r.svc.Place(context.Background(), r.tenant, r.users["da_fila_A"].ID, &ticket, &contact)

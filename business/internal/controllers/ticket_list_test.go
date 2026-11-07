@@ -40,8 +40,8 @@ func TestTicketController_ListTickets_TenantIsolation(t *testing.T) {
 	tenantA := uuid.New()
 	tenantB := uuid.New()
 
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantA)
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "pending", tenantB)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantA)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "pending", tenantB)
 
 	ctrl := &TicketController{updateTicket: nil, broadcast: nil}
 	c, w := newTicketListContext(t, db, tenantA, "GET", "/tickets")
@@ -62,7 +62,7 @@ func TestTicketController_ListTickets_IncludesTags(t *testing.T) {
 	tenantA := uuid.New()
 	tenantB := uuid.New()
 
-	db.Exec(`INSERT INTO "Tickets" (status, "isGroup", "tenantId") VALUES (?,?,?)`, "open", false, tenantA)
+	db.Exec(`INSERT INTO "Tickets" (status, "isGroup", "tenantId", "channelConnectionId") VALUES (?,?,?, 1)`, "open", false, tenantA)
 	var ticketID int
 	db.Raw(`SELECT LASTVAL()`).Scan(&ticketID)
 
@@ -98,8 +98,8 @@ func TestTicketController_ListTickets_FilterByStatus(t *testing.T) {
 	db := setupTicketListDB(t)
 	tenantID := uuid.New()
 
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantID)
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "closed", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "closed", tenantID)
 
 	ctrl := &TicketController{updateTicket: nil, broadcast: nil}
 	c, w := newTicketListContext(t, db, tenantID, "GET", "/tickets?status=open")
@@ -119,7 +119,7 @@ func TestTicketController_ShowTicket_Found(t *testing.T) {
 	db := setupTicketListDB(t)
 	tenantID := uuid.New()
 
-	db.Exec(`INSERT INTO "Tickets" (status, "lastMessage", "tenantId") VALUES (?,?,?)`, "open", "hello", tenantID)
+	db.Exec(`INSERT INTO "Tickets" (status, "lastMessage", "tenantId", "channelConnectionId") VALUES (?,?,?, 1)`, "open", "hello", tenantID)
 	var id int
 	db.Raw(`SELECT LASTVAL()`).Scan(&id)
 
@@ -141,7 +141,7 @@ func TestTicketController_ShowTicket_CrossTenant404(t *testing.T) {
 	tenantA := uuid.New()
 	tenantB := uuid.New()
 
-	db.Exec(`INSERT INTO "Tickets" (status, "tenantId") VALUES (?,?)`, "open", tenantA)
+	db.Exec(`INSERT INTO "Tickets" (status, "tenantId", "channelConnectionId") VALUES (?,?, 1)`, "open", tenantA)
 	var id int
 	db.Raw(`SELECT LASTVAL()`).Scan(&id)
 

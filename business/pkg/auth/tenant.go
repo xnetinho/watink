@@ -69,7 +69,7 @@ func GetScopedDB(c *gin.Context, table string) *gorm.DB {
 			"\"tenantId\" = ? AND ( "+
 				"\"userId\" = ? "+
 				"OR \"queueId\" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) "+
-				"OR \"whatsappId\" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?)) "+
+				"OR \"channelConnectionId\" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?)) "+
 				")",
 			tenantID, userID, userID, userID)
 	case "Contacts":
@@ -79,7 +79,7 @@ func GetScopedDB(c *gin.Context, table string) *gorm.DB {
 				"OR id IN (SELECT \"contactId\" FROM \"Tickets\" WHERE "+
 				"\"userId\" = ? "+
 				"OR \"queueId\" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) "+
-				"OR \"whatsappId\" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?))) "+
+				"OR \"channelConnectionId\" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?))) "+
 				")",
 			tenantID, userID, userID, userID, userID)
 	default:

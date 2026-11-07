@@ -37,7 +37,7 @@ func groupContactAndInboundMessage(t *testing.T, db *gorm.DB, tenantID uuid.UUID
 	number := jid[:len(jid)-len("@g.us")]
 	contact := models.Contact{TenantID: tenantID, Name: "Grupo", Number: number, IsGroup: true}
 	require.NoError(t, db.Create(&contact).Error)
-	ticket := models.Ticket{TenantID: tenantID, ContactID: contact.ID, WhatsappID: 1, Status: "open", IsGroup: true}
+	ticket := models.Ticket{TenantID: tenantID, ContactID: contact.ID, ChannelConnectionID: 1, Status: "open", IsGroup: true}
 	require.NoError(t, db.Create(&ticket).Error)
 	msg := models.Message{
 		ID: "in-" + uuid.New().String(), Body: body, TicketID: ticket.ID, FromMe: false,
@@ -179,7 +179,7 @@ func TestHandleCampaignReply_IgnoresFromMeAndNonGroup(t *testing.T) {
 	number := jid[:len(jid)-len("@g.us")]
 	contact := models.Contact{TenantID: c.TenantID, Name: "Grupo", Number: number, IsGroup: true}
 	require.NoError(t, db.Create(&contact).Error)
-	ticket := models.Ticket{TenantID: c.TenantID, ContactID: contact.ID, WhatsappID: 1, Status: "open", IsGroup: true}
+	ticket := models.Ticket{TenantID: c.TenantID, ContactID: contact.ID, ChannelConnectionID: 1, Status: "open", IsGroup: true}
 	require.NoError(t, db.Create(&ticket).Error)
 	fromMeMsg := models.Message{
 		ID: "in-fromme", Body: "eco da própria conexão", TicketID: ticket.ID, FromMe: true,

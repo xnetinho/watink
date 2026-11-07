@@ -68,7 +68,7 @@ func newCallWorld(t *testing.T) *callWorld {
 	require.NoError(t, models.CreateWhatsapp(db, &w.wa))
 	contact := models.Contact{Name: "Cliente", Number: "5511999991111", TenantID: w.tenant}
 	require.NoError(t, db.Create(&contact).Error)
-	w.ticket = models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: w.wa.ID, TenantID: w.tenant}
+	w.ticket = models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: w.wa.ID, TenantID: w.tenant}
 	require.NoError(t, db.Create(&w.ticket).Error)
 	for _, a := range []string{"receive", "place", "read", "delete", "manage"} {
 		seedPermission(t, db, "calls", a)
@@ -240,7 +240,7 @@ func TestCallHistory_TenantAndOperatorIsolation(t *testing.T) {
 		require.NoError(t, w.db.Create(&models.CallLog{TenantID: tenant, CallID: id, ChannelConnectionID: wa, TicketID: ticketID,
 			Direction: "incoming", Status: "ended"}).Error)
 	}
-	tk2 := models.Ticket{Status: "open", ContactID: w.ticket.ContactID, WhatsappID: w.wa.ID, TenantID: w.tenant}
+	tk2 := models.Ticket{Status: "open", ContactID: w.ticket.ContactID, ChannelConnectionID: w.wa.ID, TenantID: w.tenant}
 	require.NoError(t, w.db.Create(&tk2).Error)
 	mkLog(w.tenant, "L-MINE", &w.ticket.ID, w.wa.ID)
 	mkLog(w.tenant, "L-OTHERS", &tk2.ID, w.wa.ID)

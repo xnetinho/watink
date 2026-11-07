@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
+
+	"github.com/alltomatos/watinkdev/business/internal/models"
 )
 
 // newCallID gera o id de uma chamada originada: 32 hex maiúsculos, o mesmo
@@ -30,10 +31,7 @@ func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, tic
 	if busy {
 		return nil, ErrUserBusy
 	}
-	connID := ticket.WhatsappID
-	if ticket.ChannelConnectionID != nil && *ticket.ChannelConnectionID > 0 {
-		connID = *ticket.ChannelConnectionID
-	}
+	connID := ticket.ChannelConnectionID
 	var onConn int64
 	if err := s.fresh(ctx).Model(&models.CallLog{}).
 		Where(`"tenantId" = ? AND "channelConnectionId" = ? AND "endedAt" IS NULL AND status IN ?`,

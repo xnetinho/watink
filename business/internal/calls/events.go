@@ -94,7 +94,8 @@ func (s *Service) ResolveContactAndTicket(ctx context.Context, tenantID uuid.UUI
 	if err != nil {
 		return nil, nil, err
 	}
-	ticket, err := s.tickets.FindOpenByContact(ctx, tenantID, contact.ID, whatsappID)
+	convKey := domain.WhatsAppConversationKey(contact.ID)
+	ticket, err := s.tickets.FindOpenByConversation(ctx, tenantID, whatsappID, convKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -106,7 +107,7 @@ func (s *Service) ResolveContactAndTicket(ctx context.Context, tenantID uuid.UUI
 			}
 		}
 		ticket, err = s.tickets.FindOrCreatePending(ctx, &domain.Ticket{
-			ContactID: contact.ID, Status: "pending", TenantID: tenantID, WhatsappID: whatsappID, QueueID: queueID,
+			ContactID: contact.ID, Status: "pending", TenantID: tenantID, ChannelConnectionID: whatsappID, ConversationKey: convKey, QueueID: queueID,
 		})
 		if err != nil {
 			return nil, nil, err
@@ -150,10 +151,7 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 	if err != nil {
 		return err
 	}
-	connID := waID
-	if ticket.ChannelConnectionID != nil && *ticket.ChannelConnectionID > 0 {
-		connID = *ticket.ChannelConnectionID
-	}
+	connID := ticket.ChannelConnectionID
 	l, created, err := s.upsertLog(ctx, tenantID, &models.CallLog{
 		CallID: ev.CallID, ChannelConnectionID: connID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "incoming", Media: mediaOf(ev.Media), Status: StatusRinging, PeerJid: ev.Peer, CallerPn: ev.CallerPn, StartedAt: s.now(),

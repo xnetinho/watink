@@ -36,7 +36,6 @@ type Increment struct{ By int }
 
 type TicketRepository interface {
 	FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*Ticket, error)
-	FindOpenByContact(ctx context.Context, tenantID uuid.UUID, contactID int, sessionID int) (*Ticket, error)
 	FindOpenByConversation(ctx context.Context, tenantID uuid.UUID, channelConnID int, conversationKey string) (*Ticket, error)
 	FindOrCreatePending(ctx context.Context, ticket *Ticket) (*Ticket, error)
 	Save(ctx context.Context, ticket *Ticket) error

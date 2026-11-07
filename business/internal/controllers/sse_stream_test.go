@@ -132,15 +132,15 @@ func TestStream_ChatRoomRespectsTicketVisibility(t *testing.T) {
 	user := models.User{Name: "Ana", Email: "ana@t.io", TenantID: tenant, Alcance: "proprio"}
 	require.NoError(t, db.Create(&user).Error)
 
-	mine := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: wa.ID, TenantID: tenant, UserID: &user.ID}
-	theirs := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: wa.ID, TenantID: tenant}
+	mine := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: wa.ID, TenantID: tenant, UserID: &user.ID}
+	theirs := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: wa.ID, TenantID: tenant}
 	require.NoError(t, db.Create(&mine).Error)
 	require.NoError(t, db.Create(&theirs).Error)
 	foreignContact := models.Contact{Name: "F", Number: "5511999990002", TenantID: other}
 	require.NoError(t, db.Create(&foreignContact).Error)
 	foreignWa := models.Whatsapp{Name: "WB", TenantID: other, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &foreignWa))
-	foreign := models.Ticket{Status: "open", ContactID: foreignContact.ID, WhatsappID: foreignWa.ID, TenantID: other}
+	foreign := models.Ticket{Status: "open", ContactID: foreignContact.ID, ChannelConnectionID: foreignWa.ID, TenantID: other}
 	require.NoError(t, db.Create(&foreign).Error)
 
 	rooms := "chat:" + strconv.Itoa(mine.ID) + ",chat:" + strconv.Itoa(theirs.ID) + ",chat:" + strconv.Itoa(foreign.ID)
@@ -165,13 +165,13 @@ func TestStream_TenantScopeSeesAllTicketsOfOwnTenantOnly(t *testing.T) {
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	contact := models.Contact{Name: "C", Number: "5511999990003", TenantID: tenant}
 	require.NoError(t, db.Create(&contact).Error)
-	tk := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: wa.ID, TenantID: tenant}
+	tk := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: wa.ID, TenantID: tenant}
 	require.NoError(t, db.Create(&tk).Error)
 	fc := models.Contact{Name: "F", Number: "5511999990004", TenantID: other}
 	require.NoError(t, db.Create(&fc).Error)
 	fwa := models.Whatsapp{Name: "WB", TenantID: other, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &fwa))
-	ft := models.Ticket{Status: "open", ContactID: fc.ID, WhatsappID: fwa.ID, TenantID: other}
+	ft := models.Ticket{Status: "open", ContactID: fc.ID, ChannelConnectionID: fwa.ID, TenantID: other}
 	require.NoError(t, db.Create(&ft).Error)
 
 	c := openStream(t, db, hub, tenant, 1, "tenant", "chat:"+strconv.Itoa(tk.ID)+",chat:"+strconv.Itoa(ft.ID))

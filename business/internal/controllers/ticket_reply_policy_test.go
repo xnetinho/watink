@@ -83,7 +83,7 @@ func TestTicketReplyPolicy_ShowAndSend409(t *testing.T) {
 	ticket := models.Ticket{
 		TenantID:            tenantID,
 		ContactID:           contact.ID,
-		ChannelConnectionID: &conn.ID,
+		ChannelConnectionID: conn.ID,
 		ConversationKey:     "ig_12345",
 		Status:              "open",
 	}

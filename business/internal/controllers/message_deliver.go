@@ -114,12 +114,8 @@ func (mc *MessageController) deliver(ctx context.Context, db *gorm.DB, tenantID 
 		}
 	}
 
-	// Um só caminho: a conexão do ticket (ChannelConnections) decide o canal e o adaptador envia. O ticket do WhatsApp guarda
-	// o id em whatsappId (migração em curso), os demais em channelConnectionId; os dois apontam para ChannelConnections.
-	connID := ticket.WhatsappID
-	if ticket.ChannelConnectionID != nil {
-		connID = *ticket.ChannelConnectionID
-	}
+	// Um só caminho: a conexão do ticket (ChannelConnections) decide o canal e o adaptador envia.
+	connID := ticket.ChannelConnectionID
 	var conn models.ChannelConnection
 	if err := db.Session(&gorm.Session{NewDB: true}).
 		Where("id = ? AND \"tenantId\" = ?", connID, tenantID).First(&conn).Error; err != nil {

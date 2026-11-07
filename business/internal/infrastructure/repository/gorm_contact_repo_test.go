@@ -267,7 +267,7 @@ func TestGORMContactRepo_Delete_CascadesTicketsAndMessages(t *testing.T) {
 	wa := models.Whatsapp{Name: "wa-1", TenantID: tenantID}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 
-	ticket := models.Ticket{ContactID: contactA.ID, WhatsappID: wa.ID, TenantID: tenantID}
+	ticket := models.Ticket{ContactID: contactA.ID, ChannelConnectionID: wa.ID, TenantID: tenantID}
 	require.NoError(t, db.Create(&ticket).Error)
 
 	msg := models.Message{ID: "msg-cascade-1", Body: "oi", TicketID: ticket.ID, TenantID: tenantID}
@@ -308,7 +308,7 @@ func TestGORMContactRepo_DeleteAll_CascadesEveryDependentTable(t *testing.T) {
 
 	wa := models.Whatsapp{Name: "wa-1", TenantID: tenantID}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
-	ticket := models.Ticket{ContactID: contactA.ID, WhatsappID: wa.ID, TenantID: tenantID}
+	ticket := models.Ticket{ContactID: contactA.ID, ChannelConnectionID: wa.ID, TenantID: tenantID}
 	require.NoError(t, db.Create(&ticket).Error)
 	require.NoError(t, db.Create(&models.Message{ID: "m-all-1", Body: "oi", TicketID: ticket.ID, TenantID: tenantID}).Error)
 	require.NoError(t, db.Exec(`INSERT INTO "TicketLogs"("ticketId","tenantId",type,"createdAt") VALUES (?,?,'create',now())`, ticket.ID, tenantID).Error)

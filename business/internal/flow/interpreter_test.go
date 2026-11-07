@@ -199,7 +199,7 @@ func inboundFor(tenant uuid.UUID, ticketID int, body, envID string) InboundConte
 		TenantID: tenant,
 		Body:     body,
 		EnvID:    envID,
-		Ticket:   &domain.Ticket{ID: ticketID, WhatsappID: 7, TenantID: tenant},
+		Ticket:   &domain.Ticket{ID: ticketID, ChannelConnectionID: 7, TenantID: tenant},
 		Contact:  &domain.Contact{ID: 1, Name: "Alice", Number: "5511999", TenantID: tenant},
 	}
 }

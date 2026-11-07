@@ -138,7 +138,7 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 		ticket, err = s.ticketRepo.FindOrCreatePending(ctx, &domain.Ticket{
 			TenantID:            msg.TenantID,
 			ContactID:           contact.ID,
-			ChannelConnectionID: &connID,
+			ChannelConnectionID: connID,
 			ConversationKey:     convKey,
 			Status:              "pending",
 		})

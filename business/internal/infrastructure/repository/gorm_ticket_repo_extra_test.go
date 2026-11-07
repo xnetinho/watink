@@ -16,10 +16,10 @@ func TestGORMTicketRepo_FindOrCreatePending_Creates(t *testing.T) {
 	ctx := context.Background()
 
 	newTicket := &domain.Ticket{
-		Status:     "pending",
-		ContactID:  777,
-		WhatsappID: 10,
-		TenantID:   tenantA,
+		Status:              "pending",
+		ContactID:           777,
+		ChannelConnectionID: 10,
+		TenantID:            tenantA,
 	}
 
 	result, err := repo.FindOrCreatePending(ctx, newTicket)
@@ -38,10 +38,10 @@ func TestGORMTicketRepo_FindOrCreatePending_FindsExisting(t *testing.T) {
 
 	// Primeiro chamada — cria
 	ticket := &domain.Ticket{
-		Status:     "pending",
-		ContactID:  888,
-		WhatsappID: 20,
-		TenantID:   tenantA,
+		Status:              "pending",
+		ContactID:           888,
+		ChannelConnectionID: 20,
+		TenantID:            tenantA,
 	}
 	first, err := repo.FindOrCreatePending(ctx, ticket)
 	require.NoError(t, err)
@@ -65,13 +65,13 @@ func TestGORMTicketRepo_FindByID_NotFound(t *testing.T) {
 	assert.Nil(t, found, "ID inexistente deve retornar nil")
 }
 
-func TestGORMTicketRepo_FindOpenByContact_NotFound(t *testing.T) {
+func TestGORMTicketRepo_FindOpenByConversation_NotFound(t *testing.T) {
 	db := setupTicketTestDB(t)
 	tenantA, _, _, _ := seedTwoTenantsTickets(t, db)
 	repo := NewGORMTicketRepo(db)
 	ctx := context.Background()
 
-	found, err := repo.FindOpenByContact(ctx, tenantA, 99999, 99999)
+	found, err := repo.FindOpenByConversation(ctx, tenantA, 99999, "inexistente")
 	assert.NoError(t, err)
-	assert.Nil(t, found, "contato inexistente deve retornar nil")
+	assert.Nil(t, found, "conversa inexistente deve retornar nil")
 }

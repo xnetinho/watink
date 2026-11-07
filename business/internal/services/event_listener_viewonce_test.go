@@ -46,7 +46,7 @@ func TestHandleMediaDownloaded_VisualizacaoUnicaRecuperadaViraMidiaComum(t *test
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open", LastMessageType: "view_once"}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: tenant, Status: "open", LastMessageType: "view_once"}
 	require.NoError(t, db.Create(&tk).Error)
 	require.NoError(t, db.Create(&models.Message{
 		ID: "AVISO1", MediaType: "view_once", TicketID: tk.ID, TenantID: tenant,
@@ -94,7 +94,7 @@ func TestHandleMediaDownloaded_NaoMexeNaPreviaSeAvisoJaNaoEAUltima(t *testing.T)
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open", LastMessage: "Obrigado!", LastMessageType: ""}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: tenant, Status: "open", LastMessage: "Obrigado!", LastMessageType: ""}
 	require.NoError(t, db.Create(&tk).Error)
 	require.NoError(t, db.Create(&models.Message{ID: "AVISO2", MediaType: "view_once", TicketID: tk.ID, TenantID: tenant, DataJson: `{}`}).Error)
 
@@ -119,7 +119,7 @@ func TestHandleMediaDownloaded_ComumNaoTrocaOTipo(t *testing.T) {
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	ct := models.Contact{Name: "C", Number: "5511999990001", TenantID: tenant}
 	require.NoError(t, db.Create(&ct).Error)
-	tk := models.Ticket{ContactID: ct.ID, WhatsappID: wa.ID, TenantID: tenant, Status: "open"}
+	tk := models.Ticket{ContactID: ct.ID, ChannelConnectionID: wa.ID, TenantID: tenant, Status: "open"}
 	require.NoError(t, db.Create(&tk).Error)
 	require.NoError(t, db.Create(&models.Message{ID: "IMG1", MediaType: "image", TicketID: tk.ID, TenantID: tenant, DataJson: `{"mediaProto":"x"}`}).Error)
 	require.NoError(t, db.Create(&models.Message{ID: "TXT1", MediaType: "chat", Body: "oi", TicketID: tk.ID, TenantID: tenant, DataJson: `{}`}).Error)

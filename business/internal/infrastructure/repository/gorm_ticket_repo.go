@@ -39,23 +39,6 @@ func (r *GORMTicketRepository) FindByID(ctx context.Context, id int, tenantID uu
 	return ticketModelToDomain(&m), nil
 }
 
-// FindOpenByContact returns an open/pending/closed ticket for the given contact+session under tenantID,
-// or nil if none exists.
-func (r *GORMTicketRepository) FindOpenByContact(ctx context.Context, tenantID uuid.UUID, contactID int, sessionID int) (*domain.Ticket, error) {
-	var m models.Ticket
-	err := r.db.WithContext(ctx).
-		Where("\"contactId\" = ? AND \"whatsappId\" = ? AND \"tenantId\" = ?", contactID, sessionID, tenantID).
-		Where("status IN ?", []string{"open", "pending"}).
-		First(&m).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return ticketModelToDomain(&m), nil
-}
-
 // FindOpenByConversation busca ticket aberto/pendente pela chave de conversa neutra (D4 / ADR 0033).
 func (r *GORMTicketRepository) FindOpenByConversation(ctx context.Context, tenantID uuid.UUID, channelConnID int, conversationKey string) (*domain.Ticket, error) {
 	var m models.Ticket
@@ -76,7 +59,7 @@ func (r *GORMTicketRepository) FindOpenByConversation(ctx context.Context, tenan
 func (r *GORMTicketRepository) FindOrCreatePending(ctx context.Context, ticket *domain.Ticket) (*domain.Ticket, error) {
 	m := ticketDomainToModel(ticket)
 	err := r.db.WithContext(ctx).
-		Where(models.Ticket{ContactID: ticket.ContactID, WhatsappID: ticket.WhatsappID, Status: "pending", TenantID: ticket.TenantID}).
+		Where(models.Ticket{ContactID: ticket.ContactID, ChannelConnectionID: ticket.ChannelConnectionID, Status: "pending", TenantID: ticket.TenantID}).
 		First(&m).Error
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -174,7 +157,6 @@ func ticketModelToDomain(m *models.Ticket) *domain.Ticket {
 		LastMessageType:     m.LastMessageType,
 		ContactID:           m.ContactID,
 		UserID:              m.UserID,
-		WhatsappID:          m.WhatsappID,
 		IsGroup:             m.IsGroup,
 		IsCommunity:         m.IsCommunity,
 		IsSubGroup:          m.IsSubGroup,
@@ -196,7 +178,6 @@ func ticketDomainToModel(d *domain.Ticket) *models.Ticket {
 		LastMessageType:     d.LastMessageType,
 		ContactID:           d.ContactID,
 		UserID:              d.UserID,
-		WhatsappID:          d.WhatsappID,
 		IsGroup:             d.IsGroup,
 		IsCommunity:         d.IsCommunity,
 		IsSubGroup:          d.IsSubGroup,

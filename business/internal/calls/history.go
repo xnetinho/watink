@@ -35,7 +35,7 @@ func (s *Service) scoped(ctx context.Context, sc HistoryScope) *gorm.DB {
 	return q.Where(`"CallLogs"."ticketId" IN (SELECT t.id FROM "Tickets" t WHERE t."tenantId" = ? AND (`+
 		`t."userId" = ? `+
 		`OR t."queueId" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) `+
-		`OR t."whatsappId" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?))))`,
+		`OR t."channelConnectionId" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?))))`,
 		sc.TenantID, sc.UserID, sc.UserID, sc.UserID)
 }
 

@@ -67,10 +67,10 @@ func TestUpdateTicket(t *testing.T) {
 		t.Fatal(err)
 	}
 	ticket := models.Ticket{
-		Status:     "pending",
-		TenantID:   tenantID,
-		ContactID:  contact.ID,
-		WhatsappID: wa.ID,
+		Status:              "pending",
+		TenantID:            tenantID,
+		ContactID:           contact.ID,
+		ChannelConnectionID: wa.ID,
 	}
 	if err := db.Create(&ticket).Error; err != nil {
 		t.Fatal(err)
@@ -139,9 +139,9 @@ func TestUpdateTicket_ResetsUnreadMessages(t *testing.T) {
 	_ = models.CreateWhatsapp(db, &wa)
 	contact := models.Contact{Name: "C", Number: "5511999999999", TenantID: tenantID}
 	_ = db.Create(&contact).Error
-	mine := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID, UnreadMessages: 5}
+	mine := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, ChannelConnectionID: wa.ID, UnreadMessages: 5}
 	_ = db.Create(&mine).Error
-	other := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID, UnreadMessages: 7}
+	other := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, ChannelConnectionID: wa.ID, UnreadMessages: 7}
 	_ = db.Create(&other).Error
 
 	r := gin.New()
@@ -186,7 +186,7 @@ func TestUpdateTicket_ResetsUnreadMessages(t *testing.T) {
 	})
 
 	t.Run("zerar não atinge ticket de outro tenant", func(t *testing.T) {
-		foreign := models.Ticket{Status: "open", TenantID: otherTenant, ContactID: contact.ID, WhatsappID: wa.ID, UnreadMessages: 4}
+		foreign := models.Ticket{Status: "open", TenantID: otherTenant, ContactID: contact.ID, ChannelConnectionID: wa.ID, UnreadMessages: 4}
 		_ = db.Create(&foreign).Error
 		if res := put(foreign.ID, map[string]interface{}{"unreadMessages": 0}); res.Code != http.StatusNotFound {
 			t.Fatalf("esperava 404, veio %d", res.Code)
@@ -216,7 +216,7 @@ func TestDeleteTicket(t *testing.T) {
 	if err := db.Create(&contact).Error; err != nil {
 		t.Fatal(err)
 	}
-	ticket := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, WhatsappID: wa.ID}
+	ticket := models.Ticket{Status: "open", TenantID: tenantID, ContactID: contact.ID, ChannelConnectionID: wa.ID}
 	if err := db.Create(&ticket).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -301,10 +301,10 @@ func TestRecoverHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	ticket := models.Ticket{
-		Status:     "open",
-		TenantID:   tenantID,
-		ContactID:  contact.ID,
-		WhatsappID: wa.ID,
+		Status:              "open",
+		TenantID:            tenantID,
+		ContactID:           contact.ID,
+		ChannelConnectionID: wa.ID,
 	}
 	if err := db.Create(&ticket).Error; err != nil {
 		t.Fatal(err)

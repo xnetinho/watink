@@ -114,7 +114,7 @@ func TestUsersWhoSeeConnection_ParityWithTicketVisibility(t *testing.T) {
 	contact := models.Contact{Name: "C", Number: "5511999990000", TenantID: w.tenant}
 	require.NoError(t, w.db.Create(&contact).Error)
 	for _, wa := range []models.Whatsapp{w.waA, w.waB} {
-		tk := models.Ticket{Status: "open", ContactID: contact.ID, WhatsappID: wa.ID, TenantID: w.tenant}
+		tk := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: wa.ID, TenantID: w.tenant}
 		require.NoError(t, w.db.Create(&tk).Error)
 	}
 
@@ -130,7 +130,7 @@ func TestUsersWhoSeeConnection_ParityWithTicketVisibility(t *testing.T) {
 		var n int64
 		r.GET("/x", func(c *gin.Context) {
 			db, _, _ := auth.GetScoped(c, "Tickets")
-			db.Session(&gorm.Session{}).Model(&models.Ticket{}).Where(`"whatsappId" = ?`, waID).Count(&n)
+			db.Session(&gorm.Session{}).Model(&models.Ticket{}).Where(`"channelConnectionId" = ?`, waID).Count(&n)
 			c.Status(http.StatusOK)
 		})
 		r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/x", nil))
