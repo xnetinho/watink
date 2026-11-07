@@ -16,14 +16,14 @@ func newCallID() string {
 	return strings.ToUpper(strings.ReplaceAll(uuid.NewString(), "-", ""))
 }
 
-// Place origina uma chamada de voz do operador para o contato do ticket. O
+// Place origina uma chamada (de voz ou, com video, de vídeo) do operador para o contato do ticket. O
 // registro nasce ANTES do comando ao engine (assim o call.state/ended que voltar
 // já encontra a chamada) e já assumido pelo operador que ligou. Se o comando
 // falhar, o registro é fechado como falho e o erro volta ao chamador.
 //
 // As validações de ticket individual, conexão conectada e sem proxy são do
 // controller; aqui ficam a de operador ocupado e a da conexão ocupada.
-func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, ticket *models.Ticket, contact *models.Contact) (*models.CallLog, error) {
+func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, ticket *models.Ticket, contact *models.Contact, video bool) (*models.CallLog, error) {
 	busy, err := s.userInCall(ctx, tenantID, userID)
 	if err != nil {
 		return nil, err
@@ -49,15 +49,19 @@ func (s *Service) Place(ctx context.Context, tenantID uuid.UUID, userID int, tic
 	peer := number + "@s.whatsapp.net"
 	now := s.now()
 	callID := newCallID()
+	media := "audio"
+	if video {
+		media = "video"
+	}
 	l := &models.CallLog{
 		TenantID: tenantID, CallID: callID, ChannelConnectionID: connID, ContactID: &contact.ID, TicketID: &ticket.ID,
-		Direction: "outgoing", Status: StatusRinging, PeerJid: peer, CallerPn: number, StartedAt: now,
+		Direction: "outgoing", Media: media, Status: StatusRinging, PeerJid: peer, CallerPn: number, StartedAt: now,
 		HandledByUserID: &userID, AnsweredAt: nil,
 	}
 	if err := s.fresh(ctx).Create(l).Error; err != nil {
 		return nil, err
 	}
-	if err := s.command(ctx, tenantID, connID, "call.start", map[string]interface{}{"callId": callID, "to": peer}); err != nil {
+	if err := s.command(ctx, tenantID, connID, "call.start", map[string]interface{}{"callId": callID, "to": peer, "video": video}); err != nil {
 		end := s.now()
 		s.fresh(ctx).Model(&models.CallLog{}).Where(`"tenantId" = ? AND "callId" = ?`, tenantID, callID).
 			Updates(map[string]interface{}{"status": StatusFailed, "endReason": "failed", "endedAt": end})

@@ -30,7 +30,7 @@ export interface CallsContextValue {
   paused: boolean;
   accept: (callId: string) => Promise<void>;
   reject: (callId: string) => Promise<void>;
-  place: (ticketId: number) => Promise<void>;
+  place: (ticketId: number, video?: boolean) => Promise<void>;
   end: () => Promise<void>;
   setMuted: (muted: boolean) => void;
   /** Liga/desliga a câmera do operador na videochamada (só Chromium: `canSendVideo`). */
@@ -173,12 +173,12 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     dispatch({ type: "ended", callId, endReason: "declined" });
   }, []);
 
-  const place = useCallback(async (ticketId: number) => {
+  const place = useCallback(async (ticketId: number, video?: boolean) => {
     try {
-      const { data } = await api.post("/calls", { ticketId });
+      const { data } = await api.post("/calls", { ticketId, video });
       dispatch({
         type: "originate",
-        payload: { callId: data.callId, connectionId: data.connectionId, direction: "outgoing", ticketId, contact: { number: data.callerPn } },
+        payload: { callId: data.callId, connectionId: data.connectionId, direction: "outgoing", ticketId, media: video ? "video" : "audio", contact: { number: data.callerPn } },
       });
     } catch (err) {
       notify.error(err);

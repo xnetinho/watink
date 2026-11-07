@@ -84,9 +84,9 @@ func (s *Session) End(ctx context.Context, callID string) error {
 	return nil
 }
 
-// Start é o comando call.start: origina uma chamada de voz ao telefone `to`.
+// Start é o comando call.start: origina uma chamada ao telefone `to`, de voz ou (video=true) de vídeo.
 // O callId vem do business (para ele já ter o registro antes do toque).
-func (s *Session) Start(ctx context.Context, callID, to string) error {
+func (s *Session) Start(ctx context.Context, callID, to string, video bool) error {
 	if callID == "" {
 		callID = signaling.GenerateCallID()
 	} else if !callIDPattern.MatchString(callID) {
@@ -108,7 +108,7 @@ func (s *Session) Start(ctx context.Context, callID, to string) error {
 	s.wireMedia(ac)
 	s.setTimer(ac, s.clock.AfterFunc(ringTimeout, func() { s.onRingTimeout(ac) }))
 	go s.run(ac, func() {
-		if err := ac.h.Start(ctx, callID, peer); err != nil {
+		if err := ac.h.Start(ctx, callID, peer, video); err != nil {
 			s.finish(ac, State{CallID: callID, EndReason: ReasonFailed})
 		}
 	})

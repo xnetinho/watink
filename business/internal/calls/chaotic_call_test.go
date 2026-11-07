@@ -38,7 +38,7 @@ func TestChaotic_UDPBlocked_EndsAsMediaTimeoutAndFreesConnection(t *testing.T) {
 	ticket := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: r.waA.ID, TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&ticket).Error)
 
-	placed, err := r.svc.Place(context.Background(), r.tenant, r.users["da_fila_A"].ID, &ticket, &contact)
+	placed, err := r.svc.Place(context.Background(), r.tenant, r.users["da_fila_A"].ID, &ticket, &contact, false)
 	require.NoError(t, err, "conexão deve estar livre após término por UDP bloqueado")
 	assert.NotNil(t, placed)
 }
@@ -68,7 +68,7 @@ func TestChaotic_RelayLoss_EndsAsFailedAndFreesConnection(t *testing.T) {
 	ticket := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: r.waA.ID, TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&ticket).Error)
 
-	placed, err := r.svc.Place(context.Background(), r.tenant, r.users["da_fila_A"].ID, &ticket, &contact)
+	placed, err := r.svc.Place(context.Background(), r.tenant, r.users["da_fila_A"].ID, &ticket, &contact, false)
 	require.NoError(t, err, "conexão deve estar livre após falha de relay")
 	assert.NotNil(t, placed)
 }
@@ -99,7 +99,7 @@ func TestChaotic_EngineRestartMidCall_EndsAsInterruptedAndFreesConnection(t *tes
 	ticket := models.Ticket{Status: "open", ContactID: contact.ID, ChannelConnectionID: r.waA.ID, TenantID: r.tenant}
 	require.NoError(t, r.db.Create(&ticket).Error)
 
-	placed, err := r.svc.Place(context.Background(), r.tenant, r.users["da_fila_A"].ID, &ticket, &contact)
+	placed, err := r.svc.Place(context.Background(), r.tenant, r.users["da_fila_A"].ID, &ticket, &contact, false)
 	require.NoError(t, err, "conexão deve estar livre após recuperação de reinício do engine")
 	assert.NotNil(t, placed)
 }

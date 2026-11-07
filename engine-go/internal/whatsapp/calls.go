@@ -87,6 +87,8 @@ func (s *WhatsAppService) handleCallEvent(id int, evt interface{}) {
 type CallPayload struct {
 	CallID string `json:"callId"`
 	To     string `json:"to"`
+	// Video pede que o call.start origine uma videochamada.
+	Video bool `json:"video"`
 }
 
 // HandleCallCommand executa um comando call.* (ready, accept, reject, end, start).
@@ -109,7 +111,7 @@ func (s *WhatsAppService) HandleCallCommand(sessionID int, cmd string, p CallPay
 		if _, err := s.getConnectedClient(sessionID); err != nil {
 			return err
 		}
-		return sess.Start(ctx, p.CallID, p.To)
+		return sess.Start(ctx, p.CallID, p.To, p.Video)
 	}
 	log.Printf("Unknown call command: %s", cmd)
 	return nil

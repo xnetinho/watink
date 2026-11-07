@@ -110,9 +110,9 @@ WhatsApp/`MediaCodec` por depuração sem fio) e comparar byte a byte um pacote 
 
 ## 3. Iniciar chamada de vídeo
 
-- [ ] 3.1 `POST /calls` aceita `video: true` (mesma permissão `calls:place`); comando `call.start` leva o vídeo
-- [ ] 3.2 Botão de videochamada no ticket, oculto/desabilitado sem suporte do navegador ou com proxy
-- [ ] 3.3 Registro da chamada guarda se foi de vídeo; histórico e mensagem do chat mostram o ícone
+- [x] 3.1 `POST /calls` aceita `video: true` (mesma permissão `calls:place`); comando `call.start` leva o vídeo _(7/nov/2026: `placeCallRequest.Video` → `Service.Place` grava `media` e manda `video` no comando; engine `Session.Start(…, video)` → `StartCall(isVideo)`; testes `TestPlaceCall_VideoFlag` e `TestStart_VideoFlagReachesTheHandle`, ambos provados por mutação)_
+- [x] 3.2 Botão de videochamada no ticket, oculto/desabilitado sem suporte do navegador ou com proxy _(7/nov/2026: `PlaceCallButton`, 6 testes novos)_
+- [x] 3.3 Registro da chamada guarda se foi de vídeo; histórico e mensagem do chat mostram o ícone _(7/nov/2026: `CallLog.Media` já existia; o histórico (`CallsTable`) ganhou o ícone; a mensagem do chat já o tinha)_
 - [ ] 3.4 **Teste real: operador liga em vídeo e o celular toca como videochamada** (iPhone e Android)
 
 ## 4. Upgrade e downgrade no meio

@@ -60,6 +60,8 @@ const messages = {
         },
         place: {
           button: "Call",
+          videoButton: "Video call",
+          videoUnsupported: "Your browser cannot send video. Use Chrome, Edge or Brave to place video calls.",
           disconnected: "The connection must be connected to place a call.",
           proxy: "Connections with a proxy cannot place voice calls.",
           notIndividual: "Calls are only available in one-to-one chats.",
@@ -106,6 +108,7 @@ const messages = {
         history: {
           title: "Call history",
           empty: "No calls recorded.",
+          video: "Video call",
           direction: "Direction",
           directionIncoming: "Incoming",
           directionOutgoing: "Outgoing",

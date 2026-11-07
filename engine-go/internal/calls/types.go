@@ -71,7 +71,7 @@ type Handle interface {
 	Accept(ctx context.Context, callID string) error
 	Reject(ctx context.Context, callID string) error
 	End(ctx context.Context, reason string) error
-	Start(ctx context.Context, callID string, peer types.JID) error
+	Start(ctx context.Context, callID string, peer types.JID, video bool) error
 	Abandon(reason string)
 
 	SetMedia(MediaHooks)
@@ -98,7 +98,7 @@ type MediaHooks struct {
 	OnPeerVideoFrame func(accessUnit []byte, keyframe bool, rotation int)
 	// OnKeyframeRequested avisa que o contato pediu um quadro-chave do vídeo do operador: o codificador
 	// da câmera precisa gerar um IDR agora. Roda na goroutine do relay: nunca pode bloquear.
-	OnKeyframeRequested func()
+	OnKeyframeRequested       func()
 	OnEstimatedBitrateChanged func(uint32)
 }
 

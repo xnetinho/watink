@@ -122,8 +122,15 @@ func (h *fakeHandle) End(_ context.Context, reason string) error {
 	h.hooks.OnEnded(State{EndReason: reason, DurationSecs: 7})
 	return nil
 }
-func (h *fakeHandle) Start(context.Context, string, types.JID) error { h.rec("start"); return nil }
-func (h *fakeHandle) SetMedia(k MediaHooks)                          { h.media = k }
+func (h *fakeHandle) Start(_ context.Context, _ string, _ types.JID, video bool) error {
+	if video {
+		h.rec("start:video")
+	} else {
+		h.rec("start")
+	}
+	return nil
+}
+func (h *fakeHandle) SetMedia(k MediaHooks) { h.media = k }
 func (h *fakeHandle) FeedPCM(p []float32) {
 	h.mu.Lock()
 	h.fed = append(h.fed, p...)
@@ -405,7 +412,7 @@ func TestProxy_BlocksOfferAndStart(t *testing.T) {
 	if r.nHandles() != 0 {
 		t.Fatal("proxy: nenhum gerenciador (e portanto nenhum socket de mídia) pode ser criado")
 	}
-	if err := r.s.Start(context.Background(), callB, "5511999990009@s.whatsapp.net"); err != ErrProxied {
+	if err := r.s.Start(context.Background(), callB, "5511999990009@s.whatsapp.net", false); err != ErrProxied {
 		t.Fatalf("Start com proxy: %v", err)
 	}
 	if r.nHandles() != 0 {
@@ -543,7 +550,7 @@ func TestAccept_StopsRingTimer(t *testing.T) {
 // ("timeout" aos 41 s de conversa). Atendida, ela não pode mais expirar por toque.
 func TestStart_AnsweredCallNeverExpiresByRingTimer(t *testing.T) {
 	r := newRig(t, false, nil)
-	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net"); err != nil {
+	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net", false); err != nil {
 		t.Fatal(err)
 	}
 	eventually(t, "start", func() bool { return r.handle(0) != nil && r.handle(0).has("start") })
@@ -558,11 +565,11 @@ func TestStart_AnsweredCallNeverExpiresByRingTimer(t *testing.T) {
 
 func TestStart_OriginatesAndTimesOut(t *testing.T) {
 	r := newRig(t, false, nil)
-	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net"); err != nil {
+	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net", false); err != nil {
 		t.Fatal(err)
 	}
 	eventually(t, "start", func() bool { return r.handle(0) != nil && r.handle(0).has("start") })
-	if err := r.s.Start(context.Background(), callB, "5511999990002@s.whatsapp.net"); err != ErrBusy {
+	if err := r.s.Start(context.Background(), callB, "5511999990002@s.whatsapp.net", false); err != ErrBusy {
 		t.Fatalf("segunda origem na mesma conexão: %v", err)
 	}
 	if r.clk.fire(ringTimeout) != 1 {
@@ -584,7 +591,7 @@ func TestStart_Validation(t *testing.T) {
 		{callA, "123@newsletter"},
 		{callA, ""},
 	} {
-		if err := r.s.Start(context.Background(), c.id, c.to); err == nil {
+		if err := r.s.Start(context.Background(), c.id, c.to, false); err == nil {
 			t.Fatalf("Start(%q,%q) devia falhar", c.id, c.to)
 		}
 	}
@@ -596,7 +603,7 @@ func TestStart_Validation(t *testing.T) {
 func TestStart_FailureFreesSlotAndPublishesFailed(t *testing.T) {
 	r := newRig(t, false, nil)
 	r.s.newHandle = func(core.VoipSocket) Handle { return &failingStart{fakeHandle{}} }
-	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net"); err != nil {
+	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net", false); err != nil {
 		t.Fatal(err)
 	}
 	eventually(t, "call.ended failed", func() bool {
@@ -610,7 +617,7 @@ func TestStart_FailureFreesSlotAndPublishesFailed(t *testing.T) {
 
 type failingStart struct{ fakeHandle }
 
-func (f *failingStart) Start(context.Context, string, types.JID) error {
+func (f *failingStart) Start(context.Context, string, types.JID, bool) error {
 	return context.DeadlineExceeded
 }
 
@@ -844,7 +851,7 @@ func TestAccepted_MediaConnects_CancelsTheMediaTimer(t *testing.T) {
 
 func TestStart_MediaNeverConnectsAfterContactAnswers_EndsAsMediaTimeout(t *testing.T) {
 	r := newRig(t, false, nil)
-	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net"); err != nil {
+	if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net", false); err != nil {
 		t.Fatal(err)
 	}
 	eventually(t, "start", func() bool { return r.handle(0) != nil && r.handle(0).has("start") })
@@ -856,5 +863,23 @@ func TestStart_MediaNeverConnectsAfterContactAnswers_EndsAsMediaTimeout(t *testi
 	eventually(t, "call.ended", func() bool { return len(r.evs("call.ended")) == 1 })
 	if got := r.evs("call.ended")[0]["endReason"]; got != ReasonMediaTimeout {
 		t.Fatalf("endReason=%v", got)
+	}
+}
+
+// call.start com video=true tem de chegar ao gerenciador como videochamada; sem o flag segue sendo voz. O engine nunca decide
+// sozinho: o business manda.
+func TestStart_VideoFlagReachesTheHandle(t *testing.T) {
+	for _, tc := range []struct {
+		video bool
+		want  string
+	}{{true, "start:video"}, {false, "start"}} {
+		r := newRig(t, false, nil)
+		if err := r.s.Start(context.Background(), callA, "5511999990001@s.whatsapp.net", tc.video); err != nil {
+			t.Fatal(err)
+		}
+		eventually(t, tc.want, func() bool { return r.handle(0) != nil && r.handle(0).has(tc.want) })
+		if !tc.video && r.handle(0).has("start:video") {
+			t.Fatal("sem video=true a chamada não pode sair como videochamada")
+		}
 	}
 }

@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { Phone } from "lucide-react";
+import { Phone, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { t } from "@/lib/calls/t";
@@ -17,7 +17,7 @@ interface Props {
  * ou tem proxy, ou quando o operador já está em outra chamada.
  */
 const PlaceCallButton: React.FC<Props> = ({ ticket }) => {
-  const { canPlace, place, active } = useCalls();
+  const { canPlace, place, active, canSendVideo } = useCalls();
   const { whatsApps } = useContext(WhatsAppsContext);
 
   if (!canPlace) return null;
@@ -27,26 +27,47 @@ const PlaceCallButton: React.FC<Props> = ({ ticket }) => {
   const inCall = !!active && active.phase !== "ended";
   const block = placeBlock(ticket, connection, inCall);
   const label = block ? t(PLACE_BLOCK_KEY[block]) : t("calls.place.button");
+  const videoLabel = block ? label : canSendVideo ? t("calls.place.videoButton") : t("calls.place.videoUnsupported");
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex">
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={block !== null}
-            onClick={() => void place(ticket.id)}
-            aria-label={t("calls.place.button")}
-            data-testid="place-call"
-            data-block={block ?? ""}
-          >
-            <Phone />
-          </Button>
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={block !== null}
+              onClick={() => void place(ticket.id)}
+              aria-label={t("calls.place.button")}
+              data-testid="place-call"
+              data-block={block ?? ""}
+            >
+              <Phone />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={block !== null || !canSendVideo}
+              onClick={() => void place(ticket.id, true)}
+              aria-label={t("calls.place.videoButton")}
+              data-testid="place-video-call"
+              data-block={block ?? (canSendVideo ? "" : "video-unsupported")}
+            >
+              <Video />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{videoLabel}</TooltipContent>
+      </Tooltip>
+    </>
   );
 };
 

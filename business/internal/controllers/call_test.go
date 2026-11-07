@@ -22,14 +22,16 @@ import (
 )
 
 type callPub struct {
-	mu   sync.Mutex
-	cmds []string
+	mu       sync.Mutex
+	cmds     []string
+	payloads []interface{}
 }
 
 func (p *callPub) PublishCommand(key string, payload interface{}) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.cmds = append(p.cmds, key)
+	p.payloads = append(p.payloads, payload)
 	return nil
 }
 
@@ -177,6 +179,42 @@ func TestPlaceCall_Validations(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, res.Code, "operador já em chamada")
 	assert.Equal(t, "USER_BUSY", code(res))
 	assert.Equal(t, 1, w.pub.sent(".call.start"), "nenhum segundo comando")
+}
+
+// 3.1: `video: true` origina uma videochamada (registro com media=video e comando com video=true); sem o campo segue sendo voz.
+func TestPlaceCall_VideoFlag(t *testing.T) {
+	for _, tc := range []struct {
+		body      map[string]interface{}
+		wantMedia string
+		wantVideo bool
+	}{
+		{map[string]interface{}{"video": true}, "video", true},
+		{map[string]interface{}{}, "audio", false},
+	} {
+		w := newCallWorld(t)
+		u := w.user(t, "ligador", "proprio", w.tenant, "place")
+		require.NoError(t, w.db.Model(&models.Ticket{}).Where("id = ?", w.ticket.ID).Update("userId", u.ID).Error)
+		tc.body["ticketId"] = w.ticket.ID
+		res := do(w.router(u), "POST", "/calls", tc.body)
+		require.Equal(t, http.StatusAccepted, res.Code, res.Body.String())
+
+		var l models.CallLog
+		require.NoError(t, w.db.Where(`"tenantId" = ?`, w.tenant).First(&l).Error)
+		assert.Equal(t, tc.wantMedia, l.Media)
+
+		w.pub.mu.Lock()
+		defer w.pub.mu.Unlock()
+		require.NotEmpty(t, w.pub.payloads)
+		cmd, _ := json.Marshal(w.pub.payloads[len(w.pub.payloads)-1])
+		var got struct {
+			Payload struct {
+				Video bool `json:"video"`
+			} `json:"payload"`
+			Video bool `json:"video"`
+		}
+		require.NoError(t, json.Unmarshal(cmd, &got))
+		assert.Equal(t, tc.wantVideo, got.Payload.Video || got.Video, "comando ao engine: %s", cmd)
+	}
 }
 
 func TestPlaceCall_RejectedCases(t *testing.T) {
