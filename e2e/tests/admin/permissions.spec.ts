@@ -79,10 +79,10 @@ test.describe("API — RequirePermission (Atendente alcance=proprio)", () => {
         const createSetor = await atendenteApi.post("setores", { data: { name: "não-autorizado" } });
         expect(createSetor.status(), "POST /setores deve ser 403 para Atendente").toBe(403);
 
-        // PUT /whatsapp/:id é gated por connections:update ANTES do handler —
+        // PUT /channels/connections/:id é gated por connections:update ANTES do handler —
         // o 403 acontece sem sequer resolver o id (id 999999 é irrelevante).
-        const putWhatsapp = await atendenteApi.put("whatsapp/999999", { data: { name: "x" } });
-        expect(putWhatsapp.status(), "PUT /whatsapp/:id deve ser 403 para Atendente").toBe(403);
+        const putWhatsapp = await atendenteApi.put("channels/connections/999999", { data: { name: "x" } });
+        expect(putWhatsapp.status(), "PUT /channels/connections/:id deve ser 403 para Atendente").toBe(403);
 
         // Controle positivo: self-service /me não tem gate → 200.
         const me = await atendenteApi.get("me");

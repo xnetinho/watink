@@ -163,7 +163,7 @@ def run_api_smoke(base_url: str, email: str, password: str) -> list:
     protected_endpoints = [
         ("api:tickets", "/tickets"),
         ("api:contacts", "/contacts"),
-        ("api:whatsapp", "/whatsapp"),
+        ("api:connections", "/channels/connections"),
         ("api:users", "/users"),
         ("api:queue", "/queue"),
         ("api:settings", "/settings"),
