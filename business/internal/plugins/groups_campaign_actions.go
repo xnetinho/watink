@@ -59,7 +59,7 @@ func handleStartGroupCampaign() gin.HandlerFunc {
 		}
 
 		var whatsapp models.Whatsapp
-		if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).Where(`id = ?`, campaign.WhatsappID), &whatsapp); err != nil {
+		if err := models.FirstWhatsapp(db.Session(&gorm.Session{NewDB: true}).Where(`id = ?`, campaign.ChannelConnectionID), &whatsapp); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "conexão da campanha não encontrada"})
 			return
 		}
@@ -161,7 +161,7 @@ func handleTestGroupCampaign(core sdk.WatinkCore, adapter *flow.WhatsAppAdapter)
 		}
 		ticket, effectiveID, err := dispatchCampaignMessage(c.Request.Context(), db.Session(&gorm.Session{NewDB: true}), core, adapter, dispatchCampaignMessageParams{
 			TenantID:     tenantID,
-			WhatsappID:   campaign.WhatsappID,
+			WhatsappID:   campaign.ChannelConnectionID,
 			JID:          req.JID,
 			Subject:      subject,
 			CampaignName: campaign.Name,

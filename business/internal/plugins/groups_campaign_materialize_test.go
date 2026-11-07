@@ -20,7 +20,7 @@ func campaignFixture(t *testing.T, db *gorm.DB, connectedStatus string) (models.
 	c := models.GroupCampaign{
 		TenantID:          tenantID,
 		Name:              "Campanha de teste",
-		WhatsappID:        w.ID,
+		ChannelConnectionID:        w.ID,
 		Status:            models.GroupCampaignStatusScheduled,
 		ScheduleMode:      models.GroupCampaignScheduleOnce,
 		IntervalSeconds:   60,
@@ -40,7 +40,7 @@ func addVariant(t *testing.T, db *gorm.DB, c models.GroupCampaign, active bool) 
 
 func addTarget(t *testing.T, db *gorm.DB, c models.GroupCampaign, jid string) models.GroupCampaignTarget {
 	t.Helper()
-	tgt := models.GroupCampaignTarget{TenantID: c.TenantID, CampaignID: c.ID, WhatsappID: c.WhatsappID, JID: jid, Subject: "Grupo"}
+	tgt := models.GroupCampaignTarget{TenantID: c.TenantID, CampaignID: c.ID, ChannelConnectionID: c.ChannelConnectionID, JID: jid, Subject: "Grupo"}
 	require.NoError(t, db.Create(&tgt).Error)
 	return tgt
 }

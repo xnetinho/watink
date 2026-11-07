@@ -80,7 +80,7 @@ func runWithSnapshot(t *testing.T, db *gorm.DB, c models.GroupCampaign, variants
 func sendFixtureWithVariant(t *testing.T, db *gorm.DB, w models.Whatsapp, c models.GroupCampaign, run models.GroupCampaignRun, jid string, variantIndex int) models.GroupCampaignSend {
 	t.Helper()
 	s := models.GroupCampaignSend{
-		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, WhatsappID: w.ID,
+		TenantID: c.TenantID, CampaignID: c.ID, RunID: run.ID, ChannelConnectionID: w.ID,
 		JID: jid, Subject: "Grupo Teste", Status: models.GroupCampaignSendStatusPending,
 		ScheduledAt: time.Now(), VariantIndex: variantIndex, EnvID: "env-" + uuid.New().String(),
 	}

@@ -194,17 +194,17 @@ func materializeRun(tx *gorm.DB, c models.GroupCampaign, scheduledFor time.Time,
 		// segunda tabela de lookup.
 		envID := pluginWAMessageID()
 		sends = append(sends, models.GroupCampaignSend{
-			TenantID:     c.TenantID,
-			CampaignID:   c.ID,
-			RunID:        run.ID,
-			WhatsappID:   c.WhatsappID,
-			JID:          p.JID,
-			Subject:      p.Subject,
-			VariantID:    &variant.ID,
-			VariantIndex: p.VariantIndex,
-			Status:       models.GroupCampaignSendStatusPending,
-			ScheduledAt:  p.ScheduledAt,
-			EnvID:        envID,
+			TenantID:            c.TenantID,
+			CampaignID:          c.ID,
+			RunID:               run.ID,
+			ChannelConnectionID: c.ChannelConnectionID,
+			JID:                 p.JID,
+			Subject:             p.Subject,
+			VariantID:           &variant.ID,
+			VariantIndex:        p.VariantIndex,
+			Status:              models.GroupCampaignSendStatusPending,
+			ScheduledAt:         p.ScheduledAt,
+			EnvID:               envID,
 		})
 	}
 	if err := tx.CreateInBatches(sends, 200).Error; err != nil {

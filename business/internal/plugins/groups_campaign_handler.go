@@ -124,10 +124,10 @@ func handleCreateGroupCampaign() gin.HandlerFunc {
 		}
 
 		campaign := models.GroupCampaign{
-			TenantID:    tenantID,
-			Name:        req.Name,
-			Description: req.Description,
-			WhatsappID:  req.WhatsappID,
+			TenantID:            tenantID,
+			Name:                req.Name,
+			Description:         req.Description,
+			ChannelConnectionID: req.WhatsappID,
 			// POST always creates in draft, even with scheduleMode=immediate --
 			// /start is the only ignition (issue #597 acceptance criteria).
 			Status: models.GroupCampaignStatusDraft,
@@ -172,7 +172,7 @@ func handleUpdateGroupCampaign() gin.HandlerFunc {
 
 		campaign.Name = req.Name
 		campaign.Description = req.Description
-		campaign.WhatsappID = req.WhatsappID
+		campaign.ChannelConnectionID = req.WhatsappID
 		applyGroupCampaignFields(&campaign, req)
 		adjusted := clampPacing(&campaign)
 
@@ -315,12 +315,12 @@ func replaceGroupCampaignTargets(db *gorm.DB, tenantID uuid.UUID, campaignID int
 		}
 		for _, in := range inputs {
 			t := models.GroupCampaignTarget{
-				TenantID:          tenantID,
-				CampaignID:        campaignID,
-				WhatsappID:        in.WhatsappID,
-				JID:               in.JID,
-				Subject:           in.Subject,
-				IsConnectionAdmin: in.IsConnectionAdmin,
+				TenantID:            tenantID,
+				CampaignID:          campaignID,
+				ChannelConnectionID: in.WhatsappID,
+				JID:                 in.JID,
+				Subject:             in.Subject,
+				IsConnectionAdmin:   in.IsConnectionAdmin,
 			}
 			if err := tx.Create(&t).Error; err != nil {
 				return err

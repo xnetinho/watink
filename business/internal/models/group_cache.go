@@ -19,26 +19,26 @@ import (
 // per connection here would be pure bloat for a list screen that only
 // renders subject/picture/counts.
 type GroupCache struct {
-	ID                int       `gorm:"primaryKey" json:"id"`
-	TenantID          uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
-	WhatsappID          int       `gorm:"column:whatsappId;not null" json:"whatsappId,omitempty"`
-	ChannelConnectionID int       `gorm:"column:channelConnectionId;index" json:"channelConnectionId,omitempty"`
-	JID               string    `gorm:"column:jid;not null" json:"jid"`
-	Subject           string    `json:"subject"`
-	Description       string    `json:"description"`
-	Owner             string    `json:"owner"`
-	IsCommunity       bool      `gorm:"column:isCommunity" json:"isCommunity"`
-	IsSubGroup        bool      `gorm:"column:isSubGroup" json:"isSubGroup"`
-	ParentJID         string    `gorm:"column:parentJID" json:"parentJID,omitempty"`
-	Announce          bool      `json:"announce"`
-	Locked            bool      `json:"locked"`
-	MemberAddMode     string    `gorm:"column:memberAddMode" json:"memberAddMode"`
-	JoinApprovalMode  bool      `gorm:"column:joinApprovalMode" json:"joinApprovalMode"`
-	PictureURL        string    `gorm:"column:pictureURL" json:"pictureURL,omitempty"`
-	ParticipantCount  int       `gorm:"column:participantCount" json:"participantCount"`
-	IsConnectionAdmin bool      `gorm:"column:isConnectionAdmin" json:"isConnectionAdmin"`
-	CreatedAt         time.Time `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt         time.Time `gorm:"column:updatedAt" json:"updatedAt"`
+	ID       int       `gorm:"primaryKey" json:"id"`
+	TenantID uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
+	// A chave JSON segue "whatsappId" até a fatia 5 da migração (frontend): o contrato com a tela não muda neste PR.
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;not null;index" json:"whatsappId,omitempty"`
+	JID                 string    `gorm:"column:jid;not null" json:"jid"`
+	Subject             string    `json:"subject"`
+	Description         string    `json:"description"`
+	Owner               string    `json:"owner"`
+	IsCommunity         bool      `gorm:"column:isCommunity" json:"isCommunity"`
+	IsSubGroup          bool      `gorm:"column:isSubGroup" json:"isSubGroup"`
+	ParentJID           string    `gorm:"column:parentJID" json:"parentJID,omitempty"`
+	Announce            bool      `json:"announce"`
+	Locked              bool      `json:"locked"`
+	MemberAddMode       string    `gorm:"column:memberAddMode" json:"memberAddMode"`
+	JoinApprovalMode    bool      `gorm:"column:joinApprovalMode" json:"joinApprovalMode"`
+	PictureURL          string    `gorm:"column:pictureURL" json:"pictureURL,omitempty"`
+	ParticipantCount    int       `gorm:"column:participantCount" json:"participantCount"`
+	IsConnectionAdmin   bool      `gorm:"column:isConnectionAdmin" json:"isConnectionAdmin"`
+	CreatedAt           time.Time `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt           time.Time `gorm:"column:updatedAt" json:"updatedAt"`
 }
 
 func (GroupCache) TableName() string {
