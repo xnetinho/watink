@@ -336,7 +336,7 @@ func TestFlowController_Create_PersistsWhatsAppID(t *testing.T) {
 	tenantID := uuid.New()
 
 	wid := 5
-	payload, _ := json.Marshal(map[string]interface{}{"name": "Com conexao", "whatsappId": wid})
+	payload, _ := json.Marshal(map[string]interface{}{"name": "Com conexao", "connectionId": wid})
 	ctrl := NewFlowController(nil)
 	c, w := setupFlowContext(t, db, tenantID, "POST", "/flows", payload)
 	ctrl.Create(c)

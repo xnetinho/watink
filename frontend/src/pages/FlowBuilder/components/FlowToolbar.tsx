@@ -20,9 +20,9 @@ interface FlowToolbarProps {
     flowId: string | undefined;
     isActive: boolean;
     saving: boolean;
-    whatsappId: number | null;
+    connectionId: number | null;
     connections: { id: number; name: string }[];
-    onWhatsappChange: (whatsappId: number | null) => void;
+    onWhatsappChange: (connectionId: number | null) => void;
     fileInputRef: React.RefObject<HTMLInputElement>;
     onNavigateBack: () => void;
     onToggle: () => void;
@@ -39,7 +39,7 @@ export function FlowToolbar({
     flowId,
     isActive,
     saving,
-    whatsappId,
+    connectionId,
     connections,
     onWhatsappChange,
     fileInputRef,
@@ -83,7 +83,7 @@ export function FlowToolbar({
                 <div className="flex items-center gap-2 mr-1 border-r pr-3">
                     <Smartphone size={14} className="text-muted-foreground shrink-0" />
                     <Select
-                        value={whatsappId == null ? 'none' : String(whatsappId)}
+                        value={connectionId == null ? 'none' : String(connectionId)}
                         onValueChange={(v) => onWhatsappChange(v === 'none' ? null : Number(v))}
                     >
                         <SelectTrigger className="h-8 w-[180px] text-xs" title={tr("uiText.flow.toolbar.connectionTied")}>

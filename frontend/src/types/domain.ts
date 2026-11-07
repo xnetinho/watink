@@ -17,7 +17,7 @@ export interface Queue {
   prioritizeWallet: boolean;
 }
 
-/** Shape of a WhatsApp connection returned by GET /whatsapp/:id */
+/** Shape of a WhatsApp connection returned by GET /channels/connections/:id */
 export interface WhatsAppConnection {
   id: number;
   name: string;
@@ -100,7 +100,7 @@ export interface UserDetail {
   name: string;
   email: string;
   password?: string;
-  whatsappId?: number | null;
+  connectionId?: number | null;
   cargoId?: number | null;
   alcance?: string;
   queues?: UserQueue[];
@@ -116,7 +116,7 @@ export interface UserSavePayload {
   name: string;
   email: string;
   password?: string;
-  whatsappId: number | null;
+  connectionId: number | null;
 }
 
 export interface PipelineStage {

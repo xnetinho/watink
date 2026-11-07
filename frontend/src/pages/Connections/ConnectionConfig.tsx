@@ -17,7 +17,7 @@ import PresencePolicyCard from "./components/PresencePolicyCard";
 
 const ConnectionConfig = () => {
   const {
-    whatsappId,
+    connectionId,
     whatsapp,
     loading,
     stats,
@@ -71,7 +71,7 @@ const ConnectionConfig = () => {
   return (
     <PageContainer>
       <ConnectionModals
-        whatsappId={whatsappId}
+        connectionId={connectionId}
         confirmationOpen={confirmationOpen}
         confirmationAction={confirmationAction}
         onCloseConfirmation={() => setConfirmationOpen(false)}

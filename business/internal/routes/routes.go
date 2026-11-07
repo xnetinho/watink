@@ -301,17 +301,20 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 
 		// Channel Connections (Agnostic - Telegram, WhatsApp, ML, etc. - ADR 0033 / Tarefa 7.1)
 		channelConnCtrl := controllers.NewChannelConnectionController()
-		protected.GET("/channels/connections", auth.RequirePermission("connections", "read"), channelConnCtrl.ListConnections)
-		protected.GET("/channels/connections/:id", auth.RequirePermission("connections", "read"), channelConnCtrl.GetConnection)
-		protected.POST("/channels/connections", auth.RequirePermission("connections", "create"), channelConnCtrl.CreateConnection)
-		protected.PUT("/channels/connections/:id", auth.RequirePermission("connections", "update"), channelConnCtrl.UpdateConnection)
-		protected.DELETE("/channels/connections/:id", auth.RequirePermission("connections", "delete"), channelConnCtrl.DeleteConnection)
-
-		protected.GET("/connections", auth.RequirePermission("connections", "read"), channelConnCtrl.ListConnections)
-		protected.GET("/connections/:id", auth.RequirePermission("connections", "read"), channelConnCtrl.GetConnection)
-		protected.POST("/connections", auth.RequirePermission("connections", "create"), channelConnCtrl.CreateConnection)
-		protected.PUT("/connections/:id", auth.RequirePermission("connections", "update"), channelConnCtrl.UpdateConnection)
-		protected.DELETE("/connections/:id", auth.RequirePermission("connections", "delete"), channelConnCtrl.DeleteConnection)
+		connRouter := controllers.NewConnectionRouter(whatsappController, sessionController, channelConnCtrl)
+		for _, base := range []string{"/channels/connections", "/connections"} {
+			protected.GET(base, auth.RequirePermission("connections", "read"), connRouter.List)
+			protected.POST(base, auth.RequirePermission("connections", "create"), connRouter.Create)
+			protected.POST(base+"/session/restart-all", auth.RequirePermission("connections", "update"), connRouter.RestartAll())
+			protected.GET(base+"/:id", auth.RequirePermission("connections", "read"), connRouter.Get())
+			protected.PUT(base+"/:id", auth.RequirePermission("connections", "update"), connRouter.Update())
+			protected.DELETE(base+"/:id", auth.RequirePermission("connections", "delete"), connRouter.Delete())
+			protected.GET(base+"/:id/stats", auth.RequirePermission("connections", "read"), connRouter.Stats())
+			protected.PUT(base+"/:id/keepalive", auth.RequirePermission("connections", "update"), connRouter.KeepAlive())
+			protected.PUT(base+"/:id/presence-policy", auth.RequirePermission("connections", "update"), connRouter.PresencePolicy())
+			protected.POST(base+"/:id/session", auth.RequirePermission("connections", "update"), connRouter.StartSession())
+			protected.DELETE(base+"/:id/session", auth.RequirePermission("connections", "update"), connRouter.StopSession())
+		}
 
 		// Proxies (anti-ban) — mesmo domínio de acesso que as conexões
 		// (Whatsapps): gated por connections:<ação> (P2-2). Antes as rotas eram

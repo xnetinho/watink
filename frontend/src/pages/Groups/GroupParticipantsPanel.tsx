@@ -35,12 +35,12 @@ import { i18n } from "../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface GroupParticipantsPanelProps {
-    whatsappId: number;
+    connectionId: number;
     group: GroupInfo;
     onChanged: () => void;
 }
 
-const GroupParticipantsPanel: React.FC<GroupParticipantsPanelProps> = ({ whatsappId, group, onChanged }) => {
+const GroupParticipantsPanel: React.FC<GroupParticipantsPanelProps> = ({ connectionId, group, onChanged }) => {
     const [addOpen, setAddOpen] = useState(false);
     const [addRaw, setAddRaw] = useState("");
     const [addLoading, setAddLoading] = useState(false);
@@ -49,7 +49,7 @@ const GroupParticipantsPanel: React.FC<GroupParticipantsPanelProps> = ({ whatsap
 
     const runAction = async (action: "add" | "remove" | "promote" | "demote", jids: string[]) => {
         try {
-            const results = await updateParticipants(whatsappId, group.jid, action, jids);
+            const results = await updateParticipants(connectionId, group.jid, action, jids);
             setLastResults(results);
             const failed = results.filter((r) => r.status === "error");
             if (failed.length > 0) {

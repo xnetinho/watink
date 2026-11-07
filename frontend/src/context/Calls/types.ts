@@ -21,7 +21,7 @@ export type CallMedia = "audio" | "video";
 
 export interface CallEventPayload {
   callId: string;
-  whatsappId: number;
+  connectionId: number;
   direction: CallDirection;
   /** Ausente (engine anterior ao vídeo) vale "audio". */
   media?: CallMedia;
@@ -51,7 +51,7 @@ export interface ActiveCall {
   direction: CallDirection;
   media: CallMedia;
   phase: CallPhase;
-  whatsappId: number;
+  connectionId: number;
   contact: CallContactInfo;
   ticketId: number | null;
   /** Instante em que a mídia conectou de verdade: o cronômetro parte daqui. */

@@ -33,7 +33,7 @@ import { i18n } from "../../../translate/i18n";
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const ComunidadesTab: React.FC = () => {
     const navigate = useNavigate();
-    const { whatsapps, whatsappId, setWhatsappId, loadingConnections } = useGroupsConnection();
+    const { connections, connectionId, setConnectionId, loadingConnections } = useGroupsConnection();
     const [communities, setCommunities] = useState<GroupInfo[]>([]);
     const [loading, setLoading] = useState(true);
     const [apiError, setApiError] = useState<GroupsApiError | null>(null);
@@ -42,27 +42,27 @@ const ComunidadesTab: React.FC = () => {
     const [creating, setCreating] = useState(false);
 
     const fetchCommunities = useCallback(async () => {
-        if (!whatsappId) return;
+        if (!connectionId) return;
         setLoading(true);
         setApiError(null);
         try {
-            setCommunities(await listCommunities(whatsappId));
+            setCommunities(await listCommunities(connectionId));
         } catch (err) {
             setApiError(classifyGroupsApiError(err));
         } finally {
             setLoading(false);
         }
-    }, [whatsappId]);
+    }, [connectionId]);
 
     useEffect(() => {
-        if (whatsappId) fetchCommunities();
-    }, [whatsappId, fetchCommunities]);
+        if (connectionId) fetchCommunities();
+    }, [connectionId, fetchCommunities]);
 
     const handleCreate = async () => {
-        if (!whatsappId || !name.trim()) return;
+        if (!connectionId || !name.trim()) return;
         setCreating(true);
         try {
-            await createCommunity(whatsappId, name.trim());
+            await createCommunity(connectionId, name.trim());
             toast.success("Comunidade criada!");
             setCreateOpen(false);
             setName("");
@@ -78,21 +78,21 @@ const ComunidadesTab: React.FC = () => {
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2 flex-wrap">
                 <Select
-                    value={whatsappId ? String(whatsappId) : ""}
-                    onValueChange={(v) => setWhatsappId(Number(v))}
+                    value={connectionId ? String(connectionId) : ""}
+                    onValueChange={(v) => setConnectionId(Number(v))}
                 >
                     <SelectTrigger className="w-[220px]">
                         <SelectValue placeholder={tr("uiText.campaigns.selectConnectionPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                        {whatsapps.map((w) => (
+                        {connections.map((w) => (
                             <SelectItem key={w.id} value={String(w.id)}>
                                 {w.name}
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
-                <Button onClick={() => setCreateOpen(true)} disabled={!whatsappId} className="ml-auto gap-2">
+                <Button onClick={() => setCreateOpen(true)} disabled={!connectionId} className="ml-auto gap-2">
                     <Plus className="h-4 w-4" />
                     Criar comunidade
                 </Button>
@@ -104,10 +104,10 @@ const ComunidadesTab: React.FC = () => {
                         <Skeleton key={i} className="h-24 rounded-2xl" />
                     ))}
                 </div>
-            ) : whatsapps.length === 0 ? (
+            ) : connections.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6 py-16">
                     <h3 className="text-lg font-semibold">{tr("uiText.groups.noConnection")}</h3>
-                    <Button onClick={() => navigate("/connections")}>{tr("uiText.groups.goConnections")}</Button>
+                    <Button onClick={() => navigate("/channels/connections")}>{tr("uiText.groups.goConnections")}</Button>
                 </div>
             ) : apiError ? (
                 <GroupsErrorState error={apiError} />

@@ -54,7 +54,7 @@ const AssistantCreator: React.FC = () => {
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
-    const [whatsappId, setWhatsappId] = useState<string>("");
+    const [connectionId, setConnectionId] = useState<string>("");
     const [allowMultipleOnConnection, setAllowMultipleOnConnection] = useState(false);
     const [mode, setMode] = useState<AssistantMode>("persona");
     const [active, setActive] = useState(true);
@@ -92,7 +92,7 @@ const AssistantCreator: React.FC = () => {
         const loadDependencies = async () => {
             try {
                 const [wa, fl, pl, kb, gw] = await Promise.all([
-                    api.get("/whatsapp"),
+                    api.get("/channels/connections"),
                     api.get("/flows"),
                     api.get("/pipelines"),
                     api.get("/knowledge-bases"),
@@ -119,7 +119,7 @@ const AssistantCreator: React.FC = () => {
                 const a: Assistant = await getAssistant(Number(assistantId));
                 setName(a.name);
                 setDescription(a.description ?? "");
-                setWhatsappId(a.whatsappId ? String(a.whatsappId) : "");
+                setConnectionId(a.connectionId ? String(a.connectionId) : "");
                 setAllowMultipleOnConnection(a.allowMultipleOnConnection ?? false);
                 setMode(a.mode);
                 setActive(a.active);
@@ -249,7 +249,7 @@ const AssistantCreator: React.FC = () => {
             const payload = {
                 name: name.trim(),
                 description: description.trim() || undefined,
-                whatsappId: whatsappId ? Number(whatsappId) : undefined,
+                connectionId: connectionId ? Number(connectionId) : undefined,
                 allowMultipleOnConnection,
                 mode,
                 active,
@@ -340,8 +340,8 @@ const AssistantCreator: React.FC = () => {
                     <AssistantBasicInfoCard
                         name={name}
                         onNameChange={setName}
-                        whatsappId={whatsappId}
-                        onWhatsappIdChange={setWhatsappId}
+                        connectionId={connectionId}
+                        onConnectionIdChange={setConnectionId}
                         whatsapps={whatsapps}
                         description={description}
                         onDescriptionChange={setDescription}

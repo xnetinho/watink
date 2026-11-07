@@ -103,16 +103,16 @@ func (m *MockContactRepo) Update(ctx context.Context, contact *domain.Contact, f
 func (m *MockContactRepo) Find(ctx context.Context, tenantID uuid.UUID, search string, _ domain.ContactFilter) ([]domain.Contact, error) {
 	return nil, nil
 }
-func (m *MockContactRepo) FindByNumber(ctx context.Context, tenantID uuid.UUID, _ domain.ConnectionRef, number string, isGroup bool) (*domain.Contact, error) {
+func (m *MockContactRepo) FindByNumber(ctx context.Context, tenantID uuid.UUID, _ int, number string, isGroup bool) (*domain.Contact, error) {
 	return nil, nil
 }
 func (m *MockContactRepo) FindByLID(ctx context.Context, tenantID uuid.UUID, lid string, isGroup bool) (*domain.Contact, error) {
 	return nil, nil
 }
-func (m *MockContactRepo) FindOrCreate(ctx context.Context, tenantID uuid.UUID, _ domain.ConnectionRef, number, pushName, profilePicUrl string, isGroup, isLid bool, lid, _ string) (*domain.Contact, error) {
+func (m *MockContactRepo) FindOrCreate(ctx context.Context, tenantID uuid.UUID, _ int, number, pushName, profilePicUrl string, isGroup, isLid bool, lid, _ string) (*domain.Contact, error) {
 	return nil, nil
 }
-func (m *MockContactRepo) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, _ domain.ConnectionRef, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
+func (m *MockContactRepo) FindOrCreateByIdentity(ctx context.Context, tenantID uuid.UUID, _ int, channel domain.ChannelKind, externalID string, name string, avatarURL string) (*domain.Contact, *models.ContactIdentity, error) {
 	return nil, nil, nil
 }
 func (m *MockContactRepo) Create(ctx context.Context, contact *domain.Contact) error { return nil }
@@ -233,7 +233,6 @@ func TestContactController_CreateContact_Success(t *testing.T) {
 	}
 	var saved models.Contact
 	require.NoError(t, db.Where(`"tenantId" = ? AND number = ?`, tenantID, "5511003").First(&saved).Error)
-	assert.Equal(t, "whatsapp", saved.ConnectionSource)
 	assert.Equal(t, wa.ID, saved.ConnectionID, "o contato nasce ligado à conexão escolhida")
 }
 

@@ -16,7 +16,7 @@ import (
 
 type createTicketRequest struct {
 	ContactID  int    `json:"contactId" binding:"required"`
-	WhatsappID *int   `json:"whatsappId"`
+	WhatsappID *int   `json:"connectionId"`
 	QueueID    *int   `json:"queueId"`
 	Status     string `json:"status"`
 }

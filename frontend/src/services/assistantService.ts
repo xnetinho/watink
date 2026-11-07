@@ -6,7 +6,7 @@ export interface Assistant {
     id: number;
     name: string;
     description: string;
-    whatsappId: number | null;
+    connectionId: number | null;
     allowMultipleOnConnection: boolean;
     mode: AssistantMode;
     config: Record<string, unknown>;

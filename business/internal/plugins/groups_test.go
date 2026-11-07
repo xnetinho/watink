@@ -194,7 +194,7 @@ func TestGroupsPlugin_ListGroups_501WhenEngineIsNotGroupEngine(t *testing.T) {
 		handleListGroups(svc)(c)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/groups?whatsappId="+itoaTest(whatsapp.ID), nil)
+	req := httptest.NewRequest(http.MethodGet, "/groups?connectionId="+itoaTest(whatsapp.ID), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -247,7 +247,7 @@ func TestGroupsPlugin_ListGroups_HappyPath(t *testing.T) {
 		handleListGroups(svc)(c)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/groups?whatsappId="+itoaTest(whatsapp.ID), nil)
+	req := httptest.NewRequest(http.MethodGet, "/groups?connectionId="+itoaTest(whatsapp.ID), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -272,7 +272,7 @@ func TestGroupsPlugin_ListGroups_404ForOtherTenantsConnection(t *testing.T) {
 		handleListGroups(svc)(c)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/groups?whatsappId="+itoaTest(whatsapp.ID), nil)
+	req := httptest.NewRequest(http.MethodGet, "/groups?connectionId="+itoaTest(whatsapp.ID), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

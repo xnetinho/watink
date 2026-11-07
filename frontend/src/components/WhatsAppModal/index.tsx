@@ -38,11 +38,11 @@ const SessionSchema = Yup.object().shape({
 interface WhatsAppModalProps {
   open: boolean;
   onClose: () => void;
-  whatsAppId?: number | string;
+  connectionId?: number | string;
   onSaved?: () => void; // Adicionado onSaved que é passado nos consumers (ex: Connections)
 }
 
-const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProps) => {
+const WhatsAppModal = ({ open, onClose, connectionId, onSaved }: WhatsAppModalProps) => {
   const [whatsApp, setWhatsApp] = useState<WhatsAppFormValues>({
     name: "",
     isDefault: false,
@@ -73,8 +73,8 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
   }, [open]);
 
   useEffect(() => {
-    if (!whatsAppId) return;
-    api.get<WhatsAppConnection>(`/whatsapp/${whatsAppId}`)
+    if (!connectionId) return;
+    api.get<WhatsAppConnection>(`/channels/connections/${connectionId}`)
       .then(({ data }) => {
         setWhatsApp({
           name: data.name,
@@ -92,7 +92,7 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
         }
       })
       .catch(toastError);
-  }, [whatsAppId, open]);
+  }, [connectionId, open]);
 
   const handleClose = () => {
     onClose();
@@ -103,10 +103,10 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
   const handleSaveWhatsApp = async (values: WhatsAppFormValues) => {
     const payload = { ...values, queueIds: selectedQueueIds };
     try {
-      if (whatsAppId) {
-        await api.put(`/whatsapp/${whatsAppId}`, payload);
+      if (connectionId) {
+        await api.put(`/channels/connections/${connectionId}`, payload);
       } else {
-        await api.post("/whatsapp", payload);
+        await api.post("/channels/connections", { ...payload, kind: "whatsapp" });
       }
       toast.success(i18n.t("whatsappModal.success"));
       if (onSaved) onSaved(); // Chamar callback se existir
@@ -122,7 +122,7 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
         <DialogHeader>
           <div className="flex items-center gap-2">
             <DialogTitle>
-              {whatsAppId ? i18n.t("whatsappModal.title.edit") : i18n.t("whatsappModal.title.add")}
+              {connectionId ? i18n.t("whatsappModal.title.edit") : i18n.t("whatsappModal.title.add")}
             </DialogTitle>
           </div>
         </DialogHeader>
@@ -251,7 +251,7 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, onSaved }: WhatsAppModalProp
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {whatsAppId ? i18n.t("whatsappModal.buttons.okEdit") : i18n.t("whatsappModal.buttons.okAdd")}
+                  {connectionId ? i18n.t("whatsappModal.buttons.okEdit") : i18n.t("whatsappModal.buttons.okAdd")}
                 </Button>
               </DialogFooter>
             </Form>

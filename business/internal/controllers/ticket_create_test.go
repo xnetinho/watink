@@ -88,8 +88,8 @@ func TestCreateTicket_SingleConnectedConnectionIsUsed(t *testing.T) {
 		t.Fatalf("esperado 201, veio %d — %s", res.Code, res.Body.String())
 	}
 	out := decode(t, res)
-	if int(out["whatsappId"].(float64)) != wa.ID {
-		t.Fatalf("whatsappId = %v, esperado %d", out["whatsappId"], wa.ID)
+	if int(out["connectionId"].(float64)) != wa.ID {
+		t.Fatalf("connectionId = %v, esperado %d", out["connectionId"], wa.ID)
 	}
 	if int(out["userId"].(float64)) != user.ID {
 		t.Fatalf("userId deve vir do token (%d), não do body: %v", user.ID, out["userId"])
@@ -134,11 +134,11 @@ func TestCreateTicket_MultipleConnectedAsksWhichOne(t *testing.T) {
 		t.Fatalf("esperado 2 opções, veio %v", out["connections"])
 	}
 
-	res = postCreateTicket(r, map[string]interface{}{"contactId": contact.ID, "whatsappId": b.ID})
+	res = postCreateTicket(r, map[string]interface{}{"contactId": contact.ID, "connectionId": b.ID})
 	if res.Code != http.StatusCreated {
-		t.Fatalf("com whatsappId escolhido esperado 201, veio %d — %s", res.Code, res.Body.String())
+		t.Fatalf("com connectionId escolhido esperado 201, veio %d — %s", res.Code, res.Body.String())
 	}
-	if int(decode(t, res)["whatsappId"].(float64)) != b.ID {
+	if int(decode(t, res)["connectionId"].(float64)) != b.ID {
 		t.Fatalf("deveria usar a conexão escolhida (%d, não %d)", b.ID, a.ID)
 	}
 }
@@ -158,7 +158,7 @@ func TestCreateTicket_UserPreferredConnectionWins(t *testing.T) {
 	if res.Code != http.StatusCreated {
 		t.Fatalf("esperado 201, veio %d — %s", res.Code, res.Body.String())
 	}
-	if int(decode(t, res)["whatsappId"].(float64)) != b.ID {
+	if int(decode(t, res)["connectionId"].(float64)) != b.ID {
 		t.Fatalf("deveria usar a conexão preferida do usuário (%d)", b.ID)
 	}
 }
@@ -170,7 +170,7 @@ func TestCreateTicket_RequestedConnectionNotConnected(t *testing.T) {
 	seedConnection(t, db, tenantID, "on", "CONNECTED")
 	off := seedConnection(t, db, tenantID, "off", "DISCONNECTED")
 
-	res := postCreateTicket(newCreateTicketRouter(t, db, tenantID, user.ID), map[string]interface{}{"contactId": contact.ID, "whatsappId": off.ID})
+	res := postCreateTicket(newCreateTicketRouter(t, db, tenantID, user.ID), map[string]interface{}{"contactId": contact.ID, "connectionId": off.ID})
 	if res.Code != http.StatusConflict || decode(t, res)["code"] != "CONNECTION_NOT_CONNECTED" {
 		t.Fatalf("esperado 409 CONNECTION_NOT_CONNECTED, veio %d — %s", res.Code, res.Body.String())
 	}
@@ -230,7 +230,7 @@ func TestCreateTicket_ConnectionFromOtherTenantIsNotUsable(t *testing.T) {
 	userA, contactA := seedCreateTicketBase(t, db, tenantA)
 	foreign := seedConnection(t, db, tenantB, "alheia", "CONNECTED")
 
-	res := postCreateTicket(newCreateTicketRouter(t, db, tenantA, userA.ID), map[string]interface{}{"contactId": contactA.ID, "whatsappId": foreign.ID})
+	res := postCreateTicket(newCreateTicketRouter(t, db, tenantA, userA.ID), map[string]interface{}{"contactId": contactA.ID, "connectionId": foreign.ID})
 	if res.Code != http.StatusConflict {
 		t.Fatalf("conexão de outro tenant: esperado 409, veio %d — %s", res.Code, res.Body.String())
 	}

@@ -81,6 +81,7 @@ func (wc *WhatsappController) ShowWhatsapp(c *gin.Context) {
 	// Monta resposta enriquecida
 	response := map[string]interface{}{
 		"id":                  whatsappModel.ID,
+		"connectionId":        whatsappModel.ID,
 		"status":              whatsappModel.Status,
 		"name":                whatsappModel.Name,
 		"isDefault":           whatsappModel.IsDefault,
@@ -169,8 +170,12 @@ func (wc *WhatsappController) DeleteWhatsapp(c *gin.Context) {
 	}
 
 	wc.broadcast.EmitToTenantRoom(tenantID.String(), "whatsapp", gin.H{
-		"action":     "delete",
-		"whatsappId": whatsapp.ID,
+		"action":       "delete",
+		"connectionId": whatsapp.ID,
+	})
+	wc.broadcast.EmitToTenantRoom(tenantID.String(), "channelConnection", gin.H{
+		"action":       "delete",
+		"connectionId": whatsapp.ID,
 	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "WhatsApp connection deleted"})

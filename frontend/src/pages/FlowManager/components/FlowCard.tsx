@@ -59,9 +59,9 @@ const FlowCard: React.FC<FlowCardProps> = ({
           <Calendar size={12} />
           Atualizado em {new Date(flow.updatedAt).toLocaleDateString()}
         </CardDescription>
-        {flow.whatsapp && (
+        {flow.connection && (
           <CardDescription className="mt-1 text-xs">
-            Conexão: <strong>{flow.whatsapp.name}</strong>
+            Conexão: <strong>{flow.connection.name}</strong>
           </CardDescription>
         )}
       </CardHeader>

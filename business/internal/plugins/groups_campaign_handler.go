@@ -33,7 +33,7 @@ type groupCampaignVariantInput struct {
 }
 
 type groupCampaignTargetInput struct {
-	WhatsappID        int    `json:"whatsappId" binding:"required"`
+	WhatsappID        int    `json:"connectionId" binding:"required"`
 	JID               string `json:"jid" binding:"required"`
 	Subject           string `json:"subject"`
 	IsConnectionAdmin bool   `json:"isConnectionAdmin"`
@@ -42,7 +42,7 @@ type groupCampaignTargetInput struct {
 type upsertGroupCampaignRequest struct {
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
-	WhatsappID  int    `json:"whatsappId" binding:"required"`
+	WhatsappID  int    `json:"connectionId" binding:"required"`
 
 	ScheduleMode    string     `json:"scheduleMode" binding:"omitempty,oneof=immediate once recurring"`
 	StartAt         *time.Time `json:"startAt"`

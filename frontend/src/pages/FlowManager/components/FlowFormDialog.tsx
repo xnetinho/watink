@@ -83,7 +83,7 @@ const FlowFormDialog: React.FC<FlowFormDialogProps> = ({
                     <SelectItem
                       key={whatsapp.id}
                       value={String(whatsapp.id)}
-                      disabled={used && whatsapp.id !== selectedFlow?.whatsappId}
+                      disabled={used && whatsapp.id !== selectedFlow?.connectionId}
                     >
                       {whatsapp.name} {used ? tr("uiText.flowManager.inUse") : ""}
                     </SelectItem>

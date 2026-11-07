@@ -114,7 +114,7 @@ const STATUS_BADGE_VARIANT: Record<GroupCampaignStatus, "default" | "secondary" 
 
 const CampanhasTab: React.FC = () => {
     const navigate = useNavigate();
-    const { whatsapps, whatsappId, setWhatsappId, loadingConnections } = useGroupsConnection();
+    const { connections, connectionId, setConnectionId, loadingConnections } = useGroupsConnection();
     const [campaigns, setCampaigns] = useState<GroupCampaign[]>([]);
     const [loading, setLoading] = useState(true);
     const [apiError, setApiError] = useState<GroupsApiError | null>(null);
@@ -151,7 +151,7 @@ const CampanhasTab: React.FC = () => {
     }, [fetchCampaigns]);
 
     const filtered = campaigns
-        .filter((c) => !whatsappId || c.whatsappId === whatsappId)
+        .filter((c) => !connectionId || c.connectionId === connectionId)
         .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
     const applyLocalUpdate = (updated: GroupCampaign) => {
@@ -172,7 +172,7 @@ const CampanhasTab: React.FC = () => {
     };
 
     const renderCampaignCard = (c: GroupCampaign) => {
-        const connName = whatsapps.find((w) => w.id === c.whatsappId)?.name ?? tr("uiText.groups.connectionN", { id: c.whatsappId });
+        const connName = connections.find((w) => w.id === c.connectionId)?.name ?? tr("uiText.groups.connectionN", { id: c.connectionId });
         return (
             <Card
                 key={c.id}
@@ -296,14 +296,14 @@ const CampanhasTab: React.FC = () => {
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2 flex-wrap">
                 <Select
-                    value={whatsappId ? String(whatsappId) : ""}
-                    onValueChange={(v) => setWhatsappId(Number(v))}
+                    value={connectionId ? String(connectionId) : ""}
+                    onValueChange={(v) => setConnectionId(Number(v))}
                 >
                     <SelectTrigger className="w-[220px]">
                         <SelectValue placeholder={tr("uiText.campaigns.selectConnectionPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                        {whatsapps.map((w) => (
+                        {connections.map((w) => (
                             <SelectItem key={w.id} value={String(w.id)}>
                                 {w.name}
                             </SelectItem>
@@ -321,7 +321,7 @@ const CampanhasTab: React.FC = () => {
                 </div>
                 <Button
                     onClick={() => navigate("/group-campaigns/new")}
-                    disabled={!whatsappId}
+                    disabled={!connectionId}
                     className="ml-auto gap-2"
                 >
                     <Plus className="h-4 w-4" />
@@ -335,13 +335,13 @@ const CampanhasTab: React.FC = () => {
                         <Skeleton key={i} className="h-36 rounded-2xl" />
                     ))}
                 </div>
-            ) : whatsapps.length === 0 ? (
+            ) : connections.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6 py-16">
                     <h3 className="text-lg font-semibold">{tr("uiText.groups.noConnection")}</h3>
                     <p className="text-sm text-muted-foreground max-w-md">
                         {tr("uiText.groups.connectForCampaigns")}
                     </p>
-                    <Button onClick={() => navigate("/connections")}>{tr("uiText.groups.goConnections")}</Button>
+                    <Button onClick={() => navigate("/channels/connections")}>{tr("uiText.groups.goConnections")}</Button>
                 </div>
             ) : apiError ? (
                 <GroupsErrorState error={apiError} />

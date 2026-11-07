@@ -9,7 +9,6 @@ vi.mock("react-router", () => ({
 }));
 
 const mockDeleteChannel = vi.fn();
-const mockReloadChannels = vi.fn();
 
 vi.mock("../hooks/useConnections", () => ({
   useConnections: () => ({
@@ -32,7 +31,6 @@ vi.mock("../hooks/useConnections", () => ({
         config: JSON.stringify({ mode: "webhook" }),
       },
     ],
-    reloadChannelConnections: mockReloadChannels,
     handleDeleteChannelConnection: mockDeleteChannel,
     whatsAppModalOpen: false,
     webchatModalOpen: false,

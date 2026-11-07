@@ -5,7 +5,7 @@ import { TicketConnectionBadge } from "../TicketConnectionBadge";
 import { channelDefinition, CHANNELS_CATALOG } from "../../config/channels";
 import type { TicketConnection } from "../../types/Ticket";
 
-const conn = (kind: string, name: string, id = 1): TicketConnection => ({ kind, id, name, source: kind === "whatsapp" ? "whatsapp" : "channel" });
+const conn = (kind: string, name: string, id = 1): TicketConnection => ({ kind, id, name });
 
 describe("selo de identificação do ticket (canal + conexão)", () => {
   it("WhatsApp mostra o NOME da conexão (antes não mostrava nada)", () => {

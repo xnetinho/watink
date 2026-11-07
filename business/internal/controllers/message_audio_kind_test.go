@@ -28,7 +28,7 @@ func TestSendMessage_AudioKind(t *testing.T) {
 		useWhatsAppChannel(pub)
 		wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 		require.NoError(t, models.CreateWhatsapp(db, &wa))
-		ct := models.Contact{Name: "C", Number: "5511", TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
+		ct := models.Contact{Name: "C", Number: "5511", TenantID: tenant, ConnectionID: wa.ID}
 		require.NoError(t, db.Create(&ct).Error)
 		tk := models.Ticket{TenantID: tenant, ContactID: ct.ID, ChannelConnectionID: wa.ID, Status: "open"}
 		require.NoError(t, db.Create(&tk).Error)
@@ -84,7 +84,7 @@ func TestForward_AudioMantemSeEhGravacaoOuArquivo(t *testing.T) {
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	mk := func(num string) (models.Contact, models.Ticket) {
-		c := models.Contact{Name: num, Number: num, TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
+		c := models.Contact{Name: num, Number: num, TenantID: tenant, ConnectionID: wa.ID}
 		require.NoError(t, db.Create(&c).Error)
 		tk := models.Ticket{TenantID: tenant, ContactID: c.ID, ChannelConnectionID: wa.ID, Status: "open"}
 		require.NoError(t, db.Create(&tk).Error)
@@ -147,7 +147,7 @@ func TestSendMessage_DocumentoEnviaONomeOriginalEEncaminhaComOMesmoNome(t *testi
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	mk := func(num string) (models.Contact, models.Ticket) {
-		c := models.Contact{Name: num, Number: num, TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
+		c := models.Contact{Name: num, Number: num, TenantID: tenant, ConnectionID: wa.ID}
 		require.NoError(t, db.Create(&c).Error)
 		tk := models.Ticket{TenantID: tenant, ContactID: c.ID, ChannelConnectionID: wa.ID, Status: "open"}
 		require.NoError(t, db.Create(&tk).Error)
@@ -209,7 +209,7 @@ func TestForward_AudioKindEscolhidoPeloOperador(t *testing.T) {
 	wa := models.Whatsapp{Name: "WA", TenantID: tenant, Status: "CONNECTED"}
 	require.NoError(t, models.CreateWhatsapp(db, &wa))
 	mk := func(num string) (models.Contact, models.Ticket) {
-		c := models.Contact{Name: num, Number: num, TenantID: tenant, ConnectionSource: "whatsapp", ConnectionID: wa.ID}
+		c := models.Contact{Name: num, Number: num, TenantID: tenant, ConnectionID: wa.ID}
 		require.NoError(t, db.Create(&c).Error)
 		tk := models.Ticket{TenantID: tenant, ContactID: c.ID, ChannelConnectionID: wa.ID, Status: "open"}
 		require.NoError(t, db.Create(&tk).Error)

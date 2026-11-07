@@ -12,14 +12,14 @@ interface UseTransferTicketModalParams {
   modalOpen: boolean;
   onClose: () => void;
   ticketid: number | string;
-  ticketWhatsappId?: number | string;
+  ticketConnectionId?: number | string;
 }
 
 export function useTransferTicketModal({
   modalOpen,
   onClose,
   ticketid,
-  ticketWhatsappId,
+  ticketConnectionId,
 }: UseTransferTicketModalParams) {
   const navigate = useNavigate();
   const [options, setOptions] = useState<UserOption[]>([]);
@@ -30,7 +30,7 @@ export function useTransferTicketModal({
   const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
   const [selectedQueue, setSelectedQueue] = useState("");
   const [selectedWhatsapp, setSelectedWhatsapp] = useState(
-    ticketWhatsappId ? String(ticketWhatsappId) : ""
+    ticketConnectionId ? String(ticketConnectionId) : ""
   );
 
   const { data: queuesData } = useQueues();
@@ -96,7 +96,7 @@ export function useTransferTicketModal({
       }
 
       if (selectedWhatsapp && selectedWhatsapp !== "none") {
-        data.whatsappId = selectedWhatsapp;
+        data.connectionId = selectedWhatsapp;
       }
 
       await api.put(`/tickets/${ticketid}`, data);

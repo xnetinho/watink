@@ -31,9 +31,9 @@ const SessionSchema = Yup.object().shape({
   }),
 });
 
-const WebchatModal: React.FC<WebchatModalProps> = ({ open, onClose, whatsAppId, onSaved }) => {
+const WebchatModal: React.FC<WebchatModalProps> = ({ open, onClose, connectionId, onSaved }) => {
   const { whatsApp, selectedQueueIds, setSelectedQueueIds, handleSaveWhatsApp, handleClose } =
-    useWebchatModal(open, whatsAppId, onClose, onSaved);
+    useWebchatModal(open, connectionId, onClose, onSaved);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
@@ -72,7 +72,7 @@ const WebchatModal: React.FC<WebchatModalProps> = ({ open, onClose, whatsAppId, 
                 </TabsContent>
 
                 <TabsContent value="integration">
-                  <IntegrationTab whatsAppId={whatsAppId} />
+                  <IntegrationTab connectionId={connectionId} />
                 </TabsContent>
               </Tabs>
 
@@ -82,7 +82,7 @@ const WebchatModal: React.FC<WebchatModalProps> = ({ open, onClose, whatsAppId, 
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {whatsAppId
+                  {connectionId
                     ? i18n.t("whatsappModal.buttons.okEdit")
                     : i18n.t("whatsappModal.buttons.okAdd")}
                 </Button>

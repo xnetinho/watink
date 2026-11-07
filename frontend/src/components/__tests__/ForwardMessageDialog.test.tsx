@@ -11,13 +11,13 @@ import ForwardMessageDialog from "../ForwardMessageDialog";
 import { toast } from "react-toastify";
 
 const contacts = [
-  { id: 2, name: "Ana", number: "5511999990001", connectionSource: "whatsapp", connectionId: 1 },
-  { id: 3, name: "Bruno", number: "5511999990002", connectionSource: "whatsapp", connectionId: 2 },
-  { id: 9, name: "Atual", number: "5511999990009", connectionSource: "whatsapp", connectionId: 1 },
+  { id: 2, name: "Ana", number: "5511999990001", connectionId: 1 },
+  { id: 3, name: "Bruno", number: "5511999990002", connectionId: 2 },
+  { id: 9, name: "Atual", number: "5511999990009", connectionId: 1 },
 ];
 const connections = [
-  { id: 1, name: "Comercial", status: "CONNECTED" },
-  { id: 2, name: "Suporte", status: "CONNECTED" },
+  { id: 1, kind: "whatsapp", name: "Comercial", status: "CONNECTED" },
+  { id: 2, kind: "whatsapp", name: "Suporte", status: "CONNECTED" },
 ];
 
 const open = () => render(<ForwardMessageDialog open onClose={vi.fn()} messageId="m1" channel="whatsapp" currentContactId={9} />);
@@ -27,7 +27,7 @@ describe("ForwardMessageDialog (destino = contato)", () => {
     vi.clearAllMocks();
     get.mockImplementation((url: string) => {
       if (url === "/contacts") return Promise.resolve({ data: { contacts } });
-      if (url === "/whatsapp") return Promise.resolve({ data: connections });
+      if (url === "/channels/connections") return Promise.resolve({ data: connections });
       return Promise.resolve({ data: [] });
     });
     post.mockReset();

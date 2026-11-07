@@ -14,41 +14,44 @@ import { subscribeToSocket } from "../../services/sse-client";
 import toastError from "../../errors/toastError";
 import { i18n } from "../../translate/i18n";
 
-import { WhatsAppSessionSocketEvent } from "../../types/api";
+interface ChannelConnectionEvent {
+  action: string;
+  connection: { id: number | string; pairingCode?: string; status?: string };
+}
 
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface PairingCodeModalProps {
   open: boolean;
   onClose: () => void;
-  whatsAppId: number | string;
+  connectionId: number | string;
 }
 
-const PairingCodeModal = ({ open, onClose, whatsAppId }: PairingCodeModalProps) => {
+const PairingCodeModal = ({ open, onClose, connectionId }: PairingCodeModalProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [pairingCode, setPairingCode] = useState("");
 
   useEffect(() => {
-    if (!whatsAppId || !open) return;
+    if (!connectionId || !open) return;
 
-    const handleSession = (data: WhatsAppSessionSocketEvent) => {
-      if (data.action === "update" && data.session.id === whatsAppId) {
-        if (data.session.pairingCode) {
-          setPairingCode(data.session.pairingCode);
+    const handleSession = (data: ChannelConnectionEvent) => {
+      if (data.action === "update" && data.connection.id === connectionId) {
+        if (data.connection.pairingCode) {
+          setPairingCode(data.connection.pairingCode);
           setLoading(false);
         }
-        if (data.session.status === "CONNECTED") onClose();
+        if (data.connection.status === "CONNECTED") onClose();
       }
     };
 
-    return subscribeToSocket({ whatsappSession: handleSession });
-  }, [whatsAppId, open, onClose]);
+    return subscribeToSocket({ channelConnection: handleSession });
+  }, [connectionId, open, onClose]);
 
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      await api.post(`/whatsappsession/${whatsAppId}`, {
+      await api.post(`/channels/connections/${connectionId}/session`, {
         usePairingCode: true,
         phoneNumber: phoneNumber.replace(/\D/g, ""),
       });

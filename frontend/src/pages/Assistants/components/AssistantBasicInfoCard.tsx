@@ -13,8 +13,8 @@ const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i
 interface AssistantBasicInfoCardProps {
   name: string;
   onNameChange: (val: string) => void;
-  whatsappId: string;
-  onWhatsappIdChange: (val: string) => void;
+  connectionId: string;
+  onConnectionIdChange: (val: string) => void;
   whatsapps: WhatsappOption[];
   description: string;
   onDescriptionChange: (val: string) => void;
@@ -27,8 +27,8 @@ interface AssistantBasicInfoCardProps {
 export const AssistantBasicInfoCard: React.FC<AssistantBasicInfoCardProps> = ({
   name,
   onNameChange,
-  whatsappId,
-  onWhatsappIdChange,
+  connectionId,
+  onConnectionIdChange,
   whatsapps,
   description,
   onDescriptionChange,
@@ -47,7 +47,7 @@ export const AssistantBasicInfoCard: React.FC<AssistantBasicInfoCardProps> = ({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>{tr("uiText.common.connection")}</Label>
-            <Select value={whatsappId} onValueChange={onWhatsappIdChange}>
+            <Select value={connectionId} onValueChange={onConnectionIdChange}>
               <SelectTrigger>
                 <SelectValue placeholder={tr("uiText.common.select")} />
               </SelectTrigger>

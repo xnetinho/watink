@@ -8,7 +8,7 @@ import { useCalls } from "@/context/Calls/CallsContext";
 import { WhatsAppsContext } from "@/context/WhatsApp/WhatsAppsContext";
 
 interface Props {
-  ticket: PlaceInput & { id: number; whatsappId?: number };
+  ticket: PlaceInput & { id: number; connectionId?: number };
 }
 
 /**
@@ -23,7 +23,7 @@ const PlaceCallButton: React.FC<Props> = ({ ticket }) => {
   if (!canPlace) return null;
   if (ticket.isGroup || ticket.isCommunity || ticket.isSubGroup) return null;
 
-  const connection = whatsApps.find((w) => w.id === ticket.whatsappId);
+  const connection = whatsApps.find((w) => w.id === ticket.connectionId);
   const inCall = !!active && active.phase !== "ended";
   const block = placeBlock(ticket, connection, inCall);
   const label = block ? t(PLACE_BLOCK_KEY[block]) : t("calls.place.button");

@@ -32,7 +32,7 @@ func toAssistantResponse(a models.Assistant) gin.H {
 		"tenantId":                  a.TenantID,
 		"name":                      a.Name,
 		"description":               a.Description,
-		"whatsappId":                a.ChannelConnectionID,
+		"connectionId":              a.ChannelConnectionID,
 		"allowMultipleOnConnection": a.AllowMultipleOnConnection,
 		"mode":                      a.Mode,
 		"config":                    a.Config,
@@ -92,7 +92,7 @@ func (ac *AssistantController) Get(c *gin.Context) {
 type assistantInput struct {
 	Name                      string          `json:"name"`
 	Description               string          `json:"description"`
-	WhatsAppID                *int            `json:"whatsappId"`
+	WhatsAppID                *int            `json:"connectionId"`
 	AllowMultipleOnConnection bool            `json:"allowMultipleOnConnection"`
 	Mode                      string          `json:"mode"`
 	Config                    json.RawMessage `json:"config"`

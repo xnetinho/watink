@@ -9,13 +9,12 @@ import (
 )
 
 type User struct {
-	ID           int    `gorm:"primaryKey" json:"id"`
-	Name         string `gorm:"not null" json:"name"`
-	Email        string `gorm:"unique;not null" json:"email"`
-	PasswordHash string `gorm:"column:passwordHash;not null" json:"-"`
-	TokenVersion int    `gorm:"column:tokenVersion;default:0" json:"tokenVersion"`
-	// A chave JSON segue "whatsappId" até a fatia 5 da migração (frontend): o contrato com a tela não muda neste PR.
-	ChannelConnectionID *int      `gorm:"column:channelConnectionId;index" json:"whatsappId,omitempty"`
+	ID                  int       `gorm:"primaryKey" json:"id"`
+	Name                string    `gorm:"not null" json:"name"`
+	Email               string    `gorm:"unique;not null" json:"email"`
+	PasswordHash        string    `gorm:"column:passwordHash;not null" json:"-"`
+	TokenVersion        int       `gorm:"column:tokenVersion;default:0" json:"tokenVersion"`
+	ChannelConnectionID *int      `gorm:"column:channelConnectionId;index" json:"connectionId,omitempty"`
 	TenantID            uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
 	CargoID             *int      `gorm:"column:cargoId" json:"cargoId"`
 	Alcance             string    `gorm:"column:alcance;default:'proprio'" json:"alcance"`

@@ -149,7 +149,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         type: "accepted",
         payload: {
           callId,
-          whatsappId: data.whatsappId,
+          connectionId: data.connectionId,
           direction: "incoming",
           media: stateRef.current.ringing[callId]?.media,
           ticketId: data.ticketId ?? null,
@@ -178,7 +178,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { data } = await api.post("/calls", { ticketId });
       dispatch({
         type: "originate",
-        payload: { callId: data.callId, whatsappId: data.whatsappId, direction: "outgoing", ticketId, contact: { number: data.callerPn } },
+        payload: { callId: data.callId, connectionId: data.connectionId, direction: "outgoing", ticketId, contact: { number: data.callerPn } },
       });
     } catch (err) {
       notify.error(err);

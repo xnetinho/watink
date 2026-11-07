@@ -16,9 +16,7 @@ type Contact struct {
 	Number string `json:"number"`
 	// Conexão de origem: todo contato nasce de UMA conexão (importado dela, criado nela, ou vindo de mensagem dela) e
 	// ela é a que envia para ele (inclusive no encaminhamento). Mesmo telefone em duas conexões = dois contatos.
-	// ConnectionSource diz em qual tabela ConnectionID vive: "whatsapp" (Whatsapps) ou "channel" (ChannelConnections).
-	ConnectionSource string `gorm:"column:connectionSource;size:12;not null;default:'whatsapp';index:idx_contacts_connection,priority:1" json:"connectionSource"`
-	ConnectionID     int    `gorm:"column:connectionId;not null;default:0;index:idx_contacts_connection,priority:2" json:"connectionId"`
+	ConnectionID int `gorm:"column:connectionId;not null;default:0;index:idx_contacts_connection" json:"connectionId"`
 	// PhoneSync: resultado de gravar o contato na agenda do celular da conexão (só WhatsApp): "" (não se aplica),
 	// "pending", "saved" ou "failed" (PhoneSyncError explica). O contato existe no Watink em qualquer caso.
 	PhoneSync      string `gorm:"column:phoneSync;size:10;not null;default:''" json:"phoneSync"`

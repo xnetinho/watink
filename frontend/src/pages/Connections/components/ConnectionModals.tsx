@@ -9,7 +9,7 @@ import PhoneInputDialog from "./PhoneInputDialog";
 import type { ConfirmationAction } from "../connectionConfigTypes";
 
 interface ConnectionModalsProps {
-  whatsappId: string | undefined;
+  connectionId: string | undefined;
   confirmationOpen: boolean;
   confirmationAction: ConfirmationAction;
   onCloseConfirmation: () => void;
@@ -28,7 +28,7 @@ interface ConnectionModalsProps {
 }
 
 const ConnectionModals = ({
-  whatsappId,
+  connectionId,
   confirmationOpen,
   confirmationAction,
   onCloseConfirmation,
@@ -64,13 +64,13 @@ const ConnectionModals = ({
     <WhatsAppModal
       open={whatsappModalOpen}
       onClose={onCloseWhatsAppModal}
-      whatsAppId={whatsappId}
+      connectionId={connectionId}
     />
 
     <PairingCodeModal
       open={pairingModalOpen}
       onClose={onClosePairingModal}
-      whatsAppId={parseInt(whatsappId ?? "0")}
+      connectionId={parseInt(connectionId ?? "0")}
     />
 
     <PhoneInputDialog

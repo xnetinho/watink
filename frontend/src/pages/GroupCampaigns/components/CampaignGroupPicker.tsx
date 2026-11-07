@@ -13,7 +13,7 @@ import { i18n } from "../../../translate/i18n";
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 interface CampaignGroupPickerProps {
-    whatsappId: number | null;
+    connectionId: number | null;
     selected: CampaignTargetDraft[];
     onChange: (targets: CampaignTargetDraft[]) => void;
 }
@@ -26,19 +26,19 @@ function isSendable(g: GroupInfo): boolean {
     return !(g.announce && !g.isConnectionAdmin);
 }
 
-const CampaignGroupPicker: React.FC<CampaignGroupPickerProps> = ({ whatsappId, selected, onChange }) => {
+const CampaignGroupPicker: React.FC<CampaignGroupPickerProps> = ({ connectionId, selected, onChange }) => {
     const [groups, setGroups] = useState<GroupInfo[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
 
     useEffect(() => {
-        if (!whatsappId) {
+        if (!connectionId) {
             setGroups([]);
             return;
         }
         let active = true;
         setLoading(true);
-        listGroups(whatsappId)
+        listGroups(connectionId)
             .then((list) => {
                 if (active) setGroups(list);
             })
@@ -48,7 +48,7 @@ const CampaignGroupPicker: React.FC<CampaignGroupPickerProps> = ({ whatsappId, s
         return () => {
             active = false;
         };
-    }, [whatsappId]);
+    }, [connectionId]);
 
     const sendable = useMemo(() => groups.filter(isSendable), [groups]);
     const excludedCount = groups.length - sendable.length;
@@ -60,25 +60,25 @@ const CampaignGroupPicker: React.FC<CampaignGroupPickerProps> = ({ whatsappId, s
     const toggle = (g: GroupInfo) => {
         if (selectedJids.has(g.jid)) {
             onChange(selected.filter((t) => t.jid !== g.jid));
-        } else if (whatsappId) {
+        } else if (connectionId) {
             onChange([
                 ...selected,
-                { whatsappId, jid: g.jid, subject: g.subject, isConnectionAdmin: !!g.isConnectionAdmin },
+                { connectionId, jid: g.jid, subject: g.subject, isConnectionAdmin: !!g.isConnectionAdmin },
             ]);
         }
     };
 
     const selectAllFiltered = () => {
-        if (!whatsappId) return;
+        if (!connectionId) return;
         const toAdd = filtered
             .filter((g) => !selectedJids.has(g.jid))
-            .map((g) => ({ whatsappId, jid: g.jid, subject: g.subject, isConnectionAdmin: !!g.isConnectionAdmin }));
+            .map((g) => ({ connectionId, jid: g.jid, subject: g.subject, isConnectionAdmin: !!g.isConnectionAdmin }));
         onChange([...selected, ...toAdd]);
     };
 
     const clearSelection = () => onChange([]);
 
-    if (!whatsappId) {
+    if (!connectionId) {
         return <p className="text-sm text-muted-foreground">{tr("uiText.campaigns.selectConnectionForGroups")}</p>;
     }
 

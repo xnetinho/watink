@@ -49,5 +49,5 @@ func ConnectionOf(db *gorm.DB, connectionID int) (models.TicketConnectionInfo, b
 	if err := db.Session(&gorm.Session{NewDB: true}).Select("id", "kind", "name", "avatarUrl").Where("id = ?", connectionID).First(&c).Error; err != nil {
 		return models.TicketConnectionInfo{}, false
 	}
-	return models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, Source: models.ConnectionSource(c.Kind), ProfilePicUrl: c.AvatarURL}, true
+	return models.TicketConnectionInfo{Kind: c.Kind, ID: c.ID, Name: c.Name, ProfilePicUrl: c.AvatarURL}, true
 }

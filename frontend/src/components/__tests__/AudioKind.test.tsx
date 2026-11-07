@@ -44,12 +44,12 @@ describe("isAudioFile / voiceOf", () => {
   });
 });
 
-const contacts = [{ id: 2, name: "Ana", number: "5511999990001", connectionSource: "whatsapp", connectionId: 1 }];
+const contacts = [{ id: 2, name: "Ana", number: "5511999990001", connectionId: 1 }];
 
 describe("encaminhar áudio: escolha de como enviar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    get.mockImplementation((url: string) => Promise.resolve({ data: url === "/contacts" ? { contacts } : url === "/whatsapp" ? [{ id: 1, name: "Comercial", status: "CONNECTED" }] : [] }));
+    get.mockImplementation((url: string) => Promise.resolve({ data: url === "/contacts" ? { contacts } : url === "/channels/connections" ? [{ id: 1, kind: "whatsapp", name: "Comercial", status: "CONNECTED" }] : [] }));
     post.mockResolvedValue({ data: { results: [{ contactId: 2, ok: true }] } });
   });
 

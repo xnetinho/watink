@@ -114,7 +114,7 @@ describe("Agnostic Channel and Capabilities UI (Tarefa 7.3)", () => {
           id: 21, status: "open", updatedAt: new Date().toISOString(), unreadMessages: 0, lastMessage: "oi", isGroup: false,
           createdAt: new Date().toISOString(), contactId: 201, contact: { id: 201, name: "Cliente", number: "5511999990001" },
           channel: "whatsapp",
-          connection: { kind: "whatsapp", id: 2, name: "Comercial", source: "whatsapp" },
+          connection: { kind: "whatsapp", id: 2, name: "Comercial" },
         } as Ticket}
       />,
     );
@@ -130,7 +130,7 @@ describe("Agnostic Channel and Capabilities UI (Tarefa 7.3)", () => {
           id: 22, status: "open", updatedAt: new Date().toISOString(), unreadMessages: 0, lastMessage: "oi", isGroup: false,
           createdAt: new Date().toISOString(), contactId: 202, contact: { id: 202, name: "Cliente TG", number: "" },
           channel: "telegram",
-          connection: { kind: "telegram", id: 2, name: "Jarvis", source: "channel" },
+          connection: { kind: "telegram", id: 2, name: "Jarvis" },
         } as Ticket}
       />,
     );

@@ -23,12 +23,11 @@ import (
 // database.go addCustomIndexes -- declared here too so testutil.NewTestDB
 // (AutoMigrate only) enforces it in tests.
 type GroupCampaignSend struct {
-	ID         int64     `gorm:"primaryKey" json:"id"`
-	TenantID   uuid.UUID `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
-	CampaignID int       `gorm:"column:campaignId;not null" json:"campaignId"`
-	RunID      int       `gorm:"column:runId;not null;uniqueIndex:idx_group_campaign_sends_run_jid" json:"runId"`
-	// A chave JSON segue "whatsappId" até a fatia 5 da migração (frontend): o contrato com a tela não muda neste PR.
-	ChannelConnectionID int        `gorm:"column:channelConnectionId;not null;index" json:"whatsappId"`
+	ID                  int64      `gorm:"primaryKey" json:"id"`
+	TenantID            uuid.UUID  `gorm:"column:tenantId;type:uuid;not null" json:"tenantId"`
+	CampaignID          int        `gorm:"column:campaignId;not null" json:"campaignId"`
+	RunID               int        `gorm:"column:runId;not null;uniqueIndex:idx_group_campaign_sends_run_jid" json:"runId"`
+	ChannelConnectionID int        `gorm:"column:channelConnectionId;not null;index" json:"connectionId"`
 	JID                 string     `gorm:"column:jid;not null;uniqueIndex:idx_group_campaign_sends_run_jid" json:"jid"`
 	Subject             string     `gorm:"column:subject" json:"subject,omitempty"`
 	VariantID           *int       `gorm:"column:variantId" json:"variantId,omitempty"`

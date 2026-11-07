@@ -21,8 +21,8 @@ type Ticket struct {
 	UnreadMessages  int       `gorm:"column:unreadMessages" json:"unreadMessages"`
 	QueueID         *int      `gorm:"column:queueId" json:"queueId"`
 	TenantID        uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
-	// A conexão do ticket em ChannelConnections. A chave JSON segue "whatsappId" até a fatia 5 (frontend).
-	ChannelConnectionID int       `gorm:"column:channelConnectionId;not null;index:idx_tickets_channel_conn;constraint:OnDelete:CASCADE" json:"whatsappId"`
+	// A conexão do ticket em ChannelConnections.
+	ChannelConnectionID int       `gorm:"column:channelConnectionId;not null;index:idx_tickets_channel_conn;constraint:OnDelete:CASCADE" json:"connectionId"`
 	ConversationKey     string    `gorm:"column:conversationKey;size:255;index:idx_tickets_conv_key" json:"conversationKey,omitempty"`
 	CreatedAt           time.Time `gorm:"column:createdAt" json:"createdAt"`
 	UpdatedAt           time.Time `gorm:"column:updatedAt" json:"updatedAt"`
@@ -50,20 +50,10 @@ func (Ticket) TableName() string {
 }
 
 // TicketConnectionInfo espelha domain.TicketConnection no modelo (o pacote models não importa domain).
-// ConnectionSource é o valor de TicketConnectionInfo.Source: a tela ainda identifica a conexão pelo par (origem, id) e só a fatia 5
-// da migração o elimina. O WhatsApp devolve "whatsapp"; os demais canais, "channel".
-func ConnectionSource(kind string) string {
-	if kind == KindWhatsApp {
-		return "whatsapp"
-	}
-	return "channel"
-}
-
 type TicketConnectionInfo struct {
-	Kind   string `json:"kind"`
-	ID     int    `json:"id"`
-	Name   string `json:"name"`
-	Source string `json:"source"`
+	Kind string `json:"kind"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 	// ProfilePicUrl é a foto da conexão (hoje só o WhatsApp tem: a do número pareado). Vazia, a tela usa as iniciais.
 	ProfilePicUrl string `json:"profilePicUrl,omitempty"`
 }

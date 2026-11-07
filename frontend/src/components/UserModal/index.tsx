@@ -28,8 +28,8 @@ const UserModal: React.FC<UserModalProps> = ({ open, onClose, userId }) => {
     setSelectedQueueIds,
     showPassword,
     setShowPassword,
-    whatsappId,
-    setWhatsappId,
+    connectionId,
+    setConnectionId,
     whatsApps,
     whatsAppsLoading,
     handleClose,
@@ -81,8 +81,8 @@ const UserModal: React.FC<UserModalProps> = ({ open, onClose, userId }) => {
                   !whatsAppsLoading && (
                     <WhatsAppSelect
                       whatsApps={whatsApps}
-                      whatsappId={whatsappId}
-                      onChange={setWhatsappId}
+                      connectionId={connectionId}
+                      onChange={setConnectionId}
                     />
                   )
                 }

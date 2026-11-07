@@ -27,7 +27,7 @@ import { i18n } from "../../../translate/i18n";
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
 const GruposTab: React.FC = () => {
     const navigate = useNavigate();
-    const { whatsapps, whatsappId, setWhatsappId, loadingConnections } = useGroupsConnection();
+    const { connections, connectionId, setConnectionId, loadingConnections } = useGroupsConnection();
     const [groups, setGroups] = useState<GroupInfo[]>([]);
     const [loading, setLoading] = useState(true);
     const [apiError, setApiError] = useState<GroupsApiError | null>(null);
@@ -35,21 +35,21 @@ const GruposTab: React.FC = () => {
     const [createOpen, setCreateOpen] = useState(false);
 
     const fetchGroups = useCallback(async () => {
-        if (!whatsappId) return;
+        if (!connectionId) return;
         setLoading(true);
         setApiError(null);
         try {
-            setGroups(await listGroups(whatsappId));
+            setGroups(await listGroups(connectionId));
         } catch (err) {
             setApiError(classifyGroupsApiError(err));
         } finally {
             setLoading(false);
         }
-    }, [whatsappId]);
+    }, [connectionId]);
 
     useEffect(() => {
-        if (whatsappId) fetchGroups();
-    }, [whatsappId, fetchGroups]);
+        if (connectionId) fetchGroups();
+    }, [connectionId, fetchGroups]);
 
     const filtered = groups.filter((g) => g.subject.toLowerCase().includes(search.toLowerCase()));
     const adminGroups = filtered.filter((g) => g.isConnectionAdmin);
@@ -91,14 +91,14 @@ const GruposTab: React.FC = () => {
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2 flex-wrap">
                 <Select
-                    value={whatsappId ? String(whatsappId) : ""}
-                    onValueChange={(v) => setWhatsappId(Number(v))}
+                    value={connectionId ? String(connectionId) : ""}
+                    onValueChange={(v) => setConnectionId(Number(v))}
                 >
                     <SelectTrigger className="w-[220px]">
                         <SelectValue placeholder={tr("uiText.campaigns.selectConnectionPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                        {whatsapps.map((w) => (
+                        {connections.map((w) => (
                             <SelectItem key={w.id} value={String(w.id)}>
                                 {w.name}
                             </SelectItem>
@@ -114,7 +114,7 @@ const GruposTab: React.FC = () => {
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <Button onClick={() => setCreateOpen(true)} disabled={!whatsappId} className="ml-auto gap-2">
+                <Button onClick={() => setCreateOpen(true)} disabled={!connectionId} className="ml-auto gap-2">
                     <Plus className="h-4 w-4" />
                     Criar grupo
                 </Button>
@@ -126,13 +126,13 @@ const GruposTab: React.FC = () => {
                         <Skeleton key={i} className="h-28 rounded-2xl" />
                     ))}
                 </div>
-            ) : whatsapps.length === 0 ? (
+            ) : connections.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-4 h-full text-center px-6 py-16">
                     <h3 className="text-lg font-semibold">{tr("uiText.groups.noConnection")}</h3>
                     <p className="text-sm text-muted-foreground max-w-md">
                         {tr("uiText.groups.connectForGroups")}
                     </p>
-                    <Button onClick={() => navigate("/connections")}>{tr("uiText.groups.goConnections")}</Button>
+                    <Button onClick={() => navigate("/channels/connections")}>{tr("uiText.groups.goConnections")}</Button>
                 </div>
             ) : apiError ? (
                 <GroupsErrorState error={apiError} />
@@ -186,10 +186,10 @@ const GruposTab: React.FC = () => {
                 </Tabs>
             )}
 
-            {whatsappId && (
+            {connectionId && (
                 <CreateGroupDialog
                     open={createOpen}
-                    whatsappId={whatsappId}
+                    connectionId={connectionId}
                     onClose={() => setCreateOpen(false)}
                     onCreated={() => {
                         setCreateOpen(false);

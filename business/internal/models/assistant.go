@@ -19,9 +19,8 @@ type Assistant struct {
 	Name        string    `gorm:"not null" json:"name"`
 	Description string    `gorm:"default:''" json:"description"`
 
-	// A chave JSON segue "whatsappId" até a fatia 5 da migração (frontend): o contrato com a tela não muda neste PR.
-	ChannelConnectionID       *int               `gorm:"column:channelConnectionId;index" json:"whatsappId,omitempty"`
-	Whatsapp                  *ChannelConnection `gorm:"foreignKey:ChannelConnectionID;references:ID" json:"whatsapp,omitempty"`
+	ChannelConnectionID       *int               `gorm:"column:channelConnectionId;index" json:"connectionId,omitempty"`
+	Whatsapp                  *ChannelConnection `gorm:"foreignKey:ChannelConnectionID;references:ID" json:"connection,omitempty"`
 	AllowMultipleOnConnection bool               `gorm:"column:allowMultipleOnConnection;default:false" json:"allowMultipleOnConnection"`
 
 	Mode   string         `gorm:"not null" json:"mode"` // pipeline|flow|persona|router

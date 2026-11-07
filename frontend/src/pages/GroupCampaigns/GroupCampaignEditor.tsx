@@ -68,7 +68,7 @@ const GroupCampaignEditor: React.FC = () => {
     const isMounted = useRef(true);
     useEffect(() => () => { isMounted.current = false; }, []);
 
-    const { whatsapps, whatsappId, setWhatsappId, loadingConnections } = useGroupsConnection();
+    const { connections, connectionId, setConnectionId, loadingConnections } = useGroupsConnection();
 
     const [loading, setLoading] = useState(isEdit);
     const [submitting, setSubmitting] = useState(false);
@@ -96,7 +96,7 @@ const GroupCampaignEditor: React.FC = () => {
                 if (!isMounted.current) return;
                 setName(data.name);
                 setDescription(data.description ?? "");
-                setWhatsappId(data.whatsappId);
+                setConnectionId(data.connectionId);
                 setRiskAckAt(data.riskAckAt);
                 // Editar um draft re-exige o aceite (issue #600 AC); campanhas
                 // já disparadas mantêm o aceite histórico marcado.
@@ -119,7 +119,7 @@ const GroupCampaignEditor: React.FC = () => {
                 setCaptureWindowMinutes(data.captureWindowMinutes);
                 setTargets(
                     data.targets.map((t) => ({
-                        whatsappId: t.whatsappId,
+                        connectionId: t.connectionId,
                         jid: t.jid,
                         subject: t.subject ?? "",
                         isConnectionAdmin: t.isConnectionAdmin,
@@ -160,7 +160,7 @@ const GroupCampaignEditor: React.FC = () => {
     const previewVariant = variants.find((v) => v.localId === previewVariantId) ?? variants[0];
 
     const buildInput = (): UpsertGroupCampaignInput | null => {
-        if (!whatsappId) {
+        if (!connectionId) {
             notify.warning(tr("uiText.campaigns.selectConnection"));
             return null;
         }
@@ -184,7 +184,7 @@ const GroupCampaignEditor: React.FC = () => {
         return {
             name: name.trim(),
             description: description.trim(),
-            whatsappId,
+            connectionId,
             scheduleMode: schedule.scheduleMode,
             startAt: schedule.scheduleMode === "once" && schedule.startAt ? new Date(schedule.startAt).toISOString() : undefined,
             recurrenceRule: schedule.scheduleMode === "recurring" ? schedule.recurrenceRule : undefined,
@@ -311,15 +311,15 @@ const GroupCampaignEditor: React.FC = () => {
                                     <div className="space-y-1.5">
                                         <Label>{tr("uiText.common.connection")}</Label>
                                         <Select
-                                            value={whatsappId ? String(whatsappId) : ""}
-                                            onValueChange={(v) => setWhatsappId(Number(v))}
+                                            value={connectionId ? String(connectionId) : ""}
+                                            onValueChange={(v) => setConnectionId(Number(v))}
                                             disabled={loadingConnections || isEdit}
                                         >
                                             <SelectTrigger className="w-[280px]">
                                                 <SelectValue placeholder={tr("uiText.campaigns.selectConnectionPlaceholder")} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {whatsapps.map((w) => (
+                                                {connections.map((w) => (
                                                     <SelectItem key={w.id} value={String(w.id)}>
                                                         {w.name}
                                                     </SelectItem>
@@ -345,7 +345,7 @@ const GroupCampaignEditor: React.FC = () => {
                                 <CardContent className="p-5 space-y-4">
                                     <SectionTitle>Grupos</SectionTitle>
                                     <CampaignGroupPicker
-                                        whatsappId={whatsappId}
+                                        connectionId={connectionId}
                                         selected={targets}
                                         onChange={setTargets}
                                     />
