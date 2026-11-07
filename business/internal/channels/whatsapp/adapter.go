@@ -330,7 +330,7 @@ var (
 
 func (a *Adapter) React(_ context.Context, conn *models.ChannelConnection, to, targetMsgID string, targetFromMe bool, reaction string) error {
 	return a.command(conn, wbot.CommandMessageReact, map[string]interface{}{
-		"messageId": newMessageID(), "to": to, "targetMsgId": targetMsgID, "targetFromMe": targetFromMe, "reaction": reaction,
+		"messageId": newMessageID(), "to": to, "targetMsgId": domain.WhatsAppMessageID(targetMsgID), "targetFromMe": targetFromMe, "reaction": reaction,
 	})
 }
 

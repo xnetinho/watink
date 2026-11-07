@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
+
 	"github.com/google/uuid"
 )
 
@@ -18,8 +20,19 @@ func (el *EventListener) handleMessageReaction(ctx context.Context, payload json
 		return nil
 	}
 
-	msg, err := el.messages.FindByID(ctx, p.MessageID, tenantID)
-	if err != nil || msg == nil {
+	// O WhatsApp chama o registro de chamada pelo call-id; no Watink ele é "call:<call-id>": tenta os dois ids.
+	var msg *domain.Message
+	for _, id := range domain.WatinkMessageIDs(p.MessageID) {
+		m, err := el.messages.FindByID(ctx, id, tenantID)
+		if err != nil {
+			return nil
+		}
+		if m != nil {
+			msg = m
+			break
+		}
+	}
+	if msg == nil {
 		return nil
 	}
 
