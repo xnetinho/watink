@@ -81,18 +81,23 @@ const IncomingCallCard: React.FC<Props> = ({ call, now, connection, docked }) =>
         </p>
       )}
 
-      <div className="flex items-center gap-1.5 px-3 pb-3 pt-2.5">
-        <Button size="sm" className="flex-1" onClick={() => void accept(call.callId)} disabled={busy} data-testid="accept-call">
+      {/* Atender e Recusar dividem a linha; Ignorar fica numa linha própria. Os três lado a lado precisam de ~292 px e o rodapé da lista de
+          tickets dá 273 px (a coluna é fixa em 290): o último botão era cortado pelo overflow do cartão. */}
+      <div className="grid grid-cols-2 gap-1.5 px-3 pt-2.5">
+        <Button size="sm" className="min-w-0" onClick={() => void accept(call.callId)} disabled={busy} data-testid="accept-call">
           <Phone />
           {t("calls.incoming.accept")}
         </Button>
-        <Button size="sm" variant="destructive" className="flex-1" onClick={() => void reject(call.callId)} data-testid="reject-call">
+        <Button size="sm" variant="destructive" className="min-w-0" onClick={() => void reject(call.callId)} data-testid="reject-call">
           <PhoneOff />
           {t("calls.incoming.reject")}
         </Button>
+      </div>
+      <div className="px-3 pb-3 pt-1.5">
         <Button
           size="sm"
           variant="ghost"
+          className="w-full"
           onClick={() => ignore(call.callId)}
           disabled={call.ignored}
           title={t("calls.incoming.ignoreHint")}

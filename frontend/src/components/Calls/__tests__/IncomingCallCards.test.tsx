@@ -94,6 +94,27 @@ describe("cartões de chamada recebida", () => {
   });
 });
 
+// O rodapé da lista de tickets dá ~273 px ao cartão. Os três botões lado a lado precisam de ~292 px e o último era cortado pelo overflow do cartão
+// (medido no navegador). jsdom não calcula largura, então o teste guarda a estrutura que evita o corte: Ignorar em linha própria, em largura total.
+describe("layout dos botões (sem corte no rodapé de 290 px)", () => {
+  it("Atender e Recusar dividem uma linha e Ignorar fica sozinho em outra, em largura total", () => {
+    renderCards(makeCtx({ ringing: [ring()] }));
+    const accept = screen.getByTestId("accept-call");
+    const reject = screen.getByTestId("reject-call");
+    const ignore = screen.getByTestId("ignore-call");
+    expect(accept.parentElement).toBe(reject.parentElement);
+    expect(ignore.parentElement).not.toBe(accept.parentElement);
+    expect(ignore.parentElement?.children).toHaveLength(1);
+    expect(ignore.className).toContain("w-full");
+    expect(accept.parentElement?.className).toContain("grid-cols-2");
+  });
+
+  it("o botão de Ignorar mantém a largura total também quando o texto vira 'Toque silenciado'", () => {
+    renderCards(makeCtx({ ringing: [ring({ ignored: true })] }));
+    expect(screen.getByTestId("ignore-call").className).toContain("w-full");
+  });
+});
+
 describe("aparelho do chamador", () => {
   it.each([
     ["android", "Android"],
