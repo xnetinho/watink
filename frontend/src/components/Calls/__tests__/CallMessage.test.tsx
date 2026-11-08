@@ -120,3 +120,20 @@ describe("CallMessage", () => {
   });
 });
 
+
+describe("CallMessage: aparelho do chamador", () => {
+  it("chamada recebida mostra o aparelho declarado, sem til", () => {
+    render(<CallMessage dataJson={data({ platform: "android" })} />);
+    const m = screen.getByTestId("call-message");
+    expect(m).toHaveTextContent("Android");
+    expect(m.textContent).not.toContain("~");
+  });
+  it("chamada que fizemos não mostra aparelho (o chamador somos nós)", () => {
+    render(<CallMessage dataJson={data({ direction: "outgoing", platform: "android" })} />);
+    expect(screen.getByTestId("call-message")).not.toHaveTextContent("Android");
+  });
+  it("sem plataforma, ou desconhecida, não mostra", () => {
+    render(<CallMessage dataJson={data({ platform: "windows" })} />);
+    expect(screen.getByTestId("call-message")).not.toHaveTextContent("windows");
+  });
+});

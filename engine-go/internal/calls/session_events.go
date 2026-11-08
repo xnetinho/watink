@@ -51,10 +51,10 @@ func (s *Session) OnOffer(ctx context.Context, evt *events.CallOffer) {
 	isVideo := hasChild(evt.Data, "video")
 	switch {
 	case !evt.GroupJID.IsEmpty():
-		s.missed(callID, peer, pn, ReasonUnsupportedType)
+		s.missed(callID, peer, pn, ReasonUnsupportedType, evt.RemotePlatform, evt.RemoteVersion)
 		return
 	case s.proxied:
-		s.missed(callID, peer, pn, ReasonProxyBlocked)
+		s.missed(callID, peer, pn, ReasonProxyBlocked, evt.RemotePlatform, evt.RemoteVersion)
 		return
 	}
 
@@ -62,9 +62,9 @@ func (s *Session) OnOffer(ctx context.Context, evt *events.CallOffer) {
 	if s.get(callID) != nil {
 		return
 	}
-	ac := &activeCall{id: callID, incoming: true, peer: peer, callerPn: pn, offerDone: make(chan struct{})}
+	ac := &activeCall{id: callID, incoming: true, peer: peer, callerPn: pn, platform: evt.RemotePlatform, version: evt.RemoteVersion, offerDone: make(chan struct{})}
 	if !s.register(ac) {
-		s.missed(callID, peer, pn, ReasonBusy)
+		s.missed(callID, peer, pn, ReasonBusy, evt.RemotePlatform, evt.RemoteVersion)
 		return
 	}
 	ac.h = s.newHandle(s.sock)
@@ -84,6 +84,7 @@ func (s *Session) OnOffer(ctx context.Context, evt *events.CallOffer) {
 	}
 	s.emit("call.incoming", map[string]interface{}{
 		"callId": callID, "peer": peer, "callerPn": pn, "direction": "incoming", "media": mediaKind,
+		"platform": evt.RemotePlatform, "version": evt.RemoteVersion,
 	})
 }
 
@@ -95,7 +96,7 @@ func (s *Session) OnOfferNotice(ctx context.Context, evt *events.CallOfferNotice
 		return
 	}
 	creator := creatorOf(evt.BasicCallMeta)
-	s.missed(evt.CallID, creator.String(), s.callerPN(ctx, evt.CallCreator, evt.CallCreatorAlt), ReasonUnsupportedType)
+	s.missed(evt.CallID, creator.String(), s.callerPN(ctx, evt.CallCreator, evt.CallCreatorAlt), ReasonUnsupportedType, "", "")
 }
 
 func (s *Session) onReadyTimeout(ac *activeCall) {
@@ -106,7 +107,7 @@ func (s *Session) onReadyTimeout(ac *activeCall) {
 		return
 	}
 	s.run(ac, func() { ac.h.Abandon(ReasonNoOperator) })
-	s.missed(ac.id, ac.peer, ac.callerPn, ReasonNoOperator)
+	s.missed(ac.id, ac.peer, ac.callerPn, ReasonNoOperator, ac.platform, ac.version)
 }
 
 func (s *Session) onRingTimeout(ac *activeCall) {

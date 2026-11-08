@@ -211,3 +211,15 @@ ignoradas ou o operador entra em chamada. Ignorar NÃO recusa: o chamador segue 
 pouco do celular; (2) "Em espera + atender" com outra chamada em curso não existe (o protocolo talvez não permita); (3) o estado "ignorado" vive só no
 navegador (recarregar a página reabre o som da oferta que ainda toca); (4) a prioridade de quem toca (servidor) ainda não foi feita.
 
+**Entregue (3 de 4): aparelho do chamador (8/nov/2026).** O whatsmeow já entrega `CallOffer.RemotePlatform/RemoteVersion` (lê `platform` e `version` do
+`<offer>`); o engine os descartava. Agora o engine os repassa em `call.incoming` e `call.missed`, o business os grava em `CallLogs`
+(`callerPlatform`, `callerVersion`) e o cartão de chamada e o registro de chamada no chat mostram o aparelho (`Android`, `iPhone`, `Web`, `WhatsApp
+Business (Android)`...). **Sem o `~`**: ao contrário do selo da mensagem (estimado pelo formato do id), aqui o valor é **declarado pelo WhatsApp**. Valores
+vistos no `lt`: `android`, `web` (dispositivo `:84`, versão `2.3000.x`) e `iphone` (não `ios`); o protocolo lista também `smba`, `smbi`, `ipad`,
+`darwin`, `uwp`. Só essas plataformas são gravadas e mostradas (o valor vem do aparelho do chamador, então nunca vira texto livre); versão só com dígitos e
+pontos. Só em chamada **recebida**.
+
+**Limites:** (1) o aviso de grupo (`offer_notice`) não traz plataforma (`CallOfferNotice` não tem `CallRemoteMeta`), então nesses registros o aparelho fica
+vazio; (2) só `android`, `web` e `iphone` foram vistos de verdade, as demais vêm do catálogo do protocolo; (3) chamadas antigas (antes deste PR) ficam sem
+aparelho; (4) coluna nova só no modelo GORM (regra do projeto); no `lt` foi criada à mão com o mesmo DDL.
+

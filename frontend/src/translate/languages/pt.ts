@@ -5,6 +5,16 @@ const messages = {
         title: "Chamadas",
         menu: "Chamadas",
         unknownContact: "Contato sem nome",
+        platform: {
+          android: "Android",
+          iphone: "iPhone",
+          web: "Web",
+          smba: "WhatsApp Business (Android)",
+          smbi: "WhatsApp Business (iPhone)",
+          ipad: "iPad",
+          darwin: "Mac",
+          uwp: "Windows",
+        },
         incoming: {
           title: "Chamada de voz recebida",
           connection: "Conexão",

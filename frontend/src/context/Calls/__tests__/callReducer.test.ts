@@ -277,3 +277,12 @@ describe("toque como convite (cartão não bloqueante)", () => {
     expect(s.active?.phase).toBe("connecting");
   });
 });
+
+describe("aparelho do chamador no estado", () => {
+  it("a oferta guarda a plataforma declarada; vazia vira ausente", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: { ...incoming("A"), platform: "iphone" }, now: 1 });
+    expect(s.ringing.A.platform).toBe("iphone");
+    s = callsReducer(s, { type: "incoming", payload: { ...incoming("B"), platform: "" }, now: 2 });
+    expect(s.ringing.B.platform).toBeUndefined();
+  });
+});

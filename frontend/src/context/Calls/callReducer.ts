@@ -41,6 +41,7 @@ function fromPayload(p: CallEventPayload, phase: CallPhase): ActiveCall {
     connectionId: p.connectionId,
     contact: p.contact ?? {},
     ticketId: p.ticketId ?? null,
+    platform: p.platform || undefined,
     connectedAt: null,
     muted: false,
     camera: false,

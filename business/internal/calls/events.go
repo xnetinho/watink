@@ -36,6 +36,38 @@ type IncomingEvent struct {
 	Reason    string `json:"reason"`
 	// Media: audio | video. O engine de antes do vídeo não manda o campo: vale audio.
 	Media string `json:"media"`
+	// Platform e Version: o aparelho que o chamador declarou no <offer>. Vazios quando o engine é anterior a este campo.
+	Platform string `json:"platform"`
+	Version  string `json:"version"`
+}
+
+// callerPlatforms são as plataformas que o protocolo do WhatsApp declara (whatsmeow, PatchDebugData_Platform) e que já vimos chegar.
+// Só elas são gravadas: o valor vem do aparelho do chamador e nunca pode virar texto livre no banco nem na tela.
+var callerPlatforms = map[string]bool{
+	"android": true, "iphone": true, "web": true, "smba": true, "smbi": true, "ipad": true, "darwin": true, "uwp": true,
+}
+
+// NormalizeCallerPlatform devolve a plataforma em minúsculas se for conhecida, ou "" (desconhecida, vazia ou lixo).
+func NormalizeCallerPlatform(p string) string {
+	p = strings.ToLower(strings.TrimSpace(p))
+	if callerPlatforms[p] {
+		return p
+	}
+	return ""
+}
+
+// normalizeCallerVersion mantém só o que parece versão (dígitos e pontos, até 32): é texto do aparelho do chamador.
+func normalizeCallerVersion(v string) string {
+	v = strings.TrimSpace(v)
+	if len(v) > 32 {
+		return ""
+	}
+	for _, r := range v {
+		if (r < '0' || r > '9') && r != '.' {
+			return ""
+		}
+	}
+	return v
 }
 
 // mediaOf normaliza o tipo de mídia do evento: só "video" é vídeo, qualquer outra coisa é voz.
@@ -155,6 +187,7 @@ func (s *Service) HandleIncoming(ctx context.Context, tenantID uuid.UUID, raw js
 	l, created, err := s.upsertLog(ctx, tenantID, &models.CallLog{
 		CallID: ev.CallID, ChannelConnectionID: connID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "incoming", Media: mediaOf(ev.Media), Status: StatusRinging, PeerJid: ev.Peer, CallerPn: ev.CallerPn, StartedAt: s.now(),
+		CallerPlatform: NormalizeCallerPlatform(ev.Platform), CallerVersion: normalizeCallerVersion(ev.Version),
 	})
 	if err != nil {
 		return err
@@ -210,7 +243,7 @@ func (s *Service) command(ctx context.Context, tenantID uuid.UUID, connectionID 
 func (s *Service) callPayload(l *models.CallLog, c *domain.Contact, t *domain.Ticket) map[string]interface{} {
 	return map[string]interface{}{
 		"callId": l.CallID, "connectionId": l.ChannelConnectionID, "direction": l.Direction, "status": l.Status,
-		"media": l.Media, "contact": c, "ticketId": l.TicketID, "startedAt": l.StartedAt,
+		"media": l.Media, "contact": c, "ticketId": l.TicketID, "startedAt": l.StartedAt, "platform": l.CallerPlatform,
 	}
 }
 
@@ -232,6 +265,7 @@ func (s *Service) HandleMissed(ctx context.Context, tenantID uuid.UUID, raw json
 		CallID: ev.CallID, ChannelConnectionID: waID, ContactID: &contact.ID, TicketID: &ticket.ID,
 		Direction: "incoming", Status: StatusMissed, PeerJid: ev.Peer, CallerPn: ev.CallerPn,
 		StartedAt: s.now(), EndReason: ev.Reason,
+		CallerPlatform: NormalizeCallerPlatform(ev.Platform), CallerVersion: normalizeCallerVersion(ev.Version),
 	})
 	if err != nil {
 		return err

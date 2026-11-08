@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { t } from "@/lib/calls/t";
 import { displayName } from "@/lib/calls/format";
 import { ringRemaining, ringSecondsLeft } from "@/lib/calls/ringCard";
+import { callerPlatformKey } from "@/lib/calls/platform";
 import { useCalls } from "@/context/Calls/CallsContext";
 import type { ActiveCall } from "@/context/Calls/types";
 
@@ -31,6 +32,7 @@ const IncomingCallCard: React.FC<Props> = ({ call, now, connection, docked }) =>
   const isVideo = call.media === "video";
   const left = ringRemaining(call.ringingSince, now);
   const secs = ringSecondsLeft(call.ringingSince, now);
+  const platformKey = callerPlatformKey(call.platform);
 
   return (
     <div
@@ -51,9 +53,11 @@ const IncomingCallCard: React.FC<Props> = ({ call, now, connection, docked }) =>
             {isVideo && <Video className="h-3 w-3 shrink-0" aria-hidden="true" />}
             {isVideo ? t("calls.incoming.videoTitle") : t("calls.incoming.title")}
           </p>
-          {connection && (
+          {(connection || platformKey) && (
             <p className="truncate text-[11px] text-muted-foreground">
-              {t("calls.incoming.connection")}: {connection}
+              {connection && `${t("calls.incoming.connection")}: ${connection}`}
+              {connection && platformKey && " · "}
+              {platformKey && <span data-testid="caller-platform" data-platform={call.platform}>{t(platformKey)}</span>}
             </p>
           )}
         </div>

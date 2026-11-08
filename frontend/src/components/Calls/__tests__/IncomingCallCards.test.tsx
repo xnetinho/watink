@@ -94,6 +94,32 @@ describe("cartões de chamada recebida", () => {
   });
 });
 
+describe("aparelho do chamador", () => {
+  it.each([
+    ["android", "Android"],
+    ["iphone", "iPhone"],
+    ["web", "Web"],
+    ["smba", "WhatsApp Business (Android)"],
+  ])("chamada de %s mostra %s, sem o til de estimativa (é declarado pelo WhatsApp)", (platform, label) => {
+    renderCards(makeCtx({ ringing: [ring({ platform })] }));
+    const el = screen.getByTestId("caller-platform");
+    expect(el).toHaveTextContent(label);
+    expect(el.textContent).not.toContain("~");
+  });
+
+  it("junto da conexão, separados por ponto", () => {
+    renderCards(makeCtx({ ringing: [ring({ platform: "iphone" })] }));
+    expect(screen.getByTestId("incoming-call-card")).toHaveTextContent("Conexão: Vendas · iPhone");
+  });
+
+  it("sem plataforma, ou com valor desconhecido, não mostra nada", () => {
+    renderCards(makeCtx({ ringing: [ring()] }));
+    expect(screen.queryByTestId("caller-platform")).not.toBeInTheDocument();
+    renderCards(makeCtx({ ringing: [ring({ callId: "X", platform: "<b>x</b>" })] }));
+    expect(screen.queryByText("<b>x</b>")).not.toBeInTheDocument();
+  });
+});
+
 describe("tempo do toque", () => {
   // O relógio do cartão anda de 1 em 1 s a partir da montagem; os segundos restantes arredondam para cima. Por isso o teste confere
   // faixas e a tendência (cai, chega a zero e não passa), não o milissegundo exato.
