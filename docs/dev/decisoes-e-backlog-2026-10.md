@@ -210,6 +210,7 @@ ignoradas ou o operador entra em chamada. Ignorar NÃO recusa: o chamador segue 
 **Limites conhecidos:** (1) os 45 s são medidos no navegador a partir do `call.incoming`; o engine não manda relógio, então a barra pode divergir um
 pouco do celular; (2) "Em espera + atender" com outra chamada em curso não existe (o protocolo talvez não permita); (3) o estado "ignorado" vive só no
 navegador (recarregar a página reabre o som da oferta que ainda toca); (4) a prioridade de quem toca (servidor) ainda não foi feita.
+
 **Entregue (2 de 4): Ligar de volta (8/nov/2026).** Botão no próprio registro de chamada, como no WhatsApp Web, usando o `POST /calls` que já existe (sem
 tabela, tarefa nem pendência). Aparece só na chamada **recebida** que ninguém atendeu (`missed`, `rejected`, `failed`, `interrupted`), nunca na que
 fizemos. Mesmas regras de bloqueio do botão de telefone (conexão desconectada, proxy, operador já em chamada), com o motivo no tooltip; a chamada
