@@ -641,7 +641,7 @@ técnicas (BOM) e tabelas de preço extras, ativados em Configurações > Plugin
 **Invariants:**
 - **Expandir e Contrair:** modelo de dados é aditivo; o canal WhatsApp mantém seu comportamento original inalterado durante toda a fase de expansão.
 - `ContactIdentity(tenantId, channel, externalId)` desacopla o contato humano de um número de telefone/JID.
-- `Ticket.conversationKey` abstrai o identificador da conversa (contato no Telegram/WhatsApp, pedido no Mercado Livre, anúncio na OLX).
+- `Ticket.conversationKey` abstrai o identificador da conversa (contato no Telegram/WhatsApp, pedido no Mercado Livre, anúncio na OLX). **Sempre com o prefixo do canal** (`wa:<contato>`, `tg:<chat_id>`...), montada por função do `domain`; canal novo acrescenta a sua linha no ADR 0040.
 - Toda rota de webhook externa valida assinatura criptográfica/segredo específico por conexão.
 - Canais REST/Webhook rodam nativamente no `business`; `engine-go` permanece exclusivo para socket/VoIP do WhatsApp.
 

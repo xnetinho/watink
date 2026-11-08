@@ -64,7 +64,7 @@ func TestPluginSendTicketMessage_AgnosticChannelDispatch(t *testing.T) {
 		TenantID:            tenantID,
 		ContactID:           contact.ID,
 		ChannelConnectionID: conn.ID,
-		ConversationKey:     "tg_chat_1",
+		ConversationKey:     domain.TelegramConversationKey(1),
 		Status:              "open",
 	}
 	require.NoError(t, db.Create(&ticket).Error)

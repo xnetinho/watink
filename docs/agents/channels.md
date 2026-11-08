@@ -36,7 +36,8 @@ POST /webhooks/channels/:kind/:connectionId  (HMAC / segredo por conexão)
    - Um `Contact` pode possuir N `ContactIdentity` (`tenantId`, `channel`, `externalId`).
    - Vínculo manual ou explícito entre contatos de canais diferentes; nunca unificação automática por suposição.
 3. **Chave de Conversa (`conversationKey`)**:
-   - Em canais centrados em pessoa (WhatsApp, Telegram, Instagram): `conversationKey` mapeia o identificador do contato.
+   - Em canais centrados em pessoa (WhatsApp, Telegram, Instagram): `conversationKey` mapeia o identificador do contato ou do chat.
+   - **Toda chave leva o prefixo do canal** (`wa:<contato>`, `tg:<chat_id>`...), montada por uma função do `domain` e traduzida de volta pelo adaptador: a plataforma nunca vê o prefixo. Tabela dos canais e como acrescentar um novo: **ADR 0040**.
    - Em canais centrados em transação/objeto (Mercado Livre, OLX): `conversationKey` representa o pedido (`pack_id`/`order_id`) ou o anúncio (`ad_id`), permitindo múltiplos tickets independentes com o mesmo comprador.
 4. **Regras de Resposta no Servidor (`ReplyPolicy`)**:
    - Restrições de tempo ou iniciativa de resposta (janela de 24h no Instagram, 48h úteis no Mercado Livre) são avaliadas pelo backend (`CanReply`) e expostas ao frontend.

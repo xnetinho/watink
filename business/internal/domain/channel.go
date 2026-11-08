@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -328,3 +330,21 @@ func (r *ChannelRegistry) List() []Channel {
 // WhatsAppConversationKey é a chave da conversa de um contato no WhatsApp: o id do contato. O contato já unifica o telefone e o
 // LID do mesmo interlocutor (ContactRepository.FindOrCreate), então a chave não muda quando o WhatsApp alterna o endereço.
 func WhatsAppConversationKey(contactID int) string { return fmt.Sprintf("wa:%d", contactID) }
+
+// TelegramConversationKey é a chave da conversa no Telegram: o chat_id do chat. Em conversa privada ele vale o user_id da pessoa; em grupo,
+// supergrupo e canal é outro número (negativo), que é o que distingue a conversa da pessoa que escreve nela.
+func TelegramConversationKey(chatID int64) string { return fmt.Sprintf("tg:%d", chatID) }
+
+// TelegramChatID volta da chave para o chat_id que a Bot API espera no envio. ok é falso se a chave não é do Telegram (sem o prefixo "tg:")
+// ou se o resto não é um número.
+func TelegramChatID(key string) (int64, bool) {
+	rest, found := strings.CutPrefix(key, "tg:")
+	if !found {
+		return 0, false
+	}
+	id, err := strconv.ParseInt(rest, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return id, true
+}

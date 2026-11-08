@@ -39,7 +39,7 @@ _Avoid_: Instância, WABA, conexão WhatsApp (quando abranger múltiplos canais)
 **ContactIdentity**: Identidade externa de um Contact em um canal específico (`channel`, `externalId`). Permite que um mesmo Contact humano possua múltiplas identidades em canais distintos.
 _Avoid_: Número, JID (como chave primária universal)
 
-**conversationKey**: Chave de roteamento que define "a mesma conversa" dentro de um canal — tipicamente o contato direto, mas podendo representar um pedido específico (Mercado Livre) ou um anúncio (OLX).
+**conversationKey**: Chave de roteamento que define "a mesma conversa" dentro de um canal — tipicamente o contato direto, mas podendo representar um pedido específico (Mercado Livre) ou um anúncio (OLX). Sempre com o prefixo do canal (`wa:`, `tg:`...); ver ADR 0040.
 _Avoid_: ID de chat, número de telefone
 
 **Capabilities / ReplyPolicy**: Definição em dado das funcionalidades suportadas pelo canal (suporte a mídia, grupos, limite de caracteres) e das restrições de janela de resposta (ex.: janela de 24h).

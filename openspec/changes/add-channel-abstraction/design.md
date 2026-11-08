@@ -96,7 +96,7 @@ identidades `whatsapp`; os índices únicos atuais ficam até a paridade ser pro
 
 | Canal | `conversationKey` |
 |---|---|
-| WhatsApp, Telegram, Instagram, TikTok | o `externalId` do contato (1 por pessoa, como hoje) |
+| WhatsApp, Telegram, Instagram, TikTok | o identificador do contato ou do chat, **com o prefixo do canal** (`wa:`, `tg:`, `ig:`, `tt:`; ADR 0040) |
 | **Mercado Livre** | `pack_id` (ou `order_id`): **1 ticket por pedido** |
 | **OLX** | `listId`:`chatId` (1 ticket por anúncio) |
 
