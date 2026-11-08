@@ -175,3 +175,21 @@ cortado"), o do aparelho cede o lugar.
 (`3EB0` + 16 hex) não casam e não ganham selo, o que é o desejado; (3) iPhone e Android antigos, Desktop e mensagens de grupo não foram
 testados; (4) um cliente de terceiros que use o prefixo `3EB0` pode aparecer como Web.
 
+## Reação ao registro de chamada (7/nov/2026)
+
+**O registro de chamada TEM suporte a reação no WhatsApp** (o dono verificou no celular). Eu havia afirmado o contrário e abri o #169 para tirar a
+faixa de reações do menu; o dono o fez fechar sem merge. A reação não funcionava por outro motivo: **descasamento de id**.
+
+**Prova (diagnóstico no engine, `lt`, 7/nov/2026, 23:32 a 23:33):** o alvo (`key.id`) de uma reação feita no celular a um registro de chamada era
+exatamente o `call-id` (`00FC188D...`), em claro (não cifrada). O Watink guarda o registro como `call:<call-id>`. Dois defeitos, um em cada sentido:
+(1) **recebida**: `handleMessageReaction` fazia `FindByID("<call-id>")`, não achava `call:<call-id>` e descartava a reação em silêncio; (2) **enviada**:
+`ReactToMessage` mandava `targetMsgId = "call:<call-id>"` ao WhatsApp, que não conhece esse id, e o celular não mostrava a reação.
+
+**Correção:** `domain.CallMessageID`, `WhatsAppMessageID` e `WatinkMessageIDs` concentram a convenção. O adaptador manda o `call-id` ao WhatsApp e o evento
+de reação tenta o id do WhatsApp e o do registro. Testes: `TestHandleMessageReaction_ReacaoAoRegistroDeChamadaAcha_CallPrefixado` e
+`TestWhatsAppAdapter_React_RegistroDeChamadaUsaOCallIdDoWhatsApp` (ambos falham sem a correção).
+
+**Não verificado / fora do escopo:** (1) o WhatsApp NÃO enviou o registro de chamada como mensagem (`callLogMesssage`) ao aparelho vinculado, então não há
+outro id a descobrir; (2) outros eventos que usam o id da mensagem (edição, revogação, recibo) não passam por essa tradução; para o registro de chamada
+não se aplicam, mas não foram testados; (3) o teste ponta a ponta no celular depende do dono.
+

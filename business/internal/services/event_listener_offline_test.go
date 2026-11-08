@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
@@ -340,5 +341,35 @@ func TestHandleJIDRegistered_InvalidJSON(t *testing.T) {
 	err := handleJIDRegistered(context.Background(), sr, json.RawMessage(`{bad`), uuid.New())
 	if err == nil {
 		t.Error("expected error for invalid JSON")
+	}
+}
+
+// byIDRepo só conhece as mensagens pelo id exato, como o banco: o registro de chamada é guardado como "call:<call-id>".
+type byIDRepo struct {
+	mockMessageRepo
+	byID map[string]*domain.Message
+}
+
+func (r *byIDRepo) FindByID(_ context.Context, id string, _ uuid.UUID) (*domain.Message, error) {
+	return r.byID[id], nil
+}
+
+// O WhatsApp identifica o registro de chamada só pelo call-id (alvo da reação feita no celular, verificado no lt em 7/nov/2026), mas o
+// Watink o guarda como "call:<call-id>". Sem tentar os dois ids a reação era descartada em silêncio.
+func TestHandleMessageReaction_ReacaoAoRegistroDeChamadaAcha_CallPrefixado(t *testing.T) {
+	const callID = "00FC188DC5567E7BEAB455F5826BE1CE"
+	msg := &domain.Message{ID: "call:" + callID, TicketID: 1, Reactions: "[]"}
+	repo := &byIDRepo{byID: map[string]*domain.Message{msg.ID: msg}}
+	el := &EventListener{messages: repo, broadcast: domain.BroadcastOrNop(nil)}
+
+	payload, _ := json.Marshal(map[string]interface{}{"messageId": callID, "reaction": "❤️", "sender": "202530038505654@lid", "fromMe": true, "timestamp": 1794092000})
+	if err := el.handleMessageReaction(context.Background(), payload, uuid.New()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !repo.updated {
+		t.Fatal("a reação à chamada precisa ser gravada")
+	}
+	if !strings.Contains(msg.Reactions, "❤️") {
+		t.Fatalf("reação não gravada: %q", msg.Reactions)
 	}
 }

@@ -56,3 +56,19 @@ func TestWhatsAppAdapter_Send_CitacaoComPreviaEEncaminhamento(t *testing.T) {
 	_, p = sentPayload(t, domain.OutboundMessage{ExternalID: "5511999990000@s.whatsapp.net", Body: "x", Forward: &domain.ForwardRef{AsNew: true}})
 	assert.NotContains(t, p, "forwarded", "copiar como nova não leva o selo")
 }
+
+// O Watink guarda o registro de chamada como "call:<call-id>"; o WhatsApp só conhece o <call-id>. A reação ao registro tem de mirar o id
+// do WhatsApp, senão o celular não acha a mensagem e a reação não aparece.
+func TestWhatsAppAdapter_React_RegistroDeChamadaUsaOCallIdDoWhatsApp(t *testing.T) {
+	pub := &mockPublisher{}
+	a := whatsapp.NewAdapter(nil, pub)
+	conn := &models.ChannelConnection{ID: 3, TenantID: uuid.New()}
+
+	require.NoError(t, a.React(context.Background(), conn, "5511999990000@s.whatsapp.net", "call:00FC188DC5567E7BEAB455F5826BE1CE", false, "❤️"))
+	p := pub.lastPayload["payload"].(map[string]interface{})
+	assert.Equal(t, "00FC188DC5567E7BEAB455F5826BE1CE", p["targetMsgId"])
+
+	require.NoError(t, a.React(context.Background(), conn, "5511999990000@s.whatsapp.net", "3EB0ABC", false, "👍"))
+	p = pub.lastPayload["payload"].(map[string]interface{})
+	assert.Equal(t, "3EB0ABC", p["targetMsgId"], "mensagem comum não muda")
+}

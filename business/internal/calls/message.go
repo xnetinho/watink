@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/google/uuid"
 )
 
 // callMessageID é o id da mensagem de sistema de uma chamada: determinístico,
 // para a reentrega do mesmo evento nunca criar uma segunda mensagem.
-func callMessageID(callID string) string { return "call:" + callID }
+func callMessageID(callID string) string { return domain.CallMessageID(callID) }
 
 // callBody é o texto curto que aparece no preview do ticket.
 func callBody(l *models.CallLog) string {
