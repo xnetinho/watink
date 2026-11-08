@@ -193,3 +193,21 @@ de reação tenta o id do WhatsApp e o do registro. Testes: `TestHandleMessageRe
 outro id a descobrir; (2) outros eventos que usam o id da mensagem (edição, revogação, recibo) não passam por essa tradução; para o registro de chamada
 não se aplicam, mas não foram testados; (3) o teste ponta a ponta no celular depende do dono.
 
+## Toque de chamada como convite, não como interrupção (8/nov/2026)
+
+**Problema (dono):** o toque era um `Dialog` modal que cobria a tela e obrigava o atendente a aceitar ou recusar na hora, mesmo no meio de outro
+atendimento.
+
+**Decisões (dono):** (1) cartão ancorado no rodapé da lista de tickets, como o WhatsApp Web; (2) "Ligar de volta" como ação no registro de chamada
+perdida; (3) ordem: cartão, ligar de volta, plataforma do chamador, prioridade de quem toca; (4) **Ignorar silencia o toque e mantém o cartão na tela até
+a chamada acabar** (`call.ended`, por qualquer motivo); (5) fora de `/tickets` o cartão flutua no canto inferior esquerdo, com a mesma largura.
+
+**Entregue neste PR (1 de 4):** `IncomingCallCards` substitui `IncomingCallModal`. Cartão com Atender, Recusar e Ignorar, barra e contagem dos 45 s,
+conexão, tipo (voz/vídeo), aviso de navegador sem vídeo e aviso "você está em outra chamada" (Atender bloqueado, Recusar e Ignorar livres). Encaixa no
+rodapé da lista de tickets (a lista encolhe) ou flutua. Mostra até 2 cartões (os mais antigos) e conta o resto. Som único: para quando todas foram
+ignoradas ou o operador entra em chamada. Ignorar NÃO recusa: o chamador segue ouvindo tocar e outro atendente pode atender.
+
+**Limites conhecidos:** (1) os 45 s são medidos no navegador a partir do `call.incoming`; o engine não manda relógio, então a barra pode divergir um
+pouco do celular; (2) "Em espera + atender" com outra chamada em curso não existe (o protocolo talvez não permita); (3) o estado "ignorado" vive só no
+navegador (recarregar a página reabre o som da oferta que ainda toca); (4) a prioridade de quem toca (servidor) ainda não foi feita.
+

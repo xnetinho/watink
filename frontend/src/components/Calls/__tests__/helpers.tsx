@@ -56,6 +56,7 @@ export function makeCtx(over: Partial<CallsContextValue> = {}): CallsContextValu
     paused: false,
     accept: vi.fn(async () => undefined),
     reject: vi.fn(async () => undefined),
+    ignore: vi.fn(),
     place: vi.fn(async () => undefined),
     end: vi.fn(async () => undefined),
     setMuted: vi.fn(),

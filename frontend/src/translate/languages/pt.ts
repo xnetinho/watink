@@ -12,6 +12,10 @@ const messages = {
           videoUnsupported: "Este navegador não mostra vídeo: a chamada será atendida só com áudio. Use o Chrome, o Edge ou o Brave para ver a imagem.",
           accept: "Atender",
           reject: "Recusar",
+          ignore: "Ignorar",
+          ignoreHint: "Silencia o toque. A chamada continua tocando para o contato e só some quando acabar.",
+          silenced: "Toque silenciado",
+          busy: "Você está em outra chamada.",
         },
         active: {
           calling: "Chamando…",

@@ -30,6 +30,8 @@ export interface CallsContextValue {
   paused: boolean;
   accept: (callId: string) => Promise<void>;
   reject: (callId: string) => Promise<void>;
+  /** Silencia o toque desta oferta sem recusá-la: o cartão fica até a chamada acabar. */
+  ignore: (callId: string) => void;
   place: (ticketId: number, video?: boolean) => Promise<void>;
   end: () => Promise<void>;
   setMuted: (muted: boolean) => void;
@@ -61,6 +63,7 @@ export const CallsContext = createContext<CallsContextValue>({
   paused: false,
   accept: noop,
   reject: noop,
+  ignore: () => undefined,
   place: noop,
   end: noop,
   setMuted: () => undefined,
@@ -236,6 +239,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const dismiss = useCallback(() => dispatch({ type: "dismiss" }), []);
+  const ignore = useCallback((callId: string) => dispatch({ type: "ignore", callId }), []);
 
   const active = state.active;
   const onFailure = useCallback((reason: AudioFailure) => {
@@ -411,6 +415,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       paused: state.paused,
       accept,
       reject,
+      ignore,
       place,
       end,
       setMuted,
@@ -425,7 +430,7 @@ export const CallsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStream,
       applyDeviceSettings,
     }),
-    [state, canReceive, canPlace, active, accept, reject, place, end, setMuted, setCamera, canSendVideo, setPaused, startRecording, stopRecording, dismiss, audio.levels, videoSink, localStream, applyDeviceSettings],
+    [state, canReceive, canPlace, active, accept, reject, ignore, place, end, setMuted, setCamera, canSendVideo, setPaused, startRecording, stopRecording, dismiss, audio.levels, videoSink, localStream, applyDeviceSettings],
   );
 
   return <CallsContext.Provider value={value}>{children}</CallsContext.Provider>;

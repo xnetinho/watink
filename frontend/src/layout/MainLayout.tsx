@@ -17,6 +17,7 @@ import PageTransition from "../components/PageTransition";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { useThemeContext } from "../context/DarkMode";
 import { CallsProvider } from "../context/Calls/CallsContext";
+import { CallCardDockProvider } from "../components/Calls/CallCardDock";
 import CallsOverlay from "../components/Calls/CallsOverlay";
 
 import { i18n } from "../translate/i18n";
@@ -209,6 +210,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <TooltipProvider>
       <CallsProvider>
+        <CallCardDockProvider>
         <div className="flex h-screen w-full bg-background overflow-hidden">
           {/* Sidebar */}
           <MainSidebar
@@ -243,6 +245,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {/* Chamadas de voz: toque e tela da chamada, em qualquer página */}
           <CallsOverlay />
         </div>
+        </CallCardDockProvider>
       </CallsProvider>
     </TooltipProvider>
   );

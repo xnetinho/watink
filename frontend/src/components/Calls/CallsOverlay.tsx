@@ -4,7 +4,7 @@ import { WhatsAppsContext } from "@/context/WhatsApp/WhatsAppsContext";
 import { check } from "@/components/Can";
 import { AuthContext } from "@/context/Auth/AuthContext";
 import { useCalls } from "@/context/Calls/CallsContext";
-import IncomingCallModal from "./IncomingCallModal";
+import IncomingCallCards from "./IncomingCallCards";
 import ActiveCallPanel from "./ActiveCallPanel";
 
 interface RecordingConfig {
@@ -39,7 +39,7 @@ const CallsOverlay: React.FC = () => {
 
   return (
     <>
-      {canReceive && <IncomingCallModal connectionName={(id) => whatsApps.find((w) => w.id === id)?.name} />}
+      {canReceive && <IncomingCallCards connectionName={(id) => whatsApps.find((w) => w.id === id)?.name} />}
       <ActiveCallPanel recordingAvailable={rec.available} recordingMode={rec.mode} />
     </>
   );
