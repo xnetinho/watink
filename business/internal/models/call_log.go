@@ -26,6 +26,10 @@ type CallLog struct {
 	// PeerJid/CallerPn identificam o chamador mesmo quando ainda não há contato.
 	PeerJid  string `gorm:"column:peerJid" json:"peerJid"`
 	CallerPn string `gorm:"column:callerPn" json:"callerPn"`
+	// CallerPlatform e CallerVersion: o aparelho que o chamador declarou no <offer> (android, iphone, web, smba...), só em chamada recebida.
+	// Vazio quando o WhatsApp não informou ou veio um valor desconhecido (ver calls.NormalizeCallerPlatform).
+	CallerPlatform string `gorm:"column:callerPlatform;size:16;not null;default:''" json:"callerPlatform"`
+	CallerVersion  string `gorm:"column:callerVersion;size:32;not null;default:''" json:"callerVersion"`
 
 	StartedAt   time.Time  `gorm:"column:startedAt;not null;index:idx_calllogs_tenant_started,priority:2" json:"startedAt"`
 	AnsweredAt  *time.Time `gorm:"column:answeredAt" json:"answeredAt"`

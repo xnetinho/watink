@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import api from "@/services/api";
 import toastError from "@/errors/toastError";
 import { t } from "@/lib/calls/t";
+import { callerPlatformKey } from "@/lib/calls/platform";
 import {
   callDurationLabel,
   callTitleKey,
@@ -41,6 +42,8 @@ const CallMessage: React.FC<{ dataJson: unknown; body?: string; ticketId?: numbe
   if (!d) return <span className="text-sm">{body}</span>;
 
   const duration = callDurationLabel(d);
+  // O aparelho do chamador só existe em chamada recebida; é declarado pelo WhatsApp (sem "~": não é estimativa).
+  const platformKey = d.direction === "incoming" ? callerPlatformKey(d.platform) : null;
   const rec = recordingView(d);
   const reason = d.endReason ? t(`calls.endReason.${d.endReason}`) : "";
 
@@ -72,7 +75,7 @@ const CallMessage: React.FC<{ dataJson: unknown; body?: string; ticketId?: numbe
         <div className="min-w-0">
           <p className="text-sm font-semibold leading-tight">{t(callTitleKey(d))}</p>
           <p className="text-xs text-muted-foreground">
-            {[duration && `${t("calls.message.duration")}: ${duration}`, d.handledByName && `${t("calls.message.handledBy")} ${d.handledByName}`]
+            {[duration && `${t("calls.message.duration")}: ${duration}`, d.handledByName && `${t("calls.message.handledBy")} ${d.handledByName}`, platformKey && t(platformKey)]
               .filter(Boolean)
               .join(" · ")}
           </p>

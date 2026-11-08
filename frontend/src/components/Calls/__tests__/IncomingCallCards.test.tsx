@@ -94,6 +94,53 @@ describe("cartões de chamada recebida", () => {
   });
 });
 
+// O rodapé da lista de tickets dá ~273 px ao cartão. Os três botões lado a lado precisam de ~292 px e o último era cortado pelo overflow do cartão
+// (medido no navegador). jsdom não calcula largura, então o teste guarda a estrutura que evita o corte: Ignorar em linha própria, em largura total.
+describe("layout dos botões (sem corte no rodapé de 290 px)", () => {
+  it("Atender e Recusar dividem uma linha e Ignorar fica sozinho em outra, em largura total", () => {
+    renderCards(makeCtx({ ringing: [ring()] }));
+    const accept = screen.getByTestId("accept-call");
+    const reject = screen.getByTestId("reject-call");
+    const ignore = screen.getByTestId("ignore-call");
+    expect(accept.parentElement).toBe(reject.parentElement);
+    expect(ignore.parentElement).not.toBe(accept.parentElement);
+    expect(ignore.parentElement?.children).toHaveLength(1);
+    expect(ignore.className).toContain("w-full");
+    expect(accept.parentElement?.className).toContain("grid-cols-2");
+  });
+
+  it("o botão de Ignorar mantém a largura total também quando o texto vira 'Toque silenciado'", () => {
+    renderCards(makeCtx({ ringing: [ring({ ignored: true })] }));
+    expect(screen.getByTestId("ignore-call").className).toContain("w-full");
+  });
+});
+
+describe("aparelho do chamador", () => {
+  it.each([
+    ["android", "Android"],
+    ["iphone", "iPhone"],
+    ["web", "Web"],
+    ["smba", "WhatsApp Business (Android)"],
+  ])("chamada de %s mostra %s, sem o til de estimativa (é declarado pelo WhatsApp)", (platform, label) => {
+    renderCards(makeCtx({ ringing: [ring({ platform })] }));
+    const el = screen.getByTestId("caller-platform");
+    expect(el).toHaveTextContent(label);
+    expect(el.textContent).not.toContain("~");
+  });
+
+  it("junto da conexão, separados por ponto", () => {
+    renderCards(makeCtx({ ringing: [ring({ platform: "iphone" })] }));
+    expect(screen.getByTestId("incoming-call-card")).toHaveTextContent("Conexão: Vendas · iPhone");
+  });
+
+  it("sem plataforma, ou com valor desconhecido, não mostra nada", () => {
+    renderCards(makeCtx({ ringing: [ring()] }));
+    expect(screen.queryByTestId("caller-platform")).not.toBeInTheDocument();
+    renderCards(makeCtx({ ringing: [ring({ callId: "X", platform: "<b>x</b>" })] }));
+    expect(screen.queryByText("<b>x</b>")).not.toBeInTheDocument();
+  });
+});
+
 describe("tempo do toque", () => {
   // O relógio do cartão anda de 1 em 1 s a partir da montagem; os segundos restantes arredondam para cima. Por isso o teste confere
   // faixas e a tendência (cai, chega a zero e não passa), não o milissegundo exato.

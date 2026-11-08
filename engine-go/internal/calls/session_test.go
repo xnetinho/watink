@@ -916,3 +916,44 @@ func TestOffer_DuplicateOfActiveCallIsIgnored(t *testing.T) {
 		t.Fatalf("o gerenciador processa a oferta uma vez, processou %d", got)
 	}
 }
+
+// O WhatsApp declara no <offer> a plataforma e a versão do aparelho que liga (valores reais vistos no lt em 7/nov/2026: android, web e iphone).
+// O whatsmeow já as entrega em CallOffer.RemotePlatform/RemoteVersion; o engine as repassa a quem decide o que mostrar.
+func TestOffer_PublishesCallerPlatformAndVersion(t *testing.T) {
+	r := newRig(t, false, nil)
+	o := offer(callA, pn("5511999990001"))
+	o.RemotePlatform, o.RemoteVersion = "iphone", "2.26.43.75"
+	r.s.OnOffer(context.Background(), o)
+
+	in := r.evs("call.incoming")
+	if len(in) != 1 {
+		t.Fatalf("call.incoming: %v", in)
+	}
+	if in[0]["platform"] != "iphone" || in[0]["version"] != "2.26.43.75" {
+		t.Fatalf("plataforma e versão do chamador não chegaram: %v", in[0])
+	}
+}
+
+// Sem a informação (oferta sem os atributos) os campos saem vazios, nunca inventados.
+func TestOffer_WithoutPlatformPublishesEmpty(t *testing.T) {
+	r := newRig(t, false, nil)
+	r.s.OnOffer(context.Background(), offer(callA, pn("5511999990001")))
+	in := r.evs("call.incoming")
+	if len(in) != 1 || in[0]["platform"] != "" || in[0]["version"] != "" {
+		t.Fatalf("sem plataforma declarada os campos saem vazios: %v", in)
+	}
+}
+
+// Uma oferta descartada (aqui, com a linha ocupada) também informa a plataforma: o registro de chamada perdida mostra o aparelho.
+func TestOffer_BusyMissedAlsoCarriesPlatform(t *testing.T) {
+	r := newRig(t, false, nil)
+	r.s.OnOffer(context.Background(), offer(callA, pn("5511999990001")))
+	o := offer(callB, pn("5511999990002"))
+	o.RemotePlatform, o.RemoteVersion = "android", "2.26.43.76"
+	r.s.OnOffer(context.Background(), o)
+
+	m := r.evs("call.missed")
+	if len(m) != 1 || m[0]["platform"] != "android" || m[0]["version"] != "2.26.43.76" {
+		t.Fatalf("call.missed sem a plataforma: %v", m)
+	}
+}

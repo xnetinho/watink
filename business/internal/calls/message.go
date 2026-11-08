@@ -45,6 +45,7 @@ func (s *Service) writeSystemMessage(ctx context.Context, tenantID uuid.UUID, l 
 	payload := map[string]interface{}{
 		"callId": l.CallID, "direction": l.Direction, "media": mediaOf(l.Media), "status": l.Status, "endReason": l.EndReason,
 		"durationSec": l.DurationSec, "recordingStatus": l.RecordingStatus, "mosEstimated": l.MosEstimated,
+		"platform": l.CallerPlatform,
 	}
 	if l.HandledByUserID != nil {
 		payload["handledByUserId"] = *l.HandledByUserID

@@ -217,3 +217,15 @@ fizemos. Mesmas regras de bloqueio do botão de telefone (conexão desconectada,
 anterior já encerrada não conta como ocupado. Volta em **vídeo** quando a chamada perdida era vídeo e o navegador sabe enviar câmera; senão, em voz.
 O servidor repete todas as validações. Limite: o botão só existe enquanto o registro está no chat aberto e depende de `connectionId` do ticket.
 
+**Entregue (3 de 4): aparelho do chamador (8/nov/2026).** O whatsmeow já entrega `CallOffer.RemotePlatform/RemoteVersion` (lê `platform` e `version` do
+`<offer>`); o engine os descartava. Agora o engine os repassa em `call.incoming` e `call.missed`, o business os grava em `CallLogs`
+(`callerPlatform`, `callerVersion`) e o cartão de chamada e o registro de chamada no chat mostram o aparelho (`Android`, `iPhone`, `Web`, `WhatsApp
+Business (Android)`...). **Sem o `~`**: ao contrário do selo da mensagem (estimado pelo formato do id), aqui o valor é **declarado pelo WhatsApp**. Valores
+vistos no `lt`: `android`, `web` (dispositivo `:84`, versão `2.3000.x`) e `iphone` (não `ios`); o protocolo lista também `smba`, `smbi`, `ipad`,
+`darwin`, `uwp`. Só essas plataformas são gravadas e mostradas (o valor vem do aparelho do chamador, então nunca vira texto livre); versão só com dígitos e
+pontos. Só em chamada **recebida**.
+
+**Limites:** (1) o aviso de grupo (`offer_notice`) não traz plataforma (`CallOfferNotice` não tem `CallRemoteMeta`), então nesses registros o aparelho fica
+vazio; (2) só `android`, `web` e `iphone` foram vistos de verdade, as demais vêm do catálogo do protocolo; (3) chamadas antigas (antes deste PR) ficam sem
+aparelho; (4) coluna nova só no modelo GORM (regra do projeto); no `lt` foi criada à mão com o mesmo DDL.
+

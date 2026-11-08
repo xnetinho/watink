@@ -29,6 +29,8 @@ export interface CallEventPayload {
   contact?: CallContactInfo;
   ticketId?: number | null;
   startedAt?: string;
+  /** Aparelho que o chamador declarou (android, iphone, web...). Ausente quando o WhatsApp não informou. */
+  platform?: string;
 }
 
 export interface CallQuality {
@@ -69,6 +71,8 @@ export interface ActiveCall {
   failure: string | null;
   /** O operador clicou em Encerrar: "user_ended" é dele, não do contato. */
   endedByMe?: boolean;
+  /** Aparelho que o chamador declarou no <offer>; o cartão e o registro mostram. */
+  platform?: string;
   /** Quando a oferta passou a tocar neste navegador (ms): a barra de tempo do cartão parte daqui. */
   ringingSince?: number;
   /** O operador silenciou o toque desta oferta (Ignorar): o cartão fica até a chamada acabar. */

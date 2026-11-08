@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { t } from "@/lib/calls/t";
 import { displayName } from "@/lib/calls/format";
 import { ringRemaining, ringSecondsLeft } from "@/lib/calls/ringCard";
+import { callerPlatformKey } from "@/lib/calls/platform";
 import { useCalls } from "@/context/Calls/CallsContext";
 import type { ActiveCall } from "@/context/Calls/types";
 
@@ -31,6 +32,7 @@ const IncomingCallCard: React.FC<Props> = ({ call, now, connection, docked }) =>
   const isVideo = call.media === "video";
   const left = ringRemaining(call.ringingSince, now);
   const secs = ringSecondsLeft(call.ringingSince, now);
+  const platformKey = callerPlatformKey(call.platform);
 
   return (
     <div
@@ -51,9 +53,11 @@ const IncomingCallCard: React.FC<Props> = ({ call, now, connection, docked }) =>
             {isVideo && <Video className="h-3 w-3 shrink-0" aria-hidden="true" />}
             {isVideo ? t("calls.incoming.videoTitle") : t("calls.incoming.title")}
           </p>
-          {connection && (
+          {(connection || platformKey) && (
             <p className="truncate text-[11px] text-muted-foreground">
-              {t("calls.incoming.connection")}: {connection}
+              {connection && `${t("calls.incoming.connection")}: ${connection}`}
+              {connection && platformKey && " · "}
+              {platformKey && <span data-testid="caller-platform" data-platform={call.platform}>{t(platformKey)}</span>}
             </p>
           )}
         </div>
@@ -77,18 +81,23 @@ const IncomingCallCard: React.FC<Props> = ({ call, now, connection, docked }) =>
         </p>
       )}
 
-      <div className="flex items-center gap-1.5 px-3 pb-3 pt-2.5">
-        <Button size="sm" className="flex-1" onClick={() => void accept(call.callId)} disabled={busy} data-testid="accept-call">
+      {/* Atender e Recusar dividem a linha; Ignorar fica numa linha própria. Os três lado a lado precisam de ~292 px e o rodapé da lista de
+          tickets dá 273 px (a coluna é fixa em 290): o último botão era cortado pelo overflow do cartão. */}
+      <div className="grid grid-cols-2 gap-1.5 px-3 pt-2.5">
+        <Button size="sm" className="min-w-0" onClick={() => void accept(call.callId)} disabled={busy} data-testid="accept-call">
           <Phone />
           {t("calls.incoming.accept")}
         </Button>
-        <Button size="sm" variant="destructive" className="flex-1" onClick={() => void reject(call.callId)} data-testid="reject-call">
+        <Button size="sm" variant="destructive" className="min-w-0" onClick={() => void reject(call.callId)} data-testid="reject-call">
           <PhoneOff />
           {t("calls.incoming.reject")}
         </Button>
+      </div>
+      <div className="px-3 pb-3 pt-1.5">
         <Button
           size="sm"
           variant="ghost"
+          className="w-full"
           onClick={() => ignore(call.callId)}
           disabled={call.ignored}
           title={t("calls.incoming.ignoreHint")}

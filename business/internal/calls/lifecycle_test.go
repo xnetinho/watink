@@ -416,3 +416,79 @@ func TestHandleEnded_AnsweredElsewhereDismissesTheRingForEveryone(t *testing.T) 
 	_, err := r.svc.Accept(ctx, r.tenant, r.users["da_fila_A"].ID, "ELSE-1")
 	assert.Error(t, err, "um clique tardio em Atender não pode reabrir uma oferta encerrada")
 }
+
+func incomingWithPlatform(callID string, wa int, peer, pn, platform, version string) json.RawMessage {
+	b, _ := json.Marshal(map[string]interface{}{
+		"callId": callID, "sessionId": itoa(wa), "peer": peer, "callerPn": pn, "direction": "incoming", "media": "audio",
+		"platform": platform, "version": version,
+	})
+	return b
+}
+
+// A plataforma que o chamador declara no <offer> chega ao registro, ao toque do painel e à mensagem de sistema do ticket.
+func TestHandleIncoming_StoresAndShowsCallerPlatform(t *testing.T) {
+	r := newRig(t)
+	r.grant(t, "da_fila_A", "receive")
+	r.online("da_fila_A")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incomingWithPlatform("PLAT-1", r.waA.ID, "5511999990030@s.whatsapp.net", "5511999990030", "iphone", "2.26.43.75")))
+
+	l := r.log(t, "PLAT-1")
+	assert.Equal(t, "iphone", l.CallerPlatform)
+	assert.Equal(t, "2.26.43.75", l.CallerVersion)
+
+	var sent map[string]interface{}
+	r.bc.mu.Lock()
+	for _, e := range r.bc.evs {
+		if e.event == "call.incoming" {
+			sent, _ = e.payload.(map[string]interface{})
+		}
+	}
+	r.bc.mu.Unlock()
+	require.NotNil(t, sent, "o painel recebe o toque")
+	assert.Equal(t, "iphone", sent["platform"], "o cartão mostra o aparelho do chamador")
+
+	require.NoError(t, r.svc.HandleEnded(ctx, r.tenant, ended("PLAT-1", "timeout", 0)))
+	var msg models.Message
+	require.NoError(t, r.db.Where(`id = ?`, callMessageID("PLAT-1")).First(&msg).Error)
+	var data map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(msg.DataJson), &data))
+	assert.Equal(t, "iphone", data["platform"], "o registro de chamada no chat mostra o aparelho")
+}
+
+// Só plataformas conhecidas são gravadas: o campo vem do aparelho do chamador e nunca pode virar texto livre no banco nem na tela.
+func TestHandleIncoming_UnknownPlatformIsDropped(t *testing.T) {
+	r := newRig(t)
+	r.grant(t, "da_fila_A", "receive")
+	r.online("da_fila_A")
+	require.NoError(t, r.svc.HandleIncoming(ctx, r.tenant, incomingWithPlatform("PLAT-2", r.waA.ID, "5511999990031@s.whatsapp.net", "5511999990031", "<script>alert(1)</script>", "x")))
+	assert.Equal(t, "", r.log(t, "PLAT-2").CallerPlatform)
+}
+
+func TestNormalizeCallerPlatform(t *testing.T) {
+	for in, want := range map[string]string{
+		"android": "android", "iphone": "iphone", "web": "web", "smba": "smba", "smbi": "smbi", "ipad": "ipad",
+		"darwin": "darwin", "uwp": "uwp", "IPHONE": "iphone", " web ": "web",
+		"": "", "windows": "", "<b>": "", "ios": "",
+	} {
+		assert.Equal(t, want, NormalizeCallerPlatform(in), "entrada %q", in)
+	}
+}
+
+// Uma chamada perdida sem toque (aqui busy) também informa o aparelho: é o registro que o atendente vê no chat.
+func TestHandleMissed_StoresCallerPlatform(t *testing.T) {
+	r := newRig(t)
+	ev, _ := json.Marshal(map[string]interface{}{
+		"callId": "PLAT-3", "sessionId": itoa(r.waA.ID), "peer": "5511999990032@s.whatsapp.net", "callerPn": "5511999990032",
+		"reason": "busy", "platform": "android", "version": "2.26.43.76",
+	})
+	require.NoError(t, r.svc.HandleMissed(ctx, r.tenant, ev))
+
+	l := r.log(t, "PLAT-3")
+	assert.Equal(t, "android", l.CallerPlatform)
+	assert.Equal(t, "2.26.43.76", l.CallerVersion)
+	var msg models.Message
+	require.NoError(t, r.db.Where(`id = ?`, callMessageID("PLAT-3")).First(&msg).Error)
+	var data map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(msg.DataJson), &data))
+	assert.Equal(t, "android", data["platform"])
+}

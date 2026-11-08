@@ -5,6 +5,16 @@ const messages = {
         title: "Calls",
         menu: "Calls",
         unknownContact: "Unnamed contact",
+        platform: {
+          android: "Android",
+          iphone: "iPhone",
+          web: "Web",
+          smba: "WhatsApp Business (Android)",
+          smbi: "WhatsApp Business (iPhone)",
+          ipad: "iPad",
+          darwin: "Mac",
+          uwp: "Windows",
+        },
         incoming: {
           title: "Incoming voice call",
           connection: "Connection",

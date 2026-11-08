@@ -13,6 +13,8 @@ export interface CallMessageData {
   mosEstimated?: number | null;
   handledByName?: string;
   handledByUserId?: number;
+  /** Aparelho do chamador (android, iphone, web...), em chamada recebida. */
+  platform?: string;
 }
 
 /** Lê o dataJson (string ou objeto) de uma mensagem de chamada; null se não for válido. */
@@ -39,6 +41,7 @@ export function parseCallData(raw: unknown): CallMessageData | null {
     mosEstimated: typeof d.mosEstimated === "number" ? d.mosEstimated : null,
     handledByName: typeof d.handledByName === "string" ? d.handledByName : undefined,
     handledByUserId: typeof d.handledByUserId === "number" ? d.handledByUserId : undefined,
+    platform: typeof d.platform === "string" && d.platform ? d.platform : undefined,
   };
 }
 

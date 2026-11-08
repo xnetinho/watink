@@ -37,11 +37,14 @@ type Session struct {
 }
 
 type activeCall struct {
-	id        string
-	h         Handle
-	incoming  bool
-	peer      string
-	callerPn  string
+	id       string
+	h        Handle
+	incoming bool
+	peer     string
+	callerPn string
+	// platform e version do aparelho do chamador, como declarados no <offer> (ex.: android, iphone, web).
+	platform  string
+	version   string
 	ready     bool
 	accepted  bool
 	ended     bool
@@ -94,9 +97,11 @@ func (s *Session) emit(eventType string, p map[string]interface{}) {
 	s.publish(s.tenantID, s.id, eventType, p)
 }
 
-func (s *Session) missed(callID, peer, callerPn, reason string) {
+// missed publica call.missed. platform e version são o que o chamador declarou no <offer> (vazios quando não há oferta, como no
+// aviso de grupo): o registro de chamada perdida mostra o aparelho.
+func (s *Session) missed(callID, peer, callerPn, reason, platform, version string) {
 	s.emit("call.missed", map[string]interface{}{
-		"callId": callID, "peer": peer, "callerPn": callerPn, "reason": reason,
+		"callId": callID, "peer": peer, "callerPn": callerPn, "reason": reason, "platform": platform, "version": version,
 	})
 }
 
