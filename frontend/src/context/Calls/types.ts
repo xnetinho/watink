@@ -69,4 +69,8 @@ export interface ActiveCall {
   failure: string | null;
   /** O operador clicou em Encerrar: "user_ended" é dele, não do contato. */
   endedByMe?: boolean;
+  /** Quando a oferta passou a tocar neste navegador (ms): a barra de tempo do cartão parte daqui. */
+  ringingSince?: number;
+  /** O operador silenciou o toque desta oferta (Ignorar): o cartão fica até a chamada acabar. */
+  ignored?: boolean;
 }

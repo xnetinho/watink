@@ -3,6 +3,7 @@ import { useTicketsContext } from "../../context/Tickets/TicketsContext";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { NewTicketModal } from "../NewTicketModal/NewTicketModal";
 import TicketsList from "../TicketsList";
+import { CallCardDockSlot } from "../Calls/CallCardDock";
 import { Can } from "../Can";
 import TicketsQueueSelect, { Queue } from "../TicketsQueueSelect";
 import TicketsTagFilter from "../TicketsTagFilter";
@@ -161,6 +162,9 @@ const TicketsManager: React.FC = () => {
             withUnreadMessages={showUnreadOnly ? "true" : undefined}
           />
         </div>
+
+        {/* Cartões das chamadas que tocam: encaixam aqui, abaixo da lista, sem cobrir o atendimento */}
+        <CallCardDockSlot />
       </div>
     </TooltipProvider>
   );

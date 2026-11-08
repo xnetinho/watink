@@ -237,3 +237,43 @@ describe("callsReducer", () => {
     expect(s.active).toBeNull();
   });
 });
+
+describe("toque como convite (cartão não bloqueante)", () => {
+  it("a oferta guarda o instante em que começou a tocar, para a barra de tempo", () => {
+    const s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming(), now: 5000 });
+    expect(s.ringing.C1.ringingSince).toBe(5000);
+    expect(s.ringing.C1.ignored).toBeUndefined();
+  });
+
+  it("Ignorar silencia só aquela oferta e a mantém na tela, sem recusar", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming("A"), now: 1 });
+    s = callsReducer(s, { type: "incoming", payload: incoming("B"), now: 2 });
+    s = callsReducer(s, { type: "ignore", callId: "A" });
+    expect(s.ringing.A.ignored).toBe(true);
+    expect(s.ringing.B.ignored).toBeUndefined();
+    expect(Object.keys(s.ringing).sort()).toEqual(["A", "B"]);
+    expect(s.active).toBeNull();
+  });
+
+  it("a oferta ignorada continua até a chamada terminar, e só então some", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming(), now: 1 });
+    s = callsReducer(s, { type: "ignore", callId: "C1" });
+    s = callsReducer(s, { type: "state", callId: "C1", state: "ringing" });
+    expect(s.ringing.C1).toBeDefined();
+    s = callsReducer(s, { type: "ended", callId: "C1", endReason: "accepted_elsewhere" });
+    expect(s.ringing).toEqual({});
+  });
+
+  it("ignorar uma oferta que não existe (já terminou) não muda nada", () => {
+    const s = initialCallsState();
+    expect(callsReducer(s, { type: "ignore", callId: "NADA" })).toBe(s);
+  });
+
+  it("uma oferta ignorada ainda pode ser atendida", () => {
+    let s = callsReducer(initialCallsState(), { type: "incoming", payload: incoming(), now: 1 });
+    s = callsReducer(s, { type: "ignore", callId: "C1" });
+    s = callsReducer(s, { type: "accepted", payload: incoming() });
+    expect(s.ringing).toEqual({});
+    expect(s.active?.phase).toBe("connecting");
+  });
+});
