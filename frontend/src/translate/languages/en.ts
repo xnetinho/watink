@@ -106,6 +106,7 @@ const messages = {
           handledBy: "Answered by",
           result: "Result",
           listen: "Listen to recording",
+          callBack: "Call back",
           recordingFailed: "Recording failed",
           recordingDeleted: "Recording deleted",
         },
