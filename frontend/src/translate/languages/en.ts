@@ -12,6 +12,10 @@ const messages = {
           videoUnsupported: "This browser cannot show video: the call will be answered with audio only. Use Chrome, Edge or Brave to see the picture.",
           accept: "Answer",
           reject: "Decline",
+          ignore: "Ignore",
+          ignoreHint: "Mutes the ring. The call keeps ringing for the caller and only goes away when it ends.",
+          silenced: "Ring muted",
+          busy: "You are on another call.",
         },
         active: {
           calling: "Calling…",

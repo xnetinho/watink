@@ -16,8 +16,9 @@ export interface CallsState {
 export const initialCallsState = (paused = false): CallsState => ({ active: null, ringing: {}, paused });
 
 export type CallsAction =
-  | { type: "incoming"; payload: CallEventPayload }
+  | { type: "incoming"; payload: CallEventPayload; now?: number }
   | { type: "answered"; callId: string; byMe: boolean }
+  | { type: "ignore"; callId: string }
   | { type: "ended"; callId: string; endReason?: string }
   | { type: "originate"; payload: CallEventPayload }
   | { type: "accepted"; payload: CallEventPayload }
@@ -59,7 +60,14 @@ export function callsReducer(state: CallsState, action: CallsAction): CallsState
       if (state.paused) return state;
       const id = action.payload.callId;
       if (state.ringing[id] || state.active?.callId === id) return state;
-      return { ...state, ringing: { ...state.ringing, [id]: fromPayload(action.payload, "ringing") } };
+      const since = action.now ?? Date.now();
+      return { ...state, ringing: { ...state.ringing, [id]: { ...fromPayload(action.payload, "ringing"), ringingSince: since } } };
+    }
+
+    case "ignore": {
+      const cur = state.ringing[action.callId];
+      if (!cur || cur.ignored) return state;
+      return { ...state, ringing: { ...state.ringing, [action.callId]: { ...cur, ignored: true } } };
     }
 
     case "answered": {
