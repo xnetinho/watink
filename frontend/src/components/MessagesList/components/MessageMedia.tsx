@@ -20,6 +20,8 @@ interface Props {
   message: Message;
   /** Quem enviou (foto ou iniciais no player de áudio). */
   sender?: { name?: string; picUrl?: string | null };
+  /** Conexão do ticket (para o "Ligar de volta" do registro de chamada). */
+  connectionId?: number;
 }
 
 /** Mensagem de voz (PTT)? Enviada pelo Watink vem em `voice`; recebida do celular, o engine a marca em `rich.voice`. */
@@ -34,7 +36,7 @@ export const isGif = (dataJson: Message["dataJson"]): boolean => {
 
 const DOWNLOADABLE_TYPES = ["image", "video", "audio", "document", "sticker"];
 
-const MessageMedia: React.FC<Props> = ({ message, sender }) => {
+const MessageMedia: React.FC<Props> = ({ message, sender, connectionId }) => {
   // Local override so the transcription appears immediately on click,
   // without waiting for the SSE appMessage round-trip to update the parent's
   // message list state.
@@ -44,7 +46,7 @@ const MessageMedia: React.FC<Props> = ({ message, sender }) => {
 
   // Mensagem de sistema de uma chamada de voz (direção, resultado, duração, gravação).
   if (message.mediaType === "call") {
-    return <CallMessage dataJson={message.dataJson} body={message.body} />;
+    return <CallMessage dataJson={message.dataJson} body={message.body} ticketId={typeof message.ticketId === "number" ? message.ticketId : undefined} connectionId={connectionId} />;
   }
 
   // Visualização única: o WhatsApp não entrega o conteúdo a aparelhos vinculados. Só avisa que chegou.

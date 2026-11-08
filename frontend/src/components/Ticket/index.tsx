@@ -136,7 +136,7 @@ const Ticket: React.FC<TicketProps> = ({ onToggleDetails, showDetails }) => {
       <ReplyMessageProvider>
         <MediaDropProvider>
         <TicketDropZone canSend={ticket.status === "open"}>
-        <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} channel={ticket.channel} contactId={ticket.contact?.id} peer={{ name: ticket.contact?.name, picUrl: ticket.contact?.profilePicUrl }} self={{ name: ticket.connection?.name, picUrl: ticket.connection?.profilePicUrl }} />
+        <MessagesList ticketId={ticketId ?? ""} isGroup={ticket.isGroup} channel={ticket.channel} connectionId={ticket.connectionId} contactId={ticket.contact?.id} peer={{ name: ticket.contact?.name, picUrl: ticket.contact?.profilePicUrl }} self={{ name: ticket.connection?.name, picUrl: ticket.connection?.profilePicUrl }} />
         <MessageInput
           ticketStatus={ticket.status}
           channel={ticket.channel}

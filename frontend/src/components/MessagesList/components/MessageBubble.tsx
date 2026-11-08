@@ -81,6 +81,7 @@ interface MessageBubbleProps {
   messagesList: Message[];
   isGroup?: boolean;
   channel?: string;
+  connectionId?: number;
   appTheme: string;
   mentionsMap: Record<string, string>;
   colorCache: Map<string, string>;
@@ -119,6 +120,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   messagesList,
   isGroup,
   channel,
+  connectionId,
   appTheme,
   mentionsMap,
   colorCache,
@@ -273,7 +275,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               />
             )}
             <ForwardedLabel message={message} />
-            {hasMediaBubble(message) && <MessageMedia message={message} sender={senderOf(message, isGroup, peer, self)} />}
+            {hasMediaBubble(message) && <MessageMedia message={message} sender={senderOf(message, isGroup, peer, self)} connectionId={connectionId} />}
             {bodyContent}
             <MessageInteractive message={message} />
             <MessageReactions message={message} />
@@ -307,7 +309,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       >
         {actionsButton}
         <ForwardedLabel message={message} />
-            {hasMediaBubble(message) && <MessageMedia message={message} sender={senderOf(message, isGroup, peer, self)} />}
+            {hasMediaBubble(message) && <MessageMedia message={message} sender={senderOf(message, isGroup, peer, self)} connectionId={connectionId} />}
         {bodyContent}
         <MessageInteractive message={message} />
         <MessageReactions message={message} />
