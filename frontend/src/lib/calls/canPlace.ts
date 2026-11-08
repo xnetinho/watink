@@ -39,3 +39,9 @@ export const PLACE_BLOCK_KEY: Record<Exclude<PlaceBlock, null>, string> = {
   proxy: "calls.place.proxy",
   busy: "calls.place.busy",
 };
+
+/** O registro de chamada oferece "Ligar de volta"? Só chamadas RECEBIDAS que ninguém atendeu: perdida, recusada, falhou ou interrompida. */
+const CALLBACK_STATUSES = new Set(["missed", "rejected", "failed", "interrupted"]);
+export function canCallBack(call: { direction: string; status: string }): boolean {
+  return call.direction === "incoming" && CALLBACK_STATUSES.has(call.status);
+}

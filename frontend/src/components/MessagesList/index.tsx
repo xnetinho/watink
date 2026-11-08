@@ -16,6 +16,8 @@ interface MessagesListProps {
   ticketId: string | number;
   isGroup?: boolean;
   channel?: string;
+  /** Conexão do ticket: o "Ligar de volta" do registro de chamada usa as mesmas regras de bloqueio do botão de telefone. */
+  connectionId?: number;
   contactId?: number | string;
   /** Quem está do outro lado numa conversa 1:1 (foto/iniciais do áudio recebido). */
   peer?: { name?: string; picUrl?: string | null };
@@ -23,7 +25,7 @@ interface MessagesListProps {
   self?: { name?: string; picUrl?: string | null };
 }
 
-const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel, contactId, peer, self }) => {
+const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel, connectionId, contactId, peer, self }) => {
   const { appTheme } = useThemeContext();
 
   const {
@@ -92,6 +94,7 @@ const MessagesList: React.FC<MessagesListProps> = ({ ticketId, isGroup, channel,
               messagesList={messagesList}
               isGroup={isGroup}
               channel={channel}
+              connectionId={connectionId}
               appTheme={appTheme}
               mentionsMap={mentionsMap}
               colorCache={groupColorCacheRef.current ?? new Map()}

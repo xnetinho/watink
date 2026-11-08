@@ -116,6 +116,7 @@ const messages = {
           handledBy: "Atendida por",
           result: "Resultado",
           listen: "Ouvir gravação",
+          callBack: "Ligar de volta",
           recordingFailed: "A gravação falhou",
           recordingDeleted: "Gravação excluída",
         },

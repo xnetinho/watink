@@ -1,5 +1,9 @@
-import React, { useState } from "react";
-import { PhoneIncoming, PhoneMissed, PhoneOff, PhoneOutgoing, Video } from "lucide-react";
+import React, { useContext, useState } from "react";
+import { Phone, PhoneIncoming, PhoneMissed, PhoneOff, PhoneOutgoing, Video } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCalls } from "@/context/Calls/CallsContext";
+import { WhatsAppsContext } from "@/context/WhatsApp/WhatsAppsContext";
+import { PLACE_BLOCK_KEY, canCallBack, placeBlock } from "@/lib/calls/canPlace";
 import { StatusChip } from "@/components/ui/status-chip";
 import { cn } from "@/lib/utils";
 import api from "@/services/api";
@@ -28,8 +32,10 @@ const Icon: React.FC<{ d: CallMessageData }> = ({ d }) => {
  * quem atendeu, duração e, quando houver, o player da gravação. A URL do áudio só é
  * pedida ao clicar (é assinada, expira e a escuta fica registrada em auditoria).
  */
-const CallMessage: React.FC<{ dataJson: unknown; body?: string }> = ({ dataJson, body }) => {
+const CallMessage: React.FC<{ dataJson: unknown; body?: string; ticketId?: number; connectionId?: number }> = ({ dataJson, body, ticketId, connectionId }) => {
   const d = parseCallData(dataJson);
+  const { canPlace, place, active, canSendVideo } = useCalls();
+  const { whatsApps } = useContext(WhatsAppsContext);
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -40,6 +46,13 @@ const CallMessage: React.FC<{ dataJson: unknown; body?: string }> = ({ dataJson,
   const platformKey = d.direction === "incoming" ? callerPlatformKey(d.platform) : null;
   const rec = recordingView(d);
   const reason = d.endReason ? t(`calls.endReason.${d.endReason}`) : "";
+
+  // "Ligar de volta": na chamada recebida que ninguém atendeu, com as mesmas regras de bloqueio do botão de telefone. Volta em vídeo
+  // se era videochamada e o navegador consegue enviar câmera; senão, em voz.
+  const callBack = canPlace && ticketId !== undefined && canCallBack(d);
+  const inCall = !!active && active.phase !== "ended";
+  const block = callBack ? placeBlock({}, whatsApps.find((w) => w.id === connectionId), inCall) : null;
+  const backVideo = d.media === "video" && canSendVideo;
 
   const listen = async () => {
     setLoading(true);
@@ -73,6 +86,24 @@ const CallMessage: React.FC<{ dataJson: unknown; body?: string }> = ({ dataJson,
         <StatusChip status={callTone(d.status)} size="sm" label={t(`calls.status.${d.status}`)} />
         {reason && d.status !== "ended" && <span className="text-xs text-muted-foreground">{reason}</span>}
       </div>
+
+      {callBack && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="self-start"
+          disabled={block !== null}
+          title={block ? t(PLACE_BLOCK_KEY[block]) : undefined}
+          onClick={() => void place(ticketId, backVideo)}
+          data-testid="call-back"
+          data-block={block ?? ""}
+          data-video={backVideo ? "true" : "false"}
+        >
+          {backVideo ? <Video /> : <Phone />}
+          {t("calls.message.callBack")}
+        </Button>
+      )}
 
       {rec === "ready" &&
         (url ? (

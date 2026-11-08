@@ -2,7 +2,9 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CallMessage from "../CallMessage";
-import "./helpers";
+import { WhatsAppsContext } from "@/context/WhatsApp/WhatsAppsContext";
+import { baseCall, makeCtx, withCalls } from "./helpers";
+import type { CallsContextValue } from "@/context/Calls/CallsContext";
 
 const get = vi.fn();
 vi.mock("@/services/api", () => ({ default: { get: (...a: unknown[]) => get(...a) } }));
@@ -120,6 +122,79 @@ describe("CallMessage", () => {
   });
 });
 
+
+// "Ligar de volta" no registro de chamada (pedido do dono): só na chamada RECEBIDA que ninguém atendeu, com as mesmas regras de bloqueio do botão
+// de telefone, e volta em vídeo quando a chamada era em vídeo e o navegador sabe enviar câmera.
+describe("CallMessage: Ligar de volta", () => {
+  const wa = (over: Record<string, unknown> = {}) => ({ id: 1, name: "Vendas", status: "CONNECTED", proxyMode: "none", ...over });
+  const renderBack = (d: Record<string, unknown>, ctx: Partial<CallsContextValue> = {}, whatsApps: ReturnType<typeof wa>[] = [wa()], ticketId: number | undefined = 7) => {
+    const c = makeCtx(ctx);
+    render(
+      withCalls(
+        c,
+        <WhatsAppsContext.Provider value={{ whatsApps, loading: false, reloadWhatsApps: async () => undefined }}>
+          <CallMessage dataJson={data(d)} ticketId={ticketId} connectionId={1} />
+        </WhatsAppsContext.Provider>,
+      ),
+    );
+    return c;
+  };
+
+  it.each(["missed", "rejected", "failed", "interrupted"])("chamada recebida %s oferece o botão e liga com o id do ticket", (status) => {
+    const c = renderBack({ status, handledByName: undefined });
+    fireEvent.click(screen.getByTestId("call-back"));
+    expect(c.place).toHaveBeenCalledWith(7, false);
+  });
+
+  it("chamada atendida, ou feita por nós, não oferece", () => {
+    renderBack({ status: "ended" });
+    expect(screen.queryByTestId("call-back")).not.toBeInTheDocument();
+  });
+
+  it("chamada nossa que ninguém atendeu também não (o chamador somos nós)", () => {
+    renderBack({ status: "missed", direction: "outgoing" });
+    expect(screen.queryByTestId("call-back")).not.toBeInTheDocument();
+  });
+
+  it("sem calls:place, ou sem o ticket, não aparece", () => {
+    renderBack({ status: "missed" }, { canPlace: false });
+    expect(screen.queryByTestId("call-back")).not.toBeInTheDocument();
+  });
+
+  it("videochamada perdida volta em vídeo; sem suporte a câmera no navegador volta em voz", () => {
+    const c = renderBack({ status: "missed", media: "video" });
+    expect(screen.getByTestId("call-back")).toHaveAttribute("data-video", "true");
+    fireEvent.click(screen.getByTestId("call-back"));
+    expect(c.place).toHaveBeenCalledWith(7, true);
+  });
+
+  it("videochamada perdida, mas navegador sem câmera, volta em voz", () => {
+    const c = renderBack({ status: "missed", media: "video" }, { canSendVideo: false });
+    fireEvent.click(screen.getByTestId("call-back"));
+    expect(c.place).toHaveBeenCalledWith(7, false);
+  });
+
+  it("conexão desconectada, com proxy, ou operador em outra chamada: desabilitado, com o motivo", () => {
+    renderBack({ status: "missed" }, {}, [wa({ status: "DISCONNECTED" })]);
+    expect(screen.getByTestId("call-back")).toBeDisabled();
+    expect(screen.getByTestId("call-back")).toHaveAttribute("data-block", "disconnected");
+  });
+
+  it("com proxy fica desabilitado", () => {
+    renderBack({ status: "missed" }, {}, [wa({ proxyMode: "single" })]);
+    expect(screen.getByTestId("call-back")).toHaveAttribute("data-block", "proxy");
+  });
+
+  it("operador já em chamada fica desabilitado; chamada anterior encerrada não conta como ocupado", () => {
+    renderBack({ status: "missed" }, { active: baseCall({ callId: "OUTRA", phase: "active" }) });
+    expect(screen.getByTestId("call-back")).toHaveAttribute("data-block", "busy");
+  });
+
+  it("chamada anterior já encerrada não bloqueia o Ligar de volta", () => {
+    renderBack({ status: "missed" }, { active: baseCall({ callId: "ANTIGA", phase: "ended" }) });
+    expect(screen.getByTestId("call-back")).toBeEnabled();
+  });
+});
 
 describe("CallMessage: aparelho do chamador", () => {
   it("chamada recebida mostra o aparelho declarado, sem til", () => {
