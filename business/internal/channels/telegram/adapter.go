@@ -329,7 +329,7 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 	if msg == nil {
 		msg = update.EditedMessage
 	}
-	if msg == nil {
+	if msg == nil || isTelegramServiceMessage(msg, raw) {
 		return nil, nil
 	}
 	logRawUpdate(raw)
