@@ -185,3 +185,16 @@ func (b *roomCapture) EmitToTenantRoom(tenant, event string, _ interface{}) {
 	b.add("tenant:"+tenant, event)
 }
 func (b *roomCapture) EmitToNamespace(_, _ string, _ interface{}) {}
+
+// Em grupo do Telegram o contato do ticket é o GRUPO e a resposta do painel sai para o chat_id da conversa (a chave do ticket), nunca para a pessoa que escreveu.
+func TestSendMessage_GrupoTelegram_RespondeParaOChatDoGrupo(t *testing.T) {
+	e := newSendEnv(t)
+	ticket := e.newTicket(t, "tg:-1001234567890")
+	require.NoError(t, e.db.Model(&models.Ticket{}).Where("id = ?", ticket.ID).Update("isGroup", true).Error)
+	require.NoError(t, e.db.Model(&models.Contact{}).Where("id = ?", ticket.ContactID).Updates(map[string]interface{}{"isGroup": true, "number": "-1001234567890"}).Error)
+
+	w := e.send(t, ticket.ID, `{"body":"resposta ao grupo"}`)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	require.Len(t, e.ch.got, 1)
+	assert.Equal(t, "tg:-1001234567890", e.ch.got[0].ConversationKey, "o canal recebe a chave do grupo, de onde sai o chat_id negativo")
+}
