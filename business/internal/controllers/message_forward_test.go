@@ -19,7 +19,7 @@ import (
 )
 
 func (e *sendEnv) forwardRouter() *gin.Engine {
-	mc := controllers.NewMessageController(nil, nil, nil)
+	mc := controllers.NewMessageController(nil, e.bc, nil)
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		c.Set("db", e.db)

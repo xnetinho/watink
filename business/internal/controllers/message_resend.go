@@ -80,11 +80,13 @@ func (mc *MessageController) ResendMessage(c *gin.Context) {
 		return
 	}
 
+	// A tela monta a conversa pelo evento appMessage: o envio por canal agnóstico (Telegram...) também precisa avisá-la, senão a resposta só aparece
+	// depois de recarregar a página. O corpo da resposta continua sendo o de cada caminho.
+	mc.announce(db, tenantID, res)
 	if viaChannel {
 		c.JSON(http.StatusOK, res)
 		return
 	}
-	mc.announce(db, tenantID, res)
 	c.JSON(http.StatusOK, gin.H{"message": "Message sent", "messageId": res.ID})
 }
 
