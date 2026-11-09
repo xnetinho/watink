@@ -2,6 +2,7 @@ package telegram_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -67,9 +68,30 @@ func TestTelegramAdapter_ContractAndParsing(t *testing.T) {
 	msg := inboundMsgs[0]
 	assert.Equal(t, domain.ChannelKindTelegram, msg.Channel)
 	assert.Equal(t, "42", msg.ExternalMessageID)
-	assert.Equal(t, "987654", msg.ConversationKey)
+	assert.Equal(t, "tg:987654", msg.ConversationKey)
 	assert.Equal(t, "987654", msg.Sender.ExternalID)
 	assert.Equal(t, "Maria Silva", msg.Sender.Name)
 	assert.Equal(t, "Olá, gostaria de saber mais sobre o produto.", msg.Body)
 	assert.Equal(t, "chat", msg.MediaType)
+}
+
+// Em grupo, supergrupo e canal o ticket é do CHAT (chat_id negativo), e quem escreve é a pessoa (from.id, positivo): são identidades diferentes.
+func TestParseInbound_ChaveDaConversaEDoChatEAPessoaEDoRemetente(t *testing.T) {
+	adapter := telegram.NewAdapter(nil)
+	conn := &models.ChannelConnection{Kind: "telegram", Status: "CONNECTED"}
+	for _, tc := range []struct {
+		name, chatType, key string
+		chatID              int64
+	}{
+		{"privado", "private", "tg:555", 555},
+		{"grupo", "group", "tg:-4012345678", -4012345678},
+		{"supergrupo", "supergroup", "tg:-1001234567890", -1001234567890},
+	} {
+		raw := fmt.Sprintf(`{"update_id":1,"message":{"message_id":9,"from":{"id":555,"first_name":"Ana"},"chat":{"id":%d,"type":%q,"title":"Time"},"date":1700000000,"text":"oi"}}`, tc.chatID, tc.chatType)
+		msgs, err := adapter.ParseInbound(context.Background(), conn, []byte(raw), nil)
+		require.NoError(t, err, tc.name)
+		require.Len(t, msgs, 1, tc.name)
+		assert.Equal(t, tc.key, msgs[0].ConversationKey, tc.name)
+		assert.Equal(t, "555", msgs[0].Sender.ExternalID, "%s: quem escreve é a pessoa", tc.name)
+	}
 }

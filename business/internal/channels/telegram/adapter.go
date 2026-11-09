@@ -134,13 +134,11 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 		return domain.SendResult{}, fmt.Errorf("telegram connection has no token")
 	}
 
-	// O destino é o chat da conversa: o contato do Telegram nasce por identidade e não tem number.
-	chatID := msg.ConversationKey
-	if chatID == "" {
-		chatID = msg.ExternalID
-	}
-	if chatID == "" {
-		return domain.SendResult{}, fmt.Errorf("telegram: conversa sem chat_id")
+	// O destino é o chat da conversa: o contato do Telegram nasce por identidade e não tem number. A chave leva o prefixo do canal ("tg:"),
+	// que a Bot API não conhece: ela recebe o chat_id puro (negativo em grupo, supergrupo e canal).
+	chatID, err := telegramChatIDOf(msg.ConversationKey, msg.ExternalID)
+	if err != nil {
+		return domain.SendResult{}, err
 	}
 
 	client := NewClient(token)
@@ -157,7 +155,11 @@ func (a *Adapter) Send(ctx context.Context, conn *models.ChannelConnection, msg 
 		if !f.SameConnection || f.ExternalMessageID == "" || f.FromConversationKey == "" {
 			return domain.SendResult{}, domain.ErrForwardUnsupported
 		}
-		msgID, err = client.ForwardMessage(ctx, chatID, f.FromConversationKey, f.ExternalMessageID)
+		fromChatID, ferr := telegramChatIDOf(f.FromConversationKey, "")
+		if ferr != nil {
+			return domain.SendResult{}, domain.ErrForwardUnsupported
+		}
+		msgID, err = client.ForwardMessage(ctx, chatID, fromChatID, f.ExternalMessageID)
 	} else if msg.MediaURL != "" {
 		switch msg.MediaType {
 		case "image", "photo":
@@ -461,7 +463,7 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		ChannelConnectionID: conn.ID,
 		Channel:             domain.ChannelKindTelegram,
 		ExternalMessageID:   strconv.FormatInt(msg.MessageID, 10),
-		ConversationKey:     chatExternalID,
+		ConversationKey:     domain.TelegramConversationKey(msg.Chat.ID),
 		Sender: domain.InboundSender{
 			ExternalID: senderExternalID,
 			Name:       senderName,
