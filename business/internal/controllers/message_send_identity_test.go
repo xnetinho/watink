@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/alltomatos/watinkdev/business/internal/controllers"
@@ -38,9 +39,15 @@ type sendEnv struct {
 	r        *gin.Engine
 	ch       *capturingChannel
 	userID   int
+	bc       domain.Broadcaster
 }
 
 func newSendEnv(t *testing.T) *sendEnv {
+	t.Helper()
+	return newSendEnvWithBroadcast(t, nil)
+}
+
+func newSendEnvWithBroadcast(t *testing.T, bc domain.Broadcaster) *sendEnv {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	db := testutil.NewTestDB(t)
@@ -55,7 +62,7 @@ func newSendEnv(t *testing.T) *sendEnv {
 	conn := models.ChannelConnection{TenantID: tenantID, Kind: string(domain.ChannelKindTelegram), Name: "TG", Status: "CONNECTED"}
 	require.NoError(t, db.Create(&conn).Error)
 
-	mc := controllers.NewMessageController(nil, nil, nil)
+	mc := controllers.NewMessageController(nil, bc, nil)
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
@@ -65,7 +72,7 @@ func newSendEnv(t *testing.T) *sendEnv {
 		c.Next()
 	})
 	r.POST("/messages/:ticketId", mc.SendMessage)
-	return &sendEnv{db: db, tenantID: tenantID, conn: conn, r: r, ch: ch, userID: user.ID}
+	return &sendEnv{db: db, tenantID: tenantID, conn: conn, r: r, ch: ch, userID: user.ID, bc: bc}
 }
 
 // newTicket cria contato e ticket do canal. A linha em Whatsapps existe porque o envio ainda consulta essa tabela
@@ -132,3 +139,49 @@ func (c *capturingChannel) ResolveAddress(ctx context.Context, conn *models.Chan
 	}
 	return "mock_addr", nil
 }
+
+// Regressão (achada no lt em 9/nov/2026 com o bot do Telegram): a resposta enviada pelo painel só aparecia depois de F5. O caminho dos canais
+// agnósticos devolvia a mensagem no corpo do POST e NÃO avisava a tela em tempo real; só o caminho do WhatsApp chamava announce. A tela monta a conversa
+// pelo evento appMessage, então o envio pelo Telegram precisa emitir o mesmo evento, para a sala do ticket e para a empresa.
+func TestSendMessage_CanalAgnostico_AvisaATelaEmTempoReal(t *testing.T) {
+	bc := &roomCapture{}
+	e := newSendEnvWithBroadcast(t, bc)
+	ticket := e.newTicket(t, "tg:111")
+
+	w := e.send(t, ticket.ID, `{"body":"oi pelo painel"}`)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	room := "chat:" + strconv.Itoa(ticket.ID)
+	assert.Equal(t, 1, bc.count(room, "appMessage"), "a sala do ticket recebe a mensagem nova")
+	assert.Equal(t, 1, bc.count("tenant:"+e.tenantID.String(), "appMessage"), "a empresa também (lista e contadores)")
+	assert.Equal(t, 1, bc.count("tenant:"+e.tenantID.String(), "ticket"), "a prévia do ticket na lista é atualizada")
+
+	var tk models.Ticket
+	require.NoError(t, e.db.First(&tk, ticket.ID).Error)
+	assert.Equal(t, "oi pelo painel", tk.LastMessage, "a prévia do ticket é gravada")
+}
+
+// roomCapture conta cada evento por sala (a sala da empresa entra como "tenant:<id>").
+type roomCapture struct {
+	mu sync.Mutex
+	n  map[string]int
+}
+
+func (b *roomCapture) add(room, event string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.n == nil {
+		b.n = map[string]int{}
+	}
+	b.n[room+"|"+event]++
+}
+func (b *roomCapture) count(room, event string) int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.n[room+"|"+event]
+}
+func (b *roomCapture) EmitToRoom(_, room, event string, _ interface{}) { b.add(room, event) }
+func (b *roomCapture) EmitToTenantRoom(tenant, event string, _ interface{}) {
+	b.add("tenant:"+tenant, event)
+}
+func (b *roomCapture) EmitToNamespace(_, _ string, _ interface{}) {}

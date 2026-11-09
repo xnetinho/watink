@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/alltomatos/watinkdev/business/internal/models"
@@ -76,4 +77,17 @@ func TestResendMessage(t *testing.T) {
 		assert.Equal(t, http.StatusUnprocessableEntity, e.resend(t, "SEM_ARQUIVO").Code)
 		assert.Equal(t, http.StatusNotFound, e.resend(t, "NAO_EXISTE").Code)
 	})
+}
+
+// O reenvio pelo canal agnóstico (Telegram...) tinha o mesmo defeito do envio: a mensagem só aparecia depois de F5.
+func TestResendMessage_CanalAgnostico_AvisaATelaEmTempoReal(t *testing.T) {
+	bc := &roomCapture{}
+	e := newSendEnvWithBroadcast(t, bc)
+	tk := e.newTicket(t, "tg:222")
+	require.NoError(t, e.db.Create(&models.Message{ID: "FALHOU", Body: "oi", DataJson: "{}", Ack: 5, FromMe: true, TicketID: tk.ID, TenantID: e.tenantID}).Error)
+
+	require.Equal(t, http.StatusOK, e.resend(t, "FALHOU").Code)
+
+	assert.Equal(t, 1, bc.count("chat:"+strconv.Itoa(tk.ID), "appMessage"))
+	assert.Equal(t, 1, bc.count("tenant:"+e.tenantID.String(), "appMessage"))
 }
