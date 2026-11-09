@@ -20,6 +20,7 @@ func TestGORMTicketRepo_FindOrCreatePending_Creates(t *testing.T) {
 		ContactID:           777,
 		ChannelConnectionID: 10,
 		TenantID:            tenantA,
+		ConversationKey:     "wa:777",
 	}
 
 	result, err := repo.FindOrCreatePending(ctx, newTicket)
@@ -42,6 +43,7 @@ func TestGORMTicketRepo_FindOrCreatePending_FindsExisting(t *testing.T) {
 		ContactID:           888,
 		ChannelConnectionID: 20,
 		TenantID:            tenantA,
+		ConversationKey:     "wa:888",
 	}
 	first, err := repo.FindOrCreatePending(ctx, ticket)
 	require.NoError(t, err)

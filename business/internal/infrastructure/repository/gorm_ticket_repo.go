@@ -56,10 +56,18 @@ func (r *GORMTicketRepository) FindOpenByConversation(ctx context.Context, tenan
 }
 
 // FindOrCreatePending finds an existing pending ticket or creates a new one.
+// FindOrCreatePending devolve o ticket aberto ou pendente da CONVERSA (conexão + conversationKey, o mesmo critério do índice único
+// idx_tickets_open_conversation) ou cria um pendente. A chave é obrigatória: o filtro antigo era (contato, conexão, pendente) e ignorava a chave, então onde
+// o contato não é a conversa (grupo do Telegram: o contato é quem escreve; Mercado Livre e OLX: o mesmo comprador tem um ticket por pedido ou anúncio) a
+// mensagem caía no ticket de outra conversa. Também só olhava "pending": um ticket "open" da mesma conversa não era visto e abria um segundo.
 func (r *GORMTicketRepository) FindOrCreatePending(ctx context.Context, ticket *domain.Ticket) (*domain.Ticket, error) {
+	if ticket.ConversationKey == "" {
+		return nil, domain.ErrConversationKeyRequired
+	}
 	m := ticketDomainToModel(ticket)
 	err := r.db.WithContext(ctx).
-		Where(models.Ticket{ContactID: ticket.ContactID, ChannelConnectionID: ticket.ChannelConnectionID, Status: "pending", TenantID: ticket.TenantID}).
+		Where(`"tenantId" = ? AND "channelConnectionId" = ? AND "conversationKey" = ? AND status IN ?`,
+			ticket.TenantID, ticket.ChannelConnectionID, ticket.ConversationKey, []string{"open", "pending"}).
 		First(&m).Error
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
