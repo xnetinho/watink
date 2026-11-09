@@ -132,3 +132,32 @@ func TestParseInbound_EnqueteEstruturadaEEncaminhada(t *testing.T) {
 	assert.True(t, f[0].Forwarded)
 	assert.Equal(t, "chat", f[0].Type)
 }
+
+// Aviso de serviço do Telegram (entrada/saída de membro, título, fixação...) não é mensagem de atendimento: não gera mensagem nem ticket. Visto no lt: o
+// "new_chat_participant" de um grupo caiu num ticket.
+func TestParseInbound_EventoDeServicoNaoViraMensagem(t *testing.T) {
+	conn := &models.ChannelConnection{Kind: "telegram", Status: "CONNECTED"}
+	svc := []string{
+		`"new_chat_participant":{"id":1,"is_bot":false,"first_name":"Ana"},"new_chat_member":{"id":1,"is_bot":false,"first_name":"Ana"},"new_chat_members":[{"id":1,"is_bot":false,"first_name":"Ana"}]`,
+		`"left_chat_member":{"id":1,"is_bot":false,"first_name":"Ana"}`,
+		`"new_chat_title":"Novo nome"`,
+		`"pinned_message":{"message_id":2,"date":1,"chat":{"id":-100,"type":"supergroup"}}`,
+		`"group_chat_created":true`,
+	}
+	for _, f := range svc {
+		out, err := NewAdapter(nil).ParseInbound(context.Background(), conn,
+			[]byte(`{"update_id":1,"message":{"message_id":5,"date":1,"chat":{"id":-100,"type":"supergroup","title":"G"},"from":{"id":9,"is_bot":false,"first_name":"X"},`+f+`}}`), nil)
+		require.NoError(t, err)
+		assert.Empty(t, out, f)
+	}
+	// o editado também, e um texto comum no mesmo grupo continua entrando
+	out, err := NewAdapter(nil).ParseInbound(context.Background(), conn,
+		[]byte(`{"update_id":1,"edited_message":{"message_id":5,"date":1,"chat":{"id":-100,"type":"supergroup"},"new_chat_title":"x"}}`), nil)
+	require.NoError(t, err)
+	assert.Empty(t, out)
+	out, err = NewAdapter(nil).ParseInbound(context.Background(), conn,
+		[]byte(`{"update_id":1,"message":{"message_id":6,"date":1,"chat":{"id":-100,"type":"supergroup","title":"G"},"from":{"id":9,"is_bot":false,"first_name":"X"},"text":"oi"}}`), nil)
+	require.NoError(t, err)
+	require.Len(t, out, 1)
+	assert.Equal(t, "oi", out[0].Body)
+}
