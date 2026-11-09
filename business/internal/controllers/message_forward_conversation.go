@@ -26,7 +26,7 @@ func (mc *MessageController) conversationFor(db *gorm.DB, tenantID uuid.UUID, co
 		if err := q().Where(`"tenantId" = ? AND "contactId" = ? AND "connectionId" = ?`, tenantID, contact.ID, conn.ID).First(&ident).Error; err != nil {
 			return t, errNoConversationKey
 		}
-		convKey = ident.ExternalID
+		convKey = domain.ConversationKeyFromIdentity(domain.ChannelKind(conn.Kind), ident.ExternalID)
 	}
 	err := q().Preload("Contact").Where(`"tenantId" = ? AND "channelConnectionId" = ? AND "conversationKey" = ? AND status IN ?`,
 		tenantID, conn.ID, convKey, []string{"open", "pending"}).First(&t).Error

@@ -71,3 +71,10 @@ func TestChannelRegistry(t *testing.T) {
 	list := registry.List()
 	assert.Len(t, list, 1)
 }
+
+func TestConversationKeyFromIdentity(t *testing.T) {
+	assert.Equal(t, "tg:29494932", domain.ConversationKeyFromIdentity(domain.ChannelKindTelegram, "29494932"))
+	assert.Equal(t, "tg:-1001234567890", domain.ConversationKeyFromIdentity(domain.ChannelKindTelegram, "-1001234567890"))
+	assert.Equal(t, "chat-B", domain.ConversationKeyFromIdentity(domain.ChannelKindTelegram, "chat-B"), "id que não é número fica como veio")
+	assert.Equal(t, "xyz", domain.ConversationKeyFromIdentity("outro", "xyz"))
+}

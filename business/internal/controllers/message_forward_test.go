@@ -321,3 +321,36 @@ func TestSendMessage_MidiaGravaOMimetypeParaPoderSerEncaminhada(t *testing.T) {
 	require.Len(t, e.ch.got, 2)
 	assert.Equal(t, "image", e.ch.got[1].MediaType)
 }
+
+// Formato real do Telegram: a identidade guarda o chat_id PURO e a chave do ticket leva o prefixo ("tg:<id>"). Encaminhar para um contato que já tem
+// conversa tem que cair no ticket dele (tg:<id>), não abrir um segundo com a chave sem prefixo (que o canal recusa no envio).
+func TestForward_ContatoDoTelegramUsaAChaveComPrefixo(t *testing.T) {
+	e := newSendEnv(t)
+	from := e.newTicket(t, "tg:111")
+	dest := e.contactOf(t, "29494932")
+	existing := models.Ticket{TenantID: e.tenantID, ContactID: dest.ID, ChannelConnectionID: e.conn.ID, ConversationKey: "tg:29494932", Status: "open"}
+	require.NoError(t, e.db.Create(&existing).Error)
+	id := e.seedMessage(t, from, "m1", "10", "oi", "", "")
+
+	_, body := e.forward(t, id, `{"contactIds":[`+ids(dest)+`],"mode":"copy"}`)
+	assert.Contains(t, body, `"ok":true`)
+
+	var n int64
+	require.NoError(t, e.db.Model(&models.Ticket{}).Where(`"contactId" = ?`, dest.ID).Count(&n).Error)
+	assert.EqualValues(t, 1, n, "usa o ticket que já existe; não cria um segundo")
+	require.Len(t, e.ch.got, 1)
+	assert.Equal(t, "tg:29494932", e.ch.got[0].ConversationKey, "o canal recebe a chave com prefixo, de onde sai o chat_id")
+}
+
+// Grupo: a identidade do contato-grupo é o chat_id negativo; a chave continua sendo "tg:-100...".
+func TestForward_ContatoGrupoDoTelegramMantemOSinal(t *testing.T) {
+	e := newSendEnv(t)
+	from := e.newTicket(t, "tg:111")
+	dest := e.contactOf(t, "-1001234567890")
+	id := e.seedMessage(t, from, "m1", "10", "oi", "", "")
+
+	_, body := e.forward(t, id, `{"contactIds":[`+ids(dest)+`],"mode":"copy"}`)
+	assert.Contains(t, body, `"ok":true`)
+	require.Len(t, e.ch.got, 1)
+	assert.Equal(t, "tg:-1001234567890", e.ch.got[0].ConversationKey)
+}

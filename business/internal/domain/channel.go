@@ -339,6 +339,18 @@ func WhatsAppConversationKey(contactID int) string { return fmt.Sprintf("wa:%d",
 // supergrupo e canal é outro número (negativo), que é o que distingue a conversa da pessoa que escreve nela.
 func TelegramConversationKey(chatID int64) string { return fmt.Sprintf("tg:%d", chatID) }
 
+// ConversationKeyFromIdentity monta a chave da conversa a partir da identidade do contato no canal agnóstico. A identidade guarda o id puro do chat
+// (chat_id no Telegram); a chave do ticket leva o prefixo do canal (ADR 0040). Id que não é de um canal conhecido, ou número inválido, devolve a identidade
+// como veio (canais de teste e futuros que ainda não definiram o prefixo).
+func ConversationKeyFromIdentity(kind ChannelKind, externalID string) string {
+	if kind == ChannelKindTelegram {
+		if id, err := strconv.ParseInt(externalID, 10, 64); err == nil {
+			return TelegramConversationKey(id)
+		}
+	}
+	return externalID
+}
+
 // TelegramChatID volta da chave para o chat_id que a Bot API espera no envio. ok é falso se a chave não é do Telegram (sem o prefixo "tg:")
 // ou se o resto não é um número.
 func TelegramChatID(key string) (int64, bool) {
