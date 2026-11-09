@@ -141,6 +141,10 @@ type OutboundMessage struct {
 	Forward *ForwardRef `json:"forward,omitempty"`
 }
 
+// ErrConversationKeyRequired: um ticket é criado ou achado pela chave da conversa; sem ela a busca cairia no contato e fundiria conversas diferentes
+// (grupo e privado do mesmo remetente; dois pedidos ou anúncios do mesmo comprador).
+var ErrConversationKeyRequired = errors.New("conversation key required")
+
 // ErrForwardUnsupported: o canal não consegue encaminhar de verdade neste caso (ex.: Telegram entre conexões diferentes).
 var ErrForwardUnsupported = errors.New("forward not supported")
 

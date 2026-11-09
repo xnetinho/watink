@@ -48,3 +48,17 @@ Os formatos de Mercado Livre, OLX, Instagram e TikTok são **propostas** derivad
 - Custo: trocar a chave de um canal que já tem ticket aberto faz a próxima mensagem abrir **outro** ticket. Como o projeto não tem produção nem legado (CLAUDE.md), vale a
   regra de sempre: nada de migração incremental; o banco do `lt` é recriado.
 - Não muda: o índice único, a busca `FindOpenByConversation`, nem o id da mensagem (`StorageMessageID`).
+
+## Ticket novo é achado e criado pela chave, nunca pelo contato (8/nov/2026)
+`FindOrCreatePending` (o caminho que cria o ticket pendente de toda mensagem e chamada recebida) filtrava por **(contato, conexão, pendente)** e ignorava a
+chave. Onde o contato **não é** a conversa, a mensagem caía no ticket de outra conversa. Visto no `lt` com o bot real: a mensagem de um grupo do Telegram
+(contato = quem escreveu, conversa = o grupo, `tg:-575994051`) foi gravada no ticket **privado** do remetente (`tg:29494932`).
+
+O WhatsApp só escapava porque a chave dele (`wa:<id do contato>`) é calculada a partir do contato; o Telegram privado escapava porque `chat_id = user_id`. Nenhuma
+regra impedia um canal novo de ter chave independente do contato, e é o caso dos planejados: **Mercado Livre** (uma conversa por pedido, `pack_id`) e **OLX**
+(uma por anúncio, `listId:chatId`) teriam o mesmo comprador com várias conversas e um só contato, e elas seriam **fundidas**.
+
+Regra: o repositório procura por `(tenantId, channelConnectionId, conversationKey)` e `status IN ('open','pending')`, o mesmo critério do índice único
+`idx_tickets_open_conversation`, e **recusa** (`ErrConversationKeyRequired`) ticket sem chave. Todo canal novo precisa montar a chave pela função do `domain` (acima)
+antes de criar ticket. O teste de contrato `TestFindOrCreatePending_MesmoContatoEmDuasConversasSaoDoisTickets` cobre o caso sem depender de um canal real.
+
