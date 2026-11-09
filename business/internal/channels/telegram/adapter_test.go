@@ -95,3 +95,22 @@ func TestParseInbound_ChaveDaConversaEDoChatEAPessoaEDoRemetente(t *testing.T) {
 		assert.Equal(t, "555", msgs[0].Sender.ExternalID, "%s: quem escreve é a pessoa", tc.name)
 	}
 }
+
+// Em grupo o ParseInbound entrega o título do grupo à parte: o nome do remetente é só o da pessoa (antes vinha "Grupo (Pessoa)", que virava nome de contato).
+func TestParseInbound_GrupoTrazOTituloSeparadoDoNomeDaPessoa(t *testing.T) {
+	conn := &models.ChannelConnection{Kind: "telegram", Status: "CONNECTED"}
+	raw := `{"update_id":1,"message":{"message_id":9,"from":{"id":555,"first_name":"Ana","last_name":"Lima"},"chat":{"id":-1001,"type":"supergroup","title":"Time de Vendas"},"date":1700000000,"text":"oi"}}`
+	msgs, err := telegram.NewAdapter(nil).ParseInbound(context.Background(), conn, []byte(raw), nil)
+	require.NoError(t, err)
+	require.Len(t, msgs, 1)
+	assert.Equal(t, "Ana Lima", msgs[0].Sender.Name)
+	assert.Equal(t, "Time de Vendas", msgs[0].Sender.GroupName)
+	assert.Equal(t, "-1001", msgs[0].Sender.GroupJID)
+	assert.True(t, msgs[0].Sender.IsGroup)
+
+	priv := `{"update_id":1,"message":{"message_id":9,"from":{"id":555,"first_name":"Ana"},"chat":{"id":555,"type":"private"},"date":1700000000,"text":"oi"}}`
+	msgs, err = telegram.NewAdapter(nil).ParseInbound(context.Background(), conn, []byte(priv), nil)
+	require.NoError(t, err)
+	assert.False(t, msgs[0].Sender.IsGroup)
+	assert.Empty(t, msgs[0].Sender.GroupName)
+}

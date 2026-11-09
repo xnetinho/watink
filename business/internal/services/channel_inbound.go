@@ -112,17 +112,41 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 
 	// 3. Canais agnósticos (Telegram, Mercado Livre, OLX, Instagram, TikTok)
 	// 3.1 Resolve ou cria o Contact através de ContactIdentity
+	// Em grupo o contato é o GRUPO (como no WhatsApp) e quem escreveu fica na mensagem; fora dele o contato é a própria pessoa.
+	inGroup := msg.Sender.IsGroup && msg.Sender.GroupJID != ""
+	contactExternalID, contactName, contactAvatar := msg.Sender.ExternalID, msg.Sender.Name, msg.Sender.AvatarURL
+	if inGroup {
+		contactExternalID, contactName, contactAvatar = msg.Sender.GroupJID, msg.Sender.GroupName, ""
+	}
 	contact, _, err := s.contactRepo.FindOrCreateByIdentity(
 		ctx,
 		msg.TenantID,
 		msg.ChannelConnectionID,
 		msg.Channel,
-		msg.Sender.ExternalID,
-		msg.Sender.Name,
-		msg.Sender.AvatarURL,
+		contactExternalID,
+		contactName,
+		contactAvatar,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve contact identity: %w", err)
+	}
+	if inGroup {
+		fields := map[string]interface{}{}
+		if !contact.IsGroup {
+			fields["isGroup"] = true
+		}
+		// O título do grupo muda com o tempo; a identidade só guarda o nome da criação.
+		if contactName != "" && contact.Name != contactName {
+			fields["name"] = contactName
+		}
+		if len(fields) > 0 {
+			if err := s.contactRepo.Update(ctx, contact, fields); err == nil {
+				contact.IsGroup = true
+				if n, ok := fields["name"].(string); ok {
+					contact.Name = n
+				}
+			}
+		}
 	}
 
 	// 3.2 Resolve ou cria Ticket pela conversationKey
@@ -141,6 +165,7 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 			ChannelConnectionID: connID,
 			ConversationKey:     convKey,
 			Status:              "pending",
+			IsGroup:             inGroup,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create pending ticket: %w", err)
@@ -154,8 +179,12 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	dataJSON := "{}"
-	if msg.Forwarded || len(msg.Rich) > 0 {
+	if inGroup || msg.Forwarded || len(msg.Rich) > 0 {
 		d := map[string]interface{}{}
+		if inGroup {
+			// A tela mostra o nome acima do balão (pushName) e agrupa as mensagens seguidas pelo participante.
+			d["participant"], d["pushName"], d["isGroup"] = msg.Sender.ExternalID, msg.Sender.Name, true
+		}
 		if msg.Forwarded {
 			d["forwarded"] = true
 		}
@@ -206,20 +235,21 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	message := &domain.Message{
-		ID:         messageID,
-		DataJson:   dataJSON,
-		ExternalID: msg.ExternalMessageID,
-		Body:       msg.Body,
-		Ack:        1, // recebida
-		Read:       false,
-		MediaType:  mediaType,
-		MediaUrl:   msg.MediaURL,
-		TicketID:   ticket.ID,
-		ContactID:  &contact.ID,
-		FromMe:     false,
-		TenantID:   msg.TenantID,
-		CreatedAt:  msg.Timestamp,
-		UpdatedAt:  msg.Timestamp,
+		ID:          messageID,
+		DataJson:    dataJSON,
+		ExternalID:  msg.ExternalMessageID,
+		Body:        msg.Body,
+		Ack:         1, // recebida
+		Read:        false,
+		MediaType:   mediaType,
+		MediaUrl:    msg.MediaURL,
+		TicketID:    ticket.ID,
+		ContactID:   &contact.ID,
+		FromMe:      false,
+		TenantID:    msg.TenantID,
+		Participant: participantOf(inGroup, msg.Sender.ExternalID),
+		CreatedAt:   msg.Timestamp,
+		UpdatedAt:   msg.Timestamp,
 	}
 
 	if rep, ok := s.messageRepo.(domain.MessageInsertReporter); ok {
@@ -274,6 +304,14 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 	}
 
 	return res, nil
+}
+
+// participantOf é quem escreveu dentro do grupo; fora dele o remetente é o próprio contato e o campo fica vazio.
+func participantOf(inGroup bool, senderID string) string {
+	if inGroup {
+		return senderID
+	}
+	return ""
 }
 
 // conversationKeyOf é a chave da conversa: a do canal ou, na falta dela, o remetente.

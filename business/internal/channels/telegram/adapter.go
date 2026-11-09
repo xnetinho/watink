@@ -344,11 +344,7 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 			senderName += " " + msg.From.LastName
 		}
 	}
-	if msg.Chat.Type == "group" || msg.Chat.Type == "supergroup" {
-		if msg.Chat.Title != "" {
-			senderName = msg.Chat.Title + " (" + senderName + ")"
-		}
-	}
+	isGroup := msg.Chat.Type == "group" || msg.Chat.Type == "supergroup"
 
 	body := msg.Text
 	if body == "" {
@@ -467,8 +463,9 @@ func (a *Adapter) ParseInbound(ctx context.Context, conn *models.ChannelConnecti
 		Sender: domain.InboundSender{
 			ExternalID: senderExternalID,
 			Name:       senderName,
-			IsGroup:    msg.Chat.Type == "group" || msg.Chat.Type == "supergroup",
+			IsGroup:    isGroup,
 			GroupJID:   chatExternalID,
+			GroupName:  msg.Chat.Title,
 		},
 		Body:            body,
 		MediaType:       mediaType,

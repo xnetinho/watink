@@ -90,6 +90,8 @@ type InboundSender struct {
 	Phone      string `json:"phone,omitempty"`
 	IsGroup    bool   `json:"isGroup"`
 	GroupJID   string `json:"groupJid,omitempty"`
+	// GroupName é o título do grupo quando IsGroup: em grupo o contato é o GRUPO (GroupJID) e Name é só quem escreveu.
+	GroupName string `json:"groupName,omitempty"`
 }
 
 // InboundMessage é o contrato neutro e universal de mensagem recebida de qualquer canal (D6 / ADR 0033).
