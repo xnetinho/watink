@@ -38,6 +38,9 @@ type Message struct {
 	// QuotedMsg é a mensagem citada, preenchida só na listagem (GET /messages/:ticketId) para o
 	// balão mostrar "em resposta a…". Não é coluna.
 	QuotedMsg *Message `gorm:"-" json:"quotedMsg,omitempty"`
+	// ClientMessageID é o id que o navegador deu à mensagem otimista; volta no evento e na resposta do envio para a tela trocar a cópia
+	// local pela real. Nunca é gravado.
+	ClientMessageID string `gorm:"-" json:"clientMessageId,omitempty"`
 
 	// Relations
 	Ticket Ticket `gorm:"foreignKey:TicketID" json:"ticket,omitempty"`

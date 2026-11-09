@@ -72,6 +72,7 @@ import LinkPreview from "./LinkPreview";
 import DailyTimestamp from "./DailyTimestamp";
 import SenderName from "./SenderName";
 import DeletedMessage from "./DeletedMessage";
+import { isLocalMessageId, retryMessage } from "../outbox";
 
 
 const tr = (key: string, opts: Record<string, unknown> = {}): string => String(i18n.t(key, opts) ?? "");
@@ -146,6 +147,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // Reenvia a mensagem que falhou (ack 5) pelo servidor, que reaproveita o conteúdo inteiro: texto, mídia, voz, citação.
   // Mandar só o corpo, como era antes, não reenviava mídia (o corpo de um áudio é vazio).
   const handleRetry = useCallback(async () => {
+    // Mensagem ainda local (nunca chegou a existir no servidor): reenvia pela caixa de saída.
+    if (isLocalMessageId(message.id)) {
+      retryMessage(String(message.id));
+      return;
+    }
     try {
       await api.post(`/message/${message.id}/resend`);
     } catch {

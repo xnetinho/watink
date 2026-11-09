@@ -5,6 +5,8 @@ import { AuthContext } from "../../../context/Auth/AuthContext";
 import { useLocalStorage } from "../../../hooks/useLocalStorage";
 import api from "../../../services/api";
 import toastError from "../../../errors/toastError";
+import { enqueueMessage, newClientMessageId } from "../../MessagesList/outbox";
+import type { Message } from "../../MessagesList/types";
 import { useAudioRecording } from "./useAudioRecording";
 import { useMediaUpload } from "./useMediaUpload";
 import { useMentions } from "./useMentions";
@@ -13,6 +15,32 @@ import { useQuickAnswers } from "./useQuickAnswers";
 export { type MediaItem } from "./useMediaUpload";
 export { type Participant } from "./useMentions";
 export { type QuickAnswer } from "./useQuickAnswers";
+
+// Menções (@nome, @grupo) viram a lista de números a marcar; falhar aqui não impede o envio do texto.
+async function resolveMentions(ticketId: string, text: string): Promise<{ finalBody: string; mentionedIds: string[] }> {
+  let mentionedIds: string[] = [];
+  let finalBody = text;
+  if (!text.includes("@")) return { finalBody, mentionedIds };
+  try {
+    const { data: participants } = await api.get<Array<{ number: string; name?: string }>>(`/tickets/${ticketId}/participants`);
+    const { data: ticket } = await api.get(`/tickets/${ticketId}`);
+    const groupName = ticket.contact.name as string | undefined;
+
+    if (groupName && text.includes(`@${groupName}`)) {
+      mentionedIds.push(...participants.map((p) => p.number));
+      finalBody = finalBody.replace(`@${groupName}`, "").trim();
+    }
+    participants.forEach((p) => {
+      if (text.includes(`@${p.name}`) || text.includes(`@${p.number}`)) {
+        mentionedIds.push(p.number);
+      }
+    });
+    mentionedIds = [...new Set(mentionedIds)];
+  } catch (err) {
+    console.error("Error resolving mentions", err);
+  }
+  return { finalBody, mentionedIds };
+}
 
 export const useMessageInput = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
@@ -82,55 +110,45 @@ export const useMessageInput = () => {
     mediaUpload.handleInputPaste(e, inputMessage, () => setInputMessage(""));
   };
 
-  const handleSendMessage = async () => {
-    if (inputMessage.trim() === "") return;
-    setLoading(true);
+  const handleSendMessage = () => {
+    if (inputMessage.trim() === "" || !ticketId) return;
+    const text = inputMessage;
+    const quoted = replyingMessage;
+    const signed = signMessage;
+    const author = user?.name;
 
-    let mentionedIds: string[] = [];
-    let finalBody = inputMessage;
-
-    if (inputMessage.includes("@")) {
-      try {
-        const { data: participants } = await api.get<Array<{ number: string; name?: string }>>(
-          `/tickets/${ticketId}/participants`
-        );
-        const { data: ticket } = await api.get(`/tickets/${ticketId}`);
-        const groupName = ticket.contact.name as string | undefined;
-
-        if (groupName && inputMessage.includes(`@${groupName}`)) {
-          mentionedIds.push(...participants.map((p) => p.number));
-          finalBody = finalBody.replace(`@${groupName}`, "").trim();
-        }
-        participants.forEach((p) => {
-          if (inputMessage.includes(`@${p.name}`) || inputMessage.includes(`@${p.number}`)) {
-            mentionedIds.push(p.number);
-          }
-        });
-        mentionedIds = [...new Set(mentionedIds)];
-      } catch (err) {
-        console.error("Error resolving mentions", err);
+    // A mensagem aparece na conversa agora (relógio) e o campo fica livre para a próxima: o POST sai em fila, depois. Menções precisam de duas consultas
+    // antes do envio, então a montagem do corpo roda dentro da fila e não segura a tela.
+    const clientId = newClientMessageId();
+    enqueueMessage(
+      ticketId,
+      {
+        id: clientId,
+        clientMessageId: clientId,
+        body: signed ? `*${author}:*\n${text}` : text,
+        fromMe: true,
+        ack: 0,
+        read: 1,
+        ticketId: Number(ticketId),
+        createdAt: new Date().toISOString(),
+        quotedMsg: (quoted as Message["quotedMsg"]) ?? undefined,
+      } as Message,
+      async () => {
+        const { finalBody, mentionedIds } = await resolveMentions(ticketId, text);
+        return {
+          read: 1,
+          fromMe: true,
+          mediaUrl: "",
+          body: signed ? `*${author}:*\n${finalBody}` : finalBody,
+          quotedMsg: quoted,
+          mentionedIds,
+        };
       }
-    }
-
-    const message = {
-      read: 1,
-      fromMe: true,
-      mediaUrl: "",
-      body: signMessage ? `*${user?.name}:*\n${finalBody}` : finalBody,
-      quotedMsg: replyingMessage,
-      mentionedIds,
-    };
-
-    try {
-      await api.post(`/messages/${ticketId}`, message);
-      setInputMessage("");
-      setShowEmoji(false);
-      setLoading(false);
-      setReplyingMessage(null);
-    } catch (err) {
-      toastError(err);
-      setLoading(false);
-    }
+    );
+    setInputMessage("");
+    setShowEmoji(false);
+    setReplyingMessage(null);
+    inputRef.current?.focus();
   };
 
   const focusInput = () => inputRef.current?.focus();

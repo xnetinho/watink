@@ -112,7 +112,7 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	}
 
 	ct := c.ContentType()
-	var body, mediaType, mediaURL, mimeType, quotedID string
+	var body, mediaType, mediaURL, mimeType, quotedID, clientMessageID string
 	// voice: o áudio é uma GRAVAÇÃO (bolha de voz com onda), não um arquivo de áudio. Só vale para mediaType=audio.
 	var voice bool
 	// viewOnce: foto, vídeo ou áudio enviado para ser visto uma única vez (olho no painel de envio).
@@ -127,6 +127,8 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			Body      string `json:"body"`
 			MediaType string `json:"mediaType"`
 			MediaUrl  string `json:"mediaUrl"`
+			// ClientMessageID: id da mensagem otimista da tela, devolvido no evento e na resposta.
+			ClientMessageID string `json:"clientMessageId"`
 			// StickerID manda uma figurinha da biblioteca da empresa. É o id da biblioteca, nunca uma URL: o arquivo é o que
 			// a empresa guardou, e nenhum caminho de disco vem do cliente.
 			StickerID int `json:"stickerId"`
@@ -150,6 +152,11 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if _, err := utils.ValidateStringField(input.ClientMessageID, "clientMessageId", 64); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		clientMessageID = input.ClientMessageID
 		body = input.Body
 		mediaType = input.MediaType
 		mediaURL = input.MediaUrl
@@ -211,12 +218,13 @@ func (mc *MessageController) SendMessage(c *gin.Context) {
 	}
 	// A tela monta a conversa pelo evento appMessage: o envio por canal agnóstico (Telegram...) também precisa avisá-la, senão a resposta só aparece
 	// depois de recarregar a página. O corpo da resposta continua sendo o de cada caminho.
+	res.ClientMessageID = clientMessageID
 	mc.announce(db, tenantID, res)
 	if viaChannel {
 		c.JSON(http.StatusOK, res)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Message sent", "messageId": res.ID})
+	c.JSON(http.StatusOK, gin.H{"message": "Message sent", "messageId": res.ID, "clientMessageId": clientMessageID})
 }
 
 // canBeSticker diz se o arquivo pode virar figurinha: imagem (inclui GIF e WebP) ou vídeo curto. O engine converte para WebP

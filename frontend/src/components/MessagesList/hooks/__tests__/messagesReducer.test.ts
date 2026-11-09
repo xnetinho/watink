@@ -137,3 +137,45 @@ describe("messagesReducer — update não apaga a citação", () => {
     expect(state[0].quotedMsg).toBeUndefined();
   });
 });
+
+// Envio otimista: a cópia local (id "local-…", ack 0) e a real (com clientMessageId) têm que virar UMA mensagem, em qualquer ordem de chegada.
+describe("envio otimista", () => {
+  const local = { ...msg(0, "2026-10-07T11:00:00.000Z"), id: "local-1", fromMe: true, ack: 0, body: "oi" } as Message;
+  const real = { ...msg(0, "2026-10-07T11:00:01.000Z"), id: "REAL1", fromMe: true, ack: 0, body: "oi", clientMessageId: "local-1" } as Message;
+
+  it("o evento real toma o lugar da cópia local, sem duplicar", () => {
+    const state = messagesReducer([local], { type: "ADD_MESSAGE", payload: real });
+    expect(state.map((m) => m.id)).toEqual(["REAL1"]);
+  });
+
+  it("CONFIRM_LOCAL dá à cópia local o id real", () => {
+    const state = messagesReducer([local], { type: "CONFIRM_LOCAL", clientId: "local-1", id: "REAL1" });
+    expect(state.map((m) => m.id)).toEqual(["REAL1"]);
+  });
+
+  it("evento antes da resposta: o CONFIRM_LOCAL tardio não duplica nem recria nada", () => {
+    let state = messagesReducer([local], { type: "ADD_MESSAGE", payload: real });
+    state = messagesReducer(state, { type: "CONFIRM_LOCAL", clientId: "local-1", id: "REAL1" });
+    expect(state.map((m) => m.id)).toEqual(["REAL1"]);
+  });
+
+  it("resposta antes do evento: o evento depois só atualiza a mesma mensagem", () => {
+    let state = messagesReducer([local], { type: "CONFIRM_LOCAL", clientId: "local-1", id: "REAL1" });
+    state = messagesReducer(state, { type: "ADD_MESSAGE", payload: { ...real, ack: 1 } });
+    expect(state).toHaveLength(1);
+    expect(state[0].ack).toBe(1);
+  });
+
+  it("a listagem recarregada já trouxe a real (sem clientMessageId) e a local ainda está na lista: o CONFIRM não duplica o id", () => {
+    const loaded = messagesReducer([local], { type: "LOAD_MESSAGES", payload: [{ ...real, clientMessageId: undefined } as Message] });
+    expect(loaded).toHaveLength(2);
+    const state = messagesReducer(loaded, { type: "CONFIRM_LOCAL", clientId: "local-1", id: "REAL1" });
+    expect(state.map((m) => m.id)).toEqual(["REAL1"]);
+  });
+
+  it("o evento real que chega com a local ainda na lista e o id real já presente (CONFIRM antes) remove a local", () => {
+    const both = [{ ...real }, { ...local }];
+    const state = messagesReducer(both, { type: "ADD_MESSAGE", payload: real });
+    expect(state.map((m) => m.id)).toEqual(["REAL1"]);
+  });
+});
