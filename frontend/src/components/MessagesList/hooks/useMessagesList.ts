@@ -7,6 +7,7 @@ import { parseData } from "../utils/messageHelpers";
 import { messagesReducer } from "./messagesReducer";
 import { useMessagesSocket } from "./useMessagesSSE";
 import { useMessagesScroll } from "./useMessagesScroll";
+import { subscribeOutbox } from "../outbox";
 
 import { i18n } from "../../../translate/i18n";
 
@@ -95,6 +96,15 @@ export function useMessagesList(
   }, [pageNumber, ticketId]);
 
   useMessagesSocket(ticketId, dispatch, shouldScrollRef);
+
+  useEffect(
+    () =>
+      subscribeOutbox(ticketId, (action) => {
+        dispatch(action);
+        if (action.type === "ADD_MESSAGE") shouldScrollRef.current = "smooth";
+      }),
+    [ticketId]
+  );
 
   useEffect(() => {
     if (!isGroup) return;

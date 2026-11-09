@@ -52,9 +52,24 @@ export const messagesReducer = (
   if (action.type === "ADD_MESSAGE") {
     const newMessage = action.payload;
     const idx = state.findIndex((m) => m.id === newMessage.id);
+    // Envio otimista: o evento real traz o id local (clientMessageId) e toma o lugar da cópia local, sem duplicar.
+    const localIdx = newMessage.clientMessageId ? state.findIndex((m) => m.id === newMessage.clientMessageId) : -1;
     const updated = [...state];
-    if (idx !== -1) updated[idx] = keepQuote(newMessage, state[idx]);
-    else updated.push(newMessage);
+    if (idx !== -1) {
+      updated[idx] = keepQuote(newMessage, state[idx]);
+      if (localIdx !== -1) updated.splice(localIdx, 1);
+    } else if (localIdx !== -1) {
+      updated[localIdx] = keepQuote(newMessage, state[localIdx]);
+    } else updated.push(newMessage);
+    return sortByDate(updated);
+  }
+  // A resposta do POST chegou: a cópia local ganha o id real (ou some, se o evento real já a substituiu).
+  if (action.type === "CONFIRM_LOCAL") {
+    const localIdx = state.findIndex((m) => m.id === action.clientId);
+    if (localIdx === -1) return state;
+    if (state.some((m) => m.id === action.id)) return state.filter((m) => m.id !== action.clientId);
+    const updated = [...state];
+    updated[localIdx] = { ...state[localIdx], id: action.id, ack: action.ack ?? state[localIdx].ack };
     return sortByDate(updated);
   }
   if (action.type === "UPDATE_MESSAGE") {
