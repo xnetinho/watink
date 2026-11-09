@@ -218,6 +218,7 @@ func (c *Client) DownloadFile(ctx context.Context, filePath string) (io.ReadClos
 type SendMessageRequest struct {
 	ChatID           interface{} `json:"chat_id"` // int64 or string
 	Text             string      `json:"text"`
+	ParseMode        string      `json:"parse_mode,omitempty"`
 	ReplyToMessageID int         `json:"reply_to_message_id,omitempty"`
 }
 
@@ -241,7 +242,8 @@ func (c *Client) SendMessage(ctx context.Context, chatID string, text string, re
 
 	payload := SendMessageRequest{
 		ChatID:           parsedChatID,
-		Text:             text,
+		Text:             whatsAppToTelegramHTML(text),
+		ParseMode:        "HTML",
 		ReplyToMessageID: replyToMsgID,
 	}
 	body, err := json.Marshal(payload)
@@ -362,7 +364,8 @@ func (c *Client) sendMedia(ctx context.Context, method, field, chatID, mediaURL,
 		var buf bytes.Buffer
 		mw := multipart.NewWriter(&buf)
 		_ = mw.WriteField("chat_id", chatID)
-		_ = mw.WriteField("caption", caption)
+		_ = mw.WriteField("caption", whatsAppToTelegramHTML(caption))
+		_ = mw.WriteField("parse_mode", "HTML")
 		if replyToMsgID != 0 {
 			_ = mw.WriteField("reply_to_message_id", strconv.Itoa(replyToMsgID))
 		}
@@ -386,7 +389,8 @@ func (c *Client) sendMedia(ctx context.Context, method, field, chatID, mediaURL,
 		body, _ := json.Marshal(map[string]interface{}{
 			"chat_id":             parsedChatID,
 			field:                 mediaURL,
-			"caption":             caption,
+			"caption":             whatsAppToTelegramHTML(caption),
+			"parse_mode":          "HTML",
 			"reply_to_message_id": replyToMsgID,
 		})
 		if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body)); err != nil {
