@@ -52,6 +52,7 @@ func TestChannelInbound_GrupoTelegram_ContatoEOGrupoERemetenteFicaNaMensagem(t *
 	assert.Equal(t, "Time de Vendas", r1.Contact.Name)
 	assert.True(t, r1.Contact.IsGroup)
 	assert.True(t, r1.Ticket.IsGroup)
+	assert.Equal(t, "open", r1.Ticket.Status, "grupo não tem aceite (a tela só mostra Aceitar fora de grupo): nasce aberto, como no WhatsApp")
 
 	byExt := func(ext string) models.Message {
 		var m models.Message
@@ -82,6 +83,7 @@ func TestChannelInbound_GrupoTelegram_PrivadoDaMesmaPessoaNaoSeMistura(t *testin
 	assert.Equal(t, "Ana", priv.Contact.Name)
 	assert.False(t, priv.Contact.IsGroup)
 	assert.False(t, priv.Ticket.IsGroup)
+	assert.Equal(t, "pending", priv.Ticket.Status, "o privado continua pendente até alguém aceitar")
 
 	var privMsgs int64
 	db.Model(&models.Message{}).Where(`"ticketId" = ?`, priv.Ticket.ID).Count(&privMsgs)

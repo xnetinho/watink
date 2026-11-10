@@ -159,12 +159,17 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 
 	connID := msg.ChannelConnectionID
 	if ticket == nil {
+		// Grupo não tem aceite (a tela só oferece Aceitar fora de grupo e o campo de resposta exige ticket aberto): nasce aberto, como no WhatsApp.
+		status := "pending"
+		if inGroup {
+			status = "open"
+		}
 		ticket, err = s.ticketRepo.FindOrCreatePending(ctx, &domain.Ticket{
 			TenantID:            msg.TenantID,
 			ContactID:           contact.ID,
 			ChannelConnectionID: connID,
 			ConversationKey:     convKey,
-			Status:              "pending",
+			Status:              status,
 			IsGroup:             inGroup,
 		})
 		if err != nil {
