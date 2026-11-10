@@ -347,3 +347,37 @@ Isso resolve o horário sem criar conceito novo: "fora do horário, a fila X apo
 - **Conexão com regra de roteamento (Q3):** o que é uma "regra" (palavra-chave? tipo de mensagem? contato novo/recorrente?). Hoje não existe nenhum critério para escolher entre filas.
 - **Quando o ticket volta do recado ao expediente (H3):** quem faz a varredura e como evita redistribuir um ticket que o cliente já retomou.
 - **Fila padrão e Q4:** como o aviso de F1 aparece para o operador comum (que não vê o ticket sem fila).
+
+## Parte K. DECISÃO FINAL (10/nov/2026): desenho mínimo, que substitui as Partes E a J onde divergirem
+
+Depois da pesquisa em Chatwoot, Intercom, Zendesk, Freshdesk e Octadesk (`pesquisa-fila-outras-ferramentas.md`), o desenho foi **simplificado**. As Partes E a J ficam como histórico; vale o que está aqui.
+
+### Confirmações da pesquisa
+| # | Decisão |
+|---|---|
+| Q12 | Carteira: o ticket **vai para o dono mesmo offline ou no limite** (cliente de carteira é dele; comissão). |
+| Q4 | Visibilidade: o operador vê **os tickets dele e os sem dono das filas dele**; nunca os de outro operador. Uma regra só, sem escolha por fila. |
+| Q15 | Sem resposta em N minutos: o ticket **volta à fila** (solta o dono). **Sem hierarquia.** |
+| F4 | Fora do horário: **mensagem de ausência** por fila (uma vez por dia por conversa); o ticket entra normalmente e espera o expediente. |
+
+### O que sai do escopo
+Tipo de fila (`fluxo`, `recado`) e `flowId`; hierarquia (`parentId`) e escalonamento para a fila pai (Q15 anterior, Q25); visibilidade configurável por fila (Q22); estratégias extras (Q8: "primeiro que assume", "pessoa fixa"); "último atendente" por fila (Q14); "só online" configurável (Q9: passa a ser sempre).
+
+### O desenho
+**Três conceitos:** (1) **fila** = pessoas + estratégia (`manual` | `rodizio` | `balanceado`) + limite por pessoa (opcional) + mensagem de ausência com horário (opcional); (2) **fila padrão** da empresa; (3) **responsável do contato** (`walletUserId`, já existe).
+
+**Um só caminho** para mensagem, chamada, bot, ticket manual, webchat e campanha:
+1. Grupo: fica fora (Q26).
+2. Contato com responsável: vai para ele.
+3. Senão: elegíveis = membros da fila, **online**, **fora de pausa**, **abaixo do limite**; aplica a estratégia.
+4. Ninguém elegível: **espera na fila**, com o **motivo visível** no ticket.
+5. Fora do horário: mensagem de ausência.
+6. Conexão sem fila usa a fila padrão; sem fila padrão, só o administrador vê, com aviso (Q1, Q2, F1).
+
+### Entrega em 4 PRs
+1. **Integridade:** excluir fila e usuário pede destino e move; nenhum ticket órfão (Q18, Q19, Q20).
+2. **Ponto único + fila padrão + Telegram herda a fila**, ligando a distribuição existente (Q1 a Q7).
+3. **Disponibilidade e capacidade:** online, pausa para mensagem, limite por pessoa, espera com motivo e atribuição transacional (Q9, Q10, Q11, Q29, Q32).
+4. **Horário e mensagem de ausência** + **painel** "sem fila" e "sem dono" (Q31, Q34).
+
+Fica para depois, só se a operação pedir: escalonamento, visibilidade "só o dono", fila pai.
