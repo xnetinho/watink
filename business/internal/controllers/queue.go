@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -205,16 +206,30 @@ func (qc *QueueController) DeleteQueue(c *gin.Context) {
 		return
 	}
 
-	writeDB := db.Session(&gorm.Session{NewDB: true})
-	result := writeDB.Where("id = ? AND \"tenantId\" = ?", id, tenantID).Delete(&models.Queue{})
-	if result.Error != nil {
-		utils.RespondWithInternalError(c, result.Error, "DeleteQueue")
-		return
-	}
-	if result.RowsAffected == 0 {
-		c.JSON(404, gin.H{"error": "Queue not found"})
-		return
+	// moveTo (query) é a fila que herda tickets, usuários, conexões e setores da que sai. Sem dependentes não é necessário.
+	var moveTo *int
+	if raw := c.Query("moveTo"); raw != "" {
+		v, convErr := strconv.Atoi(raw)
+		if convErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid moveTo"})
+			return
+		}
+		moveTo = &v
 	}
 
-	c.JSON(200, gin.H{"message": "Queue deleted successfully"})
+	err = services.DeleteQueue(c.Request.Context(), db, tenantID, id, moveTo)
+	var dep *services.QueueHasDependentsError
+	switch {
+	case err == nil:
+		c.JSON(200, gin.H{"message": "Queue deleted successfully"})
+	case errors.Is(err, services.ErrQueueNotFound):
+		c.JSON(404, gin.H{"error": "Queue not found"})
+	case errors.Is(err, services.ErrQueueMoveInvalid):
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "ERR_QUEUE_MOVE_INVALID"})
+	case errors.As(err, &dep):
+		// A tela lê os números para perguntar "mover N tickets, M usuários e K conexões para qual fila?".
+		c.JSON(http.StatusConflict, gin.H{"error": "ERR_QUEUE_HAS_DEPENDENTS", "dependents": dep.Dependents})
+	default:
+		utils.RespondWithInternalError(c, err, "DeleteQueue")
+	}
 }

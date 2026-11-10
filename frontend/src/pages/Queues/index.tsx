@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { i18n } from "../../translate/i18n";
 import QueueModal from "../../components/QueueModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import MoveBeforeDeleteModal from "../../components/MoveBeforeDeleteModal";
 import { PageContainer, PageHeader, PageContent } from "../../components/ui/page-layout";
 import { Button } from "../../components/ui/button";
 import { useQueues } from "./hooks/useQueues";
@@ -25,6 +26,9 @@ const Queues = () => {
     handleDeleteQueue,
     setSelectedQueue,
     setConfirmModalOpen,
+    moveRequest,
+    closeMoveRequest,
+    handleMoveAndDelete,
   } = useQueues();
 
   return (
@@ -41,6 +45,22 @@ const Queues = () => {
       >
         {i18n.t("queues.confirmationModal.deleteMessage")}
       </ConfirmationModal>
+
+      <MoveBeforeDeleteModal
+        open={moveRequest !== null}
+        title={i18n.t("moveBeforeDelete.queueTitle", { name: moveRequest?.queue.name ?? "" })}
+        description={i18n.t("moveBeforeDelete.queueDescription", {
+          tickets: moveRequest?.dependents.Tickets ?? 0,
+          users: moveRequest?.dependents.Users ?? 0,
+          connections: moveRequest?.dependents.Connections ?? 0,
+          setores: moveRequest?.dependents.Setores ?? 0,
+          children: moveRequest?.dependents.Children ?? 0,
+        })}
+        targetLabel={i18n.t("moveBeforeDelete.queueTarget")}
+        targets={queues.filter((q) => q.id !== moveRequest?.queue.id)}
+        onClose={closeMoveRequest}
+        onConfirm={(target) => moveRequest && handleMoveAndDelete(moveRequest.queue.id, target)}
+      />
 
       <QueueModal
         open={queueModalOpen}

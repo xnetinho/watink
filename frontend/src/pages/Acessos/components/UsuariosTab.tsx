@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import ConfirmationModal from "../../../components/ConfirmationModal";
+import MoveBeforeDeleteModal from "../../../components/MoveBeforeDeleteModal";
 
 import { useUsuariosTab } from "../hooks/useUsuariosTab";
 import UserPanel from "./UserPanel";
@@ -44,6 +45,9 @@ const UsuariosTab: React.FC = () => {
     closePanel,
     saveUser,
     deleteUser,
+    walletRequest,
+    closeWalletRequest,
+    deleteUserWithWallet,
     cargoNameById,
   } = useUsuariosTab();
 
@@ -79,6 +83,16 @@ const UsuariosTab: React.FC = () => {
       >
         {tr("uiText.acessos.userDeleteHint")}
       </ConfirmationModal>
+
+      <MoveBeforeDeleteModal
+        open={walletRequest !== null}
+        title={i18n.t("moveBeforeDelete.userTitle", { name: walletRequest?.user.name ?? "" })}
+        description={i18n.t("moveBeforeDelete.userDescription", { contacts: walletRequest?.contacts ?? 0 })}
+        targetLabel={i18n.t("moveBeforeDelete.userTarget")}
+        targets={users.filter((u) => u.id !== walletRequest?.user.id)}
+        onClose={closeWalletRequest}
+        onConfirm={(target) => walletRequest && deleteUserWithWallet(walletRequest.user, target)}
+      />
 
       <UserPanel
         open={panelOpen}

@@ -28,7 +28,18 @@ function reducer(state: Queue[], action: QueuesAction): Queue[] {
   }
 }
 
+export interface QueueDependents {
+  Tickets: number;
+  Users: number;
+  Connections: number;
+  Setores: number;
+  Children: number;
+}
+
 export interface UseQueuesReturn {
+  moveRequest: { queue: Queue; dependents: QueueDependents } | null;
+  closeMoveRequest: () => void;
+  handleMoveAndDelete: (queueId: number, moveTo: number) => Promise<void>;
   queues: Queue[];
   loading: boolean;
   queueModalOpen: boolean;
@@ -48,6 +59,7 @@ export function useQueues(): UseQueuesReturn {
   const [queueModalOpen, setQueueModalOpen] = useState(false);
   const [selectedQueue, setSelectedQueue] = useState<Queue | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [moveRequest, setMoveRequest] = useState<{ queue: Queue; dependents: QueueDependents } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -96,12 +108,32 @@ export function useQueues(): UseQueuesReturn {
       await api.delete(`/queue/${queueId}`);
       toast.success(i18n.t("queues.toasts.deleted"));
     } catch (err) {
-      toastError(err);
+      // 409: a fila ainda tem ticket, usuário, conexão ou setor. O servidor devolve os números e a tela pergunta para qual fila mover.
+      const e = err as { response?: { status?: number; data?: { dependents?: QueueDependents } } };
+      const queue = queues.find((q) => q.id === queueId);
+      if (e.response?.status === 409 && e.response.data?.dependents && queue) {
+        setMoveRequest({ queue, dependents: e.response.data.dependents });
+      } else {
+        toastError(err);
+      }
     }
     setSelectedQueue(null);
   };
 
+  const handleMoveAndDelete = async (queueId: number, moveTo: number) => {
+    try {
+      await api.delete(`/queue/${queueId}`, { params: { moveTo } });
+      toast.success(i18n.t("queues.toasts.deleted"));
+      setMoveRequest(null);
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   return {
+    moveRequest,
+    closeMoveRequest: () => setMoveRequest(null),
+    handleMoveAndDelete,
     queues,
     loading,
     queueModalOpen,
