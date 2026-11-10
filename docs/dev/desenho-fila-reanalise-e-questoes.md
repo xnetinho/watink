@@ -233,3 +233,53 @@ Cada questão tem a **recomendação** e o **custo de não decidir**. Marque a o
 - Não executei nenhum cenário novo de distribuição; só li o código e consultei o banco do `lt`.
 - O `lt` tem 1 usuário (administrador, `alcance=plataforma`) e nenhum vínculo `user_queues`: o comportamento para operador comum foi lido no SQL de `tenant.go`, **não** exercitado com um operador real.
 - Não medi a carga real de mensagens por fila; a Q32 é uma análise do código, não de um problema observado.
+
+## Parte E. Decisões tomadas (10/nov/2026)
+
+| Q | Decisão |
+|---|---|
+| 1 | Conexão sem fila: **mantém como está** (só o administrador vê). Existe uma **fila padrão opcional**; sem ela vale este comportamento. |
+| 2 | Sem fila padrão e sem fila na conexão: **aviso vermelho** na tela de Conexões. |
+| 3 | Conexão com várias filas: **primeira regra de roteamento que casar; senão a fila padrão** (se existir). |
+| 4 | Ticket de conexão com várias filas: **só a fila do ticket vê** (sai o "conexão ligada a fila do usuário" do OU de visibilidade). |
+| 5 | **Ponto de entrada único** para todo ticket novo. |
+| 6 | Nó `ticket` do bot passa pela regra: `moveToQueue` aciona a distribuição; `assignUser` é escolha explícita e é respeitada. |
+| 7 | Webchat e campanha de grupos **entram** no ponto único. |
+| 8 | Estratégias já na primeira entrega: as atuais + carteira **e as novas** ("primeiro que assume", "online primeiro", "pessoa fixa"). |
+| 9 | Considerar só quem está online: **configurável por fila**. |
+| 10 | Sem limite de tickets por operador nesta fase. |
+| 11 | A **pausa** de recebimento vale também para mensagem. |
+| 12 | Carteira com dono offline ou pausado: **não vale**; segue a regra normal. |
+| 13 | Telegram: carteira por vínculo manual ou CRM; sem vínculo, rodízio. |
+| 14 | Cliente que volta: **configurável por fila** (último atendente ou regra normal). |
+| 15 | Sem resposta por N min: **subir para a fila pai** (prazo contado da última mensagem do cliente sem resposta). |
+| 16 | `pending` parado: mesmo escalonamento da Q15. |
+| 17 | Transferir: **o operador escolhe** ("para a fila" ou "para a pessoa"). |
+| 18 | Excluir fila: **mover** tickets e vínculos para outra fila escolhida. |
+| 19 | Excluir ou desativar usuário: **devolver os tickets à fila sempre** (solta o dono e redistribui). |
+| 20 | Sair de uma fila: os tickets **continuam** com o usuário até fechar. |
+| 21 | Desvincular a última fila da conexão: avisa; próximos tickets seguem Q1/Q2; os existentes não mudam. |
+| 22 | Visibilidade de ticket com dono: **escolha por fila** (por fila, ou por dono). |
+| 23 | Gestor: `ehGestor` do setor vê e recebe o escalonamento das filas do setor; `alcance` de empresa vê tudo. |
+| 24 | `user_queues` é a **fonte única** de visibilidade e distribuição; o setor só agrupa filas. |
+| 25 | **Fila pai vê as filas filhas** (a hierarquia `parentId` passa a ter significado). |
+| 26 | Grupo **não** entra na distribuição. |
+| 27 | Chamada de voz segue a **mesma regra** do ticket (toca só para online; pausa vale; sem ninguém online vira chamada perdida com escalonamento). |
+| 28 | Canais novos entram pelo mesmo ponto; pedidos do mesmo comprador seguem o mesmo dono (carteira ou último atendente). |
+| 29 | **Explicação** da decisão: grava no `TicketLogs` e mostra no histórico. |
+| 30 | Notificar o dono, ou os online da fila quando não há dono, pelo `NotificationsPopOver` e som existentes. |
+| 31 | **Horário de atendimento entra**, e fora do horário deve haver **roteamento** (atendimento automatizado ou recado). Detalhes na Parte F. |
+| 32 | Atribuição **transacional** com trava por fila. |
+| 33 | Tickets existentes: **não mexer**. |
+| 34 | Painel mostra "sem fila" e "sem dono há mais de N min". |
+| 35 | Configuração nas **telas existentes** (fila e Conexões). |
+| 36 | **Ordem proposta**: integridade, fila padrão, ponto único, Telegram herda fila, transacional e online/pausa, explicação e notificação, escalonamento, último atendente e carteira, visibilidade por dono. |
+
+## Parte F. Consequências e conflitos que as decisões criam (a fechar antes do código)
+
+1. **Q4 remove uma condição da visibilidade.** Hoje o operador vê o ticket se for dele, da fila dele, **ou** de conexão ligada a uma fila dele. Com a Q4, sai a terceira. Passa a valer: ticket só é visível se tem fila (ou dono). Ticket sem fila (Q1) fica só para o administrador. Exige que **todo** ticket receba fila pela regra da Q3 ou pela fila padrão.
+2. **Q15 não diz o que fazer quando a fila não tem pai.** Precisa de um destino de reserva.
+3. **Q31 é uma funcionalidade nova grande.** Pede horário por fila (dias, horas, fuso, feriados) e um destino fora do horário (fluxo automatizado ou recado). É o único item que muda o escopo.
+4. **Q19 solta o dono, mas o ticket pode não ter fila.** Devolver "à fila" precisa de uma fila; sem ela o ticket fica sem dono e sem fila.
+5. **Q18 (mover para outra fila) e Q25 (pai vê filhas) interagem:** excluir uma fila pai precisa decidir o destino das filhas.
+6. **Q9 e Q14 por fila** exigem campos novos no cadastro da fila, e a tela da fila (Q35) cresce.
