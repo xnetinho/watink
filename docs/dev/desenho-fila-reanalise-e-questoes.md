@@ -304,3 +304,46 @@ Se fluxo automatizado e recado são **tipos de fila**, a fila deixa de ser só "
 | `recado` | envia uma mensagem fixa e deixa o ticket aguardando | não | não |
 
 Isso resolve o horário sem criar conceito novo: "fora do horário, a fila X aponta para a fila Y (do tipo fluxo ou recado)". Também conversa com a decisão já tomada de **não reaproveitar o FlowBuilder para a distribuição**: a distribuição continua separada; o fluxo é só um **destino** que a fila pode ter.
+
+## Parte I. Decisões sobre o tipo de fila (10/nov/2026)
+
+| # | Decisão |
+|---|---|
+| H1 | A fila do tipo `fluxo` aponta para um fluxo por um campo **`flowId`** na fila; ao entrar nela, o ticket dispara esse fluxo. |
+| H2 | A fila do tipo `recado` envia o texto configurado **uma vez por ticket** e deixa o ticket **aguardando** o próximo expediente. |
+| H3 | **Volta ao expediente**: no início do horário, os tickets das filas de recado/fluxo voltam à fila humana de origem e entram na distribuição. |
+| H4 | O tipo `fluxo` é o **mesmo mecanismo** para triagem dentro do expediente: qualquer fila pode ser o destino padrão de uma conexão. |
+
+## Parte J. Desenho consolidado (todas as decisões aplicadas)
+
+### Modelo de dados (proposta; sem produção nem legado, entra direto no modelo GORM)
+- **`Queues`**: `tipo` (`humana` | `fluxo` | `recado`), `padrao` (boolean, no máximo uma por empresa), `flowId` (tipo fluxo), `recadoTexto` (tipo recado), `somenteOnline` (Q9), `retornoCliente` (`ultimo_atendente` | `regra`, Q14), `visibilidade` (`fila` | `dono`, Q22), `escalonaApos` (minutos, Q15/Q16), `horario` (jsonb: dias, faixas, fuso) e `foraDoHorarioFilaId` (F4).
+- **`Tickets`**: `ultimoAtendenteId` (Q14), `ultimaMensagemClienteEm` (prazo do escalonamento, Q15).
+- **`TicketLogs`**: tipo `route` com a decisão (regra, módulo, candidatos, motivo; Q29).
+- Remoção de condição na visibilidade (`pkg/auth/tenant.go`): sai "conexão ligada à fila do usuário" (Q4), entra "fila pai vê as filhas" (Q25) e `ehGestor` por setor (Q23).
+
+### Fluxo de um ticket novo (`TicketRouting.Route`)
+1. Grupo? Nasce `open`, sem fila e sem dono (Q26). Fim.
+2. Descobre a fila: regra de roteamento da conexão → fila padrão (F1) → sem fila (só admin).
+3. Fora do horário da fila? Vai para `foraDoHorarioFilaId` (tipo `fluxo` ou `recado`; F3/F4/H1/H2).
+4. Tipo `humana`: aplica a estratégia da fila (carteira só se o contato tem `walletUserId` e a fila pede; último atendente se `retornoCliente`; rodízio/balanceado/primeiro que assume/pessoa fixa; só online se `somenteOnline`; pausa vale). Atribuição transacional com trava por fila (Q32).
+5. Grava a decisão no `TicketLogs` (Q29) e notifica o dono ou os online da fila (Q30).
+6. Escalonamento (varredura periódica): sem resposta em `escalonaApos` min contados da última mensagem do cliente sem resposta → sobe para a **fila pai**; sem pai, **solta o dono e volta à fila** (F2).
+
+### Ordem de entrega (Q36 + F3)
+1. Integridade: excluir fila (**mover** tickets e vínculos, Q18), excluir/desativar usuário (**devolver à fila**, Q19), `queueId` órfão.
+2. Fila padrão + aviso na tela de Conexões (Q1, Q2, F1).
+3. Ponto único `TicketRouting.Route` (Q5, Q6, Q7) ligando a distribuição existente.
+4. Telegram herda a fila da conexão.
+5. Atribuição transacional (Q32), online configurável (Q9) e pausa para mensagem (Q11).
+6. Explicação por ticket e notificação (Q29, Q30).
+7. Escalonamento: fila pai e solta o dono (Q15, Q16, F2), com a visibilidade da fila pai (Q25).
+8. **Horário e tipos de fila** `fluxo` e `recado` (Q31, F3, F4, H1 a H4).
+9. Estratégias novas, último atendente e carteira no Telegram (Q8, Q13, Q14).
+10. Visibilidade por dono e `ehGestor` (Q22 a Q24), por último por ser a de maior risco.
+
+### Lacunas que ainda não decidi sozinho
+- **Fuso e feriados** do horário: um fuso por fila ou por empresa? Feriados entram?
+- **Conexão com regra de roteamento (Q3):** o que é uma "regra" (palavra-chave? tipo de mensagem? contato novo/recorrente?). Hoje não existe nenhum critério para escolher entre filas.
+- **Quando o ticket volta do recado ao expediente (H3):** quem faz a varredura e como evita redistribuir um ticket que o cliente já retomou.
+- **Fila padrão e Q4:** como o aviso de F1 aparece para o operador comum (que não vê o ticket sem fila).
