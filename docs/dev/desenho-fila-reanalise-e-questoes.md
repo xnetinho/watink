@@ -283,3 +283,24 @@ Cada questão tem a **recomendação** e o **custo de não decidir**. Marque a o
 4. **Q19 solta o dono, mas o ticket pode não ter fila.** Devolver "à fila" precisa de uma fila; sem ela o ticket fica sem dono e sem fila.
 5. **Q18 (mover para outra fila) e Q25 (pai vê filhas) interagem:** excluir uma fila pai precisa decidir o destino das filhas.
 6. **Q9 e Q14 por fila** exigem campos novos no cadastro da fila, e a tela da fila (Q35) cresce.
+
+## Parte G. Decisões das consequências (10/nov/2026)
+
+| # | Decisão |
+|---|---|
+| F1 | **Fila padrão obrigatória na prática**: sem regra que case, o ticket usa a fila padrão. Sem fila padrão, fica sem fila e só o administrador vê (com o aviso vermelho da Q2). |
+| F2 | Fila **sem pai** que não é respondida: **soltar o dono e voltar à fila** (outro operador pode assumir). Com pai, sobe para a fila pai (Q15). |
+| F3 | **Horário de atendimento** entra como **etapa própria depois do escalonamento**, sem atrasar as anteriores. |
+| F4 | Destino fora do horário: **outra fila**, a critério do administrador. O administrador sugeriu que **"fluxo automatizado" e "recado" sejam tipos de fila**; assim o horário só precisa apontar para uma fila (ver Parte H). |
+
+## Parte H. Consequência da F4: fila com tipo
+
+Se fluxo automatizado e recado são **tipos de fila**, a fila deixa de ser só "um grupo de atendentes". Passa a ter um `tipo`:
+
+| Tipo | O que é | Tem atendentes? | Estratégia de distribuição? |
+|---|---|---|---|
+| `humana` (hoje) | grupo de operadores | sim | sim |
+| `fluxo` | o ticket entra num fluxo automatizado (FlowBuilder) | não | não |
+| `recado` | envia uma mensagem fixa e deixa o ticket aguardando | não | não |
+
+Isso resolve o horário sem criar conceito novo: "fora do horário, a fila X aponta para a fila Y (do tipo fluxo ou recado)". Também conversa com a decisão já tomada de **não reaproveitar o FlowBuilder para a distribuição**: a distribuição continua separada; o fluxo é só um **destino** que a fila pode ter.
