@@ -1,0 +1,235 @@
+# Fila de distribuição: reanálise profunda e questões de decisão
+
+Status: **relatório para decisão**. Complementa e corrige `desenho-fila-de-distribuicao.md` (que cobria só a entrada do ticket). Nada aqui foi implementado.
+Data da análise: 10/nov/2026. Tudo marcado como **fato** foi lido no código ou medido no banco do `lt`; o que é **proposta** está dito.
+
+## Parte A. O que a primeira proposta deixou de fora
+
+A primeira proposta tratava só de "como um ticket novo escolhe um dono". A reanálise achou 14 áreas que, se ficarem de fora, viram débito técnico:
+
+| # | Área | Estado hoje (fato) |
+|---|---|---|
+| 1 | Conexão sem fila | Ticket nasce sem fila e sem dono; operador comum não o vê (só admin); ninguém é avisado. Chamada de voz não toca para ninguém. A criação da conexão não exige fila. No `lt`, 5 de 5 tickets estão sem fila. |
+| 2 | Conexão com várias filas | `resolveChannelQueue` devolve `nil` com 0 **ou** várias filas. |
+| 3 | Ciclo de vida do ticket | Fechado e o cliente volta: nasce **outro** ticket, sem herdar fila nem dono. Não há "último atendente" gravado. |
+| 4 | Excluir fila | Bloqueado pelo banco (FK sem `ON DELETE`) **se** há usuário ou conexão vinculados; **sem** vínculo, a exclusão passa e o ticket fica com `queueId` apontando para uma fila inexistente. Medido no `lt` (em transação, revertida). |
+| 5 | Excluir ou desativar usuário | `Tickets.userId` tem FK sem `ON DELETE` e o `user_mutation` só limpa `UserSetor`. Não há regra para os tickets dele. |
+| 6 | Hierarquia de filas | `Queues.parentId` existe, é usado só para ordenar a lista. Nada herda ou escala por ele. |
+| 7 | Setor (Acessos) | Existe `Setores` + `setor_filas` + `UserSetor.ehGestor`, **paralelo** a `user_queues`. A visibilidade do operador (`tenant.go`) **não usa** setor. Há dois modelos de "quem pertence a quê". |
+| 8 | Nó `ticket` do bot | `moveToQueue` grava `queueId` e `status=pending`; `assignUser` grava `userId` e `open`. Ambos escrevem direto, sem passar por nenhuma regra. |
+| 9 | Transferência manual | `update_ticket.go` distribui só quando a fila **muda**; transferir para o mesmo usuário ou para a mesma fila não aciona nada. |
+| 10 | Presença, pausa e capacidade | Presença e pausa existem **só para chamada**. Não há limite de tickets por operador nem status "disponível" para mensagem. |
+| 11 | Horário de atendimento | Não existe por fila nem por conexão. |
+| 12 | Notificação ao operador | Existe `NotificationsPopOver` e `notify.ts` no frontend; não há notificação de "ticket novo na sua fila" por regra. |
+| 13 | Grupos | Nascem `open`, sem dono e fora da fila (WhatsApp e Telegram). A visibilidade do grupo para operador comum depende da conexão ligada a uma fila dele. |
+| 14 | Métricas e auditoria | `TicketLogs` registra `status`, `assign` e `transfer`; não há "por que caiu para ele". `dashboard.go` agrega por fila (ignora ticket sem fila). |
+
+## Parte B. Questões para decisão
+
+Cada questão tem a **recomendação** e o **custo de não decidir**. Marque a opção ou escreva a sua.
+
+### Bloco 1: Destino do ticket sem fila (a mais urgente)
+
+**Q1. Conexão sem fila: para onde vão os tickets?**
+- **A.** Fila padrão da empresa (uma fila marcada como "padrão"; conexão sem fila usa essa). *Recomendada.*
+- **B.** Caixa de triagem: estado "sem fila", visível ao supervisor, com aviso.
+- **C.** Exigir pelo menos uma fila para ativar a conexão.
+- **D.** Manter como está (só o administrador vê).
+- Custo de não decidir: tickets (e chamadas) invisíveis para operador comum, sem alerta. Hoje é o estado de 100% dos tickets do `lt`.
+
+**Q2. Se a empresa não tem fila padrão (e a conexão não tem fila), o que acontece?**
+- **A.** A tela de Conexões mostra aviso vermelho e o ticket fica visível só ao administrador. *Recomendada* (mínimo).
+- **B.** Bloqueia a conexão até haver fila.
+- **C.** Cria automaticamente uma fila "Geral" no primeiro ticket.
+
+**Q3. Conexão com várias filas: como escolher a fila do ticket novo?**
+- **A.** A primeira regra de roteamento que casar; se nenhuma casar, a fila padrão. *Recomendada.*
+- **B.** Sempre a fila padrão, e o operador transfere.
+- **C.** Rodízio entre as filas da conexão.
+- **D.** O bot de triagem decide (como hoje com `nil`), sem regra do sistema.
+
+**Q4. Quem pode ver ticket de conexão que está ligada a **várias** filas?** Hoje o operador de **qualquer** uma delas vê (OU de 3 condições).
+- **A.** Manter. *Recomendada no início.*
+- **B.** Só quem é da fila do ticket (depois que ele recebe fila).
+
+### Bloco 2: Ponto de entrada e quem decide
+
+**Q5. Um ponto de entrada único para todo ticket novo?** Hoje cada caminho decide sozinho (mensagem, chamada, bot, ticket manual, webchat, campanha de grupos, encaminhar).
+- **A.** Sim: `TicketRouting.Route` para todos. *Recomendada.*
+- **B.** Só mensagem e chamada; os demais ficam como estão.
+- Custo de B: o bot e o ticket manual continuam sem regra e o desenho "mensagem e chamada seguem a mesma estratégia" fica pela metade.
+
+**Q6. O nó `ticket` do bot (`moveToQueue`/`assignUser`) deve passar pela regra?**
+- **A.** Sim: `moveToQueue` aciona a distribuição da fila de destino; `assignUser` é uma escolha explícita e **respeita** (não redistribui). *Recomendada.*
+- **B.** Sempre escreve direto (como hoje).
+
+**Q7. Webchat e campanha de grupos criam ticket sem passar pelo serviço de entrada.** Entram no ponto único?
+- **A.** Sim. *Recomendada.*
+- **B.** Webchat sim; campanha de grupos não (grupo não tem fila).
+
+### Bloco 3: Estratégias e regras
+
+**Q8. Quais estratégias entram na primeira entrega?**
+- **A.** As 3 que existem (`MANUAL`, `AUTO_ROUND_ROBIN`, `AUTO_BALANCED`) + carteira, sem comportamento novo. *Recomendada na etapa 1.*
+- **B.** Acrescentar já: "primeiro que assume", "online primeiro", "pessoa fixa".
+
+**Q9. Rodízio e balanceamento consideram quem está online e disponível?** Hoje não: sorteiam entre **todos** da fila, mesmo desconectados.
+- **A.** Só entre quem está online (mesma `Presence` da chamada). Se ninguém está, cai na fila. *Recomendada.*
+- **B.** Todos, como hoje.
+- **C.** Configurável por fila.
+
+**Q10. Limite de tickets abertos por operador?**
+- **A.** Não nesta fase. *Recomendada.*
+- **B.** Sim, por fila (ex.: máx. 10); cheio, pula para o próximo.
+- Custo de A: o balanceamento mede só a contagem; um operador sobrecarregado continua recebendo se for o "menos pior".
+
+**Q11. O operador pode "pausar" o recebimento de tickets?** Hoje a pausa vale só para chamada.
+- **A.** Sim, a mesma pausa vale para mensagem. *Recomendada.*
+- **B.** Só chamada.
+
+**Q12. A carteira do contato (`walletUserId`) vale quando o dono da carteira está offline ou pausado?**
+- **A.** Sim, o ticket vai para ele mesmo assim (cliente é dele; comissão). *Recomendada para Vendas.*
+- **B.** Não, segue a regra normal.
+- **C.** Depende do modelo (Vendas = A; Suporte = B).
+
+**Q13. Telegram não tem telefone: como definir a carteira?**
+- **A.** Só por vínculo manual de quem atende ou por vínculo com cliente do CRM; sem vínculo, rodízio. *Recomendada.*
+- **B.** Exigir vínculo antes de distribuir.
+
+### Bloco 4: Ciclo de vida
+
+**Q14. Cliente volta depois de fechar: quem atende o ticket novo?**
+- **A.** O último atendente (precisa gravar "último atendente"), se ele ainda está na fila e disponível. *Recomendada para Vendas.*
+- **B.** Segue a regra normal (como hoje).
+- **C.** Configurável por fila.
+
+**Q15. Ticket aberto sem resposta do operador por N minutos (escalonamento):**
+- **A.** Configurável por fila; ação padrão: avisar o supervisor. *Recomendada.*
+- **B.** Soltar o dono e voltar à fila.
+- **C.** Escalar para a fila pai (`parentId`).
+- **D.** Nada.
+- Pergunta embutida: o prazo conta de quê? **(i)** da chegada, **(ii)** da última mensagem do cliente sem resposta.
+
+**Q16. Ticket `pending` há muito tempo sem ninguém aceitar:**
+- **A.** Mesmo escalonamento da Q15. *Recomendada.*
+- **B.** Nada.
+
+**Q17. Transferir um ticket para outra fila:**
+- **A.** Sempre redistribui na fila nova (se a estratégia for automática). *Recomendada.*
+- **B.** Mantém o dono atual se ele também é da fila nova.
+- **C.** O operador escolhe na hora ("para a fila" ou "para a pessoa").
+
+### Bloco 5: Exclusões e integridade (débito técnico real)
+
+**Q18. Excluir uma fila que tem ticket aberto, usuário ou conexão vinculados:**
+- **A.** Bloquear com mensagem clara ("mova os N tickets e remova os vínculos antes"). *Recomendada.*
+- **B.** Perguntar para qual fila mover os tickets e os vínculos, e mover.
+- **C.** Soltar os tickets (`queueId = NULL`) e remover os vínculos.
+- Fato: hoje, sem usuário nem conexão vinculados, a exclusão **passa** e deixa ticket com `queueId` apontando para uma fila que não existe. Isso precisa de uma correção independente do resto do desenho (chave estrangeira ou regra).
+
+**Q19. Excluir ou desativar um usuário que tem tickets abertos:**
+- **A.** Bloquear até transferir. *Recomendada para exclusão.*
+- **B.** Devolver os tickets à fila (soltar o dono) e redistribuir. *Recomendada para desativação.*
+- **C.** Reatribuir ao gestor do setor (`ehGestor`).
+
+**Q20. Remover um usuário de uma fila enquanto ele tem tickets dela:**
+- **A.** Os tickets continuam com ele até fechar. *Recomendada.*
+- **B.** Voltam para a fila.
+
+**Q21. Desvincular uma conexão da última fila dela:**
+- **A.** Avisa e aplica a Q1 (fila padrão) aos próximos tickets. Os existentes não mudam. *Recomendada.*
+- **B.** Bloqueia.
+
+### Bloco 6: Visibilidade, setor e hierarquia
+
+**Q22. Visibilidade do ticket com dono (a decisão de comissão):**
+- **A.** Por fila: todos da fila veem (hoje). Padrão para Suporte.
+- **B.** Por dono: só o dono e o gestor veem enquanto ele tem dono; sem dono, a fila vê. Padrão para Vendas.
+- **C.** Escolha por fila, com os dois modelos prontos. *Recomendada.*
+
+**Q23. Quem é "gestor" para ver tudo e receber o escalonamento?** Existem dois conceitos: o `alcance` do usuário (empresa/plataforma, vê tudo) e o `ehGestor` do setor.
+- **A.** `ehGestor` do setor vê os tickets das filas **do setor dele** e recebe o escalonamento delas. Quem tem `alcance` de empresa vê tudo. *Recomendada.*
+- **B.** Só `alcance`; o setor não participa.
+- **C.** Criar um papel novo de supervisor.
+
+**Q24. Setor e `user_queues` são dois modelos paralelos de pertencimento. O que fazer?**
+- **A.** `user_queues` continua sendo a **fonte única** de visibilidade e distribuição; o setor só agrupa filas para gestão e relatório. *Recomendada.*
+- **B.** Setor passa a conceder visibilidade (usuário do setor vê as filas do setor).
+- **C.** Unificar os dois num só modelo (mudança maior, fora desta fase).
+
+**Q25. Hierarquia de filas (`parentId`) passa a ter significado?**
+- **A.** Não nesta fase (continua só para ordenar). *Recomendada.*
+- **B.** Sim: o supervisor da fila pai vê as filhas e o escalonamento sobe para ela.
+
+### Bloco 7: Grupos, canais e chamadas
+
+**Q26. Grupo (WhatsApp e Telegram) entra na distribuição?**
+- **A.** Não: nasce `open`, sem dono, fora da fila (como hoje). *Recomendada.*
+- **B.** Entra na fila da conexão e pode ter dono.
+- Pergunta embutida: grupo de uma conexão sem fila é visível para operador comum? Hoje depende do mesmo OU de 3 condições; sem fila na conexão, só o administrador.
+
+**Q27. Chamada de voz recebida:**
+- **A.** Mesma decisão de dono e notificação do ticket; toca só para quem está **online**, e a pausa vale. Ninguém online: vira chamada perdida no ticket da fila, com o escalonamento da Q15. *Recomendada.*
+- **B.** Como hoje (toca para todos os elegíveis).
+
+**Q28. Canais novos (Mercado Livre, OLX, Instagram, TikTok):**
+- **A.** Entram pelo mesmo ponto de entrada, sem lógica própria de distribuição. *Recomendada.*
+- Pergunta embutida: o Mercado Livre tem **uma conversa por pedido**. O mesmo comprador com dois pedidos cai no mesmo dono (carteira/último atendente) ou na regra normal?
+
+### Bloco 8: Operação, auditoria e migração
+
+**Q29. Explicação por ticket ("por que caiu para o João?"):**
+- **A.** Gravar a decisão no `TicketLogs` (`route`: regra, módulo, candidatos, motivo) e mostrar no histórico do ticket. *Recomendada.*
+- **B.** Só log técnico, sem tela.
+
+**Q30. Notificação de ticket novo para o operador:**
+- **A.** Notificar o dono (ou os online da fila, se não há dono) pelo `NotificationsPopOver` e som existente. *Recomendada.*
+- **B.** Sem notificação nova.
+
+**Q31. Horário de atendimento por fila:**
+- **A.** Fora desta fase; deixar o gancho (a regra recebe "agora está dentro do horário?"). *Recomendada.*
+- **B.** Entra já (mensagem automática fora do horário, fila fechada).
+
+**Q32. Concorrência: duas mensagens chegam ao mesmo tempo para uma fila em rodízio.**
+- **A.** Atribuição **transacional** com trava por fila, para o rodízio não dar o mesmo dono duas vezes nem ultrapassar a vez. *Recomendada* (sem isso o rodízio é racional só em baixa carga).
+- **B.** Sem trava (como hoje).
+
+**Q33. Tickets que já existem sem fila e sem dono quando a regra for ativada:**
+- **A.** Não mexer nos existentes; vale só para os novos. *Recomendada.*
+- **B.** Rodar uma redistribuição única, sob botão do administrador, com prévia.
+
+**Q34. Métricas e painel:**
+- **A.** Mostrar "tickets sem fila" e "tickets sem dono há mais de N min" no painel. *Recomendada.*
+- **B.** Fora desta fase.
+
+**Q35. Onde configurar?**
+- **A.** Na própria tela da fila (campos: estratégia, carteira, visibilidade, escalonamento) e na de Conexões (fila padrão e aviso). *Recomendada.*
+- **B.** Tela nova de "Roteamento".
+
+### Bloco 9: Ordem de entrega
+
+**Q36. Ordem proposta (cada item é um PR, com teste de RLS real e prova por mutação):**
+1. **Integridade (independente do resto):** excluir fila/usuário sem deixar ticket órfão (Q18, Q19, Q20).
+2. **Destino do ticket sem fila:** fila padrão e aviso na tela de Conexões (Q1, Q2, Q3).
+3. **Ponto de entrada único** ligando a distribuição existente a mensagem, chamada, bot e ticket manual (Q5 a Q8).
+4. **Telegram herda a fila da conexão** (igual ao WhatsApp).
+5. **Atribuição transacional** (Q32) e **online/pausa** (Q9, Q11).
+6. **Explicação por ticket** e notificação (Q29, Q30).
+7. **Escalonamento** (Q15, Q16).
+8. **Último atendente** e **carteira no Telegram** (Q13, Q14).
+9. **Visibilidade por dono** e papel do gestor do setor (Q22 a Q24), por último por ser a de maior risco.
+- **A.** Concordo com a ordem.
+- **B.** Quero outra ordem (qual?).
+- **C.** Quero que 1 e 2 saiam antes de qualquer outra coisa, em paralelo.
+
+## Parte C. Riscos que atravessam tudo
+- **Mudança de comportamento em produção** (etapa 3): quem tem fila `AUTO_*` passa a ter tickets novos com dono.
+- **Visibilidade por dono** pode esconder ticket de quem hoje o vê. Precisa de aviso na tela e de teste com RLS real (`rls_session_test.go`) e mutação.
+- **Escalonamento** exige um relógio (varredura periódica, como o `DeliveryWatchdog`), com trava distribuída para não rodar em dobro com mais de uma réplica.
+- **Presença** hoje só conhece quem tem navegador aberto (SSE): usá-la para mensagem esconde quem usa só o celular. Decidir na Q9.
+- **Sem produção nem legado:** colunas e tabelas novas entram direto no modelo GORM/baseline; no `lt` crio à mão ou recrio o banco.
+
+## Parte D. O que não foi verificado
+- Não executei nenhum cenário novo de distribuição; só li o código e consultei o banco do `lt`.
+- O `lt` tem 1 usuário (administrador, `alcance=plataforma`) e nenhum vínculo `user_queues`: o comportamento para operador comum foi lido no SQL de `tenant.go`, **não** exercitado com um operador real.
+- Não medi a carga real de mensagens por fila; a Q32 é uma análise do código, não de um problema observado.
