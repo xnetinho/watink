@@ -59,32 +59,35 @@ func GetScopedDB(c *gin.Context, table string) *gorm.DB {
 		return db.Where("\"tenantId\" = ?", tenantID)
 	}
 
-	// Visibility for agents (non-admin): a ticket is visible when it is assigned to
-	// the user, OR its queue is one of the user's queues, OR it arrived on a channel
-	// linked to one of the user's queues (covers unassigned/pending tickets).
-	// NOTE: join tables user_queues / channel_connection_queues use snake_case columns.
+	// Visibilidade do operador (Q4): os tickets dele + os SEM DONO das filas
+	// dele. Ticket de outro operador nunca aparece, nem na mesma fila.
+	// NOTE: join tables user_queues / channel_connection_queues usam snake_case.
 	switch table {
 	case "Tickets":
 		return db.Where(
-			"\"tenantId\" = ? AND ( "+
-				"\"userId\" = ? "+
-				"OR \"queueId\" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) "+
-				"OR \"channelConnectionId\" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?)) "+
-				")",
+			"\"tenantId\" = ? AND "+TicketVisibilitySQL(""),
 			tenantID, userID, userID, userID)
 	case "Contacts":
 		return db.Where(
 			"\"tenantId\" = ? AND ( "+
 				"\"walletUserId\" = ? "+
-				"OR id IN (SELECT \"contactId\" FROM \"Tickets\" WHERE "+
-				"\"userId\" = ? "+
-				"OR \"queueId\" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) "+
-				"OR \"channelConnectionId\" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?))) "+
+				"OR id IN (SELECT \"contactId\" FROM \"Tickets\" WHERE \"tenantId\" = ? AND "+TicketVisibilitySQL("")+") "+
 				")",
-			tenantID, userID, userID, userID, userID)
+			tenantID, userID, tenantID, userID, userID, userID)
 	default:
 		return db.Where("\"tenantId\" = ?", tenantID)
 	}
+}
+
+// TicketVisibilitySQL é a regra única de visibilidade do ticket para quem NÃO
+// tem alcance de empresa (Q4, PR 2b): atribuído ao usuário, ou sem dono e numa
+// fila/conexão dele. Três placeholders, todos o userId.
+//
+// prefix é o alias da tabela de Tickets na consulta externa (ex.: "t.").
+func TicketVisibilitySQL(prefix string) string {
+	return `(` + prefix + `"userId" = ? OR (` + prefix + `"userId" IS NULL AND (` +
+		prefix + `"queueId" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) ` +
+		`OR ` + prefix + `"channelConnectionId" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?)))))`
 }
 
 // GetScoped extracts the tenant-scoped DB (filtro "tenantId" explícito, ADR 0001) and the validated tenantID.

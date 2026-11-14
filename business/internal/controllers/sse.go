@@ -13,6 +13,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
 	"github.com/alltomatos/watinkdev/business/internal/services"
+	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -48,10 +49,7 @@ func (sc *SSEController) canSeeTicket(tenantID uuid.UUID, userID int, alcance st
 		q := sc.db.WithContext(ctx).Session(&gorm.Session{NewDB: true}).Model(&models.Ticket{}).
 			Where(`id = ? AND "tenantId" = ?`, ticketID, tenantID)
 		if alcance != "tenant" && alcance != "plataforma" {
-			q = q.Where(`("userId" = ? `+
-				`OR "queueId" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) `+
-				`OR "channelConnectionId" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?)))`,
-				userID, userID, userID)
+			q = q.Where(auth.TicketVisibilitySQL(""), userID, userID, userID)
 		}
 		var n int64
 		return q.Count(&n).Error == nil && n > 0
