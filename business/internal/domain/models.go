@@ -90,8 +90,10 @@ type Queue struct {
 	ParentID             *int            `json:"parentId"`
 	TenantID             uuid.UUID       `json:"tenantId"`
 	Whatsapps            []QueueWhatsapp `json:"whatsapps,omitempty"`
-	CreatedAt            time.Time       `json:"createdAt"`
-	UpdatedAt            time.Time       `json:"updatedAt"`
+	// IsDefault é derivado de Tenants.defaultQueueId (não é coluna da fila).
+	IsDefault bool      `json:"isDefault"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // User represents a system user (agent/admin)

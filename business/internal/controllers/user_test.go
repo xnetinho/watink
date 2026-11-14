@@ -51,7 +51,7 @@ func (m *mockUserRepo) FindByID(ctx context.Context, id int, tenantID uuid.UUID)
 		Name     string
 		Email    string
 		Alcance  string
-		CargoID  *int `gorm:"column:cargoId"`
+		CargoID  *int   `gorm:"column:cargoId"`
 		TenantID string `gorm:"column:tenantId"`
 		Configs  string
 	}

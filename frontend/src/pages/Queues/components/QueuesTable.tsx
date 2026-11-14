@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { Edit, Trash2, Loader2, GitMerge } from "lucide-react";
+import { Edit, Trash2, Loader2, GitMerge, Star } from "lucide-react";
 
 import { i18n } from "../../../translate/i18n";
 import {
@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "../../../components/ui/table";
 import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
 import { Queue } from "../queuesTypes";
 
 
@@ -20,9 +21,10 @@ interface QueuesTableProps {
   loading: boolean;
   onEdit: (queue: Queue) => void;
   onDelete: (queue: Queue) => void;
+  onSetDefault: (queue: Queue) => void;
 }
 
-export function QueuesTable({ queues, loading, onEdit, onDelete }: QueuesTableProps) {
+export function QueuesTable({ queues, loading, onEdit, onDelete, onSetDefault }: QueuesTableProps) {
   return (
     <div className="rounded-md border bg-card">
       <Table>
@@ -43,6 +45,11 @@ export function QueuesTable({ queues, loading, onEdit, onDelete }: QueuesTablePr
                 <div className="flex items-center gap-2">
                   <GitMerge className="h-4 w-4 text-primary" />
                   <span className="font-semibold">{queue.name}</span>
+                  {queue.isDefault ? (
+                    <Badge variant="secondary" title={tr("uiText.queues.defaultHint")}>
+                      {tr("uiText.queues.defaultBadge")}
+                    </Badge>
+                  ) : null}
                 </div>
               </TableCell>
               <TableCell>
@@ -63,6 +70,15 @@ export function QueuesTable({ queues, loading, onEdit, onDelete }: QueuesTablePr
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-8 w-8 ${queue.isDefault ? "text-amber-500" : "text-muted-foreground"}`}
+                    title={tr(queue.isDefault ? "uiText.queues.unsetDefault" : "uiText.queues.setDefault")}
+                    onClick={() => onSetDefault(queue)}
+                  >
+                    <Star className="h-4 w-4" fill={queue.isDefault ? "currentColor" : "none"} />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"

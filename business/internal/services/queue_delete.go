@@ -41,6 +41,22 @@ func DeleteQueue(ctx context.Context, db *gorm.DB, tenantID uuid.UUID, queueID i
 			}
 			return err
 		}
+		// moveTo é validado mesmo sem dependentes: ele também pode virar a nova
+		// fila padrão da empresa (tenant.defaultQueueId).
+		if moveTo != nil {
+			if *moveTo == queueID {
+				return ErrQueueMoveInvalid
+			}
+			var count int64
+			if err := tx.Model(&models.Queue{}).
+				Where(`id = ? AND "tenantId" = ?`, *moveTo, tenantID).
+				Count(&count).Error; err != nil {
+				return err
+			}
+			if count == 0 {
+				return ErrQueueMoveInvalid
+			}
+		}
 		dep, err := queueDependents(tx, tenantID, queueID)
 		if err != nil {
 			return err
@@ -50,6 +66,24 @@ func DeleteQueue(ctx context.Context, db *gorm.DB, tenantID uuid.UUID, queueID i
 				return &QueueHasDependentsError{Dependents: dep}
 			}
 			if err := moveQueueDependents(tx, tenantID, queueID, *moveTo); err != nil {
+				return err
+			}
+		}
+		// A fila padrão não pode apontar para uma fila que não existe mais: com
+		// destino ela passa a ser o destino; sem destino (nada a mover) fica nula.
+		var tenant models.Tenant
+		tenantErr := tx.Select(`"defaultQueueId"`).Where("id = ?", tenantID).First(&tenant).Error
+		if tenantErr != nil && !errors.Is(tenantErr, gorm.ErrRecordNotFound) {
+			return tenantErr
+		}
+		if tenantErr == nil && tenant.DefaultQueueID != nil && *tenant.DefaultQueueID == queueID {
+			var next interface{}
+			if moveTo != nil {
+				next = *moveTo
+			}
+			if err := tx.Model(&models.Tenant{}).
+				Where("id = ?", tenantID).
+				Updates(map[string]interface{}{"defaultQueueId": next}).Error; err != nil {
 				return err
 			}
 		}

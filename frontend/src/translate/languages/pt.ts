@@ -1384,6 +1384,7 @@ const messages = {
       backendErrors: {
         ERR_QUEUE_HAS_DEPENDENTS: "A fila ainda tem tickets, usuários, conexões ou setores. Escolha uma fila de destino.",
         ERR_QUEUE_MOVE_INVALID: "A fila de destino é inválida.",
+        ERR_DEFAULT_QUEUE_INVALID: "A fila escolhida como padrão é inválida.",
         ERR_USER_HAS_WALLET: "O usuário é responsável por contatos. Escolha quem recebe a carteira.",
         ERR_WALLET_TARGET_INVALID: "O usuário que receberia a carteira é inválido.",
         ERR_CANNOT_DEACTIVATE_SELF: "Você não pode desativar o próprio usuário.",
@@ -3298,6 +3299,13 @@ const messages = {
         },
         queues: {
           pageDescription: "Configure as filas de atendimento e fluxos de triagem automática",
+          defaultBadge: "Padrão",
+          defaultHint: "Recebe os tickets das conexões que não têm fila.",
+          setDefault: "Definir como padrão",
+          unsetDefault: "Remover padrão",
+          defaultSet: "Fila padrão definida",
+          defaultCleared: "Fila padrão removida",
+          noGreeting: "Sem saudação",
         },
         tagManager: {
           description: "Descrição",

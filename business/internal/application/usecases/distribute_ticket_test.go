@@ -77,6 +77,13 @@ func (m *mockQueueRepo) FindQueueIDsByChannel(_ context.Context, _ int, _ uuid.U
 	return m.channelQueueIDs, nil
 }
 
+func (m *mockQueueRepo) ResolveNewTicketQueue(_ context.Context, _ uuid.UUID, _ int) *int {
+	if len(m.channelQueueIDs) == 1 {
+		return &m.channelQueueIDs[0]
+	}
+	return nil
+}
+
 type mockContactRepo struct {
 	contact *domain.Contact
 	err     error

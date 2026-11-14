@@ -6,6 +6,7 @@ import (
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/internal/routing"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -34,6 +35,11 @@ func (r *GORMQueueRepository) FindQueueIDsByChannel(ctx context.Context, channel
 		return nil, err
 	}
 	return ids, nil
+}
+
+// ResolveNewTicketQueue delega o ponto único (routing) para quem só tem o repo.
+func (r *GORMQueueRepository) ResolveNewTicketQueue(ctx context.Context, tenantID uuid.UUID, connectionID int) *int {
+	return routing.ResolveNewTicketQueue(ctx, r.db, tenantID, connectionID)
 }
 
 func (r *GORMQueueRepository) FindByID(ctx context.Context, id int, tenantID uuid.UUID) (*domain.Queue, error) {

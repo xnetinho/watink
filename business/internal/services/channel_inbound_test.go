@@ -3,6 +3,7 @@ package services_test
 import (
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
@@ -266,4 +267,61 @@ func TestChannelInbound_ReentregaNaoDuplica(t *testing.T) {
 func TestStorageMessageID_WhatsAppMantemOIdCru(t *testing.T) {
 	assert.Equal(t, "3EB0ABC", domain.StorageMessageID(domain.ChannelKindWhatsApp, 5, "5511@s.whatsapp.net", "3EB0ABC"))
 	assert.Equal(t, "telegram:5:chat-A:42", domain.StorageMessageID(domain.ChannelKindTelegram, 5, "chat-A", "42"))
+}
+
+// Telegram (e qualquer canal genérico) herda a mesma fila do WhatsApp: a da
+// conexão quando é única, senão a fila padrão da empresa (PR 2a).
+func TestChannelInboundService_TelegramHerdaFila(t *testing.T) {
+	cases := []struct {
+		name        string
+		linkQueue   bool
+		wantDefault bool
+	}{
+		{"conexão com uma fila usa a da conexão", true, false},
+		{"conexão sem fila usa a padrão", false, true},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			db := testutil.NewTestDB(t)
+			tenantID := uuid.New()
+			require.NoError(t, db.Create(&models.Tenant{ID: tenantID, Name: "T"}).Error)
+			queue := models.Queue{Name: "Padrão", Color: "#000", TenantID: tenantID}
+			require.NoError(t, db.Create(&queue).Error)
+			require.NoError(t, db.Exec(`UPDATE "Tenants" SET "defaultQueueId" = ? WHERE id = ?`, queue.ID, tenantID).Error)
+			connQueue := models.Queue{Name: "Telegram", Color: "#111", TenantID: tenantID}
+			require.NoError(t, db.Create(&connQueue).Error)
+
+			conn := models.ChannelConnection{TenantID: tenantID, Kind: string(domain.ChannelKindTelegram), Name: "TG", Status: "CONNECTED"}
+			require.NoError(t, db.Create(&conn).Error)
+			if tc.linkQueue {
+				require.NoError(t, db.Exec(`INSERT INTO channel_connection_queues (channel_connection_id, queue_id) VALUES (?,?)`, conn.ID, connQueue.ID).Error)
+			}
+
+			ticketRepo := repository.NewGORMTicketRepo(db)
+			contactRepo := repository.NewGORMContactRepo(db)
+			messageRepo := repository.NewGORMMessageRepo(db)
+			uc := usecases.NewReceiveMessageUseCase(nil, messageRepo, contactRepo, ticketRepo, repository.NewGORMQueueRepo(db), nil, nil)
+			svc := services.NewChannelInboundService(db, newMockRedis(), ticketRepo, contactRepo, messageRepo, uc, nil, nil)
+
+			res, err := svc.Receive(context.Background(), domain.InboundMessage{
+				TenantID:            tenantID,
+				ChannelConnectionID: conn.ID,
+				Channel:             domain.ChannelKindTelegram,
+				ExternalMessageID:   "tg-msg-" + strconv.Itoa(i),
+				ConversationKey:     "tg-chat-" + strconv.Itoa(i),
+				Sender:              domain.InboundSender{ExternalID: "tg-chat", Name: "Cliente"},
+				Body:                "oi",
+				MediaType:           "chat",
+				Timestamp:           time.Now(),
+			})
+			require.NoError(t, err)
+			require.NotNil(t, res)
+			require.NotNil(t, res.Ticket.QueueID)
+			if tc.wantDefault {
+				assert.Equal(t, queue.ID, *res.Ticket.QueueID)
+			} else {
+				assert.Equal(t, connQueue.ID, *res.Ticket.QueueID)
+			}
+		})
+	}
 }

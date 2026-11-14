@@ -253,3 +253,45 @@ func TestDeleteUser_RemoveVinculosEHistorico(t *testing.T) {
 		assert.Zero(t, e.count(t, `SELECT count(*) FROM `+tbl+` = $1`, u), tbl)
 	}
 }
+
+// Fila padrão da empresa (PR 2a): excluir a fila padrão não pode deixar a
+// empresa apontando para uma fila inexistente.
+func TestDeleteQueue_FilaPadraoComDestino_PadraoPassaParaODestino(t *testing.T) {
+	e := newQEnv(t)
+	q := e.queue(t, "padrao")
+	dest := e.queue(t, "destino")
+	_, err := e.admin.Exec(`UPDATE "Tenants" SET "defaultQueueId" = $2 WHERE id = $1`, e.tenant, q)
+	require.NoError(t, err)
+
+	require.NoError(t, e.deleteQueue(q, &dest))
+
+	var got *int
+	require.NoError(t, e.admin.QueryRow(`SELECT "defaultQueueId" FROM "Tenants" WHERE id = $1`, e.tenant).Scan(&got))
+	require.NotNil(t, got)
+	assert.Equal(t, dest, *got)
+}
+
+// Sem nada dependurado, a exclusão da padrão vale e a empresa fica sem padrão.
+func TestDeleteQueue_FilaPadraoSemDependentes_LimpaOPadrao(t *testing.T) {
+	e := newQEnv(t)
+	q := e.queue(t, "padrao")
+	_, err := e.admin.Exec(`UPDATE "Tenants" SET "defaultQueueId" = $2 WHERE id = $1`, e.tenant, q)
+	require.NoError(t, err)
+
+	require.NoError(t, e.deleteQueue(q, nil))
+
+	var got *int
+	require.NoError(t, e.admin.QueryRow(`SELECT "defaultQueueId" FROM "Tenants" WHERE id = $1`, e.tenant).Scan(&got))
+	assert.Nil(t, got)
+}
+
+// Destino inválido é recusado mesmo quando a fila não tem dependentes — antes a
+// validação do moveTo só rodava no caminho com dependentes.
+func TestDeleteQueue_DestinoInvalidoMesmoSemDependentes(t *testing.T) {
+	e := newQEnv(t)
+	q := e.queue(t, "vazia")
+
+	err := e.deleteQueue(q, intPtr(999999))
+	assert.ErrorIs(t, err, services.ErrQueueMoveInvalid)
+	assert.Equal(t, 1, e.count(t, `SELECT count(*) FROM "Queues" WHERE id = $1`, q))
+}

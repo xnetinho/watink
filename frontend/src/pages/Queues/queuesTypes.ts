@@ -3,6 +3,8 @@
   name: string;
   color: string | null;
   greetingMessage: string | null;
+  /** Derivado de Tenants.defaultQueueId no GET /queue. */
+  isDefault?: boolean;
 }
 
 export type QueuesAction =

@@ -376,7 +376,7 @@ Tipo de fila (`fluxo`, `recado`) e `flowId`; hierarquia (`parentId`) e escalonam
 
 ### Entrega em 4 PRs
 1. **Integridade:** excluir fila e usuário pede destino e move; nenhum ticket órfão (Q18, Q19, Q20).
-2. **Ponto único + fila padrão + Telegram herda a fila**, ligando a distribuição existente (Q1 a Q7).
+2. **Ponto único + fila padrão + Telegram herda a fila**, ligando a distribuição existente (Q1 a Q7). Implementado em duas partes: **2a** = roteamento único (`internal/routing`), fila padrão da empresa e canais genéricos herdando a fila; **2b** = visibilidade Q4 (meus tickets + sem dono das minhas filas).
 3. **Disponibilidade e capacidade:** online, pausa para mensagem, limite por pessoa, espera com motivo e atribuição transacional (Q9, Q10, Q11, Q29, Q32).
 4. **Horário e mensagem de ausência** + **painel** "sem fila" e "sem dono" (Q31, Q34).
 

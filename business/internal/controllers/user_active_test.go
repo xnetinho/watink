@@ -130,7 +130,8 @@ func TestUpdateUser_DeactivateOnlyActiveAdmin_Conflict(t *testing.T) {
 	assert.True(t, userActiveInDB(t, db, activeAdmin))
 }
 
-func TestUpdateUser_Deactivate_BumpsTokenVersion(t *testing.T) {	gin.SetMode(gin.TestMode)
+func TestUpdateUser_Deactivate_BumpsTokenVersion(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 	db := setupUserTestDB(t)
 	tenantID := uuid.New()
 	agentID := insertActiveUser(t, db, tenantID, "agent@test.com", nil)

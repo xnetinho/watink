@@ -1096,6 +1096,7 @@ const messages = {
       backendErrors: {
         ERR_QUEUE_HAS_DEPENDENTS: "The queue still has tickets, users, connections or sectors. Choose a destination queue.",
         ERR_QUEUE_MOVE_INVALID: "The destination queue is invalid.",
+        ERR_DEFAULT_QUEUE_INVALID: "The chosen default queue is invalid.",
         ERR_USER_HAS_WALLET: "The user is responsible for contacts. Choose who receives the wallet.",
         ERR_WALLET_TARGET_INVALID: "The user who would receive the wallet is invalid.",
         ERR_CANNOT_DEACTIVATE_SELF: "You cannot deactivate your own user.",
@@ -2899,6 +2900,13 @@ const messages = {
         },
         queues: {
           pageDescription: "Configure support queues and automatic triage flows",
+          defaultBadge: "Default",
+          defaultHint: "Receives tickets from connections that have no queue.",
+          setDefault: "Set as default",
+          unsetDefault: "Clear default",
+          defaultSet: "Default queue set",
+          defaultCleared: "Default queue cleared",
+          noGreeting: "No greeting",
         },
         tagManager: {
           description: "Description",

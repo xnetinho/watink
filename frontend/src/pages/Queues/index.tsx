@@ -24,6 +24,7 @@ const Queues = () => {
     handleCloseQueueModal,
     handleEditQueue,
     handleDeleteQueue,
+    handleSetDefault,
     setSelectedQueue,
     setConfirmModalOpen,
     moveRequest,
@@ -87,6 +88,7 @@ const Queues = () => {
             setSelectedQueue(queue);
             setConfirmModalOpen(true);
           }}
+          onSetDefault={handleSetDefault}
         />
       </PageContent>
     </PageContainer>

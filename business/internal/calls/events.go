@@ -134,9 +134,7 @@ func (s *Service) ResolveContactAndTicket(ctx context.Context, tenantID uuid.UUI
 	if ticket == nil {
 		var queueID *int
 		if s.queues != nil {
-			if ids, qerr := s.queues.FindQueueIDsByChannel(ctx, whatsappID, tenantID); qerr == nil && len(ids) == 1 {
-				queueID = &ids[0]
-			}
+			queueID = s.queues.ResolveNewTicketQueue(ctx, tenantID, whatsappID)
 		}
 		ticket, err = s.tickets.FindOrCreatePending(ctx, &domain.Ticket{
 			ContactID: contact.ID, Status: "pending", TenantID: tenantID, ChannelConnectionID: whatsappID, ConversationKey: convKey, QueueID: queueID,

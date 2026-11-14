@@ -115,31 +115,22 @@ func newReceiveUC(cr domain.ContactRepository, tr domain.TicketRepository, mr do
 	return NewReceiveMessageUseCase(eb, mr, cr, tr, nil, nil, nil)
 }
 
-func TestResolveChannelQueue(t *testing.T) {
-	ctx := context.Background()
-	tid := uuid.New()
+// A resolução em si mora no pacote routing (testado com banco real); aqui só
+// garantimos que o ticket novo nasce com a fila que o ponto único devolveu.
+func TestReceiveMessage_NewTicketInheritsResolvedQueue(t *testing.T) {
+	tenantID := uuid.New()
+	tr := &receiveTicketRepo{}
+	uc := NewReceiveMessageUseCase(&mockEventBus{}, &mockMessageRepo{}, &mockRcvContactRepo{contact: defaultContact()}, tr,
+		&mockQueueRepo{channelQueueIDs: []int{7}}, nil, nil)
 
-	cases := []struct {
-		name string
-		repo domain.QueueRepository
-		want *int
-	}{
-		{"single queue inherits", &mockQueueRepo{channelQueueIDs: []int{7}}, intPtr(7)},
-		{"zero queues -> nil", &mockQueueRepo{channelQueueIDs: nil}, nil},
-		{"multiple queues -> nil", &mockQueueRepo{channelQueueIDs: []int{1, 2}}, nil},
-		{"nil repo -> nil", nil, nil},
+	res, err := uc.Execute(context.Background(), defaultInput(tenantID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
 	}
-
-	for _, tc := range cases {
-		uc := NewReceiveMessageUseCase(nil, nil, nil, nil, tc.repo, nil, nil)
-		got := uc.resolveChannelQueue(ctx, 1, tid)
-		if (got == nil) != (tc.want == nil) || (got != nil && *got != *tc.want) {
-			t.Errorf("%s: got %v, want %v", tc.name, got, tc.want)
-		}
+	if res.Ticket.QueueID == nil || *res.Ticket.QueueID != 7 {
+		t.Fatalf("ticket deveria herdar a fila resolvida (7), veio %v", res.Ticket.QueueID)
 	}
 }
-
-func intPtr(v int) *int { return &v }
 
 // --- tests ---
 
