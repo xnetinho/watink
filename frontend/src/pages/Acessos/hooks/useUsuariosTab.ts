@@ -31,6 +31,7 @@ interface UseUsuariosTabReturn {
   closePanel: () => void;
   saveUser: (id: number | null, payload: UserSavePayload) => Promise<boolean>;
   deleteUser: (user: AcessosUserListItem) => Promise<void>;
+  toggleUserActive: (user: AcessosUserListItem) => Promise<void>;
   walletRequest: { user: AcessosUserListItem; contacts: number } | null;
   closeWalletRequest: () => void;
   deleteUserWithWallet: (user: AcessosUserListItem, walletTo: number) => Promise<void>;
@@ -154,6 +155,17 @@ export function useUsuariosTab(): UseUsuariosTabReturn {
     }
   };
 
+  const toggleUserActive = async (user: AcessosUserListItem) => {
+    try {
+      await api.put(`/users/${user.id}`, { active: !user.active });
+      toast.success(tr(user.active ? "uiText.acessos.userDeactivated" : "uiText.acessos.userActivated"));
+      // Recarrega sempre: se o servidor recusou (409), o catch avisa e a linha não muda.
+      await fetchUsers();
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   const deleteUserWithWallet = async (user: AcessosUserListItem, walletTo: number) => {
     try {
       await api.delete(`/users/${user.id}`, { params: { walletTo } });
@@ -194,6 +206,7 @@ export function useUsuariosTab(): UseUsuariosTabReturn {
     closePanel,
     saveUser,
     deleteUser,
+    toggleUserActive,
     walletRequest,
     closeWalletRequest: () => setWalletRequest(null),
     deleteUserWithWallet,

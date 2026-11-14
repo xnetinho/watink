@@ -99,6 +99,7 @@ export interface AcessosUserListItem {
   tenantId: string;
   cargoId: number | null;
   alcance: Alcance | string;
+  active: boolean;
   configs: string;
   createdAt: string;
   updatedAt: string;
@@ -114,6 +115,7 @@ export interface AcessosUserDetail {
   connectionId: number | null;
   tenantId: string;
   cargoId: number | null;
+  active: boolean;
   configs: string;
   createdAt: string;
   updatedAt: string;
@@ -141,6 +143,7 @@ export interface UserSavePayload {
   email?: string;
   password?: string;
   alcance?: Alcance | string;
+  active?: boolean;
   connectionId?: number | null;
   cargoId?: number | null;
   configs?: string;

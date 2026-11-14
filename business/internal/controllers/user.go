@@ -77,6 +77,7 @@ func (uc *UserController) ShowUser(c *gin.Context) {
 		"name":         userModel.Name,
 		"email":        userModel.Email,
 		"alcance":      userModel.Alcance,
+		"active":       userModel.Active,
 		"connectionId": userModel.ChannelConnectionID,
 		"tenantId":     userModel.TenantID,
 		"cargoId":      userModel.CargoID,

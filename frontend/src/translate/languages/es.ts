@@ -1106,6 +1106,11 @@ const messages = {
         ERR_QUEUE_MOVE_INVALID: "La cola de destino no es válida.",
         ERR_USER_HAS_WALLET: "El usuario es responsable de contactos. Elija quién recibe la cartera.",
         ERR_WALLET_TARGET_INVALID: "El usuario que recibiría la cartera no es válido.",
+        ERR_CANNOT_DEACTIVATE_SELF: "No puede desactivar su propio usuario.",
+        ERR_CANNOT_DEACTIVATE_ADMIN:
+          "El dueño del tenant y el último Administrador no se pueden desactivar.",
+        ERR_USER_DISABLED:
+          "Su cuenta está desactivada. Contacte al administrador.",
         ERR_NO_OTHER_WHATSAPP:
           "Debe haber al menos una conexión de WhatsApp predeterminada.",
         ERR_NO_DEF_WAPP_FOUND:
@@ -2641,6 +2646,19 @@ const messages = {
           newUser: "Nuevo usuario",
           searchUser: "Buscar usuario...",
           userDeleteHint: "El dueño del tenant y el último Administrador no se pueden eliminar.",
+          userStatus: "Estado",
+          userActive: "Activo",
+          userInactive: "Inactivo",
+          deactivateUserTitle: "¿Desactivar al usuario {{name}}?",
+          deactivateUserHint:
+            "El usuario pierde el acceso al sistema y sale de la distribución de tickets. El historial, los tickets y la cartera se conservan.",
+          activateUserTitle: "¿Reactivar al usuario {{name}}?",
+          activateUserHint:
+            "El usuario vuelve a entrar al sistema y a recibir tickets de sus colas.",
+          deactivateUser: "Desactivar acceso",
+          activateUser: "Reactivar acceso",
+          userDeactivated: "Usuario desactivado con éxito",
+          userActivated: "Usuario reactivado con éxito",
           queuesUpdated: "Colas del sector actualizadas",
           memberRemoved: "Miembro eliminado del sector",
           memberAdded: "Miembro agregado al sector",

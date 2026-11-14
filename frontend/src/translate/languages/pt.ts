@@ -1386,6 +1386,9 @@ const messages = {
         ERR_QUEUE_MOVE_INVALID: "A fila de destino é inválida.",
         ERR_USER_HAS_WALLET: "O usuário é responsável por contatos. Escolha quem recebe a carteira.",
         ERR_WALLET_TARGET_INVALID: "O usuário que receberia a carteira é inválido.",
+        ERR_CANNOT_DEACTIVATE_SELF: "Você não pode desativar o próprio usuário.",
+        ERR_CANNOT_DEACTIVATE_ADMIN:
+          "O dono do tenant e o último Administrador não podem ser desativados.",
         ERR_NO_OTHER_WHATSAPP: "Deve haver pelo menos um WhatsApp padrão.",
         ERR_NO_DEF_WAPP_FOUND:
           "Nenhum WhatsApp padrão encontrado. Verifique a página de conexões.",
@@ -3033,6 +3036,19 @@ const messages = {
           newUser: "Novo Usuário",
           searchUser: "Buscar usuário...",
           userDeleteHint: "O dono do tenant e o último Administrador não podem ser excluídos.",
+          userStatus: "Status",
+          userActive: "Ativo",
+          userInactive: "Inativo",
+          deactivateUserTitle: "Desativar o usuário {{name}}?",
+          deactivateUserHint:
+            "O usuário perde o acesso ao sistema e sai da distribuição de tickets. Histórico, tickets e carteira são preservados.",
+          activateUserTitle: "Reativar o usuário {{name}}?",
+          activateUserHint:
+            "O usuário volta a entrar no sistema e a receber tickets das filas dele.",
+          deactivateUser: "Desativar acesso",
+          activateUser: "Reativar acesso",
+          userDeactivated: "Usuário desativado com sucesso",
+          userActivated: "Usuário reativado com sucesso",
           queuesUpdated: "Filas do setor atualizadas",
           memberRemoved: "Membro removido do setor",
           memberAdded: "Membro adicionado ao setor",

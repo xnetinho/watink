@@ -66,6 +66,13 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
+	// Usuário desativado não recebe token novo (o admin desativou em Acessos).
+	// 403 com código traduzido no frontend — nunca 401, que o interceptor trataria como senha errada.
+	if !domainUser.Active {
+		c.JSON(http.StatusForbidden, gin.H{"error": "ERR_USER_DISABLED"})
+		return
+	}
+
 	// TenantStatusGate covers every authenticated route AFTER login, but a
 	// suspended/canceled tenant must never receive a fresh token in the first
 	// place (docs/integration-core.md §2.1) — same superadmin bypass and
@@ -168,6 +175,11 @@ func (ac *AuthController) RefreshToken(c *gin.Context) {
 
 	if user.TokenVersion != tokenVersion {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token version mismatch — please re-login"})
+		return
+	}
+
+	if !user.Active {
+		c.JSON(http.StatusForbidden, gin.H{"error": "ERR_USER_DISABLED"})
 		return
 	}
 
