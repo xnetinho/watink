@@ -1104,6 +1104,7 @@ const messages = {
       backendErrors: {
         ERR_QUEUE_HAS_DEPENDENTS: "La cola aún tiene tickets, usuarios, conexiones o sectores. Elija una cola de destino.",
         ERR_QUEUE_MOVE_INVALID: "La cola de destino no es válida.",
+        ERR_DEFAULT_QUEUE_INVALID: "La cola predeterminada elegida no es válida.",
         ERR_USER_HAS_WALLET: "El usuario es responsable de contactos. Elija quién recibe la cartera.",
         ERR_WALLET_TARGET_INVALID: "El usuario que recibiría la cartera no es válido.",
         ERR_CANNOT_DEACTIVATE_SELF: "No puede desactivar su propio usuario.",
@@ -2908,6 +2909,13 @@ const messages = {
         },
         queues: {
           pageDescription: "Configure las colas de atención y los flujos de triaje automático",
+          defaultBadge: "Predeterminada",
+          defaultHint: "Recibe los tickets de las conexiones que no tienen cola.",
+          setDefault: "Establecer como predeterminada",
+          unsetDefault: "Quitar predeterminada",
+          defaultSet: "Cola predeterminada definida",
+          defaultCleared: "Cola predeterminada eliminada",
+          noGreeting: "Sin saludo",
         },
         tagManager: {
           description: "Descripción",

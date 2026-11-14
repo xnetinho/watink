@@ -86,21 +86,6 @@ func NewReceiveMessageUseCase(
 	}
 }
 
-// resolveChannelQueue returns the queue to assign to a new ticket: when the
-// channel is linked to exactly one queue, that queue is inherited so agents of
-// that queue can see the ticket immediately. With 0 or multiple queues it returns
-// nil (triage/flow decides).
-func (uc *ReceiveMessageUseCase) resolveChannelQueue(ctx context.Context, channelID int, tenantID uuid.UUID) *int {
-	if uc.queueRepo == nil {
-		return nil
-	}
-	ids, err := uc.queueRepo.FindQueueIDsByChannel(ctx, channelID, tenantID)
-	if err != nil || len(ids) != 1 {
-		return nil
-	}
-	return &ids[0]
-}
-
 // Execute processes an incoming message and handles contact, ticket and message persistence.
 func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessageInput) (*ReceiveMessageResult, error) {
 	contactJID := input.From
@@ -156,6 +141,10 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 		if input.IsGroup {
 			ticketStatus = "open"
 		}
+		var queueID *int
+		if uc.queueRepo != nil {
+			queueID = uc.queueRepo.ResolveNewTicketQueue(ctx, input.TenantID, input.SessionID)
+		}
 		ticket, err = uc.ticketRepo.FindOrCreatePending(ctx, &domain.Ticket{
 			ContactID:           contact.ID,
 			Status:              ticketStatus,
@@ -165,7 +154,7 @@ func (uc *ReceiveMessageUseCase) Execute(ctx context.Context, input ReceiveMessa
 			IsGroup:             input.IsGroup,
 			IsCommunity:         input.IsCommunity,
 			IsSubGroup:          input.IsSubGroup,
-			QueueID:             uc.resolveChannelQueue(ctx, input.SessionID, input.TenantID),
+			QueueID:             queueID,
 		})
 		if err != nil {
 			return nil, err

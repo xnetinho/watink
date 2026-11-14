@@ -13,6 +13,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/internal/domain"
 	"github.com/alltomatos/watinkdev/business/internal/flow"
 	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/internal/routing"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -171,6 +172,8 @@ func (s *ChannelInboundService) processInbound(ctx context.Context, msg domain.I
 			ConversationKey:     convKey,
 			Status:              status,
 			IsGroup:             inGroup,
+			// Canal genérico (Telegram, webchat, futuros) herda a mesma fila do WhatsApp.
+			QueueID: routing.ResolveNewTicketQueue(ctx, s.db, msg.TenantID, connID),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create pending ticket: %w", err)

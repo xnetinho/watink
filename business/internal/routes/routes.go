@@ -418,6 +418,7 @@ func SetupRoutes(group *gin.RouterGroup, rabbitMQ RouteRabbitMQ, container *appl
 		protected.POST("/queue", auth.RequirePermission("queues", "create"), queueController.CreateQueue)
 		protected.POST("/queue/", auth.RequirePermission("queues", "create"), queueController.CreateQueue)
 		protected.PUT("/queue/:queueId", auth.RequirePermission("queues", "update"), queueController.UpdateQueue)
+		protected.POST("/queue/default", auth.RequirePermission("queues", "update"), queueController.SetDefaultQueue)
 		protected.DELETE("/queue/:queueId", auth.RequirePermission("queues", "delete"), queueController.DeleteQueue)
 
 		// Quick Answers

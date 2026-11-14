@@ -12,6 +12,7 @@ import (
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -54,7 +55,26 @@ func (qc *QueueController) ListQueues(c *gin.Context) {
 		return
 	}
 
+	// isDefault é derivado da empresa (a fila em si não guarda essa marca).
+	defaultID := tenantDefaultQueueID(db, tenantID)
+	for i := range queues {
+		queues[i].IsDefault = defaultID != nil && *defaultID == queues[i].ID
+	}
+
 	c.JSON(200, queues)
+}
+
+// tenantDefaultQueueID lê a fila padrão da empresa. Session(NewDB) porque o db
+// de GetScoped já carrega o filtro de tenant.
+func tenantDefaultQueueID(db *gorm.DB, tenantID uuid.UUID) *int {
+	var t models.Tenant
+	if err := db.Session(&gorm.Session{NewDB: true}).
+		Select(`"defaultQueueId"`).
+		Where("id = ?", tenantID).
+		First(&t).Error; err != nil {
+		return nil
+	}
+	return t.DefaultQueueID
 }
 
 // @Summary      Detalhar fila
@@ -185,6 +205,59 @@ func (qc *QueueController) UpdateQueue(c *gin.Context) {
 	}
 
 	c.JSON(200, queue)
+}
+
+// @Summary      Definir a fila padrão da empresa
+// @Tags         queues
+// @Accept       json
+// @Produce      json
+// @Param        body  body      map[string]interface{}  true  "{\"queueId\": 1} ou {\"queueId\": null}"
+// @Success      200   {object}  map[string]interface{}
+// @Failure      422   {object}  map[string]string
+// @Security     BearerAuth
+// @Router       /queue/default [post]
+func (qc *QueueController) SetDefaultQueue(c *gin.Context) {
+	db, tenantID, ok := auth.GetScoped(c, "Queues")
+	if !ok {
+		return
+	}
+
+	var body struct {
+		QueueID *int `json:"queueId"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		utils.RespondWithBindError(c, err)
+		return
+	}
+
+	if body.QueueID != nil {
+		var count int64
+		if err := db.Session(&gorm.Session{NewDB: true}).
+			Model(&models.Queue{}).
+			Where(`id = ? AND "tenantId" = ?`, *body.QueueID, tenantID).
+			Count(&count).Error; err != nil {
+			utils.RespondWithInternalError(c, err, "SetDefaultQueue")
+			return
+		}
+		if count == 0 {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "ERR_DEFAULT_QUEUE_INVALID"})
+			return
+		}
+	}
+
+	var value interface{}
+	if body.QueueID != nil {
+		value = *body.QueueID
+	}
+	if err := db.Session(&gorm.Session{NewDB: true}).
+		Model(&models.Tenant{}).
+		Where("id = ?", tenantID).
+		Updates(map[string]interface{}{"defaultQueueId": value}).Error; err != nil {
+		utils.RespondWithInternalError(c, err, "SetDefaultQueue")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"defaultQueueId": body.QueueID})
 }
 
 // @Summary      Remover fila

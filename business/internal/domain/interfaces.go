@@ -108,6 +108,9 @@ type QueueRepository interface {
 	// FindQueueIDsByChannel returns the queue IDs linked to a WhatsApp channel
 	// (via the channel_connection_queues join table), scoped to the tenant.
 	FindQueueIDsByChannel(ctx context.Context, channelID int, tenantID uuid.UUID) ([]int, error)
+	// ResolveNewTicketQueue é o ponto único da fila de um ticket novo
+	// (conexão com uma fila → ela; senão a fila padrão da empresa; senão nil).
+	ResolveNewTicketQueue(ctx context.Context, tenantID uuid.UUID, connectionID int) *int
 }
 
 type WhatsAppConnectionDetailsRepository interface {

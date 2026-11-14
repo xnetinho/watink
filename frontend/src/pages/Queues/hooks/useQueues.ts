@@ -1,4 +1,4 @@
-﻿import { useEffect, useReducer, useState } from "react";
+﻿import { useCallback, useEffect, useReducer, useState } from "react";
 import { toast } from "react-toastify";
 
 import api from "../../../services/api";
@@ -49,6 +49,7 @@ export interface UseQueuesReturn {
   handleCloseQueueModal: () => void;
   handleEditQueue: (queue: Queue) => void;
   handleDeleteQueue: (queueId: number) => Promise<void>;
+  handleSetDefault: (queue: Queue) => Promise<void>;
   setSelectedQueue: (queue: Queue | null) => void;
   setConfirmModalOpen: (open: boolean) => void;
 }
@@ -61,19 +62,21 @@ export function useQueues(): UseQueuesReturn {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [moveRequest, setMoveRequest] = useState<{ queue: Queue; dependents: QueueDependents } | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const { data } = await api.get<Queue[]>("/queue");
-        dispatch({ type: "LOAD_QUEUES", payload: data });
-      } catch (err) {
-        toastError(err);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const loadQueues = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get<Queue[]>("/queue");
+      dispatch({ type: "LOAD_QUEUES", payload: data });
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadQueues();
+  }, [loadQueues]);
 
   useEffect(() => {
     const handleQueue = (data: { action: string; queue?: Queue; queueId?: number }) => {
@@ -101,6 +104,19 @@ export function useQueues(): UseQueuesReturn {
   const handleEditQueue = (queue: Queue) => {
     setSelectedQueue(queue);
     setQueueModalOpen(true);
+  };
+
+  /** Fila padrão recebe o ticket das conexões sem fila; clicar de novo remove. */
+  const handleSetDefault = async (queue: Queue) => {
+    try {
+      await api.post("/queue/default", { queueId: queue.isDefault ? null : queue.id });
+      toast.success(
+        i18n.t(queue.isDefault ? "uiText.queues.defaultCleared" : "uiText.queues.defaultSet")
+      );
+      await loadQueues();
+    } catch (err) {
+      toastError(err);
+    }
   };
 
   const handleDeleteQueue = async (queueId: number) => {
@@ -143,6 +159,7 @@ export function useQueues(): UseQueuesReturn {
     handleCloseQueueModal,
     handleEditQueue,
     handleDeleteQueue,
+    handleSetDefault,
     setSelectedQueue,
     setConfirmModalOpen,
   };
