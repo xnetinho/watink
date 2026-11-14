@@ -3,6 +3,7 @@ package calls
 import (
 	"context"
 	"github.com/alltomatos/watinkdev/business/internal/models"
+	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -32,10 +33,7 @@ func (s *Service) scoped(ctx context.Context, sc HistoryScope) *gorm.DB {
 	if sc.Tenant {
 		return q
 	}
-	return q.Where(`"CallLogs"."ticketId" IN (SELECT t.id FROM "Tickets" t WHERE t."tenantId" = ? AND (`+
-		`t."userId" = ? `+
-		`OR t."queueId" IN (SELECT queue_id FROM user_queues WHERE user_id = ?) `+
-		`OR t."channelConnectionId" IN (SELECT wq.channel_connection_id FROM channel_connection_queues wq WHERE wq.queue_id IN (SELECT queue_id FROM user_queues WHERE user_id = ?))))`,
+	return q.Where(`"CallLogs"."ticketId" IN (SELECT t.id FROM "Tickets" t WHERE t."tenantId" = ? AND `+auth.TicketVisibilitySQL("t.")+`)`,
 		sc.TenantID, sc.UserID, sc.UserID, sc.UserID)
 }
 
