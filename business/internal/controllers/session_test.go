@@ -176,6 +176,7 @@ func TestAuthController_Login_Success(t *testing.T) {
 		PasswordHash: "$2a$10$ORoXEjnLJ7u4l4Ud0OPr8.FdCHuUyAR7lRJ05gIdiCtSrpVgqP/0e",
 		TenantID:     tenantID,
 		Alcance:      "tenant",
+		Active:       true,
 	}
 	mockRepo.On("FindByEmailForAuth", mock.Anything, "test@watink.com").Return(user, nil)
 
@@ -194,6 +195,40 @@ func TestAuthController_Login_Success(t *testing.T) {
 	var respBody map[string]interface{}
 	assert.NoError(t, json.Unmarshal(res.Body.Bytes(), &respBody))
 	assert.NotEmpty(t, respBody["token"])
+	mockRepo.AssertExpectations(t)
+}
+
+func TestAuthController_Login_UserInactive(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	mockRepo := new(MockUserRepo)
+	controller := NewAuthController(mockRepo)
+
+	tenantID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	user := &domain.User{
+		ID:           1,
+		Email:        "test@watink.com",
+		PasswordHash: "$2a$10$ORoXEjnLJ7u4l4Ud0OPr8.FdCHuUyAR7lRJ05gIdiCtSrpVgqP/0e",
+		TenantID:     tenantID,
+		Alcance:      "tenant",
+		Active:       false,
+	}
+	mockRepo.On("FindByEmailForAuth", mock.Anything, "test@watink.com").Return(user, nil)
+
+	router := gin.New()
+	router.POST("/login", controller.Login)
+
+	payload := map[string]string{"email": "test@watink.com", "password": "correct_password"}
+	body, _ := json.Marshal(payload)
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+
+	router.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusForbidden, res.Code)
+	assert.Contains(t, res.Body.String(), "ERR_USER_DISABLED")
+	assert.NotContains(t, res.Body.String(), "token")
 	mockRepo.AssertExpectations(t)
 }
 
@@ -309,6 +344,7 @@ func TestAuthController_RefreshToken_Success(t *testing.T) {
 		Email:        "alice@watink.com",
 		TenantID:     tenantID,
 		Alcance:      "tenant",
+		Active:       true,
 		TokenVersion: 0,
 	}
 	mockRepo := new(MockUserRepo)
@@ -329,5 +365,48 @@ func TestAuthController_RefreshToken_Success(t *testing.T) {
 	var respBody map[string]interface{}
 	assert.NoError(t, json.Unmarshal(res.Body.Bytes(), &respBody))
 	assert.NotEmpty(t, respBody["token"])
+	mockRepo.AssertExpectations(t)
+}
+
+// Desativado no meio da sessão: o refresh não renova mais o access token.
+func TestAuthController_RefreshToken_UserInactive(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	refreshSecret := "test-refresh-secret-key-32chars!"
+	require.NoError(t, os.Setenv("JWT_REFRESH_SECRET", refreshSecret))
+
+	tenantID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
+	tokenClaims := jwt.MapClaims{
+		"id":           float64(5),
+		"tenantId":     tenantID.String(),
+		"tokenVersion": float64(0),
+	}
+	rawToken := jwt.NewWithClaims(jwt.SigningMethodHS256, tokenClaims)
+	signedToken, _ := rawToken.SignedString([]byte(refreshSecret))
+
+	user := &domain.User{
+		ID:           5,
+		Email:        "alice@watink.com",
+		TenantID:     tenantID,
+		Alcance:      "tenant",
+		Active:       false,
+		TokenVersion: 0,
+	}
+	mockRepo := new(MockUserRepo)
+	mockRepo.On("FindByID", mock.Anything, 5, tenantID).Return(user, nil)
+
+	controller := NewAuthController(mockRepo)
+
+	router := gin.New()
+	router.POST("/refresh_token", controller.RefreshToken)
+
+	req := httptest.NewRequest(http.MethodPost, "/refresh_token", nil)
+	req.AddCookie(&http.Cookie{Name: "refreshToken", Value: signedToken})
+	res := httptest.NewRecorder()
+
+	router.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusForbidden, res.Code)
+	assert.Contains(t, res.Body.String(), "ERR_USER_DISABLED")
+	assert.NotContains(t, res.Body.String(), "token")
 	mockRepo.AssertExpectations(t)
 }

@@ -17,6 +17,20 @@ func isTenantOwner(db *gorm.DB, userID int, tenantID uuid.UUID) bool {
 	return tenant.OwnerID != nil && *tenant.OwnerID == userID
 }
 
+// hasOtherActiveAdmin reports whether another ACTIVE Administrador exists in
+// the tenant. Desativar o último admin ativo tranca a organização fora mesmo
+// que existam admins já desativados (que não conseguem mais entrar).
+func hasOtherActiveAdmin(db *gorm.DB, userID int, tenantID uuid.UUID) bool {
+	var count int64
+	db.Session(&gorm.Session{NewDB: true}).
+		Table(`"Users"`).
+		Joins(`JOIN "Cargos" c ON c.id = "Users"."cargoId"`).
+		Where(`"Users"."tenantId" = ? AND "Users".active AND "Users".id <> ? AND c.name = 'Administrador' AND c."tenantId" = ?`,
+			tenantID, userID, tenantID).
+		Count(&count)
+	return count > 0
+}
+
 // isLastAdminOfTenant reports whether userID is the only User in the tenant
 // whose Cargo is named "Administrador" — removendo/rebaixando ele deixaria o
 // tenant sem nenhum Administrador (anti-lockout, ADR 0022).

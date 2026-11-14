@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Search, Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Loader2, Power } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,7 @@ const UsuariosTab: React.FC = () => {
     closePanel,
     saveUser,
     deleteUser,
+    toggleUserActive,
     walletRequest,
     closeWalletRequest,
     deleteUserWithWallet,
@@ -53,6 +54,7 @@ const UsuariosTab: React.FC = () => {
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<AcessosUserListItem | null>(null);
+  const [togglingUser, setTogglingUser] = useState<AcessosUserListItem | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -82,6 +84,31 @@ const UsuariosTab: React.FC = () => {
         }}
       >
         {tr("uiText.acessos.userDeleteHint")}
+      </ConfirmationModal>
+
+      <ConfirmationModal
+        title={
+          togglingUser
+            ? tr(
+                togglingUser.active
+                  ? "uiText.acessos.deactivateUserTitle"
+                  : "uiText.acessos.activateUserTitle",
+                { name: togglingUser.name }
+              )
+            : ""
+        }
+        open={togglingUser !== null}
+        onClose={() => setTogglingUser(null)}
+        onConfirm={async () => {
+          if (togglingUser) await toggleUserActive(togglingUser);
+          setTogglingUser(null);
+        }}
+      >
+        {tr(
+          togglingUser?.active
+            ? "uiText.acessos.deactivateUserHint"
+            : "uiText.acessos.activateUserHint"
+        )}
       </ConfirmationModal>
 
       <MoveBeforeDeleteModal
@@ -130,6 +157,7 @@ const UsuariosTab: React.FC = () => {
               <TableHead>{tr("uiText.common.email")}</TableHead>
               <TableHead>{tr("uiText.common.role")}</TableHead>
               <TableHead className="text-center">Alcance</TableHead>
+              <TableHead className="text-center">{tr("uiText.acessos.userStatus")}</TableHead>
               <TableHead className="text-right w-[110px]">{tr("uiText.common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -153,6 +181,11 @@ const UsuariosTab: React.FC = () => {
                 <TableCell className="text-center">
                   <Badge variant="outline">{alcanceLabel(user.alcance)}</Badge>
                 </TableCell>
+                <TableCell className="text-center">
+                  <Badge variant={user.active ? "default" : "secondary"}>
+                    {tr(user.active ? "uiText.acessos.userActive" : "uiText.acessos.userInactive")}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button
@@ -162,6 +195,17 @@ const UsuariosTab: React.FC = () => {
                       onClick={() => openEdit(user)}
                     >
                       <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-8 w-8 ${user.active ? "text-muted-foreground" : "text-emerald-600"}`}
+                      title={tr(
+                        user.active ? "uiText.acessos.deactivateUser" : "uiText.acessos.activateUser"
+                      )}
+                      onClick={() => setTogglingUser(user)}
+                    >
+                      <Power className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -180,7 +224,7 @@ const UsuariosTab: React.FC = () => {
             ))}
             {loading && (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   <div className="flex items-center justify-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
@@ -189,7 +233,7 @@ const UsuariosTab: React.FC = () => {
             )}
             {!loading && users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {tr("uiText.acessos.noUserFound")}
                 </TableCell>
               </TableRow>

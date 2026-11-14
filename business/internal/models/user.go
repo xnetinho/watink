@@ -18,9 +18,12 @@ type User struct {
 	TenantID            uuid.UUID `gorm:"column:tenantId;type:uuid" json:"tenantId"`
 	CargoID             *int      `gorm:"column:cargoId" json:"cargoId"`
 	Alcance             string    `gorm:"column:alcance;default:'proprio'" json:"alcance"`
-	Configs             string    `gorm:"type:json;default:'{}'" json:"configs"`
-	CreatedAt           time.Time `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt           time.Time `gorm:"column:updatedAt" json:"updatedAt"`
+	// Active=false bloqueia login e tira o usuário da distribuição de tickets.
+	// Usuário desativado continua no banco (histórico, carteira e tickets preservados).
+	Active    bool      `gorm:"column:active;not null;default:true" json:"active"`
+	Configs   string    `gorm:"type:json;default:'{}'" json:"configs"`
+	CreatedAt time.Time `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt time.Time `gorm:"column:updatedAt" json:"updatedAt"`
 
 	// Relations
 	Tenant Tenant  `gorm:"foreignKey:TenantID" json:"tenant,omitempty"`

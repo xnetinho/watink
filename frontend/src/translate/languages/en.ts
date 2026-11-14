@@ -1098,6 +1098,10 @@ const messages = {
         ERR_QUEUE_MOVE_INVALID: "The destination queue is invalid.",
         ERR_USER_HAS_WALLET: "The user is responsible for contacts. Choose who receives the wallet.",
         ERR_WALLET_TARGET_INVALID: "The user who would receive the wallet is invalid.",
+        ERR_CANNOT_DEACTIVATE_SELF: "You cannot deactivate your own user.",
+        ERR_CANNOT_DEACTIVATE_ADMIN:
+          "The tenant owner and the last Administrator cannot be deactivated.",
+        ERR_USER_DISABLED: "Your account is disabled. Please contact the administrator.",
         ERR_NO_OTHER_WHATSAPP:
           "There must be at lest one default WhatsApp connection.",
         ERR_NO_DEF_WAPP_FOUND:
@@ -2633,6 +2637,19 @@ const messages = {
           newUser: "New user",
           searchUser: "Search user...",
           userDeleteHint: "The tenant owner and the last Administrator cannot be deleted.",
+          userStatus: "Status",
+          userActive: "Active",
+          userInactive: "Inactive",
+          deactivateUserTitle: "Deactivate the user {{name}}?",
+          deactivateUserHint:
+            "The user loses access to the system and is removed from ticket distribution. History, tickets and wallet are preserved.",
+          activateUserTitle: "Reactivate the user {{name}}?",
+          activateUserHint:
+            "The user can sign in again and receive tickets from their queues.",
+          deactivateUser: "Deactivate access",
+          activateUser: "Reactivate access",
+          userDeactivated: "User deactivated successfully",
+          userActivated: "User reactivated successfully",
           queuesUpdated: "Sector queues updated",
           memberRemoved: "Member removed from the sector",
           memberAdded: "Member added to the sector",

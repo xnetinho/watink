@@ -11,10 +11,14 @@ import (
 
 func TestUserQueueRepo_IsUserInQueue_True(t *testing.T) {
 	db := testutil.NewTestDB(t)
-	db.Exec(`INSERT INTO "user_queues" (user_id, queue_id) VALUES (?, ?)`, 1, 10)
+	tenantID := uuid.New()
+	db.Exec(`INSERT INTO "Users" (name, email, "passwordHash", "tenantId") VALUES (?, ?, ?, ?)`, "Ana", "ana@test.com", "x", tenantID.String())
+	var userID int
+	db.Raw(`SELECT LASTVAL()`).Scan(&userID)
+	db.Exec(`INSERT INTO "user_queues" (user_id, queue_id) VALUES (?, ?)`, userID, 10)
 
 	repo := repository.NewGormUserQueueRepository(db)
-	inQueue, err := repo.IsUserInQueue(context.Background(), 1, 10)
+	inQueue, err := repo.IsUserInQueue(context.Background(), userID, 10)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}

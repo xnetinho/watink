@@ -212,6 +212,7 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 		PasswordHash: tmp.PasswordHash,
 		TenantID:     tenantID,
 		Alcance:      alcance,
+		Active:       true,
 		WhatsappID:   req.WhatsappID,
 		CargoID:      req.CargoID,
 		Configs:      configs,
@@ -316,6 +317,25 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 			return
 		}
 		updateMap["alcance"] = alcance
+	}
+	// Desativar usuário (Acessos): bloqueia login/refresh e tira da distribuição.
+	// Anti-lockout: ninguém desativa a si mesmo, o dono do tenant nem o último
+	// Administrador — sem isso a organização ficaria sem nenhum acesso.
+	if v, ok := req["active"].(bool); ok {
+		if !v {
+			if actorID, hasActor := currentUserID(c); hasActor && actorID == id {
+				c.JSON(http.StatusConflict, gin.H{"error": "ERR_CANNOT_DEACTIVATE_SELF"})
+				return
+			}
+			if isTenantOwner(db, id, tenantID) ||
+				(isCargoAdministrador(db, user.CargoID, tenantID) && !hasOtherActiveAdmin(db, id, tenantID)) {
+				c.JSON(http.StatusConflict, gin.H{"error": "ERR_CANNOT_DEACTIVATE_ADMIN"})
+				return
+			}
+			// Invalida o refresh token já emitido; o access token em uso expira em até 2h.
+			updateMap["tokenVersion"] = gorm.Expr(`COALESCE("tokenVersion", 0) + 1`)
+		}
+		updateMap["active"] = v
 	}
 	if v, ok := req["connectionId"]; ok {
 		if v == "" || v == nil {

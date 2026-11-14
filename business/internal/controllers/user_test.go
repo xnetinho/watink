@@ -22,7 +22,8 @@ import (
 // ── mock implementations ─────────────────────────────────────────────────────
 
 type mockUserRepo struct {
-	db *gorm.DB
+	db         *gorm.DB
+	lastUpdate map[string]interface{}
 }
 
 func (m *mockUserRepo) FindAll(ctx context.Context, tenantID uuid.UUID) ([]domain.User, error) {
@@ -50,10 +51,11 @@ func (m *mockUserRepo) FindByID(ctx context.Context, id int, tenantID uuid.UUID)
 		Name     string
 		Email    string
 		Alcance  string
+		CargoID  *int `gorm:"column:cargoId"`
 		TenantID string `gorm:"column:tenantId"`
 		Configs  string
 	}
-	res := m.db.Raw(`SELECT id, name, email, alcance, "tenantId", configs FROM "Users" WHERE id = ? AND "tenantId" = ?`, id, tenantID).Scan(&row)
+	res := m.db.Raw(`SELECT id, name, email, alcance, "cargoId", "tenantId", configs FROM "Users" WHERE id = ? AND "tenantId" = ?`, id, tenantID).Scan(&row)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -61,7 +63,7 @@ func (m *mockUserRepo) FindByID(ctx context.Context, id int, tenantID uuid.UUID)
 		return nil, nil
 	}
 	tid, _ := uuid.Parse(row.TenantID)
-	return &domain.User{ID: row.ID, Name: row.Name, Email: row.Email, Alcance: row.Alcance, TenantID: tid, Configs: row.Configs}, nil
+	return &domain.User{ID: row.ID, Name: row.Name, Email: row.Email, Alcance: row.Alcance, CargoID: row.CargoID, TenantID: tid, Configs: row.Configs}, nil
 }
 
 func (m *mockUserRepo) FindByIDDetail(ctx context.Context, id int, tenantID uuid.UUID) (*models.User, error) {
@@ -103,8 +105,9 @@ func (m *mockUserRepo) Update(ctx context.Context, user *domain.User, fields map
 	// Persiste name/email/alcance (COALESCE ignora nil) para que testes
 	// possam observar o que o handler realmente escreveu — em especial que
 	// UpdateMe NÃO grava alcance (campo de RBAC) mesmo quando presente no payload.
-	return m.db.Exec(`UPDATE "Users" SET name = COALESCE(?, name), email = COALESCE(?, email), alcance = COALESCE(?, alcance) WHERE id = ?`,
-		fields["name"], fields["email"], fields["alcance"], user.ID).Error
+	m.lastUpdate = fields
+	return m.db.Exec(`UPDATE "Users" SET name = COALESCE(?, name), email = COALESCE(?, email), alcance = COALESCE(?, alcance), active = COALESCE(?, active) WHERE id = ?`,
+		fields["name"], fields["email"], fields["alcance"], fields["active"], user.ID).Error
 }
 
 func (m *mockUserRepo) Delete(ctx context.Context, id int, tenantID uuid.UUID) error {

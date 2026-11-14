@@ -105,6 +105,7 @@ type User struct {
 	TenantID     uuid.UUID `json:"tenantId"`
 	CargoID      *int      `json:"cargoId"`
 	Alcance      string    `json:"alcance"`
+	Active       bool      `json:"active"`
 	Configs      string    `json:"configs"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
