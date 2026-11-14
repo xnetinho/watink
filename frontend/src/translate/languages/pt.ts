@@ -959,6 +959,18 @@ const messages = {
             "Você tem certeza? Essa ação não pode ser revertida! Os tickets dessa fila continuarão existindo, mas não terão mais nenhuma fila atribuída.",
         },
       },
+      moveBeforeDelete: {
+        placeholder: "Escolha o destino",
+        confirm: "Mover e excluir",
+        queueTitle: "Excluir a fila {{name}}",
+        queueDescription:
+          "Esta fila ainda tem {{tickets}} ticket(s), {{users}} usuário(s), {{connections}} conexão(ões), {{setores}} setor(es) e {{children}} fila(s) filha(s). Tudo passa para a fila escolhida antes de a fila ser excluída.",
+        queueTarget: "Mover para a fila",
+        userTitle: "Excluir o usuário {{name}}",
+        userDescription:
+          "Este usuário é responsável por {{contacts}} contato(s). Escolha quem recebe a carteira antes de excluir. Os tickets abertos dele voltam à fila para outro aceitar.",
+        userTarget: "Carteira vai para",
+      },
       queueSelect: {
         inputLabel: "Filas",
       },
@@ -1370,6 +1382,10 @@ const messages = {
         },
       },
       backendErrors: {
+        ERR_QUEUE_HAS_DEPENDENTS: "A fila ainda tem tickets, usuários, conexões ou setores. Escolha uma fila de destino.",
+        ERR_QUEUE_MOVE_INVALID: "A fila de destino é inválida.",
+        ERR_USER_HAS_WALLET: "O usuário é responsável por contatos. Escolha quem recebe a carteira.",
+        ERR_WALLET_TARGET_INVALID: "O usuário que receberia a carteira é inválido.",
         ERR_NO_OTHER_WHATSAPP: "Deve haver pelo menos um WhatsApp padrão.",
         ERR_NO_DEF_WAPP_FOUND:
           "Nenhum WhatsApp padrão encontrado. Verifique a página de conexões.",

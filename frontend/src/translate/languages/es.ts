@@ -839,6 +839,18 @@ const messages = {
             "¿Estás seguro? ¡Esta acción no se puede revertir! Los tickets en esa cola seguirán existiendo, pero ya no tendrán ninguna cola asignada.",
         },
       },
+      moveBeforeDelete: {
+        placeholder: "Elija el destino",
+        confirm: "Mover y eliminar",
+        queueTitle: "Eliminar la cola {{name}}",
+        queueDescription:
+          "Esta cola aún tiene {{tickets}} ticket(s), {{users}} usuario(s), {{connections}} conexión(es), {{setores}} sector(es) y {{children}} cola(s) hija(s). Todo pasa a la cola elegida antes de eliminar esta.",
+        queueTarget: "Mover a la cola",
+        userTitle: "Eliminar al usuario {{name}}",
+        userDescription:
+          "Este usuario es responsable de {{contacts}} contacto(s). Elija quién recibe la cartera antes de eliminar. Sus tickets abiertos vuelven a la cola para que otro los acepte.",
+        userTarget: "La cartera va a",
+      },
       queueSelect: {
         inputLabel: "Linhas",
       },
@@ -1090,6 +1102,10 @@ const messages = {
         },
       },
       backendErrors: {
+        ERR_QUEUE_HAS_DEPENDENTS: "La cola aún tiene tickets, usuarios, conexiones o sectores. Elija una cola de destino.",
+        ERR_QUEUE_MOVE_INVALID: "La cola de destino no es válida.",
+        ERR_USER_HAS_WALLET: "El usuario es responsable de contactos. Elija quién recibe la cartera.",
+        ERR_WALLET_TARGET_INVALID: "El usuario que recibiría la cartera no es válido.",
         ERR_NO_OTHER_WHATSAPP:
           "Debe haber al menos una conexión de WhatsApp predeterminada.",
         ERR_NO_DEF_WAPP_FOUND:

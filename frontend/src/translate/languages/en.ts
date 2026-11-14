@@ -834,6 +834,18 @@ const messages = {
             "Are you sure? It cannot be reverted! Tickets in this queue will still exist, but will not have any queues assigned.",
         },
       },
+      moveBeforeDelete: {
+        placeholder: "Choose the destination",
+        confirm: "Move and delete",
+        queueTitle: "Delete queue {{name}}",
+        queueDescription:
+          "This queue still has {{tickets}} ticket(s), {{users}} user(s), {{connections}} connection(s), {{setores}} sector(s) and {{children}} child queue(s). Everything moves to the chosen queue before this one is deleted.",
+        queueTarget: "Move to queue",
+        userTitle: "Delete user {{name}}",
+        userDescription:
+          "This user is responsible for {{contacts}} contact(s). Choose who receives the wallet before deleting. Their open tickets go back to the queue for someone else to accept.",
+        userTarget: "Wallet goes to",
+      },
       queueSelect: {
         inputLabel: "Queues",
       },
@@ -1082,6 +1094,10 @@ const messages = {
         },
       },
       backendErrors: {
+        ERR_QUEUE_HAS_DEPENDENTS: "The queue still has tickets, users, connections or sectors. Choose a destination queue.",
+        ERR_QUEUE_MOVE_INVALID: "The destination queue is invalid.",
+        ERR_USER_HAS_WALLET: "The user is responsible for contacts. Choose who receives the wallet.",
+        ERR_WALLET_TARGET_INVALID: "The user who would receive the wallet is invalid.",
         ERR_NO_OTHER_WHATSAPP:
           "There must be at lest one default WhatsApp connection.",
         ERR_NO_DEF_WAPP_FOUND:

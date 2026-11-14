@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"errors"
 	"math"
 	"net/http"
 	"strconv"
 
 	"github.com/alltomatos/watinkdev/business/internal/domain"
+	"github.com/alltomatos/watinkdev/business/internal/services"
 	"github.com/alltomatos/watinkdev/business/pkg/auth"
 	"github.com/alltomatos/watinkdev/business/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -151,12 +153,31 @@ func (uc *UserController) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := uc.userRepo.Delete(c.Request.Context(), id, tenantID); err != nil {
-		utils.RespondWithInternalError(c, err, "DeleteUser")
-		return
+	// walletTo (query) é quem recebe os contatos de que o usuário é responsável. Sem contatos na carteira não é necessário.
+	var walletTo *int
+	if raw := c.Query("walletTo"); raw != "" {
+		v, convErr := strconv.Atoi(raw)
+		if convErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid walletTo"})
+			return
+		}
+		walletTo = &v
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+	err := services.DeleteUser(c.Request.Context(), db, tenantID, id, walletTo)
+	var wallet *services.UserWalletError
+	switch {
+	case err == nil:
+		c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+	case errors.Is(err, services.ErrUserNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	case errors.Is(err, services.ErrWalletTargetInvalid):
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "ERR_WALLET_TARGET_INVALID"})
+	case errors.As(err, &wallet):
+		c.JSON(http.StatusConflict, gin.H{"error": "ERR_USER_HAS_WALLET", "contacts": wallet.Contacts})
+	default:
+		utils.RespondWithInternalError(c, err, "DeleteUser")
+	}
 }
 
 func formatInt(v interface{}) int64 {

@@ -31,11 +31,15 @@ interface UseUsuariosTabReturn {
   closePanel: () => void;
   saveUser: (id: number | null, payload: UserSavePayload) => Promise<boolean>;
   deleteUser: (user: AcessosUserListItem) => Promise<void>;
+  walletRequest: { user: AcessosUserListItem; contacts: number } | null;
+  closeWalletRequest: () => void;
+  deleteUserWithWallet: (user: AcessosUserListItem, walletTo: number) => Promise<void>;
   cargoNameById: (cargoId: number | null) => string;
 }
 
 export function useUsuariosTab(): UseUsuariosTabReturn {
   const [users, setUsers] = useState<AcessosUserListItem[]>([]);
+  const [walletRequest, setWalletRequest] = useState<{ user: AcessosUserListItem; contacts: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchParam, setSearchParam] = useState("");
   const [cargos, setCargos] = useState<CargoListItem[]>([]);
@@ -140,6 +144,23 @@ export function useUsuariosTab(): UseUsuariosTabReturn {
       // impede qualquer mutação de estado local.
       await fetchUsers();
     } catch (err) {
+      // 409: o usuário é responsável por contatos. O servidor devolve quantos e a tela pergunta quem recebe a carteira.
+      const e = err as { response?: { status?: number; data?: { contacts?: number } } };
+      if (e.response?.status === 409 && typeof e.response.data?.contacts === "number") {
+        setWalletRequest({ user, contacts: e.response.data.contacts });
+      } else {
+        toastError(err);
+      }
+    }
+  };
+
+  const deleteUserWithWallet = async (user: AcessosUserListItem, walletTo: number) => {
+    try {
+      await api.delete(`/users/${user.id}`, { params: { walletTo } });
+      toast.success(tr("uiText.acessos.userRemoved"));
+      setWalletRequest(null);
+      await fetchUsers();
+    } catch (err) {
       toastError(err);
     }
   };
@@ -173,6 +194,9 @@ export function useUsuariosTab(): UseUsuariosTabReturn {
     closePanel,
     saveUser,
     deleteUser,
+    walletRequest,
+    closeWalletRequest: () => setWalletRequest(null),
+    deleteUserWithWallet,
     cargoNameById,
   };
 }
